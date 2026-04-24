@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — Bug 6248</title>
+<style>
+  body { font-family: Segoe UI, Arial, sans-serif; font-size: 14px; color: #1f1f1f; max-width: 960px; margin: 40px auto; padding: 0 24px; background: #fff; }
+  h1 { font-size: 22px; color: #0078d4; border-bottom: 2px solid #0078d4; padding-bottom: 8px; }
+  h2 { font-size: 16px; color: #323130; margin-top: 28px; border-left: 4px solid #0078d4; padding-left: 10px; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th { background: #0078d4; color: #fff; padding: 8px 10px; text-align: left; font-size: 13px; }
+  td { padding: 7px 10px; border: 1px solid #ddd; vertical-align: top; font-size: 13px; }
+  tr:nth-child(even) td { background: #f7f7f7; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+  .p1 { background: #d13438; color: #fff; }
+  .p2 { background: #ff8c00; color: #fff; }
+  .p3 { background: #107c10; color: #fff; }
+  .bloqueante { background: #d13438; color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  .ct-block { border: 1px solid #e1dfdd; border-radius: 6px; padding: 14px 16px; margin: 14px 0; background: #fafafa; }
+  .ct-block h4 { margin: 0 0 10px 0; font-size: 13px; color: #0078d4; }
+  .ct-block ul { margin: 4px 0 8px 0; padding-left: 20px; }
+  .ct-block li { margin-bottom: 3px; }
+  .label { font-weight: bold; color: #323130; }
+  .info-box { background: #fff4ce; border-left: 4px solid #f7c948; padding: 10px 14px; margin: 14px 0; border-radius: 4px; font-size: 13px; }
+  .formula-box { background: #e6f2fb; border-left: 4px solid #0078d4; padding: 10px 14px; margin: 10px 0; border-radius: 4px; font-size: 13px; }
+  .group-header { background: #e6f2fb; padding: 6px 12px; border-radius: 4px; font-weight: bold; font-size: 13px; margin: 20px 0 10px 0; color: #0078d4; }
+  .risk-alto { color: #d13438; font-weight: bold; }
+  .risk-medio { color: #ff8c00; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<h1>Plano de Teste — Bug 6248<br><small style="font-size:15px;color:#605e5c;">AXA · RCV · Não aparece fatura na ponta para emitir quando há suspensão · CITNET</small></h1>
+
+<h2>1. Identificação</h2>
+<table>
+  <tr><td style="width:180px;font-weight:bold">Bug</td><td>6248</td></tr>
+  <tr><td style="font-weight:bold">Sprint</td><td>Sprint_4_Citweb (13/04/2026 – 24/04/2026)</td></tr>
+  <tr><td style="font-weight:bold">Sistema</td><td><strong>CITNET</strong></td></tr>
+  <tr><td style="font-weight:bold">Módulo</td><td>Emissão de Faturas</td></tr>
+  <tr><td style="font-weight:bold">Seguradora</td><td>AXA</td></tr>
+  <tr><td style="font-weight:bold">Ramo</td><td>RCV (validar em outros ramos aplicáveis)</td></tr>
+  <tr><td style="font-weight:bold">Prioridade SLA</td><td>20</td></tr>
+  <tr><td style="font-weight:bold">Elaborado em</td><td>16/04/2026</td></tr>
+</table>
+
+<h2>2. Descrição do Problema</h2>
+<p>Atualmente, quando existe uma suspensão cadastrada no sistema, a fatura não aparece na ponta para emissão. Mesmo quando a fatura está apta para ser emitida, o sistema não a disponibiliza para visualização e geração, impedindo a continuidade do processo operacional.</p>
+<p>Esse comportamento impacta diretamente o faturamento, ocasionando atrasos, retrabalho e possíveis inconsistências nos controles financeiros.</p>
+
+<div class="info-box">
+  <strong>Exemplo:</strong> se uma suspensão iniciou no dia 15/01/2026, até essa data tiveram embarques que entraram para faturamento. Porém ao cadastrar a suspensão, o sistema suspende o mês todo — impedindo o faturamento dos embarques que ocorreram <strong>antes</strong> do início da suspensão.
+</div>
+
+<table>
+  <tr><th>Resultado Atual</th><th>Resultado Esperado</th></tr>
+  <tr>
+    <td>Fatura não aparece na tela para emissão quando existe suspensão cadastrada, mesmo estando elegível</td>
+    <td>O sistema deve exibir as faturas aptas para emissão, respeitando as regras de negócio — embarques anteriores à suspensão devem ser faturados</td>
+  </tr>
+</table>
+
+<h2>3. Regras de Negócio da Suspensão</h2>
+<table>
+  <tr><th>Cenário</th><th>Comportamento Esperado</th></tr>
+  <tr><td>Suspensão inicia no meio do mês (ex.: dia 15)</td><td>Fatura deve ser emitida com os embarques ocorridos <strong>antes</strong> do início da suspensão</td></tr>
+  <tr><td>Suspensão cobre o mês inteiro (desde o dia 1)</td><td>Fatura <strong>não</strong> deve ser emitida — não houve embarques válidos no período</td></tr>
+  <tr><td>Suspensão parcial + PMM</td><td>Valor proporcional: <strong>(PMM ÷ dias do mês) × dias válidos</strong></td></tr>
+</table>
+
+<div class="formula-box">
+  <strong>Fórmula PMM proporcional:</strong> (PMM ÷ dias do mês) × dias válidos<br>
+  Onde <em>dias válidos</em> = dias do mês anteriores ao início da suspensão<br><br>
+  <strong>Exemplo:</strong> PMM = R$ 300 | Mês = 30 dias | Suspensão a partir do dia 15 → dias válidos = 14<br>
+  (300 ÷ 30) × 14 = <strong>R$ 140,00</strong>
+</div>
+
+<h2>4. Casos de Teste</h2>
+
+<!-- GRUPO 1 -->
+<div class="group-header">Grupo 1 — Bug principal: embarques antes da suspensão devem aparecer para faturamento</div>
+<table>
+  <tr><th>ID</th><th>Título</th><th>Prioridade</th></tr>
+  <tr><td>CT-FTS-001</td><td>Fatura aparece para emissão com embarques realizados antes do início da suspensão <span class="bloqueante">BLOQUEANTE</span></td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-002</td><td>Fatura exibida cobre somente o período fora da suspensão</td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-003</td><td>Fatura com embarques pré-suspensão pode ser emitida com sucesso</td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-004</td><td>Comportamento correto em outros ramos no CITNET (ex.: Nacional 21)</td><td><span class="badge p1">P1</span></td></tr>
+</table>
+
+<div class="ct-block">
+  <h4>CT-FTS-001 — Fatura aparece para embarques pré-suspensão</h4>
+  <p><span class="label">Pré-condição:</span> Apólice RCV AXA no CITNET com suspensão iniciando no dia 15 do mês. Embarques registrados entre o dia 1 e o dia 14 do mesmo mês.</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Acessar CITNET</li>
+    <li>Navegar até a tela de emissão de faturas</li>
+    <li>Localizar a apólice com suspensão cadastrada a partir do dia 15</li>
+    <li>Consultar as faturas disponíveis para o período</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span> Fatura exibida na lista de emissão. Fatura contém os embarques dos dias 1 a 14. Nenhuma mensagem bloqueando indevidamente a visualização.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-002 — Fatura cobre somente o período fora da suspensão</h4>
+  <p><span class="label">Pré-condição:</span> Mesma do CT-FTS-001.</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Localizar a fatura exibida</li>
+    <li>Verificar os embarques e o período coberto</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span> Fatura cobre apenas os dias fora da suspensão. Embarques registrados na suspensão não estão incluídos.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-003 — Emissão da fatura com embarques pré-suspensão</h4>
+  <p><span class="label">Pré-condição:</span> CT-FTS-001 aprovado.</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Selecionar a fatura exibida</li>
+    <li>Executar a emissão</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span> Fatura emitida com sucesso. Sem erro relacionado à suspensão.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-004 — Comportamento correto em outros ramos no CITNET</h4>
+  <p><span class="label">Pré-condição:</span> Apólice de outro ramo disponível no CITNET (ex.: Nacional 21) com suspensão parcial e embarques pré-suspensão.</p>
+  <p><span class="label">Resultado Esperado:</span> Comportamento idêntico ao RCV — fatura exibida e emitida para embarques anteriores ao início da suspensão.</p>
+</div>
+
+<!-- GRUPO 2 -->
+<div class="group-header">Grupo 2 — Suspensão mês inteiro (NÃO deve emitir fatura)</div>
+<table>
+  <tr><th>ID</th><th>Título</th><th>Prioridade</th></tr>
+  <tr><td>CT-FTS-005</td><td>Fatura NÃO aparece quando suspensão cobre o mês inteiro (desde o dia 1) <span class="bloqueante">BLOQUEANTE</span></td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-006</td><td>Após regularização de suspensão total, fatura passa a aparecer</td><td><span class="badge p1">P1</span></td></tr>
+</table>
+
+<div class="ct-block">
+  <h4>CT-FTS-005 — Suspensão mês inteiro — fatura não exibida</h4>
+  <p><span class="label">Pré-condição:</span> Apólice no CITNET com suspensão cadastrada desde o primeiro dia do mês de faturamento.</p>
+  <p><span class="label">Resultado Esperado:</span> Fatura não exibida na tela de emissão. Comportamento correto mantido — não há período válido para faturar.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-006 — Regularização da suspensão total</h4>
+  <p><span class="label">Pré-condição:</span> Apólice no CITNET com suspensão total (fatura oculta).</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Remover ou regularizar a suspensão</li>
+    <li>Acessar tela de emissão de faturas no CITNET</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span> Fatura exibida após regularização.</p>
+</div>
+
+<!-- GRUPO 3 -->
+<div class="group-header">Grupo 3 — Suspensão parcial com PMM (proporcionalidade)</div>
+<table>
+  <tr><th>ID</th><th>Título</th><th>Prioridade</th></tr>
+  <tr><td>CT-FTS-007</td><td>Fatura com PMM e suspensão parcial exibe valor proporcional ao período válido <span class="bloqueante">BLOQUEANTE</span></td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-008</td><td>Validação do cálculo: (PMM ÷ dias do mês) × dias válidos</td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-009</td><td>Fatura com PMM sem suspensão mantém valor integral (regressão)</td><td><span class="badge p1">P1</span></td></tr>
+</table>
+
+<div class="ct-block">
+  <h4>CT-FTS-007 — PMM proporcional ao período anterior à suspensão</h4>
+  <p><span class="label">Pré-condição:</span> Apólice no CITNET com PMM habilitado e suspensão iniciando no dia 15 (mês de 30 dias → 14 dias válidos).</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Localizar a fatura do período na tela de emissão do CITNET</li>
+    <li>Verificar o valor da fatura</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span></p>
+  <ul>
+    <li>Fatura exibida com valor PMM proporcional</li>
+    <li>Fórmula: <strong>(PMM ÷ dias do mês) × dias válidos</strong></li>
+    <li>Exemplo: PMM = R$ 300 | 30 dias | suspensão no dia 15 → dias válidos = 14 → (300 ÷ 30) × 14 = <strong>R$ 140,00</strong></li>
+  </ul>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-008 — Validação do cálculo proporcional</h4>
+  <p><span class="label">Pré-condição:</span> PMM, data de início da suspensão e total de dias do mês conhecidos.</p>
+  <p><span class="label">Passos:</span></p>
+  <ul>
+    <li>Anotar: valor do PMM, total de dias do mês, data de início da suspensão</li>
+    <li>Calcular: dias válidos = (data de início da suspensão) − 1</li>
+    <li>Calcular: (PMM ÷ dias do mês) × dias válidos</li>
+    <li>Comparar com o valor exibido na fatura no CITNET</li>
+  </ul>
+  <p><span class="label">Resultado Esperado:</span> Valor da fatura = resultado do cálculo proporcional. Sem arredondamento indevido.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-009 — PMM sem suspensão mantém valor integral</h4>
+  <p><span class="label">Pré-condição:</span> Apólice no CITNET com PMM habilitado, sem suspensão no mês.</p>
+  <p><span class="label">Resultado Esperado:</span> Fatura exibe PMM integral. Sem impacto da correção do bug.</p>
+</div>
+
+<!-- GRUPO 4 -->
+<div class="group-header">Grupo 4 — Regressão e cenários de borda</div>
+<table>
+  <tr><th>ID</th><th>Título</th><th>Prioridade</th></tr>
+  <tr><td>CT-FTS-010</td><td>Fatura aparece normalmente sem suspensão cadastrada (regressão) <span class="bloqueante">BLOQUEANTE</span></td><td><span class="badge p1">P1</span></td></tr>
+  <tr><td>CT-FTS-011</td><td>Suspensão com data de início futura — fatura do mês corrente aparece normalmente</td><td><span class="badge p2">P2</span></td></tr>
+  <tr><td>CT-FTS-012</td><td>Suspensão expirada — fatura do mês corrente aparece normalmente</td><td><span class="badge p2">P2</span></td></tr>
+</table>
+
+<div class="ct-block">
+  <h4>CT-FTS-010 — Sem suspensão (regressão)</h4>
+  <p><span class="label">Pré-condição:</span> Apólice RCV AXA no CITNET sem suspensão cadastrada, fatura apta.</p>
+  <p><span class="label">Resultado Esperado:</span> Comportamento idêntico ao anterior à correção. Fatura exibida normalmente.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-011 — Suspensão com data futura</h4>
+  <p><span class="label">Pré-condição:</span> Suspensão cadastrada no CITNET com data de início no futuro.</p>
+  <p><span class="label">Resultado Esperado:</span> Fatura do mês corrente exibida normalmente; suspensão futura não impacta o período atual.</p>
+</div>
+
+<div class="ct-block">
+  <h4>CT-FTS-012 — Suspensão expirada</h4>
+  <p><span class="label">Pré-condição:</span> Suspensão com data de término já passada.</p>
+  <p><span class="label">Resultado Esperado:</span> Fatura exibida normalmente; suspensão encerrada não bloqueia emissão.</p>
+</div>
+
+<h2>5. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de Aceitação</th><th>CTs Relacionados</th></tr>
+  <tr><td>Embarques pré-suspensão aparecem para faturamento</td><td>CT-FTS-001, CT-FTS-002, CT-FTS-003</td></tr>
+  <tr><td>Suspensão mês inteiro → sem fatura (regra correta)</td><td>CT-FTS-005</td></tr>
+  <tr><td>PMM proporcional ao período válido</td><td>CT-FTS-007, CT-FTS-008</td></tr>
+  <tr><td>Regularização permite faturamento</td><td>CT-FTS-006</td></tr>
+  <tr><td>Sem regressão (sem suspensão)</td><td>CT-FTS-009, CT-FTS-010</td></tr>
+  <tr><td>Outros ramos no CITNET</td><td>CT-FTS-004</td></tr>
+</table>
+
+<h2>6. Métricas e Critérios de Aceite</h2>
+<table>
+  <tr><th>Fase</th><th>Meta</th><th>Observação</th></tr>
+  <tr><td>Bug principal (embarques pré-suspensão)</td><td>100%</td><td>CT-FTS-001 bloqueante</td></tr>
+  <tr><td>Suspensão total mantida</td><td>100%</td><td>CT-FTS-005 obrigatório</td></tr>
+  <tr><td>PMM proporcional</td><td>100%</td><td>CT-FTS-008 (validação do cálculo) obrigatório</td></tr>
+  <tr><td>Regressão</td><td>100%</td><td>CT-FTS-010 obrigatório</td></tr>
+  <tr><td>Borda</td><td>≥ 80%</td><td></td></tr>
+</table>
+
+<h2>7. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr>
+    <td>Massa com suspensão parcial e embarques pré-suspensão ausente em HML</td>
+    <td><span class="risk-alto">Alto</span></td>
+    <td><span class="risk-alto">Alto</span></td>
+    <td>Preparar massa com embarques registrados antes da data de início da suspensão</td>
+  </tr>
+  <tr>
+    <td>Data exata de início da suspensão não documentada na massa</td>
+    <td><span class="risk-medio">Médio</span></td>
+    <td><span class="risk-alto">Alto</span></td>
+    <td>Anotar e confirmar as datas antes de executar os CTs do Grupo 3</td>
+  </tr>
+  <tr>
+    <td>Comportamento diferente por ramo no CITNET</td>
+    <td><span class="risk-medio">Médio</span></td>
+    <td><span class="risk-medio">Médio</span></td>
+    <td>Executar CT-FTS-004 para os principais ramos disponíveis</td>
+  </tr>
+</table>
+
+<hr style="margin-top:40px;border:none;border-top:1px solid #ddd;">
+<p style="color:#a19f9d;font-size:12px;text-align:center;">Plano de Teste — Bug 6248 · Sprint_4_Citweb · CITNET · Elaborado em 16/04/2026</p>
+
+</body>
+</html>
