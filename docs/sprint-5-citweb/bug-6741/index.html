@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG 6741</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #222; background: #f4f5f7; }
+header { background: #b91c1c; color: #fff; padding: 24px 32px; display: flex; align-items: center; gap: 20px; }
+header .badge { background: #fff; color: #b91c1c; font-weight: 700; font-size: 18px; border-radius: 8px; padding: 8px 18px; white-space: nowrap; }
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .85; margin-top: 4px; }
+.container { max-width: 1100px; margin: 28px auto; padding: 0 20px 60px; }
+.section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); margin-bottom: 24px; overflow: hidden; }
+.section-header { background: #fef2f2; border-left: 4px solid #b91c1c; padding: 12px 20px; font-weight: 700; font-size: 14px; color: #b91c1c; }
+.section-body { padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.info-item label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+.info-item span { font-size: 13px; color: #222; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.metric-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+.metric-card .value { font-size: 28px; font-weight: 700; color: #b91c1c; }
+.metric-card .label { font-size: 12px; color: #64748b; margin-top: 4px; }
+.p1 { background: #fde8e8; color: #b91c1c; font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+.p2 { background: #fef3c7; color: #92400e; font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+.bloqueante { background: #b91c1c; color: #fff; font-size: 11px; border-radius: 4px; padding: 1px 7px; margin-left: 6px; }
+.ct-group { margin-bottom: 28px; }
+.ct-group-title { background: #fde8e8; border-left: 4px solid #b91c1c; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #991b1b; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+.ct-card { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+.ct-card-header { background: #fff5f5; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #e2e8f0; }
+.ct-id { font-weight: 700; color: #b91c1c; font-size: 13px; white-space: nowrap; }
+.ct-title { font-weight: 600; flex: 1; }
+.ct-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.ct-field p, .ct-field ol, .ct-field ul { font-size: 13px; color: #333; line-height: 1.55; }
+.ct-field ol, .ct-field ul { padding-left: 18px; }
+.ct-field.full { grid-column: 1 / -1; }
+/* Evidências */
+.ev-section { margin-top: 14px; border-top: 1px dashed #c8c6c4; padding-top: 10px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: #f3f2f1; color: #605e5c; }
+.ev-ok { background: #dff6dd; color: #107c10; }
+.ev-falha { background: #fde7e9; color: #d13438; }
+/* Resultado */
+.resultado { border-radius: 8px; padding: 16px 20px; margin: 20px 0 28px 0; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.resultado-pendente { background: #f3f2f1; border-left: 5px solid #c8c6c4; }
+.resultado-aprovado { background: #dff6dd; border-left: 5px solid #107c10; }
+.resultado-reprovado { background: #fde7e9; border-left: 5px solid #d13438; }
+.resultado-parcial { background: #fff4ce; border-left: 5px solid #f7c948; }
+.resultado-icon { font-size: 28px; }
+.resultado-label { font-size: 18px; font-weight: 700; }
+.resultado-pendente .resultado-label { color: #605e5c; }
+.resultado-counts { display: flex; gap: 12px; flex-wrap: wrap; }
+.rc { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 12px; }
+.rc-ok { background: #c8f0cb; color: #0b5a0f; }
+.rc-fail { background: #f9c7c9; color: #820a0f; }
+.rc-pend { background: #e1dfdd; color: #3b3a39; }
+.resultado-data { margin-left: auto; font-size: 12px; color: #605e5c; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">BUG 6741</div>
+  <div>
+    <h1>[CITNET] Erro na averbação manual sem condição comercial — Ramo RCV</h1>
+    <p>Sprint _5_Citweb &nbsp;|&nbsp; 11/05/2026 – 22/05/2026 &nbsp;|&nbsp; Elaborado em 25/04/2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section">
+    <div class="section-header">Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Bug</label><span>6741</span></div>
+        <div class="info-item"><label>Sprint</label><span>Sprint _5_Citweb</span></div>
+        <div class="info-item"><label>Período</label><span>11/05/2026 – 22/05/2026</span></div>
+        <div class="info-item"><label>Sistema</label><span>CITNET</span></div>
+        <div class="info-item"><label>Módulo</label><span>Averbação Manual — Ramo 59 (RCV)</span></div>
+        <div class="info-item"><label>Elaborado em</label><span>25/04/2026</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-header">Descrição</div>
+    <div class="section-body">
+      <p style="font-size:13px;line-height:1.6;color:#333;">
+        Ao tentar realizar uma averbação manual no CITNET para o ramo 59 (RCV) quando a apólice não possui
+        condição comercial cadastrada, o sistema não exibia erro e podia travar a interface. O fix deve
+        <strong>bloquear a operação</strong> e exibir a mensagem clara
+        <em>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</em> ao usuário,
+        com comportamento idêntico ao CITWEB.
+      </p>
+    </div>
+  </div>
+
+  <!-- VISÃO GERAL CTs -->
+  <div class="section">
+    <div class="section-header">Visão Geral dos Casos de Teste</div>
+    <div class="section-body">
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="value">6</div>
+          <div class="label">Total de CTs</div>
+        </div>
+        <div class="metric-card">
+          <div class="value">5</div>
+          <div class="label">Prioridade P1</div>
+        </div>
+        <div class="metric-card">
+          <div class="value">1</div>
+          <div class="label">Prioridade P2</div>
+        </div>
+        <div class="metric-card">
+          <div class="value">4</div>
+          <div class="label">Bloqueantes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADO EXECUÇÃO -->
+  <div id="resultado-execucao" class="resultado resultado-pendente">
+    <span class="resultado-icon">&#9203;</span>
+    <span class="resultado-label">PENDENTE</span>
+    <div class="resultado-counts">
+      <span class="rc rc-pend">6 pendentes</span>
+    </div>
+    <div class="resultado-data">Aguardando execução</div>
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-header">Casos de Teste</div>
+    <div class="section-body">
+
+      <!-- GRUPO 1 -->
+      <div class="ct-group">
+        <div class="ct-group-title">Grupo 1 — Bloqueio sem condição comercial</div>
+
+        <!-- CT-AVB-001 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-001</span>
+            <span class="ct-title">Averbação manual ramo 59 sem CC cadastrada — deve bloquear com mensagem exata</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>Apólice de ramo 59 (RCV) disponível no CITNET sem nenhuma condição comercial cadastrada. Usuário logado com permissão de averbação manual.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Acessar apólice ramo 59 sem CC cadastrada</li>
+                <li>Tentar realizar averbação manual</li>
+                <li>Confirmar a averbação</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Sistema bloqueia a operação. Mensagem <strong>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</strong> exibida ao usuário. Averbação não é registrada.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-001"></div>
+        </div>
+
+        <!-- CT-AVB-002 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-002</span>
+            <span class="ct-title">Mensagem exibida é exatamente a especificada no AC</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CT-AVB-001 reproduzível. Mensagem de bloqueio visível na tela.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Reproduzir CT-AVB-001</li>
+                <li>Ler o texto da mensagem exibida pelo sistema</li>
+                <li>Comparar com o texto esperado do Critério de Aceite</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Texto idêntico a <strong>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</strong> — sem diferenças de pontuação, capitalização ou espaçamento.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-002"></div>
+        </div>
+
+        <!-- CT-AVB-003 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-003</span>
+            <span class="ct-title">Interface não trava após o bloqueio</span>
+            <span class="p1">P1</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CT-AVB-001 reproduzível. Mensagem de bloqueio exibida na tela.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Reproduzir CT-AVB-001</li>
+                <li>Fechar / dispensar a mensagem de bloqueio</li>
+                <li>Tentar navegar em outra funcionalidade do CITNET</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Sistema continua operacional. Nenhum travamento ou estado inconsistente. A navegação para outras funcionalidades ocorre normalmente.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-003"></div>
+        </div>
+      </div>
+
+      <!-- GRUPO 2 -->
+      <div class="ct-group">
+        <div class="ct-group-title">Grupo 2 — Comportamento permitido</div>
+
+        <!-- CT-AVB-004 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-004</span>
+            <span class="ct-title">Averbação manual ramo 59 COM CC cadastrada — deve ser permitida</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>Apólice de ramo 59 (RCV) com ao menos uma condição comercial válida cadastrada no CITNET.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Garantir que a apólice ramo 59 possui CC cadastrada</li>
+                <li>Realizar averbação manual</li>
+                <li>Confirmar a averbação</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Averbação registrada com sucesso. Sem mensagem de erro. Fix não impede o fluxo normal quando a CC está devidamente cadastrada.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-004"></div>
+        </div>
+      </div>
+
+      <!-- GRUPO 3 -->
+      <div class="ct-group">
+        <div class="ct-group-title">Grupo 3 — Consistência com CITWEB</div>
+
+        <!-- CT-AVB-005 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-005</span>
+            <span class="ct-title">Comportamento CITNET = CITWEB (mesmo bloqueio, mesma mensagem)</span>
+            <span class="p1">P1</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>Acesso aos ambientes CITNET e CITWEB. Apólice ramo 59 sem CC disponível em ambos.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Reproduzir o mesmo cenário de averbação sem CC no CITWEB</li>
+                <li>Observar a mensagem exibida e o comportamento de bloqueio no CITWEB</li>
+                <li>Comparar com o comportamento observado no CITNET (CT-AVB-001)</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Mesma mensagem, mesmo bloqueio, mesma experiência de usuário nos dois sistemas. Nenhuma divergência de comportamento entre CITNET e CITWEB.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-005"></div>
+        </div>
+
+        <!-- CT-AVB-006 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-006</span>
+            <span class="ct-title">Outros ramos não são afetados pela nova validação</span>
+            <span class="p2">P2</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>Apólice de ramo diferente do 59 disponível no CITNET. A nova validação é exclusiva do ramo 59 / RCV.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Acessar apólice de ramo diferente do 59 no CITNET</li>
+                <li>Tentar realizar averbação manual</li>
+                <li>Verificar se a nova mensagem de bloqueio é exibida indevidamente</li>
+              </ol>
+            </div>
+            <div class="ct-field full">
+              <label>Resultado Esperado</label>
+              <p>Demais ramos funcionam normalmente sem a nova mensagem de validação. Nenhuma regressão introduzida para outros ramos pelo fix do BUG-6741.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-AVB-006"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
