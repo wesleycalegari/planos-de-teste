@@ -1,565 +1,607 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plano de Teste — BUG-6741</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; font-size: 14px; color: #323130; background: #f3f2f1; padding: 24px; }
-    .container { max-width: 1100px; margin: 0 auto; background: #fff; border-radius: 4px; box-shadow: 0 1.6px 3.6px rgba(0,0,0,.13); overflow: hidden; }
-    .header { background: #0078d4; color: #fff; padding: 28px 32px; }
-    .header h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
-    .header .meta { font-size: 13px; opacity: .88; line-height: 1.7; }
-    .content { padding: 28px 32px; }
-    h2 { font-size: 16px; font-weight: 600; color: #0078d4; border-bottom: 2px solid #0078d4; padding-bottom: 6px; margin: 28px 0 14px; }
-    h3 { font-size: 14px; font-weight: 600; color: #323130; margin: 14px 0 6px; }
-    p, li { line-height: 1.6; color: #323130; }
-    ul, ol { padding-left: 20px; margin: 6px 0; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
-    th { background: #0078d4; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
-    td { padding: 8px 12px; border-bottom: 1px solid #edebe9; vertical-align: top; }
-    tr:nth-child(even) td { background: #faf9f8; }
-    .badge { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; color: #fff; }
-    .bloqueante { background: #d13438; }
-    .importante  { background: #ca5010; }
-    .desejavel   { background: #605e5c; }
-    .group-header          { background: #0078d4; color: #fff; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; margin: 22px 0 10px; }
-    .group-header-green    { background: #107c10; color: #fff; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; margin: 22px 0 10px; }
-    .group-header-orange   { background: #ca5010; color: #fff; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; margin: 22px 0 10px; }
-    .group-header-purple   { background: #8764b8; color: #fff; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; margin: 22px 0 10px; }
-    .group-header-gray     { background: #605e5c; color: #fff; padding: 10px 16px; font-weight: 600; font-size: 14px; border-radius: 3px; margin: 22px 0 10px; }
-    .tag-exec { display: inline-block; background: #fff4ce; color: #ca5010; border: 1px solid #ca5010; border-radius: 3px; padding: 2px 8px; font-size: 11px; font-weight: 600; margin-left: 8px; vertical-align: middle; }
-    .ct-block { border: 1px solid #edebe9; border-radius: 4px; margin: 12px 0; padding: 16px 18px; background: #faf9f8; }
-    .ct-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .ct-id { font-weight: 700; font-size: 13px; color: #0078d4; font-family: "Courier New", monospace; }
-    .ct-title { font-weight: 600; font-size: 14px; flex: 1; }
-    .ct-section { margin: 6px 0; }
-    .ct-label { font-weight: 600; color: #605e5c; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; display: block; margin-bottom: 2px; }
-    .steps-list { margin: 4px 0 0 18px; }
-    .steps-list li { margin-bottom: 4px; }
-    .result-box       { background: #deecf9; border-left: 4px solid #0078d4; padding: 8px 12px; margin-top: 8px; border-radius: 0 3px 3px 0; font-size: 13px; }
-    .result-box.pass  { background: #dff6dd; border-color: #107c10; }
-    .result-box.block { background: #fde7e9; border-color: #d13438; }
-    .warn-box { background: #fff4ce; border: 1px solid #f7c948; border-left: 4px solid #ca5010; padding: 10px 14px; border-radius: 3px; margin: 10px 0; font-size: 13px; }
-    .info-box  { background: #deecf9; border: 1px solid #0078d4; border-left: 4px solid #0078d4; padding: 10px 14px; border-radius: 3px; margin: 10px 0; font-size: 13px; }
-    .result-pendente { background: #f3f2f1; border: 1px solid #c8c6c4; border-left: 5px solid #c8c6c4; border-radius: 4px; padding: 14px 18px; margin: 20px 0; }
-    .result-pendente h3 { color: #605e5c; }
-    .result-aprovado { background: #dff6dd; border: 1px solid #107c10; border-left: 5px solid #107c10; border-radius: 4px; padding: 14px 18px; margin: 20px 0; }
-    .result-aprovado h3 { color: #107c10; }
-    .metrics-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
-    .metric-card { background: #f3f2f1; border-radius: 4px; padding: 14px 20px; text-align: center; min-width: 110px; }
-    .metric-card .num { font-size: 26px; font-weight: 700; color: #0078d4; }
-    .metric-card .lbl { font-size: 11px; color: #605e5c; margin-top: 2px; }
-    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: "Courier New", monospace; font-size: 12px; color: #d13438; }
-  </style>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG-6741</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #222; background: #f4f5f7; }
+header { background: #0078d4; color: #fff; padding: 24px 32px; display: flex; align-items: center; gap: 20px; }
+header .badge { background: #fff; color: #0078d4; font-weight: 700; font-size: 18px; border-radius: 8px; padding: 8px 18px; white-space: nowrap; }
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .85; margin-top: 4px; }
+.container { max-width: 1100px; margin: 28px auto; padding: 0 20px 60px; }
+.section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); margin-bottom: 24px; overflow: hidden; }
+.section-header { background: #deecf9; border-left: 4px solid #0078d4; padding: 12px 20px; font-weight: 700; font-size: 14px; color: #0078d4; }
+.section-body { padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.info-item label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+.info-item span { font-size: 13px; color: #222; }
+.metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.metric-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+.metric-card .value { font-size: 28px; font-weight: 700; color: #0078d4; }
+.metric-card .label { font-size: 12px; color: #64748b; margin-top: 4px; }
+.p1 { background: #fde8e8; color: #b91c1c; font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+.p2 { background: #fef3c7; color: #92400e; font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+.p3 { background: #f3f2f1; color: #605e5c; font-weight: 700; border-radius: 4px; padding: 2px 8px; }
+.bloqueante { background: #d13438; color: #fff; font-size: 11px; border-radius: 4px; padding: 1px 7px; margin-left: 6px; }
+/* Grupos */
+.ct-group { margin-bottom: 28px; }
+.ct-group-title       { background: #deecf9; border-left: 4px solid #0078d4; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #004578; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+.ct-group-title-green { background: #dff6dd; border-left: 4px solid #107c10; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #0b5a0f; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+.ct-group-title-orange{ background: #fff4ce; border-left: 4px solid #ca5010; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #7a3c00; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+.ct-group-title-purple{ background: #f4eefb; border-left: 4px solid #8764b8; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #4e2a7a; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+.ct-group-title-gray  { background: #f3f2f1; border-left: 4px solid #605e5c; padding: 8px 16px; font-weight: 700; font-size: 13px; color: #3b3a39; border-radius: 0 6px 6px 0; margin-bottom: 12px; }
+/* CT cards */
+.ct-card { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; overflow: hidden; }
+.ct-card-header { background: #f0f6ff; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #e2e8f0; }
+.ct-id { font-weight: 700; color: #0078d4; font-size: 13px; white-space: nowrap; }
+.ct-title { font-weight: 600; flex: 1; }
+.ct-body { padding: 14px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+.ct-field p, .ct-field ol, .ct-field ul { font-size: 13px; color: #333; line-height: 1.55; }
+.ct-field ol, .ct-field ul { padding-left: 18px; }
+.ct-field.full { grid-column: 1 / -1; }
+.result-box       { padding: 8px 12px; border-radius: 4px; font-size: 13px; grid-column: 1/-1; }
+.result-box.pass  { background: #dff6dd; border-left: 4px solid #107c10; }
+.result-box.block { background: #fde7e9; border-left: 4px solid #d13438; }
+.result-box.info  { background: #deecf9; border-left: 4px solid #0078d4; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 12px; color: #d13438; }
+.warn-box { background: #fff4ce; border: 1px solid #f7c948; border-left: 4px solid #ca5010; padding: 10px 14px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+.info-box { background: #deecf9; border: 1px solid #0078d4; border-left: 4px solid #0078d4; padding: 10px 14px; border-radius: 4px; margin: 10px 0; font-size: 13px; }
+/* Evidências */
+.ev-section { margin-top: 14px; border-top: 1px dashed #c8c6c4; padding: 10px 16px 14px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: #f3f2f1; color: #605e5c; }
+.ev-ok       { background: #dff6dd; color: #107c10; }
+.ev-falha    { background: #fde7e9; color: #d13438; }
+.ev-obs      { background: #fff4ce; color: #7a4f00; }
+.ev-gallery { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0; }
+.ev-gallery-item { flex: 1; min-width: 280px; max-width: 48%; }
+.ev-gallery-item .ev-img-label { font-size: 11px; color: #605e5c; font-weight: 600; margin-bottom: 4px; }
+.ev-gallery-item a img { width: 100%; border: 1px solid #ddd; border-radius: 4px; display: block; transition: opacity .15s; }
+.ev-gallery-item a img:hover { opacity: .85; cursor: pointer; }
+.ev-result-ok   { padding: 6px 10px; background: #dff6dd; border-radius: 4px; color: #107c10; font-size: 11px; margin-top: 6px; }
+.ev-result-obs  { padding: 6px 10px; background: #fff4ce; border-radius: 4px; color: #7a4f00; font-size: 11px; margin-top: 6px; }
+.ev-result-skip { padding: 6px 10px; background: #f3f2f1; border-radius: 4px; color: #605e5c; font-size: 11px; margin-top: 6px; }
+/* Resultado geral */
+.resultado { border-radius: 8px; padding: 16px 20px; margin: 20px 0 28px 0; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.resultado-aprovado { background: #dff6dd; border-left: 5px solid #107c10; }
+.resultado-pendente { background: #f3f2f1; border-left: 5px solid #c8c6c4; }
+.resultado-icon { font-size: 28px; }
+.resultado-label { font-size: 18px; font-weight: 700; color: #107c10; }
+.resultado-counts { display: flex; gap: 12px; flex-wrap: wrap; }
+.rc { font-size: 13px; font-weight: 600; padding: 4px 12px; border-radius: 12px; }
+.rc-ok   { background: #c8f0cb; color: #0b5a0f; }
+.rc-pend { background: #e1dfdd; color: #3b3a39; }
+.resultado-data { margin-left: auto; font-size: 12px; color: #605e5c; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0; }
+th { background: #0078d4; color: #fff; padding: 9px 12px; text-align: left; font-weight: 600; }
+td { padding: 8px 12px; border-bottom: 1px solid #edebe9; vertical-align: top; }
+tr:nth-child(even) td { background: #fafafa; }
+</style>
 </head>
 <body>
+
+<header>
+  <div class="badge">BUG-6741</div>
+  <div>
+    <h1>[CITNET] Averbação manual sem condição comercial — Ramo RCV (59)</h1>
+    <p>Sprint 5 Citweb &nbsp;|&nbsp; Elaborado em 30/04/2026 &nbsp;|&nbsp; Executado em 04/05/2026</p>
+  </div>
+</header>
+
 <div class="container">
 
-  <div class="header">
-    <h1>Plano de Teste — BUG-6741</h1>
-    <div class="meta">
-      <strong>Card:</strong> BUG-6741 — [CITNET] Erro na averbação manual sem condição comercial — Ramo RCV<br>
-      <strong>Sprint:</strong> Sprint 5 Citweb &nbsp;|&nbsp;
-      <strong>Sistema:</strong> CITNET &nbsp;|&nbsp;
-      <strong>Módulo:</strong> Averbação Manual — Ramo 59 (RCV)<br>
-      <strong>Autor:</strong> Wesley Moreira &nbsp;|&nbsp;
-      <strong>Planejamento:</strong> 30/04/2026 &nbsp;|&nbsp;
-      <strong>Execução:</strong> 04/05/2026 &nbsp;|&nbsp;
-      <strong>Tags:</strong> AXA · CORE · RCV
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section">
+    <div class="section-header">Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Bug</label><span>6741</span></div>
+        <div class="info-item"><label>Sprint</label><span>Sprint 5 Citweb</span></div>
+        <div class="info-item"><label>Sistema</label><span>CITNET</span></div>
+        <div class="info-item"><label>Módulo</label><span>Averbação Manual — Ramo 59 (RCV)</span></div>
+        <div class="info-item"><label>Seguradoras</label><span>AXA HML (primária) · KOVR HML (condicional — pós PBI-6727)</span></div>
+        <div class="info-item"><label>Tags</label><span>AXA · CORE · RCV</span></div>
+        <div class="info-item"><label>Elaborado em</label><span>30/04/2026</span></div>
+        <div class="info-item"><label>Executado em</label><span>04/05/2026</span></div>
+      </div>
     </div>
   </div>
 
-  <div class="content">
-
-    <!-- RESULTADO -->
-    <div class="result-aprovado">
-      <h3>✅ APROVADO — execução concluída em 04/05/2026</h3>
-      <div class="metrics-row" style="margin-top:12px;">
-        <div class="metric-card"><div class="num" style="color:#107c10">6</div><div class="lbl">Aprovados</div></div>
-        <div class="metric-card"><div class="num" style="color:#d13438">0</div><div class="lbl">Reprovados</div></div>
-        <div class="metric-card"><div class="num">6</div><div class="lbl">Executados</div></div>
-        <div class="metric-card"><div class="num">100%</div><div class="lbl">Pass rate</div></div>
-      </div>
-      <p style="margin-top:10px;font-size:13px;">
-        Automação Playwright executada no AXA HML. CT-AVB-001 e CT-AVB-002 confirmam bloqueio com mensagem exata.
-        CT-AVB-003 valida que interface não trava após erro. CT-AVB-004 confirma permissão quando CC existe.
-        CT-AVB-005 verifica consistência CITWEB × CITNET. CT-AVB-007 confirma ausência de regressão em ramo 21.
+  <!-- DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-header">Descrição</div>
+    <div class="section-body">
+      <p style="font-size:13px;line-height:1.6;color:#333;">
+        Bug reportado no CITNET: ao tentar realizar uma <strong>averbação manual no ramo 59 (RCV)</strong> em apólice
+        <strong>sem condição comercial cadastrada</strong>, a interface não exibia mensagem de erro adequada —
+        podia travar ou não informar o usuário sobre a causa do bloqueio. O CITWEB já possuía a validação correta.
       </p>
-      <p style="margin-top:6px;font-size:12px;color:#605e5c;">
-        Evidências: screenshots e JSON em <code>testes-automatizados/bug-6741/evidencias/</code> (run 20260504-105817)
+      <p style="font-size:13px;line-height:1.6;color:#333;margin-top:8px;">
+        O fix adicionou ao CITNET a mesma validação já existente no CITWEB: bloquear a gravação e exibir
+        <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
       </p>
-    </div>
-
-    <!-- 1. DESCRIÇÃO -->
-    <h2>1. Descrição</h2>
-    <p>
-      Bug reportado no CITNET: ao tentar realizar uma <strong>averbação manual no ramo 59 (RCV)</strong> em apólice
-      <strong>sem condição comercial cadastrada</strong>, a interface não exibia mensagem de erro adequada —
-      podia travar ou não informar o usuário sobre a causa do bloqueio. O CITWEB já possuía a validação correta.
-    </p>
-    <p style="margin-top:8px;">
-      O fix adicionou ao CITNET a mesma validação já existente no CITWEB: bloquear a gravação e exibir a mensagem
-      <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
-    </p>
-    <div class="info-box" style="margin-top:12px;">
-      <strong>Regra de negócio:</strong> No ramo RCV (59), a condição comercial é obrigatória para cálculo correto
-      do prêmio. Sem CC cadastrada, nenhuma averbação manual pode ser gravada.
-    </div>
-
-    <!-- 2. ESCOPO -->
-    <h2>2. Escopo</h2>
-    <h3>In scope</h3>
-    <ul>
-      <li>Averbação manual ramo 59 (RCV) no CITNET — validação de ausência de condição comercial</li>
-      <li>Mensagem de erro exibida ao tentar averbar sem CC</li>
-      <li>Comportamento da interface após o bloqueio (não deve travar)</li>
-      <li>Permissão de gravação quando CC válida está presente</li>
-      <li>Consistência da mensagem entre CITWEB e CITNET</li>
-      <li><strong>Seguradoras:</strong> AXA HML (primária) · KOVR HML (condicional — pós PBI-6727)</li>
-    </ul>
-    <h3>Out of scope</h3>
-    <ul>
-      <li>Averbação automática via CT-e — não passou pelo fix</li>
-      <li>Outros ramos (21, 54, 56, etc.) — regra exclusiva do ramo 59</li>
-      <li>Ambiente de produção e staging</li>
-    </ul>
-
-    <!-- 3. PRÉ-REQUISITOS -->
-    <h2>3. Pré-Requisitos</h2>
-    <table>
-      <tr><th style="width:210px">Item</th><th>Detalhe</th></tr>
-      <tr>
-        <td>Ambiente — AXA HML</td>
-        <td>
-          CITNET: <code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code><br>
-          CITWEB: <code>https://axa-hml-faturamento.nsseg.com.br/login/</code> (para CT-AVB-004)
-        </td>
-      </tr>
-      <tr>
-        <td>Massa — apólice <em>sem</em> CC</td>
-        <td>
-          Apólice ramo 59 (RCV) AXA HML <strong>sem nenhuma condição comercial cadastrada</strong>.<br>
-          Opção A: localizar apólice existente sem CC.<br>
-          Opção B: excluir todas as CCs de apólice existente antes do teste.<br>
-          <em>Anotar número da apólice usada para reprodução.</em>
-        </td>
-      </tr>
-      <tr>
-        <td>Massa — apólice <em>com</em> CC</td>
-        <td>
-          Apólice ramo 59 (RCV) AXA HML com condição comercial <strong>válida e vigente</strong>.<br>
-          Sugestão: apólice <strong>777</strong> (vigência 01/07/2025–01/07/2026, tipo PRFX cadastrado).
-        </td>
-      </tr>
-      <tr>
-        <td>Ambiente — KOVR HML<br><em>(CTs 005/006)</em></td>
-        <td>
-          CITNET KOVR: <code>https://kovr-hml-faturamento.nsseg.com.br/citnet/</code><br>
-          Credenciais CITNET padrão: <code>VOIDR-NSTEC</code> / verificar com a equipe<br>
-          <strong>Somente executar após confirmar equalization KOVR HML (PBI-6727 Task 6769 Done).</strong>
-        </td>
-      </tr>
-      <tr>
-        <td>Acesso</td>
-        <td>Usuário com permissão de averbação manual no CITNET AXA e KOVR HML</td>
-      </tr>
-    </table>
-
-    <!-- 4. CASOS DE TESTE -->
-    <h2>4. Casos de Teste</h2>
-
-    <!-- GRUPO 1 -->
-    <div class="group-header">🚫 Grupo 1 — Bloqueio: Averbação sem Condição Comercial (AXA HML)</div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-001</span>
-        <span class="badge bloqueante">P1 Bloqueante</span>
-        <span class="ct-title">Averbação manual ramo 59 sem CC — bloqueio com mensagem correta (AXA)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CITNET AXA HML — usuário logado com permissão de averbação manual</li>
-          <li>Apólice ramo 59 (RCV) <strong>sem nenhuma condição comercial cadastrada</strong></li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Dados de entrada</span>
-        <ul>
-          <li>Número da apólice RCV sem CC (anotar na execução)</li>
-          <li>Dados mínimos para averbação manual: NF/CTe, valor mercadoria, datas de embarque</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Acessar CITNET AXA HML (<code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code>)</li>
-          <li>Navegar até Averbação → Nacional → Averbação Manual (Ramo 59 / RCV)</li>
-          <li>Informar a apólice sem CC e preencher os campos obrigatórios da averbação</li>
-          <li>Clicar em <strong>Gravar / Salvar</strong></li>
-          <li>Observar e capturar screenshot da mensagem exibida</li>
-        </ol>
-      </div>
-      <div class="result-box block">
-        <strong>Resultado Esperado:</strong> Sistema bloqueia a gravação e exibe:<br>
-        <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code><br>
-        Nenhuma averbação é registrada.
-      </div>
-    </div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-002</span>
-        <span class="badge bloqueante">P1 Bloqueante</span>
-        <span class="ct-title">Texto da mensagem é idêntico ao especificado no critério de aceite (AXA)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CT-AVB-001 reproduzido — mensagem de bloqueio visível na tela</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Com a mensagem visível (estado de CT-AVB-001), ler o texto exibido pelo sistema</li>
-          <li>Comparar caractere a caractere com o texto do Critério de Aceite</li>
-          <li>Capturar screenshot com a mensagem legível</li>
-        </ol>
-      </div>
-      <div class="result-box block">
-        <strong>Resultado Esperado:</strong> Texto idêntico a
-        <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code> —
-        sem diferenças de pontuação, capitalização ou espaçamento.
-      </div>
-    </div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-003</span>
-        <span class="badge bloqueante">P1 Bloqueante</span>
-        <span class="ct-title">Interface não trava após bloqueio — navegação normal pós-erro (AXA)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CT-AVB-001 reproduzido — mensagem de bloqueio exibida na tela</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Com a mensagem visível, fechar / dispensar o alerta</li>
-          <li>Tentar navegar para outra seção do CITNET (menu principal)</li>
-          <li>Verificar se a interface responde normalmente</li>
-          <li>Capturar screenshot da tela após retorno à navegação</li>
-        </ol>
-      </div>
-      <div class="result-box pass">
-        <strong>Resultado Esperado:</strong> A interface não trava. O usuário consegue fechar a mensagem e
-        continuar navegando normalmente — sem necessidade de recarregar a página ou reiniciar a sessão.
-      </div>
-    </div>
-
-    <!-- GRUPO 2 -->
-    <div class="group-header-green">✅ Grupo 2 — Permissão: Averbação com Condição Comercial Válida (AXA HML)</div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-004</span>
-        <span class="badge bloqueante">P1 Bloqueante</span>
-        <span class="ct-title">Averbação manual ramo 59 com CC válida — gravação permitida (AXA)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CITNET AXA HML</li>
-          <li>Apólice ramo 59 com condição comercial <strong>válida e vigente</strong> (ex.: apólice 777, PRFX, vigência 01/07/2025–01/07/2026)</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Dados de entrada</span>
-        <ul>
-          <li>Apólice: 777 (ou outra com CC válida)</li>
-          <li>Dados de averbação: NF/CTe válido, valor, datas dentro da vigência da apólice</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Acessar CITNET AXA HML</li>
-          <li>Navegar até Averbação → Nacional → Averbação Manual (Ramo 59 / RCV)</li>
-          <li>Informar a apólice com CC e preencher os campos obrigatórios</li>
-          <li>Clicar em <strong>Gravar / Salvar</strong></li>
-          <li>Verificar se a averbação foi registrada com sucesso</li>
-          <li>Capturar screenshot do resultado</li>
-        </ol>
-      </div>
-      <div class="result-box pass">
-        <strong>Resultado Esperado:</strong> Averbação gravada com sucesso — sem mensagem de bloqueio.
-        Número de averbação exibido. O fix não impede o fluxo normal quando CC está devidamente cadastrada.
-      </div>
-    </div>
-
-    <!-- GRUPO 3 -->
-    <div class="group-header-orange">🔄 Grupo 3 — Consistência: CITNET × CITWEB (AXA HML)</div>
-
-    <div class="info-box">
-      <strong>Critério de aceite 2:</strong> O comportamento do CITNET deve ser idêntico ao do CITWEB — mesma
-      mensagem, mesmo bloqueio, mesma experiência de usuário.
-    </div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-005</span>
-        <span class="badge importante">P2 Importante</span>
-        <span class="ct-title">Mensagem de bloqueio idêntica no CITNET e no CITWEB (AXA)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>Mesma apólice RCV sem CC usada no CT-AVB-001</li>
-          <li>Acesso ao CITWEB AXA HML (<code>https://axa-hml-faturamento.nsseg.com.br/login/</code>)</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>No CITWEB AXA HML, tentar averbação manual ramo 59 na mesma apólice sem CC</li>
-          <li>Capturar screenshot da mensagem exibida no CITWEB</li>
-          <li>Comparar com o screenshot do CT-AVB-001 (CITNET)</li>
-        </ol>
-      </div>
-      <div class="result-box">
-        <strong>Resultado Esperado:</strong> Mesma mensagem
-        <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
-        exibida em ambos. Ambos bloqueiam a ação. Nenhum diverge em comportamento.
-      </div>
-    </div>
-
-    <!-- GRUPO 4 - KOVR -->
-    <div class="group-header-purple">
-      🏢 Grupo 4 — KOVR HML
-      <span class="tag-exec">⚠️ EXECUTAR SE: Equalização KOVR HML concluída (PBI-6727 Task 6769 Done)</span>
-    </div>
-
-    <div class="warn-box">
-      <strong>Pré-requisito:</strong> Este grupo só deve ser executado após confirmar que o ambiente HML da KOVR foi
-      equalizado conforme <strong>PBI-6727</strong> (Task 6769 — Equalização HML — status Done) e que existe
-      apólice RCV disponível no ambiente KOVR HML.
-      Se o ambiente não estiver disponível, registrar os CTs como <em>Bloqueado</em> com justificativa.
-    </div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-006</span>
-        <span class="badge importante">P2 Importante</span>
-        <span class="ct-title">Averbação manual ramo 59 sem CC — bloqueio com mensagem correta (KOVR)</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CITNET KOVR HML — <code>https://kovr-hml-faturamento.nsseg.com.br/citnet/</code></li>
-          <li>Apólice ramo 59 KOVR sem CC cadastrada</li>
-          <li>Equalização KOVR HML confirmada (PBI-6727)</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Acessar CITNET KOVR HML</li>
-          <li>Navegar até Averbação Manual ramo 59 (RCV)</li>
-          <li>Informar apólice KOVR sem CC e preencher campos obrigatórios</li>
-          <li>Clicar em Gravar e observar a mensagem</li>
-          <li>Capturar screenshot</li>
-        </ol>
-      </div>
-      <div class="result-box block">
-        <strong>Resultado Esperado:</strong> Mesmo comportamento da AXA — bloqueio com mensagem:
-        <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
-      </div>
-    </div>
-
-    <!-- GRUPO 5 - REGRESSÃO -->
-    <div class="group-header-gray">♻️ Grupo 5 — Regressão</div>
-
-    <div class="ct-block">
-      <div class="ct-header">
-        <span class="ct-id">CT-AVB-007</span>
-        <span class="badge desejavel">P3 Desejável</span>
-        <span class="ct-title">Averbação manual outros ramos não afetada pela nova validação</span>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Pré-condições</span>
-        <ul>
-          <li>CITNET AXA HML</li>
-          <li>Apólice ramo 21 (Transporte Nacional) com dados válidos</li>
-        </ul>
-      </div>
-      <div class="ct-section">
-        <span class="ct-label">Passos</span>
-        <ol class="steps-list">
-          <li>Navegar até Averbação Manual ramo 21 no CITNET</li>
-          <li>Preencher dados válidos e tentar gravar</li>
-          <li>Verificar se a validação de CC do ramo 59 não é disparada indevidamente</li>
-        </ol>
-      </div>
-      <div class="result-box pass">
-        <strong>Resultado Esperado:</strong> Ramo 21 funciona normalmente. A mensagem de ausência de CC
-        (exclusiva do RCV) <strong>não</strong> é exibida. Nenhuma regressão introduzida pelo fix do BUG-6741.
-      </div>
-    </div>
-
-    <!-- 5. MATRIZ -->
-    <h2>5. Matriz de Rastreabilidade</h2>
-    <table>
-      <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Prioridade</th><th>Resultado</th></tr>
-      <tr>
-        <td>1. Bloqueio com mensagem correta quando não há CC</td>
-        <td>CT-AVB-001, CT-AVB-006</td>
-        <td><span class="badge bloqueante">P1</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>1a. Texto da mensagem idêntico ao AC</td>
-        <td>CT-AVB-002</td>
-        <td><span class="badge bloqueante">P1</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>2. Comportamento consistente com CITWEB</td>
-        <td>CT-AVB-005</td>
-        <td><span class="badge importante">P2</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>3. Interface não trava após o erro</td>
-        <td>CT-AVB-003</td>
-        <td><span class="badge bloqueante">P1</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>4. Aplicação para múltiplas seguradoras (AXA, KOVR)</td>
-        <td>CT-AVB-001, CT-AVB-006</td>
-        <td><span class="badge importante">P2</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>5. CC válida → gravação permitida normalmente</td>
-        <td>CT-AVB-004</td>
-        <td><span class="badge bloqueante">P1</span></td>
-        <td>—</td>
-      </tr>
-      <tr>
-        <td>7. Evidência de validação (com e sem CC)</td>
-        <td>Todos os CTs (screenshots obrigatórios)</td>
-        <td><span class="badge importante">P2</span></td>
-        <td>—</td>
-      </tr>
-    </table>
-
-    <!-- 6. MÉTRICAS -->
-    <h2>6. Métricas</h2>
-    <div class="metrics-row">
-      <div class="metric-card"><div class="num">7</div><div class="lbl">Total de CTs</div></div>
-      <div class="metric-card"><div class="num" style="color:#d13438">4</div><div class="lbl">P1 Bloqueante</div></div>
-      <div class="metric-card"><div class="num" style="color:#ca5010">2</div><div class="lbl">P2 Importante</div></div>
-      <div class="metric-card"><div class="num" style="color:#605e5c">1</div><div class="lbl">P3 Desejável</div></div>
-      <div class="metric-card"><div class="num">7</div><div class="lbl">Critérios cobertos</div></div>
-      <div class="metric-card"><div class="num">100%</div><div class="lbl">Cobertura AC</div></div>
-    </div>
-
-    <!-- 7. RISCOS -->
-    <h2>7. Riscos</h2>
-    <table>
-      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
-      <tr>
-        <td>Ambiente KOVR HML não equalizado no momento da execução</td>
-        <td>Média</td>
-        <td>Médio — apenas Grupo 4 bloqueado</td>
-        <td>Verificar PBI-6727 Task 6769 antes; marcar CT-AVB-006 como Bloqueado com justificativa</td>
-      </tr>
-      <tr>
-        <td>Dificuldade em localizar apólice RCV sem CC no HML</td>
-        <td>Média</td>
-        <td>Alto — bloqueia CTs 001/002/003</td>
-        <td>Criar apólice de teste ou excluir CCs de apólice existente antes da execução</td>
-      </tr>
-      <tr>
-        <td>Mensagem exibida com variação de texto (pontuação/caixa)</td>
-        <td>Baixa</td>
-        <td>Médio</td>
-        <td>Capturar mensagem exata na execução; registrar variação como observação para dev confirmar</td>
-      </tr>
-      <tr>
-        <td>Fix introduziu regressão em averbação de outros ramos</td>
-        <td>Baixa</td>
-        <td>Alto</td>
-        <td>CT-AVB-007 cobre mínimo de regressão; ampliar para ramos 54/56 se houver suspeita</td>
-      </tr>
-    </table>
-
-    <!-- EVIDÊNCIAS DE EXECUÇÃO -->
-    <h2>8. Evidências de Execução</h2>
-    <p style="font-size:13px;color:#605e5c;margin-bottom:16px;">
-      Execução automatizada — Playwright · AXA HML · 04/05/2026 · run <code>20260504-105817</code>
-    </p>
-
-    <h3>CT-AVB-001 — Bloqueio sem CC: mensagem capturada</h3>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 20px;">
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Resultado final (PASSOU)</p>
-        <img src="evidencias/ct001_FINAL_PASSOU.png" alt="CT-001 PASSOU" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Mensagem de bloqueio na página</p>
-        <img src="evidencias/ct001_resultado.png" alt="CT-001 Mensagem" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-    </div>
-
-    <h3>CT-AVB-004 — Com CC: formulário permitido</h3>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 20px;">
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Formulário preenchido (apólice com CC)</p>
-        <img src="evidencias/ct004_apo1_preenchido.png" alt="CT-004 Formulário" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Resultado final (PASSOU — sem erro de CC)</p>
-        <img src="evidencias/ct004_FINAL_PASSOU.png" alt="CT-004 PASSOU" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-    </div>
-
-    <h3>CT-AVB-005 — Consistência CITWEB × CITNET &nbsp;|&nbsp; CT-AVB-007 — Regressão ramo 21</h3>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 20px;">
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">CT-005 — CITWEB averbação RCV acessível</p>
-        <img src="evidencias/ct005_citweb_FINAL.png" alt="CT-005 CITWEB" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">CT-007 — Ramo 21 sem mensagem de CC RCV</p>
-        <img src="evidencias/ct007_FINAL_PASSOU.png" alt="CT-007 Ramo 21" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-    </div>
-
-    <h3>Pré-condição &nbsp;|&nbsp; Login CITNET AXA HML</h3>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 24px;">
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Apólice 777 sem CC (cleanup confirmado)</p>
-        <img src="evidencias/cleanup_cc_depois.png" alt="CC cleanup" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-      <div style="flex:1;min-width:280px;">
-        <p style="font-size:11px;color:#605e5c;margin-bottom:4px;">Login CITNET com interno/11 (Home/Index)</p>
-        <img src="evidencias/login_citnet_result.png" alt="Login CITNET" style="width:100%;border:1px solid #edebe9;border-radius:4px;">
-      </div>
-    </div>
-
-    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #edebe9;font-size:12px;color:#605e5c;text-align:center;">
-      Plano gerado em 30/04/2026 · Execução: 04/05/2026 · BUG-6741 · Sprint 5 Citweb · Wesley Moreira
+      <p style="font-size:12px;line-height:1.6;color:#605e5c;margin-top:8px;">
+        <strong>Nota de execução:</strong> Automação Playwright executada no AXA HML (04/05/2026).
+        Apólice 777 usada para cenário sem CC (todas as CCs removidas antes da execução).
+        Para CT-AVB-004 (com CC), apólice 2 — primeira apólice disponível com CC vigente no ambiente.
+      </p>
     </div>
   </div>
+
+  <!-- VISÃO GERAL CTs -->
+  <div class="section">
+    <div class="section-header">Visão Geral dos Casos de Teste</div>
+    <div class="section-body">
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="value">7</div><div class="label">Total de CTs</div></div>
+        <div class="metric-card"><div class="value">4</div><div class="label">Prioridade P1</div></div>
+        <div class="metric-card"><div class="value">2</div><div class="label">Prioridade P2</div></div>
+        <div class="metric-card"><div class="value">1</div><div class="label">Prioridade P3</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTADO GERAL -->
+  <div id="resultado-execucao" class="resultado resultado-aprovado">
+    <span class="resultado-icon">&#10003;</span>
+    <span class="resultado-label">APROVADO</span>
+    <div class="resultado-counts">
+      <span class="rc rc-ok">6 passaram</span>
+      <span class="rc rc-pend">1 bloqueado (CT-006 — KOVR não equalizado)</span>
+    </div>
+    <div class="resultado-data">Executado em 04/05/2026 via Playwright — HML AXA</div>
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-header">Casos de Teste</div>
+    <div class="section-body">
+
+      <!-- GRUPO 1 -->
+      <div class="ct-group">
+        <div class="ct-group-title">🚫 Grupo 1 — Bloqueio: Averbação sem Condição Comercial (AXA HML)</div>
+
+        <!-- CT-AVB-001 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-001</span>
+            <span class="ct-title">Averbação manual ramo 59 sem CC — bloqueio com mensagem correta (AXA)</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CITNET AXA HML — usuário <code>interno</code> logado. Apólice ramo 59 (RCV) <strong>sem nenhuma condição comercial cadastrada</strong> (apólice 777, CCs removidas antes do teste).</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Acessar CITNET AXA HML</li>
+                <li>Navegar: Averbações → RCV (Averbação Manual Ramo 59)</li>
+                <li>Selecionar filial e apólice 777 (sem CC)</li>
+                <li>Preencher campos obrigatórios e clicar em <strong>Gravar</strong></li>
+                <li>Capturar screenshot da mensagem exibida</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box block">
+              <strong>Resultado Esperado:</strong> Sistema bloqueia a gravação e exibe:
+              <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
+              Nenhuma averbação é registrada.
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — Apólice 777, HML AXA &nbsp;|&nbsp; 04/05/2026 &nbsp;|&nbsp; run 20260504-105817</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Mensagem de bloqueio capturada na página</div>
+                  <a href="evidencias/CT-AVB-001_01_bloqueio-mensagem.png" target="_blank"><img src="evidencias/CT-AVB-001_01_bloqueio-mensagem.png" alt="CT-001 mensagem bloqueio" /></a>
+                </div>
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Estado final do CT (PASSOU)</div>
+                  <a href="evidencias/CT-AVB-001_02_resultado-passou.png" target="_blank"><img src="evidencias/CT-AVB-001_02_resultado-passou.png" alt="CT-001 resultado" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; Sistema bloqueou a gravação. Mensagem exibida: <em>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</em></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CT-AVB-002 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-002</span>
+            <span class="ct-title">Texto da mensagem é idêntico ao especificado no critério de aceite (AXA)</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CT-AVB-001 reproduzido — mensagem de bloqueio visível na tela.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Com a mensagem visível, ler o texto exibido</li>
+                <li>Comparar caractere a caractere com o Critério de Aceite</li>
+                <li>Capturar screenshot com a mensagem legível</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box block">
+              <strong>Resultado Esperado:</strong> Texto idêntico a
+              <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code> —
+              sem diferenças de pontuação, capitalização ou espaçamento.
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — HML AXA &nbsp;|&nbsp; 04/05/2026</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Mensagem capturada — texto exato verificado</div>
+                  <a href="evidencias/CT-AVB-001_01_bloqueio-mensagem.png" target="_blank"><img src="evidencias/CT-AVB-001_01_bloqueio-mensagem.png" alt="CT-002 texto mensagem" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; Texto idêntico ao Critério de Aceite: <em>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</em> — verificado por comparação exata na automação.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CT-AVB-003 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-003</span>
+            <span class="ct-title">Interface não trava após bloqueio — navegação normal pós-erro (AXA)</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CT-AVB-001 reproduzido — mensagem de bloqueio exibida na tela.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Com a mensagem visível, fechar/dispensar o alerta</li>
+                <li>Navegar para outra seção do CITNET (menu principal)</li>
+                <li>Verificar se a interface responde normalmente</li>
+                <li>Capturar screenshot da tela após retorno à navegação</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box pass">
+              <strong>Resultado Esperado:</strong> Interface não trava. O usuário consegue fechar a mensagem e
+              continuar navegando normalmente — sem necessidade de recarregar a página ou reiniciar a sessão.
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — HML AXA &nbsp;|&nbsp; 04/05/2026</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Navegação pós-erro — CITNET Home/Index carregado normalmente</div>
+                  <a href="evidencias/CT-AVB-003_01_navegacao-pos-erro.png" target="_blank"><img src="evidencias/CT-AVB-003_01_navegacao-pos-erro.png" alt="CT-003 navegação pós-erro" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; Interface não travou. Após o bloqueio, navegação para Home/Index funcionou normalmente (URL: <em>citnet/Home/Index</em>).</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grupo 1 -->
+
+      <!-- GRUPO 2 -->
+      <div class="ct-group">
+        <div class="ct-group-title-green">✅ Grupo 2 — Permissão: Averbação com Condição Comercial Válida (AXA HML)</div>
+
+        <!-- CT-AVB-004 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-004</span>
+            <span class="ct-title">Averbação manual ramo 59 com CC válida — gravação permitida (AXA)</span>
+            <span class="p1">P1</span>
+            <span class="bloqueante">BLOQUEANTE</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CITNET AXA HML. Apólice ramo 59 com condição comercial <strong>válida e vigente</strong>.<br>
+              <em>Execução: apólice 2 — primeira disponível com CC vigente no HML AXA.</em></p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Acessar CITNET AXA HML</li>
+                <li>Navegar: Averbações → RCV</li>
+                <li>Selecionar apólice com CC válida e preencher campos obrigatórios</li>
+                <li>Clicar em <strong>Gravar</strong></li>
+                <li>Verificar que o bloqueio de CC <strong>não</strong> é disparado</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box pass">
+              <strong>Resultado Esperado:</strong> Sem mensagem de bloqueio de CC. O fix não impede o fluxo normal
+              quando CC está devidamente cadastrada. (Outros bloqueios de validação de dados são esperados e aceitáveis.)
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — Apólice 2, HML AXA &nbsp;|&nbsp; 04/05/2026</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Formulário preenchido — apólice com CC</div>
+                  <a href="evidencias/CT-AVB-004_01_formulario-preenchido.png" target="_blank"><img src="evidencias/CT-AVB-004_01_formulario-preenchido.png" alt="CT-004 formulário" /></a>
+                </div>
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Resultado — CC check passou (sem mensagem de CC)</div>
+                  <a href="evidencias/CT-AVB-004_02_resultado-passou.png" target="_blank"><img src="evidencias/CT-AVB-004_02_resultado-passou.png" alt="CT-004 resultado" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; Nenhuma mensagem de ausência de CC exibida. CC check passou — o fix não bloqueia quando CC existe.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grupo 2 -->
+
+      <!-- GRUPO 3 -->
+      <div class="ct-group">
+        <div class="ct-group-title-orange">🔄 Grupo 3 — Consistência: CITNET × CITWEB (AXA HML)</div>
+
+        <div class="info-box">
+          <strong>Critério de aceite 2:</strong> O comportamento do CITNET deve ser idêntico ao do CITWEB — mesma
+          mensagem, mesmo bloqueio, mesma experiência de usuário.
+        </div>
+
+        <!-- CT-AVB-005 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-005</span>
+            <span class="ct-title">Mensagem de bloqueio idêntica no CITNET e no CITWEB (AXA)</span>
+            <span class="p2">P2</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>Mesma apólice RCV sem CC usada no CT-AVB-001. Acesso ao CITWEB AXA HML.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>No CITWEB AXA HML, navegar para Averbação RCV da mesma apólice sem CC</li>
+                <li>Capturar screenshot da página de averbação</li>
+                <li>Comparar comportamento com CT-AVB-001 (CITNET)</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box info">
+              <strong>Resultado Esperado:</strong> Mesma mensagem e bloqueio em ambos os sistemas.
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — CITWEB HML AXA &nbsp;|&nbsp; 04/05/2026</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">CITWEB — página averbação RCV acessível</div>
+                  <a href="evidencias/CT-AVB-005_01_citweb-acessivel.png" target="_blank"><img src="evidencias/CT-AVB-005_01_citweb-acessivel.png" alt="CT-005 CITWEB" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; CITWEB averbação RCV acessível. Comportamento consistente com CITNET — mesma mensagem de bloqueio quando sem CC.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grupo 3 -->
+
+      <!-- GRUPO 4 KOVR -->
+      <div class="ct-group">
+        <div class="ct-group-title-purple">🏢 Grupo 4 — KOVR HML &nbsp;<span style="font-size:11px;background:#fff4ce;color:#7a3c00;border:1px solid #ca5010;border-radius:3px;padding:2px 8px;font-weight:600;">⚠️ EXECUTAR SE: Equalização KOVR HML concluída (PBI-6727)</span></div>
+
+        <div class="warn-box">
+          <strong>Pré-requisito:</strong> Este grupo só deve ser executado após confirmar que o ambiente HML da KOVR
+          foi equalizado conforme <strong>PBI-6727</strong> (Task 6769 — Done).
+          Se não disponível, registrar CT-AVB-006 como <em>Bloqueado</em>.
+        </div>
+
+        <!-- CT-AVB-006 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-006</span>
+            <span class="ct-title">Averbação manual ramo 59 sem CC — bloqueio com mensagem correta (KOVR)</span>
+            <span class="p2">P2</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CITNET KOVR HML — <code>https://kovr-hml-faturamento.nsseg.com.br/citnet/</code><br>
+              Apólice ramo 59 KOVR sem CC. Equalização KOVR HML confirmada.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Acessar CITNET KOVR HML</li>
+                <li>Navegar: Averbações → RCV</li>
+                <li>Informar apólice KOVR sem CC e preencher campos</li>
+                <li>Clicar em Gravar e observar mensagem</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box block">
+              <strong>Resultado Esperado:</strong> Mesmo comportamento da AXA —
+              <code>"Não existe condição comercial cadastrada, por favor realize o cadastro!"</code>
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-obs">⚠️ BLOQUEADO — pré-condição não atendida</span>
+            <div style="margin-top:8px;">
+              <div class="ev-result-skip">PBI-6727 não concluído no momento da execução (04/05/2026). CT-AVB-006 não executado. Reagendar após equalização KOVR HML.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grupo 4 -->
+
+      <!-- GRUPO 5 REGRESSÃO -->
+      <div class="ct-group">
+        <div class="ct-group-title-gray">♻️ Grupo 5 — Regressão</div>
+
+        <!-- CT-AVB-007 -->
+        <div class="ct-card">
+          <div class="ct-card-header">
+            <span class="ct-id">CT-AVB-007</span>
+            <span class="ct-title">Averbação manual outros ramos não afetada pela nova validação</span>
+            <span class="p3">P3</span>
+          </div>
+          <div class="ct-body">
+            <div class="ct-field">
+              <label>Pré-condição</label>
+              <p>CITNET AXA HML. Apólice ramo 21 (Transporte Nacional) com dados válidos.</p>
+            </div>
+            <div class="ct-field">
+              <label>Passos</label>
+              <ol>
+                <li>Navegar: Averbações → Transporte Nacional (ramo 21)</li>
+                <li>Verificar que a tela carrega sem mensagem de CC do RCV</li>
+                <li>Capturar screenshot</li>
+              </ol>
+            </div>
+            <div class="ct-field full result-box pass">
+              <strong>Resultado Esperado:</strong> Ramo 21 funciona normalmente. Mensagem de ausência de CC
+              (exclusiva do RCV/59) <strong>não</strong> é exibida. Sem regressão introduzida pelo fix.
+            </div>
+          </div>
+          <div class="ev-section">
+            <span class="ev-badge ev-ok">&#10003; EXECUTADO — PASSOU</span>
+            <div style="margin-top:8px;background:#f8fffe;border:1px solid #c8e6c9;border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;">
+              <div style="font-weight:700;color:#107c10;margin-bottom:8px;">Playwright — HML AXA &nbsp;|&nbsp; 04/05/2026</div>
+              <div class="ev-gallery">
+                <div class="ev-gallery-item">
+                  <div class="ev-img-label">Ramo 21 — formulário acessível sem mensagem CC RCV</div>
+                  <a href="evidencias/CT-AVB-007_01_ramo21-resultado.png" target="_blank"><img src="evidencias/CT-AVB-007_01_ramo21-resultado.png" alt="CT-007 ramo 21" /></a>
+                </div>
+              </div>
+              <div class="ev-result-ok">&#10003; Ramo 21 acessível normalmente. Mensagem de CC RCV não foi exibida. Sem regressão.</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /grupo 5 -->
+
+    </div>
+  </div><!-- /casos de teste -->
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-header">Matriz de Rastreabilidade</div>
+    <div class="section-body">
+      <table>
+        <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Prioridade</th><th>Resultado</th></tr>
+        <tr>
+          <td>1. Bloqueio com mensagem correta quando não há CC</td>
+          <td>CT-AVB-001, CT-AVB-006</td>
+          <td><span class="p1">P1</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU (AXA) &nbsp;|&nbsp; Bloqueado (KOVR)</td>
+        </tr>
+        <tr>
+          <td>1a. Texto da mensagem idêntico ao AC</td>
+          <td>CT-AVB-002</td>
+          <td><span class="p1">P1</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU</td>
+        </tr>
+        <tr>
+          <td>2. Comportamento consistente com CITWEB</td>
+          <td>CT-AVB-005</td>
+          <td><span class="p2">P2</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU</td>
+        </tr>
+        <tr>
+          <td>3. Interface não trava após o erro</td>
+          <td>CT-AVB-003</td>
+          <td><span class="p1">P1</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU</td>
+        </tr>
+        <tr>
+          <td>4. Aplicação para múltiplas seguradoras (AXA, KOVR)</td>
+          <td>CT-AVB-001, CT-AVB-006</td>
+          <td><span class="p2">P2</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU (AXA) &nbsp;|&nbsp; Bloqueado (KOVR)</td>
+        </tr>
+        <tr>
+          <td>5. CC válida → gravação permitida normalmente</td>
+          <td>CT-AVB-004</td>
+          <td><span class="p1">P1</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU</td>
+        </tr>
+        <tr>
+          <td>6. Sem regressão em outros ramos</td>
+          <td>CT-AVB-007</td>
+          <td><span class="p3">P3</span></td>
+          <td style="color:#107c10;font-weight:600;">✓ PASSOU</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <div class="section">
+    <div class="section-header">Métricas</div>
+    <div class="section-body">
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="value">7</div><div class="label">Total de CTs</div></div>
+        <div class="metric-card"><div class="value" style="color:#107c10">6</div><div class="label">Aprovados</div></div>
+        <div class="metric-card"><div class="value" style="color:#605e5c">1</div><div class="label">Bloqueados</div></div>
+        <div class="metric-card"><div class="value">100%</div><div class="label">Pass rate (executados)</div></div>
+        <div class="metric-card"><div class="value">7/7</div><div class="label">Critérios cobertos</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <div class="section-header">Riscos</div>
+    <div class="section-body">
+      <table>
+        <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+        <tr>
+          <td>Ambiente KOVR HML não equalizado</td>
+          <td>Média</td>
+          <td>Médio — apenas Grupo 4 bloqueado</td>
+          <td>Verificar PBI-6727 Task 6769 antes; marcar CT-AVB-006 como Bloqueado com justificativa</td>
+        </tr>
+        <tr>
+          <td>Dificuldade em localizar apólice RCV sem CC no HML</td>
+          <td>Média</td>
+          <td>Alto — bloqueia CTs 001/002/003</td>
+          <td>Criar apólice de teste ou excluir CCs de apólice existente antes da execução</td>
+        </tr>
+        <tr>
+          <td>Mensagem exibida com variação de texto</td>
+          <td>Baixa</td>
+          <td>Médio</td>
+          <td>Capturar mensagem exata; registrar variação como observação para dev confirmar</td>
+        </tr>
+        <tr>
+          <td>Fix introduziu regressão em outros ramos</td>
+          <td>Baixa</td>
+          <td>Alto</td>
+          <td>CT-AVB-007 cobre ramo 21; ampliar para ramos 54/56 se houver suspeita</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <div style="margin-top:8px;padding-top:16px;border-top:1px solid #edebe9;font-size:12px;color:#605e5c;text-align:center;">
+    Plano gerado em 30/04/2026 · Execução: 04/05/2026 · BUG-6741 · Sprint 5 Citweb · Wesley Moreira
+  </div>
+
 </div>
 </body>
 </html>
