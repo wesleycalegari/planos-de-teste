@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG 6842 — Erro cálculo prêmio RCV (DM/DC)</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #222; background: #f4f5f7; }
+header { background: #b91c1c; color: #fff; padding: 24px 32px; display: flex; align-items: center; gap: 20px; }
+header .badge { background: #fff; color: #b91c1c; font-weight: 700; font-size: 16px; border-radius: 8px; padding: 8px 16px; white-space: nowrap; }
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .9; margin-top: 4px; }
+.container { max-width: 1200px; margin: 28px auto; padding: 0 20px 60px; }
+.section { background: #fff; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,.1); margin-bottom: 24px; overflow: hidden; }
+.section-header { background: #fef2f2; border-left: 4px solid #b91c1c; padding: 12px 20px; font-weight: 700; font-size: 14px; color: #b91c1c; }
+.section-body { padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.info-item label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 2px; }
+.info-item span { font-size: 13px; color: #222; }
+.warn-box { background: #fff4ce; border-left: 5px solid #f7c948; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #7a4f00; line-height: 1.55; margin-bottom: 16px; }
+.ok-box { background: #ecfdf5; border-left: 5px solid #059669; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #065f46; line-height: 1.55; margin-bottom: 16px; }
+.mono { font-family: Consolas, monospace; font-size: 12px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; }
+.ct-block { border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+.ct-head { background: #fafafa; border-bottom: 1px solid #e2e8f0; padding: 10px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.ct-id { font-weight: 700; color: #b91c1c; font-size: 12px; white-space: nowrap; }
+.ct-prio { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #0078d4; color: #fff; font-weight: 600; }
+.ct-title { font-weight: 600; font-size: 13px; }
+.ct-grid { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field label { display: block; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }
+.ct-field p, .ct-field ol, .ct-field pre { font-size: 13px; line-height: 1.55; }
+.ct-field ol { padding-left: 18px; }
+.ct-field.full { grid-column: 1 / -1; }
+.ct-field pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 12px; }
+.ev-section { margin-top: 8px; border-top: 1px dashed #c8c6c4; padding: 10px 14px 14px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: #f3f2f1; color: #605e5c; }
+#resultado-execucao { margin-top: 20px; padding: 14px 18px; border-radius: 8px; background: #fff; border: 1px solid #e2e8f0; }
+#resultado-execucao.pendente { border-left: 4px solid #605e5c; }
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">BUG 6842</div>
+  <div>
+    <h1>[CITWEB] Erro cálculo do prêmio RCV — DM/DC</h1>
+    <p>Sprint 6 Citweb — Iteração CITWEB\Sprint_6_Citweb — Massa validada em SQL (HOM AXA) em 13/05/2026</p>
+  </div>
+</header>
+<div class="container">
+
+  <div class="ok-box">
+    <strong>Massa SQL (executada):</strong> Base <span class="mono">smt-hom-citweb-axa</span>.
+    A apólice citada no bug (<span class="mono">06052026</span>) <strong>não existe</strong> como <span class="mono">u_apo_pnc</span> em ramo <strong>59</strong> / filial <strong>1</strong> neste banco.
+    <strong>Substituta ativa:</strong> apólice <span class="mono">15122025</span>, filial <span class="mono">1</span>, ramo <span class="mono">59</span>, subgrupo <span class="mono">1</span>;
+    vigência nacional 01/01/2025–01/01/2027; <span class="mono">d_can_apo</span> NULL.
+    Indicativo <span class="mono">EditarDmDcRamo59</span> = <strong>S</strong> em <span class="mono">tb_ctl_sis_cit</span>.
+    Referência de movimento com DM/DC gravados: <span class="mono">u_avb = 2025000005</span> (entre outros) em <span class="mono">tb_mov_avb_rcv_cit</span>.
+  </div>
+
+  <div class="warn-box">
+    <strong>Escopo técnico (task 6848):</strong> padronizar indicativo no cadastro <span class="mono">CadApolice59.aspx.cs</span> (<span class="mono">EditarDmDcRamo59</span>);
+    fallback DM/DC (averbação → apólice); rollout KOVR com script de colunas em movimento aberto/fechado.
+    Este plano usa massa <strong>AXA HOM</strong> para regressão funcional de DM/DC — validar KOVR/staging conforme tasks pendentes.
+    <strong>Playwright:</strong> preferir <span class="mono">locator("[id$='…']")</span> em WebForms e <span class="mono">frameLocator</span> para iframes (<span class="mono">dadosapolice/Default.aspx</span>, quando aplicável).
+  </div>
+
+  <div class="section">
+    <div class="section-header">Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Work item</label><span>6842</span></div>
+        <div class="info-item"><label>Tipo</label><span>Bug</span></div>
+        <div class="info-item"><label>Estado (ADO)</label><span>In Progress</span></div>
+        <div class="info-item"><label>Sistema</label><span>CITWEB / CITNET (DB compartilhado)</span></div>
+        <div class="info-item"><label>Módulo</label><span>Ramo 59 — RCV — DM/DC / prêmio</span></div>
+        <div class="info-item"><label>Iteration</label><span>CITWEB\Sprint_6_Citweb</span></div>
+        <div class="info-item"><label>ADO</label><span><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/6842" style="color:#b91c1c">Abrir #6842</a></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Descrição / objetivo do teste</div>
+    <div class="section-body">
+      <p style="line-height:1.65;margin-bottom:12px;">Corrigir inconsistência entre indicativos (<span class="mono">Ind_Taxa_Por_Percurso</span> vs <span class="mono">EditarDmDcRamo59</span>) que zerava DM/DC no cálculo do prêmio RCV. Validar na UI e por SQL que DM/DC da apólice e da averbação fluem para <span class="mono">tb_mov_avb_rcv_cit</span> e compõem o prêmio quando o flag está ativo.</p>
+      <p style="line-height:1.65;"><strong>Rastreabilidade tasks:</strong> 6848 (Done — escopo fix); 6906 script deploy; 6921 staging; 6922 caso de teste.</p>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Validações SQL de referência (persistência CITNET / núcleo)</div>
+    <div class="section-body">
+      <pre>-- Indicativo DM/DC ramo 59
+SELECT n_fun_sis, i_fun_sis FROM dbo.tb_ctl_sis_cit WITH (NOLOCK)
+WHERE n_fun_sis IN ('EditarDmDcRamo59','Ind_Taxa_Por_Percurso');
+
+-- Massa do plano + últimos movimentos RCV
+SELECT TOP (10) u_apo_pnc, c_org_prd, c_rmo, u_sgp, u_avb, v_lmr_dm, v_lmr_dc, v_cml_pmo, v_tar_pmo
+FROM dbo.tb_mov_avb_rcv_cit WITH (NOLOCK)
+WHERE u_apo_pnc = 15122025 AND c_org_prd = 1 AND c_rmo = 59
+ORDER BY u_avb DESC;</pre>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Casos de teste (formato BDD no corpo dos CTs)</div>
+    <div class="section-body">
+
+      <div class="ct-block">
+        <div class="ct-head">
+          <span class="ct-id">CT-BUG-6842-001</span>
+          <span class="ct-prio">P1</span>
+          <span class="ct-title">Cadastro apólice RCV — DM/DC visíveis e coerentes com EditarDmDcRamo59</span>
+        </div>
+        <div class="ct-grid">
+          <div class="ct-field full"><label>BDD</label>
+            <p><strong>Dado</strong> massa <span class="mono">15122025</span> / filial <span class="mono">1</span> / ramo <span class="mono">59</span> e flag <span class="mono">EditarDmDcRamo59 = S</span><br>
+            <strong>Quando</strong> abrir cadastro RCV (<span class="mono">CadApolice59</span>) e carregar a apólice<br>
+            <strong>Então</strong> campos DM e DC devem obedecer o mesmo indicativo usado na averbação/cálculo (não apenas <span class="mono">Ind_Taxa_Por_Percurso</span> isolado).</p>
+          </div>
+          <div class="ct-field full"><label>Playwright (WebForms)</label>
+            <ol>
+              <li>Navegar até o cadastro da apólice RCV e carregar <span class="mono">15122025</span> / filial <span class="mono">1</span>.</li>
+              <li>Localizar campos DM/DC com <span class="mono">page.locator("[id$='…Dm…']")</span> / <span class="mono">"[id$='…Dc…']"</span> (ajustar sufixo real na gravação da suite).</li>
+              <li>Registrar screenshot evidenciando visibilidade e valores.</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Persistência esperada</label>
+            <p>Linha em <span class="mono">tb_apo_nac_cit</span> para (<span class="mono">15122025</span>,<span class="mono">1</span>,<span class="mono">59</span>) consistente com limites exibidos na tela após salvar (conferir colunas de limite aplicáveis no ambiente).</p>
+          </div>
+        </div>
+        <div class="ev-section" id="ev-CT-BUG-6842-001"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-head">
+          <span class="ct-id">CT-BUG-6842-002</span>
+          <span class="ct-prio">P1</span>
+          <span class="ct-title">Averbação RCV — fallback DM/DC apólice → gravacao tb_mov_avb_rcv_cit</span>
+        </div>
+        <div class="ct-grid">
+          <div class="ct-field full"><label>BDD</label>
+            <p><strong>Dado</strong> apólice <span class="mono">15122025</span> com DM/DC definidos na apólice<br>
+            <strong>Quando</strong> incluir averbação sem preencher DM/DC (fluxo que deve aplicar fallback pós-correção)<br>
+            <strong>Então</strong> nova linha em <span class="mono">tb_mov_avb_rcv_cit</span> deve trazer <span class="mono">v_lmr_dm</span>/<span class="mono">v_lmr_dc</span> não forçados a zero por flag ausente.</p>
+          </div>
+          <div class="ct-field full"><label>Playwright</label>
+            <ol>
+              <li>Acessar <span class="mono">/Nacional/AverbacaoRCV/Index</span> (ou rota equivalente do cliente).</li>
+              <li>Preencher vínculo apólice/filial/subgrupo <span class="mono">15122025</span> / <span class="mono">1</span> / <span class="mono">1</span>; campos de documento/data obrigatórios.</li>
+              <li>DM/DC: deixar em branco se o caso for fallback; usar <span class="mono">[id$='…']</span> nos inputs.</li>
+              <li>Salvar e capturar mensagem de sucesso.</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>SQL pós-condição</label>
+            <pre>SELECT TOP (3) u_avb, v_lmr_dm, v_lmr_dc, v_cml_pmo FROM dbo.tb_mov_avb_rcv_cit WITH (NOLOCK)
+WHERE u_apo_pnc = 15122025 AND c_org_prd = 1 AND c_rmo = 59 ORDER BY u_avb DESC;</pre>
+          </div>
+        </div>
+        <div class="ev-section" id="ev-CT-BUG-6842-002"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-head">
+          <span class="ct-id">CT-BUG-6842-003</span>
+          <span class="ct-prio">P1</span>
+          <span class="ct-title">Prêmio RCV — não zerar por divergência de indicativo (regressão massa real)</span>
+        </div>
+        <div class="ct-grid">
+          <div class="ct-field full"><label>BDD</label>
+            <p><strong>Dado</strong> movimento existente com DM/DC já gravados (referência <span class="mono">u_avb = 2025000005</span>)<br>
+            <strong>Quando</strong> recalcular/visualizar prêmio na UI ou API de cálculo do cliente<br>
+            <strong>Então</strong> resultado não deve colapsar para zero apenas porque DM/DC foram ignorados pelo flag.</p>
+          </div>
+          <div class="ct-field full"><label>Observação</label>
+            <p>Em HOM AXA, <span class="mono">v_lmr_dm</span> e <span class="mono">v_lmr_dc</span> já aparecem populados para esta apólice — usar como baseline antes/depois do deploy da correção nos ambientes KOVR/staging.</p>
+          </div>
+        </div>
+        <div class="ev-section" id="ev-CT-BUG-6842-003"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-head">
+          <span class="ct-id">CT-BUG-6842-004</span>
+          <span class="ct-prio">P2</span>
+          <span class="ct-title">Prévia / relatório RCV — totalização com DM/DC quando indicativo ativo</span>
+        </div>
+        <div class="ct-grid">
+          <div class="ct-field full"><label>BDD</label>
+            <p><strong>Dado</strong> período com movimentos na apólice <span class="mono">15122025</span><br>
+            <strong>Quando</strong> gerar prévia/relatório RCV (CitNet/CITWEB conforme deploy)<br>
+            <strong>Então</strong> totais devem refletir DM/DC quando <span class="mono">EditarDmDcRamo59</span> ativo (alinhar a BUG-6596 e regras de prévia se aplicável).</p>
+          </div>
+        </div>
+        <div class="ev-section" id="ev-CT-BUG-6842-004"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="resultado-execucao" class="resultado pendente">
+    <strong>Resultado da execução:</strong> pendente — 4 CTs com evidência a recolher após homologação da correção nos ambientes alvo.
+  </div>
+
+</div>
+</body>
+</html>
