@@ -3,20 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard E2E — BUG 6842 — RCV DM/DC</title>
+<title>KOVR · Dashboard E2E — BUG 6842</title>
 <style>
   :root {
     --bg: #121212;
     --panel: #1e1e1e;
     --panel-head: #252525;
-    --border: #333333;
+    --border: #383838;
     --text: #ececec;
-    --muted: #9e9e9e;
-    --accent: #64b5f6;
-    --accent-dim: #42a5f5;
-    --ok: #81c784;
-    --warn: #ffb74d;
-    --mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+    --muted: #a3a3a3;
+    --accent: #7eb8da;
+    --insurer: #e8f4fc;
+    --ok-bg: rgba(76, 175, 80, 0.14);
+    --ok-border: #4caf50;
+    --ok-text: #a5d6a7;
+    --warn-bg: rgba(255, 183, 77, 0.12);
+    --warn-border: #ffb74d;
+    --warn-text: #ffe0b2;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
     --sans: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,196 +30,323 @@
     color: var(--text);
     line-height: 1.55;
     min-height: 100vh;
-    padding: 24px;
+    padding: 28px 20px 48px;
   }
-  .wrap { max-width: 1280px; margin: 0 auto; }
-  h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    margin-bottom: 8px;
-    color: var(--text);
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* Cabeçalho */
+  .hero {
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    background: linear-gradient(165deg, #1a2530 0%, var(--panel) 45%);
+    margin-bottom: 26px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.4);
   }
-  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 28px; }
-  .grid {
+  .hero-insurer {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--insurer);
+    opacity: 0.92;
+    margin-bottom: 10px;
+  }
+  .hero-title {
+    font-size: 1.65rem;
+    font-weight: 650;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+    max-width: 920px;
+  }
+  .hero-meta {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    color: var(--muted);
+  }
+  .hero-meta a { color: var(--accent); text-decoration: none; }
+  .hero-meta a:hover { text-decoration: underline; }
+  .lang-note {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .lang-note span { color: #b0bec5; }
+
+  /* Cards resumo */
+  .cards {
     display: grid;
-    gap: 20px;
+    gap: 16px;
     grid-template-columns: 1fr;
+    margin-bottom: 26px;
   }
-  @media (min-width: 960px) {
-    .grid { grid-template-columns: 1fr 1fr; }
-    .panel-c { grid-column: 1 / -1; }
+  @media (min-width: 720px) {
+    .cards { grid-template-columns: repeat(3, 1fr); }
   }
+  .card {
+    border-radius: 12px;
+    padding: 18px 20px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+  }
+  .card.ok {
+    border-color: var(--ok-border);
+    background: var(--ok-bg);
+  }
+  .card.warn {
+    border-color: var(--warn-border);
+    background: var(--warn-bg);
+  }
+  .card h3 {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+  .card.ok h3 { color: var(--ok-text); }
+  .card.warn h3 { color: var(--warn-text); }
+  .card.neutral h3 { color: var(--accent); }
+  .card p { font-size: 0.92rem; color: var(--text); line-height: 1.5; }
+
+  /* Painéis genéricos */
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
     border-radius: 12px;
+    margin-bottom: 20px;
     overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,.35);
+    box-shadow: 0 4px 20px rgba(0,0,0,.28);
   }
   .panel-head {
     background: var(--panel-head);
     border-bottom: 1px solid var(--border);
+    padding: 13px 20px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .panel-body { padding: 18px 22px 22px; font-size: 0.92rem; }
+
+  /* Tabela rastreabilidade */
+  table.trace {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+    margin-top: 10px;
+  }
+  table.trace th, table.trace td {
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    vertical-align: top;
+    text-align: left;
+  }
+  table.trace th {
+    background: var(--panel-head);
+    color: var(--accent);
+    font-weight: 650;
+  }
+  table.trace td:nth-child(1) { width: 28%; color: #cfd8dc; }
+  table.trace td:nth-child(2) { width: 42%; }
+  table.trace td:nth-child(3) { width: 30%; color: var(--muted); font-size: 0.84rem; }
+
+  /* BDD */
+  .bdd {
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    background: #161616;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin-top: 14px;
+    white-space: pre-wrap;
+    color: #e0e0e0;
+    line-height: 1.65;
+  }
+  .bdd .kw { color: #90caf9; font-weight: 600; }
+
+  /* Accordion */
+  details.tech {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: #181818;
+    overflow: hidden;
+  }
+  details.tech summary {
+    cursor: pointer;
     padding: 14px 18px;
     font-weight: 700;
     font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--accent);
+    color: var(--warn-text);
+    background: rgba(255,183,77,.06);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
-  .panel-body { padding: 18px 20px 22px; font-size: 0.92rem; }
-  .badge {
-    display: inline-block;
-    background: var(--accent-dim);
-    color: #0d1117;
-    font-weight: 700;
-    padding: 4px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    margin-bottom: 12px;
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before {
+    content: "▸";
+    transition: transform .2s;
+    color: var(--warn-border);
   }
-  .muted { color: var(--muted); font-size: 0.88rem; }
-  table.data {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.88rem;
-    margin-top: 8px;
-  }
-  table.data th, table.data td {
-    border: 1px solid var(--border);
-    padding: 10px 12px;
-    text-align: left;
-  }
-  table.data th {
-    background: var(--panel-head);
-    color: var(--accent);
-    font-weight: 600;
-  }
-  table.data td:first-child { color: var(--muted); width: 38%; }
-  pre, .gherkin {
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    background: #0d0d0d;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    white-space: pre-wrap;
-    margin-top: 12px;
-    color: #c8e6c9;
-  }
-  .sql { color: #b3e5fc; }
-  ul.tick { margin: 10px 0 0 20px; color: var(--muted); }
-  ul.tick li { margin-bottom: 8px; }
-  a { color: var(--accent); text-decoration: none; }
-  a:hover { text-decoration: underline; }
-  .note {
-    border-left: 3px solid var(--warn);
-    padding: 10px 14px;
-    margin-top: 14px;
-    background: rgba(255,183,77,.08);
-    border-radius: 0 8px 8px 0;
-    font-size: 0.88rem;
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  .tech-inner {
+    padding: 16px 20px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 0.82rem;
     color: var(--muted);
   }
+  .tech-inner h4 {
+    color: var(--accent);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 16px 0 8px;
+  }
+  .tech-inner h4:first-child { margin-top: 0; }
+  pre.sql {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    overflow-x: auto;
+    color: #b3e5fc;
+    margin-top: 8px;
+    white-space: pre-wrap;
+  }
+  .footnote {
+    margin-top: 22px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .footnote a { color: var(--accent); }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Dashboard de teste E2E — BUG 6842</h1>
-  <p class="subtitle">RCV (ramo 59) — prêmio, DM/DC, fallback &middot; modo escuro &middot; Sprint 6 Citweb</p>
 
-  <div class="grid">
-    <!-- Painel A -->
-    <section class="panel">
-      <div class="panel-head">Painel A — Contexto Azure DevOps</div>
-      <div class="panel-body">
-        <span class="badge">BUG 6842</span>
-        <p><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/6842" target="_blank" rel="noopener">Abrir work item no Azure DevOps</a></p>
-        <p class="muted" style="margin-top:14px;"><strong>Título</strong></p>
-        <p>[CITWEB] - Erro cálculo do prêmio RCV</p>
-        <p class="muted" style="margin-top:14px;"><strong>Descrição (card)</strong></p>
-        <p>Não está trazendo os valores de DM e DC da apólice, e não está aplicando o cálculo corretamente. Apólice utilizada no relato: <strong>06052026</strong> filial <strong>1</strong>.</p>
-        <p class="muted" style="margin-top:14px;"><strong>Critérios de aceite (campo formal no BUG)</strong></p>
-        <p><em>Não preenchidos no work item.</em> Os critérios operacionais abaixo foram extraídos da <strong>Task 6848</strong> (filho do BUG).</p>
-        <p class="muted" style="margin-top:14px;"><strong>Definições Task 6848 — fallback DM/DC e alinhamento</strong></p>
-        <ul class="tick">
-          <li><strong>Problema:</strong> dois indicativos distintos — cadastro apólice RCV (<code>CadApolice59.aspx.cs</code>) usa <code>Ind_Taxa_Por_Percurso</code>; averbação (<code>AverbacaoRCVController</code>) e <strong>cálculo do prêmio</strong> usam <code>EditarDmDcRamo59</code>. Em KOVR, <code>EditarDmDcRamo59</code> pode não existir → DM/DC zerados no cálculo.</li>
-          <li><strong>Correção:</strong> padronizar cadastro para <code>EditarDmDcRamo59</code>; script de colunas <code>v_lmr_dm</code>, <code>v_lmr_dc</code> em movimento aberto/fechado.</li>
-          <li><strong>Fallback do cálculo:</strong> usar DM/DC da <strong>averbação</strong> quando preenchidos; senão usar DM/DC da <strong>apólice</strong> — evitar prêmio zerado e preservar legado.</li>
-        </ul>
-        <p class="note"><strong>Nota QA:</strong> a massa E2E neste dashboard usa apólice <strong>15122025</strong> na base KOVR HML (ver Painel B), não a apólice do texto original do bug.</p>
-      </div>
-    </section>
+  <header class="hero">
+    <p class="hero-insurer">Seguradora · KOVR</p>
+    <h1 class="hero-title">Erro no cálculo do prêmio RCV — danos materiais e corporais (DM / DC)</h1>
+    <p class="hero-meta">
+      <strong>BUG 6842</strong> · Sprint 6 Citweb ·
+      <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/6842" target="_blank" rel="noopener">Abrir card no Azure DevOps</a>
+    </p>
+    <p class="lang-note">
+      <span lang="en">Dashboard principal em Português (Brasil).</span>
+      <span lang="en">English: KOVR national hull liability vehicle branch — premium must honor policy limits when fields use fallback.</span>
+    </p>
+  </header>
 
-    <!-- Painel B -->
-    <section class="panel">
-      <div class="panel-head">Painel B — Massa de dados SQL (real)</div>
-      <div class="panel-body">
-        <p class="muted">Consulta de referência na base <strong>smt-hom-citweb-kovr</strong> (servidor Azure SQL Simetrias).</p>
-        <table class="data">
-          <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
-          <tbody>
-            <tr><td>Base de dados</td><td>smt-hom-citweb-kovr</td></tr>
-            <tr><td>Servidor</td><td>smt-hom-citweb.database.windows.net</td></tr>
-            <tr><td>Apólice (<code>u_apo_pnc</code>)</td><td><strong>15122025</strong></td></tr>
-            <tr><td>Filial (<code>c_org_prd</code>)</td><td><strong>1</strong></td></tr>
-            <tr><td>Ramo (<code>c_rmo</code>)</td><td><strong>59</strong> (RCV)</td></tr>
-            <tr><td>Início vigência (nac.)</td><td>2025-08-01</td></tr>
-            <tr><td>Fim vigência (nac.)</td><td>2026-08-01</td></tr>
-            <tr><td>Cancelamento (<code>d_can_apo</code>)</td><td>NULL — sem cancelamento</td></tr>
-            <tr><td>Subgrupo sugerido</td><td><strong>1</strong> (confirmar na UI)</td></tr>
-            <tr><td><code>tb_mov_avb_rcv_cit</code> (pré-teste)</td><td>Sem linhas para esta apólice/filial/ramo no snapshot usado para o plano</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
+  <section class="cards" aria-label="Resumo para negócio">
+    <div class="card ok">
+      <h3>Regra de negócio facilitada</h3>
+      <p>Garantir que o <strong>cálculo do prêmio</strong> use os <strong>limites DM e DC da apólice</strong> quando o operador <strong>não preencher</strong> esses campos na averbação, e que o valor na tela se atualize <strong>sozinho</strong> ao sair dos campos obrigatórios.</p>
+    </div>
+    <div class="card neutral">
+      <h3>O que estamos validando</h3>
+      <p>Que não haja <strong>prêmio zerado</strong> por causa de indicativos ou fluxos desalinhados entre cadastro da apólice, tela de averbação e motor de cálculo — alinhado à correção descrita na task de desenvolvimento.</p>
+    </div>
+    <div class="card warn">
+      <h3>Atenção (massa de teste)</h3>
+      <p>O card original citou outra apólice no relato; nos testes em ambiente KOVR utilizamos a apólice <strong>15122025</strong>, filial <strong>1</strong>, conforme massa disponível na homologação.</p>
+    </div>
+  </section>
 
-    <!-- Painel C -->
-    <section class="panel panel-c">
-      <div class="panel-head">Painel C — BDD &amp; validação SQL</div>
-      <div class="panel-body">
-        <p class="muted"><strong>Gatilhos de interface:</strong> o prêmio RCV <strong>não</strong> é obtido por botão &quot;Calcular&quot;. O processamento dispara com <strong>preenchimento dos campos obrigatórios</strong> e <strong>perda de foco</strong> (blur) ou eventos equivalentes (<code>onchange</code>), atualizando o valor na tela de forma automática.</p>
+  <section class="panel">
+    <div class="panel-head">Tabela de rastreabilidade</div>
+    <div class="panel-body">
+      <table class="trace">
+        <thead>
+          <tr>
+            <th>O que o card pede? <span style="font-weight:400;color:var(--muted);">(critério / intenção)</span></th>
+            <th>Como testamos? <span style="font-weight:400;color:var(--muted);">(passo a passo)</span></th>
+            <th>Onde validar no banco? <span style="font-weight:400;color:var(--muted);">(tabela / colunas)</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>DM e DC da apólice devem refletir-se no fluxo de averbação e no cálculo; prêmio não pode ficar incorreto ou zerado por ignorar limites.</td>
+            <td>Abrir averbação RCV para a apólice da massa. Preencher dados obrigatórios do transporte. Ao terminar cada campo, <strong>sair do campo</strong> (por exemplo Tab ou clique noutra zona). <strong>Não</strong> usar botão de calcular. Observar se DM, DC e prêmio na tela evoluem conforme esperado. Guardar a averbação.</td>
+            <td><strong>tb_mov_avb_rcv_cit</strong>: colunas de limite <strong>v_lmr_dm</strong>, <strong>v_lmr_dc</strong>; totais <strong>v_cml_pmo</strong>, <strong>v_tar_pmo</strong>. Chaves lógicas: apólice, filial, ramo 59, subgrupo, número da averbação gerado.</td>
+          </tr>
+          <tr>
+            <td>Se o operador informar DM e DC diferentes na averbação, o sistema deve respeitar esses valores no cálculo.</td>
+            <td>Na mesma tela, alterar manualmente os valores de limite DM e/ou DC. Após editar, <strong>sair do campo</strong> e confirmar que o prêmio na interface se atualiza sem ação extra de “calcular”. Gravar.</td>
+            <td><strong>tb_mov_avb_rcv_cit</strong>: <strong>v_lmr_dm</strong>, <strong>v_lmr_dc</strong> devem coincidir com o que ficou na tela antes de gravar.</td>
+          </tr>
+          <tr>
+            <td>Contexto da apólice (vigência, limites cadastrais) deve sustentar o fallback e não bloquear movimento válido.</td>
+            <td>Confirmar na aplicação que a apólice da massa está ativa no período do teste e que o subgrupo utilizado é o acordado com negócio.</td>
+            <td><strong>tb_apo_nac_cit</strong>: <strong>d_ini_vig_apo</strong>, <strong>d_fim_vig_apo</strong>, <strong>d_can_apo</strong>; limites <strong>v_lim_rsp_vgm</strong>, <strong>v_lim_rsp_apo</strong> conforme regra do cliente.</td>
+          </tr>
+        </tbody>
+      </table>
 
-        <p style="margin-top:18px;font-weight:600;color:var(--accent);">Cenários BDD (resumo)</p>
-        <div class="gherkin">Feature: Prêmio RCV automático (blur/onchange)
-  Background:
-    Given apólice 15122025, filial 1, ramo 59, subgrupo 1 na base smt-hom-citweb-kovr
-    And não há botão manual &quot;Calcular&quot; para compor o prêmio
-
-  Scenario: Fallback DM/DC da apólice após obrigatórios e blur
-    When preencho os campos obrigatórios da averbação RCV
-    And saio do foco de cada campo relevante (Tab ou clique fora)
-    Then DM e DC na averbação refletem fallback da apólice quando aplicável
-    And o prêmio exibido atualiza-se automaticamente na interface
-    When gravo o movimento
-    Then dbo.tb_mov_avb_rcv_cit persiste v_lmr_dm e v_lmr_dc coerentes com a tela
-
-  Scenario: Sobrescrita manual DM/DC recalcula ao blur
-    When altero DM/DC na averbação e saio do campo (blur)
-    Then o prêmio na tela recalcula sem acionar botão de cálculo
-    And após gravar, tb_mov_avb_rcv_cit contém os limites informados</div>
-
-        <p style="margin-top:22px;font-weight:600;color:var(--accent);">Queries SQL — núcleo CITNET / persistência</p>
-        <p class="muted">Executar após a gravação da averbação (ajustar <code>u_avb</code> conforme o movimento criado).</p>
-        <pre class="sql">-- Movimento RCV: limites DM/DC e prêmio
-SELECT u_apo_pnc, c_org_prd, c_rmo, u_sgp, u_avb,
+      <details class="tech">
+        <summary>Visão técnica — automação, nomes de campos e SQL (expandir)</summary>
+        <div class="tech-inner">
+          <p>Destinado a QA técnico / automação. Utilizadores de produto podem ignorar esta secção.</p>
+          <h4>Playwright (referência)</h4>
+          <p>Em WebForms legados, preferir localizar controles por sufixo estável no identificador gerado pelo servidor, por exemplo <code style="color:#ececec;">locator('[id$=\"…SUfIXO…\"]')</code>. Simular gatilho com <code style="color:#ececec;">fill</code> + <code style="color:#ececec;">blur()</code> ou tecla Tab. Tratar iframes da apólice quando existirem.</p>
+          <h4>SQL — movimento RCV</h4>
+          <pre class="sql">SELECT u_apo_pnc, c_org_prd, c_rmo, u_sgp, u_avb,
        v_lmr_dm, v_lmr_dc, v_cml_pmo, v_tar_pmo, d_sda_vgm
 FROM dbo.tb_mov_avb_rcv_cit WITH (NOLOCK)
 WHERE u_apo_pnc = 15122025 AND c_org_prd = 1 AND c_rmo = 59
-ORDER BY u_avb DESC;
-
--- Apólice nacional: vigência e contexto para fallback
-SELECT u_apo_pnc, c_org_prd, c_rmo,
+ORDER BY u_avb DESC;</pre>
+          <h4>SQL — apólice nacional</h4>
+          <pre class="sql">SELECT u_apo_pnc, c_org_prd, c_rmo,
        d_ini_vig_apo, d_fim_vig_apo, d_can_apo,
        v_lim_rsp_vgm, v_lim_rsp_apo
 FROM dbo.tb_apo_nac_cit WITH (NOLOCK)
 WHERE u_apo_pnc = 15122025 AND c_org_prd = 1 AND c_rmo = 59;</pre>
+          <h4>Massa KOVR (homologação)</h4>
+          <p>Base <strong>smt-hom-citweb-kovr</strong>. Apólice <strong>15122025</strong>, filial <strong>1</strong>, ramo <strong>59</strong>. Vigência nacional (snapshot de planeamento): <strong>2025-08-01</strong> a <strong>2026-08-01</strong>. Sem linhas em <strong>tb_mov_avb_rcv_cit</strong> para essa apólice antes do primeiro teste de inclusão.</p>
+          <h4>Task 6848 — termos técnicos</h4>
+          <p>Alinhamento de indicativos (<code>Ind_Taxa_Por_Percurso</code> vs <code>EditarDmDcRamo59</code>), script de colunas <code>v_lmr_dm</code> / <code>v_lmr_dc</code>, fallback averbação → apólice.</p>
+        </div>
+      </details>
+    </div>
+  </section>
 
-        <p style="margin-top:16px;font-size:0.85rem;color:var(--muted);">Documento gerado para revisão E2E · BUG 6842 · <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-6-citweb/bug-6842/plano-e2e.md">plano-e2e.md</a></p>
-      </div>
-    </section>
-  </div>
+  <section class="panel">
+    <div class="panel-head">Cenários em formato BDD · Português (sem botão de calcular)</div>
+    <div class="panel-body">
+      <p class="muted" style="margin-bottom:12px;">Os passos descrevem a <strong>ação do utilizador</strong> na interface. O sistema recalcula o prêmio quando os campos obrigatórios são preenchidos e o foco sai do campo (<strong>perda de foco</strong> ou mudança de campo equivalente), não mediante um botão manual de cálculo.</p>
+
+      <div class="bdd"><span class="kw">Funcionalidade:</span> Prêmio RCV KOVR com atualização automática na interface
+
+<span class="kw">Contexto:</span>
+  <span class="kw">Dado que</span> utilizo a apólice da massa KOVR com filial e ramo acordados para o teste
+  <span class="kw">E</span> que o sistema não deve exigir um botão “Calcular” para atualizar o prêmio após preencher dados válidos
+
+<span class="kw">Cenário:</span> Limite DM e DC vindos da apólice quando eu não os preencho na averbação
+  <span class="kw">Quando</span> eu preencho todos os dados obrigatórios da averbação de transporte exceto os limites DM e DC, se o cenário for esse
+  <span class="kw">E</span> eu saio de cada campo obrigatório após o preenchimento (por exemplo passando ao campo seguinte ou clicando fora)
+  <span class="kw">Então</span> os valores de DM e DC apresentados na averbação devem corresponder ao que está definido na apólice, conforme a regra de fallback acordada
+  <span class="kw">E</span> o prêmio mostrado na página deve atualizar-se automaticamente
+  <span class="kw">Quando</span> eu confirmo a gravação da averbação
+  <span class="kw">Então</span> os mesmos limites e o resultado do prêmio devem ficar registados de forma coerente na base de dados
+
+<span class="kw">Cenário:</span> Eu altero manualmente o limite DM ou DC na averbação
+  <span class="kw">Quando</span> eu informo um novo valor para o limite de dano material ou dano corporal na própria averbação
+  <span class="kw">E</span> eu saio desse campo para que o sistema processe a alteração
+  <span class="kw">Então</span> o prêmio exibido deve ser recalculado automaticamente na tela
+  <span class="kw">Quando</span> eu gravo o movimento
+  <span class="kw">Então</span> a base de dados deve guardar os limites que eu deixei na interface antes de gravar</div>
+
+      <p class="footnote">Versão Markdown complementar: <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-6-citweb/bug-6842/plano-e2e.md">plano-e2e.md</a></p>
+    </div>
+  </section>
+
 </div>
 </body>
 </html>
