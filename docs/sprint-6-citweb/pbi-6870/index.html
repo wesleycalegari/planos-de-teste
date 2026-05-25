@@ -327,10 +327,10 @@ code {
 
 <!-- METRICS STRIP -->
 <div class="metrics-strip">
-  <div class="metric m-total"><div class="num">20</div><div class="lbl">Total de CTs</div></div>
-  <div class="metric m-p1">   <div class="num">9</div> <div class="lbl">P1 Bloqueante</div></div>
-  <div class="metric m-p2">   <div class="num">10</div><div class="lbl">P2 Importante</div></div>
-  <div class="metric m-p3">   <div class="num">1</div> <div class="lbl">P3 Desejável</div></div>
+  <div class="metric m-total"><div class="num">25</div><div class="lbl">Total de CTs</div></div>
+  <div class="metric m-p1">   <div class="num">10</div><div class="lbl">P1 Bloqueante</div></div>
+  <div class="metric m-p2">   <div class="num">13</div><div class="lbl">P2 Importante</div></div>
+  <div class="metric m-p3">   <div class="num">2</div> <div class="lbl">P3 Desejável</div></div>
   <div class="metric m-pbi">  <div class="num">3</div> <div class="lbl">PBIs cobertos</div></div>
   <div class="metric m-cov">  <div class="num">100%</div><div class="lbl">CAs mapeados</div></div>
 </div>
@@ -570,6 +570,10 @@ code {
           <li>Logs: requisição enviada, resposta recebida, erros</li>
           <li>Regressão: demais condições comerciais não afetadas</li>
           <li>CITWEB (PBI-6870), CITNET (PBI-6871), Batch (PBI-6889)</li>
+          <li>Todas as entradas de averbação: digitação, integração WS e conversor <em style="color:var(--text-dim)">(adicionado — Fabíola Costa, 18/05)</em></li>
+          <li>Cálculo com subgrupo ativo <em style="color:var(--text-dim)">(adicionado — Fabíola Costa, 18/05)</em></li>
+          <li>Todas as formas de recálculo: tela de averbação, menu recálculo em bloco e cadastro de apólice <em style="color:var(--text-dim)">(adicionado — Fabíola Costa, 18/05)</em></li>
+          <li>Performance/carga da API de KM — P3 <em style="color:var(--text-dim)">(adicionado — Fabíola Costa, 18/05)</em></li>
         </ul>
       </div>
       <div class="scope-col out">
@@ -577,7 +581,6 @@ code {
         <ul>
           <li>Condições comerciais PRFX, PRVCML, TPP (outros tipos)</li>
           <li>Ramos que não sejam RCV (59)</li>
-          <li>Performance/carga da API de KM</li>
           <li>Testes internos da própria API de KM (black-box apenas)</li>
           <li>Provisionamento do Redis (infra — responsabilidade da Andreia)</li>
         </ul>
@@ -1303,6 +1306,172 @@ code {
       </div>
     </div>
 
+    <div class="group-hd">GRUPO 11 — Complemento Fabíola: Entradas de Averbação e Formas de Recálculo (revisão 18/05/2026)</div>
+
+    <div class="info-box" style="margin:14px 18px 0;">
+      <strong>Contexto — adicionado com base na revisão da Fabíola Costa</strong>
+      Em 18/05/2026, Fabíola validou o plano e solicitou cobertura adicional em quatro pontos: (1) todas as entradas de averbação — integração WS, digitação e conversor; (2) teste com subgrupo ativo; (3) todas as formas de recálculo — menu em bloco, tela de averbação e cadastro de apólice; (4) performance/carga da API de KM.
+      Os CTs CT-KM-021 a CT-KM-024 cobrem os três primeiros pontos. O CT-KM-025 (Grupo 12) cobre performance.
+    </div>
+
+    <div class="ct-block p2">
+      <div class="ct-head">
+        <span class="ct-id">CT-KM-021</span>
+        <span class="ct-title">Averbação RCV via integração (WS/CTE) com VKMCML — KM resolvido e prêmio calculado</span>
+        <span class="badge importante">P2 · Importante</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-meta">
+          <span class="lbl">Tipo</span><span class="val">Positivo — Entrada via integração WS/CTE</span>
+          <span class="lbl">Pré-condição</span><span class="val">Apólice RCV (ramo 59) com condição VKMCML ativa em HML; API de KM HML acessível; acesso ao serviço WS/CTE em HML; massa de dados (apólice + filial) alinhada com dev antes da execução</span>
+          <span class="lbl">Dados de entrada</span><span class="val">Payload de averbação RCV via WS com par origem/destino válido para VKMCML (mesmo par do CT-KM-003: São Paulo → Rio de Janeiro)</span>
+        </div>
+        <div class="ct-steps">
+          <div class="ct-steps-hd">Passos</div>
+          <ol>
+            <li>Enviar averbação RCV com condição VKMCML via serviço WS/CTE para o CITWEB HML</li>
+            <li>Verificar que a requisição foi aceita sem erro de integração</li>
+            <li>Consultar a averbação gerada no CITWEB (menu Averbação → Consultar Averbação)</li>
+            <li>Verificar que o campo <code>u_km_vgm</code> foi preenchido com o valor retornado pela API de KM</li>
+            <li>Verificar que o prêmio foi calculado corretamente: <strong>prêmio = taxa VKMCML × KM</strong></li>
+            <li>Confirmar nos logs que a API de KM foi consultada durante o processamento WS</li>
+          </ol>
+        </div>
+        <div class="ct-result"><strong>Resultado esperado</strong>Averbação gravada via WS com <code>u_km_vgm</code> preenchido e prêmio calculado corretamente. Integração WS não retorna erro. Comportamento idêntico à entrada por digitação (CT-KM-003).</div>
+        <div class="ct-ev"><strong>Evidência necessária</strong>(1) Payload WS enviado e resposta de aceite. (2) Screenshot da averbação no CITWEB com KM e prêmio preenchidos. (3) Trecho de log confirmando chamada à API de KM.</div>
+      </div>
+    </div>
+
+    <div class="ct-block p2">
+      <div class="ct-head">
+        <span class="ct-id">CT-KM-022</span>
+        <span class="ct-title">Averbação RCV via digitação com subgrupo ativo — KM e prêmio calculados corretamente com VKMCML</span>
+        <span class="badge importante">P2 · Importante</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-meta">
+          <span class="lbl">Tipo</span><span class="val">Positivo — Subgrupo</span>
+          <span class="lbl">Pré-condição</span><span class="val">Apólice RCV (ramo 59) com condição VKMCML ativa e subgrupo configurado em HML; API de KM HML acessível; confirmar com dev qual subgrupo usar antes da execução</span>
+          <span class="lbl">Dados de entrada</span><span class="val">Mesmos dados do CT-KM-003 com subgrupo ativo na apólice; par São Paulo → Rio de Janeiro</span>
+        </div>
+        <div class="ct-steps">
+          <div class="ct-steps-hd">Passos</div>
+          <ol>
+            <li>Acessar CITWEB HML → menu Averbação → Nova Averbação RCV</li>
+            <li>Selecionar apólice RCV (ramo 59) com condição VKMCML e subgrupo configurado</li>
+            <li>Confirmar que o subgrupo está selecionado/preenchido no formulário</li>
+            <li>Preencher origem e destino com par válido (São Paulo → Rio de Janeiro)</li>
+            <li>Clicar em <strong>Calcular prêmio</strong> e verificar que o KM foi resolvido e exibido</li>
+            <li>Gravar a averbação</li>
+            <li>Consultar no banco: verificar que <code>u_km_vgm</code> = KM da API (mesmo valor do CT-KM-001)</li>
+            <li>Verificar que o prêmio foi calculado: <strong>prêmio = taxa VKMCML × KM</strong> (com subgrupo ativo)</li>
+          </ol>
+        </div>
+        <div class="ct-result"><strong>Resultado esperado</strong>Com subgrupo ativo, o sistema resolve KM normalmente via API, grava <code>u_km_vgm</code> e calcula prêmio VKMCML sem erros. Subgrupo não interfere no fluxo de integração de KM.</div>
+        <div class="ct-ev"><strong>Evidência necessária</strong>(1) Screenshot do formulário com subgrupo selecionado e KM exibido após calcular. (2) Screenshot da averbação gravada ou resultado de query com <code>u_km_vgm</code> preenchido.</div>
+      </div>
+    </div>
+
+    <div class="ct-block p1">
+      <div class="ct-head">
+        <span class="ct-id">CT-KM-023</span>
+        <span class="ct-title">Recálculo em bloco via menu "Recálculo Averbações" com VKMCML — KM e prêmio atualizados via API</span>
+        <span class="badge bloqueante">P1 · Bloqueante</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-meta">
+          <span class="lbl">Tipo</span><span class="val">Positivo — Recálculo em bloco (menu)</span>
+          <span class="lbl">Pré-condição</span><span class="val">Ao menos 2 averbações RCV com VKMCML gravadas no HML (ex.: resultados de CT-KM-003/CT-KM-022); API de KM HML acessível; acesso ao menu de Recálculo Averbações</span>
+          <span class="lbl">Dados de entrada</span><span class="val">Números das averbações RCV com VKMCML já gravadas; valores de KM e prêmio anteriores anotados; ao menos 2 pares com pelo menos 1 par repetido (para validar deduplicação)</span>
+        </div>
+        <div class="ct-steps">
+          <div class="ct-steps-hd">Passos</div>
+          <ol>
+            <li>Acessar CITWEB HML → menu <strong>Averbação → Recálculo Averbações</strong></li>
+            <li>Filtrar pelas averbações RCV com VKMCML gravadas nos CTs anteriores</li>
+            <li>Selecionar ao menos 2 averbações (incluindo pelo menos 1 par repetido)</li>
+            <li>Executar o recálculo em bloco</li>
+            <li>Aguardar o processamento concluir</li>
+            <li>Verificar que as averbações foram recalculadas com <code>u_km_vgm</code> preenchido e prêmio atualizado</li>
+            <li>Verificar nos logs que a API de KM foi consultada (ou cache utilizado) para cada par distinto</li>
+            <li>Confirmar que pares idênticos não geraram chamadas duplicadas à API (deduplicação de pares)</li>
+          </ol>
+        </div>
+        <div class="ct-result"><strong>Resultado esperado</strong>Todas as averbações selecionadas recalculadas com prêmio correto (taxa × KM). <code>u_km_vgm</code> atualizado. Sem erros de processamento. Pares repetidos deduplicados — sem chamadas redundantes à API.</div>
+        <div class="ct-ev"><strong>Evidência necessária</strong>(1) Screenshot do menu de recálculo em bloco com averbações selecionadas. (2) Screenshot do resultado após recálculo com KM e prêmio visíveis. (3) Trecho de log evidenciando deduplicação de pares (mesmo par não chamado duas vezes).</div>
+      </div>
+    </div>
+
+    <div class="ct-block p2">
+      <div class="ct-head">
+        <span class="ct-id">CT-KM-024</span>
+        <span class="ct-title">Recálculo de prêmio via cadastro de apólice com VKMCML — KM resolvido e prêmio atualizado</span>
+        <span class="badge importante">P2 · Importante</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-meta">
+          <span class="lbl">Tipo</span><span class="val">Positivo — Recálculo via cadastro de apólice</span>
+          <span class="lbl">Pré-condição</span><span class="val">Apólice RCV (ramo 59) com condição VKMCML ativa e averbações gravadas em HML; API de KM HML acessível; acesso ao cadastro da apólice</span>
+          <span class="lbl">Dados de entrada</span><span class="val">Número da apólice RCV com VKMCML e averbações associadas; valores de KM e prêmio anteriores anotados</span>
+        </div>
+        <div class="ct-steps">
+          <div class="ct-steps-hd">Passos</div>
+          <ol>
+            <li>Acessar CITWEB HML → cadastro da apólice RCV com condição VKMCML</li>
+            <li>Localizar a opção de recálculo disponível no cadastro da apólice</li>
+            <li>Anotar os valores atuais de KM e prêmio das averbações associadas antes de recalcular</li>
+            <li>Executar o recálculo via cadastro de apólice</li>
+            <li>Verificar que as averbações associadas foram recalculadas com <code>u_km_vgm</code> preenchido</li>
+            <li>Verificar que o prêmio de cada averbação foi atualizado: <strong>prêmio = taxa VKMCML × KM</strong></li>
+            <li>Confirmar nos logs que a API de KM foi consultada durante o recálculo</li>
+          </ol>
+        </div>
+        <div class="ct-result"><strong>Resultado esperado</strong>Recálculo via cadastro de apólice atualiza <code>u_km_vgm</code> e prêmio das averbações VKMCML corretamente. Comportamento consistente com CT-KM-019 (tela de averbação) e CT-KM-023 (menu em bloco).</div>
+        <div class="ct-ev"><strong>Evidência necessária</strong>(1) Screenshot do cadastro de apólice com opção de recálculo visível. (2) Screenshot dos valores de KM e prêmio das averbações após o recálculo.</div>
+      </div>
+    </div>
+
+    <div class="group-hd">GRUPO 12 — Performance/Carga da API de KM (adicionado — Fabíola Costa, 18/05/2026)</div>
+
+    <div class="info-box" style="margin:14px 18px 0;">
+      <strong>Contexto — Performance</strong>
+      Originalmente fora do escopo. Incluído após solicitação da Fabíola Costa em 18/05/2026.
+      Objetivo: verificar que o tempo de resposta da API de KM é compatível com o uso real do CITWEB em múltiplas averbações. O timeout configurado em HML é <code>KilometragemApiTimeoutSegundos = 30s</code>. Executar após estabilização dos CTs das fases anteriores.
+    </div>
+
+    <div class="ct-block p3">
+      <div class="ct-head">
+        <span class="ct-id">CT-KM-025</span>
+        <span class="ct-title">Performance/carga da API de KM — tempo de resposta dentro do SLA em cenário de averbações simultâneas</span>
+        <span class="badge desejavel">P3 · Desejável</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-meta">
+          <span class="lbl">Tipo</span><span class="val">Performance / NFR</span>
+          <span class="lbl">Pré-condição</span><span class="val">API de KM HML acessível; massa de dados com 10+ pares origem/destino distintos preparada; SLA alinhado com dev (referência: timeout configurado = 30s por chamada individual); Redis HML disponível (Task 6892)</span>
+          <span class="lbl">Dados de entrada</span><span class="val">10+ pares origem/destino distintos; ao menos 1 par repetido (para medir ganho de cache Redis na 2ª rodada)</span>
+        </div>
+        <div class="ct-steps">
+          <div class="ct-steps-hd">Passos</div>
+          <ol>
+            <li>Preparar 10+ averbações RCV com VKMCML e pares origem/destino distintos</li>
+            <li>Processar as averbações sequencialmente e registrar o tempo de cálculo de prêmio de cada uma (1ª rodada — sem cache)</li>
+            <li>Verificar que nenhuma chamada à API de KM excede <code>KilometragemApiTimeoutSegundos = 30s</code></li>
+            <li>Repetir o mesmo conjunto de pares (2ª rodada — com cache Redis) e comparar os tempos:
+              <ul>
+                <li>Com cache Redis ativo: tempo esperado menor (sem chamada à API)</li>
+                <li>Sem Redis (fallback L3 ativo): tempo esperado próximo ao da 1ª rodada</li>
+              </ul>
+            </li>
+            <li>Verificar que nenhuma averbação falhou por timeout durante todo o teste</li>
+            <li>Verificar que o sistema permanece estável após o processamento em volume</li>
+          </ol>
+        </div>
+        <div class="ct-result"><strong>Resultado esperado</strong>Tempo de resposta individual da API &lt; 30s (threshold configurado). Nenhuma averbação falha por timeout. Cache Redis reduz latência visivelmente na 2ª rodada para pares já consultados. Sistema estável após 10+ chamadas.</div>
+        <div class="ct-ev"><strong>Evidência necessária</strong>(1) Screenshots com tempos de processamento por averbação (1ª rodada — sem cache). (2) Screenshots da 2ª rodada com cache Redis ativo mostrando redução de tempo.</div>
+      </div>
+    </div>
+
   </div><!-- /section CTs -->
 
   <!-- MATRIZ DE RASTREABILIDADE -->
@@ -1328,6 +1497,11 @@ code {
         <tr><td>6871</td><td>Conversor com par duplicado usa cache L1 (reduz chamadas)</td><td>CT-KM-018</td></tr>
         <tr><td>6870</td><td>Recálculo de averbação VKMCML consulta API de KM e atualiza prêmio</td><td>CT-KM-019</td></tr>
         <tr><td>6870</td><td>Recálculo com API indisponível — erro tratado sem prêmio zerado</td><td>CT-KM-020</td></tr>
+        <tr><td>6870</td><td>Entrada via integração WS com VKMCML — KM e prêmio corretos</td><td>CT-KM-021</td></tr>
+        <tr><td>6870</td><td>Averbação com subgrupo ativo — integração de KM sem interferência</td><td>CT-KM-022</td></tr>
+        <tr><td>6870</td><td>Recálculo em bloco via menu com VKMCML — deduplicação de pares</td><td>CT-KM-023</td></tr>
+        <tr><td>6870</td><td>Recálculo via cadastro de apólice com VKMCML</td><td>CT-KM-024</td></tr>
+        <tr><td>6870</td><td>Performance/carga — resposta dentro do SLA, cache reduz latência</td><td>CT-KM-025</td></tr>
       </table>
     </div>
   </div>
@@ -1338,10 +1512,11 @@ code {
     <div class="section-body">
       <div class="info-box" style="margin-bottom:0;">
         <strong>Fases de execução</strong>
-        <strong style="color:var(--green);font-size:12px;">1ª fase (executar agora — PBI-6870 concluído):</strong> Grupos 1, 2, 3, 5, 8 e 10 — CT-KM-001 a CT-KM-009, CT-KM-015, CT-KM-016, CT-KM-019 e CT-KM-020<br><br>
+        <strong style="color:var(--green);font-size:12px;">1ª fase (executar agora — PBI-6870 concluído):</strong> Grupos 1, 2, 3, 5, 8, 10 e 11 — CT-KM-001 a CT-KM-009, CT-KM-015, CT-KM-016, CT-KM-019 a CT-KM-024<br><br>
         <strong style="color:var(--yellow);font-size:12px;">2ª fase (aguardar Redis — Task 6892):</strong> Grupo 4 — CT-KM-006 e CT-KM-007<br><br>
         <strong style="color:var(--yellow);font-size:12px;">3ª fase (aguardar dev PBI-6871):</strong> Grupos 6 e 9 — CT-KM-010, CT-KM-011, CT-KM-017 e CT-KM-018<br><br>
-        <strong style="color:var(--yellow);font-size:12px;">4ª fase (aguardar dev PBI-6889):</strong> Grupo 7 — CT-KM-012 a CT-KM-014
+        <strong style="color:var(--yellow);font-size:12px;">4ª fase (aguardar dev PBI-6889):</strong> Grupo 7 — CT-KM-012 a CT-KM-014<br><br>
+        <strong style="color:var(--text-muted);font-size:12px;">5ª fase (desejável — após estabilização e Redis disponível):</strong> Grupo 12 — CT-KM-025 (performance/carga)
       </div>
     </div>
   </div>
