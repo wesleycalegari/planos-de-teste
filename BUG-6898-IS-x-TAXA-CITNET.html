@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG-6898 — Erro CITNET IS × TAXA (Fairfax)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f4f6fa; color: #1b1b1b; font-size: 14px; line-height: 1.5;
+  }
+
+  /* ── Cabeçalho ── */
+  .plano-header {
+    background: linear-gradient(135deg, #0078d4 0%, #004e8c 100%);
+    color: #fff; padding: 28px 36px 22px;
+  }
+  .plano-header h1 { font-size: 21px; font-weight: 700; margin-bottom: 6px; }
+  .plano-header .subtitulo { font-size: 13px; opacity: .85; margin-bottom: 14px; }
+  .badges { display: flex; flex-wrap: wrap; gap: 8px; }
+  .badge {
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+    border-radius: 20px; padding: 3px 13px; font-size: 12px; font-weight: 600;
+  }
+  .badge.tipo-bug { background: #d13438; border-color: #d13438; }
+  .badge.sprint   { background: #005a9e; border-color: #005a9e; }
+  .badge.validado { background: #107c10; border-color: #107c10; }
+
+  /* ── Layout ── */
+  .container { max-width: 1080px; margin: 28px auto; padding: 0 20px 60px; }
+
+  .section {
+    background: #fff; border-radius: 8px; border: 1px solid #dde3ed;
+    margin-bottom: 20px; overflow: hidden;
+  }
+  .section-title {
+    background: #f0f4f9; border-bottom: 1px solid #dde3ed;
+    padding: 10px 20px; font-size: 12px; font-weight: 700;
+    color: #0078d4; text-transform: uppercase; letter-spacing: .6px;
+  }
+  .section-body { padding: 18px 20px; }
+
+  /* ── Tabelas ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    background: #f0f4f9; font-weight: 700; color: #444;
+    padding: 8px 12px; border: 1px solid #dde3ed; text-align: left;
+  }
+  td { padding: 8px 12px; border: 1px solid #dde3ed; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+
+  /* ── Caixas ── */
+  .warn-box {
+    background: #fff4ce; border: 1px solid #f0a30a; border-left: 4px solid #f0a30a;
+    border-radius: 5px; padding: 12px 16px; margin-bottom: 14px;
+    font-size: 13px; line-height: 1.7;
+  }
+  .warn-box strong { color: #8a5300; }
+
+  .info-box {
+    background: #deecf9; border: 1px solid #0078d4; border-left: 4px solid #0078d4;
+    border-radius: 5px; padding: 12px 16px; margin-bottom: 14px;
+    font-size: 13px; line-height: 1.7;
+  }
+  .info-box strong { color: #004e8c; }
+
+  .ok-box {
+    background: #dff6dd; border: 1px solid #107c10; border-left: 4px solid #107c10;
+    border-radius: 5px; padding: 12px 16px; margin-bottom: 14px;
+    font-size: 13px; line-height: 1.7;
+  }
+  .ok-box strong { color: #0b5e0b; }
+
+  /* ── Grupos ── */
+  .group-header {
+    background: #0078d4; color: #fff; font-weight: 700;
+    padding: 9px 16px; border-radius: 6px; margin: 22px 0 10px;
+    font-size: 12px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .subgroup-header {
+    background: #deecf9; color: #004e8c; font-weight: 700;
+    padding: 7px 14px; border-radius: 5px; margin: 14px 0 8px;
+    font-size: 12px; border-left: 4px solid #0078d4;
+  }
+
+  /* ── CT Block ── */
+  .ct-block {
+    border: 1px solid #dde3ed; border-radius: 7px;
+    margin-bottom: 14px; overflow: hidden;
+  }
+  .ct-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; background: #f7f9fc;
+    border-bottom: 1px solid #dde3ed; flex-wrap: wrap;
+  }
+  .ct-id { font-weight: 700; font-size: 13px; color: #0078d4; white-space: nowrap; }
+  .ct-title { font-weight: 600; font-size: 13px; flex: 1; }
+  .ct-body { padding: 14px 16px; font-size: 13px; line-height: 1.65; }
+  .ct-body .lbl {
+    font-weight: 700; color: #333; display: block;
+    margin-top: 10px; margin-bottom: 4px;
+  }
+  .ct-body .lbl:first-child { margin-top: 0; }
+  .ct-body ol, .ct-body ul { padding-left: 20px; }
+  .ct-body li { margin-bottom: 3px; }
+  .ct-body code {
+    background: #f0f4f9; padding: 1px 5px; border-radius: 3px;
+    font-family: Consolas, monospace; font-size: 12px;
+  }
+
+  /* ── Badges de prioridade ── */
+  .bloqueante {
+    background: #d13438; color: #fff; border-radius: 4px;
+    padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .importante {
+    background: #ca5010; color: #fff; border-radius: 4px;
+    padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .desejavel {
+    background: #605e5c; color: #fff; border-radius: 4px;
+    padding: 2px 9px; font-size: 11px; font-weight: 700; white-space: nowrap;
+  }
+  .tipo-ct {
+    background: #e8e8e8; color: #333; border-radius: 4px;
+    padding: 2px 9px; font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+
+  /* ── Matriz ── */
+  .result-pendente { background: #f4f6fa !important; color: #888; text-align: center; font-style: italic; }
+  .result-ok       { background: #dff6dd !important; color: #107c10; text-align: center; font-weight: 700; }
+  .result-fail     { background: #fde7e9 !important; color: #a80000; text-align: center; font-weight: 700; }
+
+  /* ── Métricas ── */
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .metric {
+    border: 1px solid #dde3ed; border-radius: 7px; padding: 14px;
+    text-align: center; background: #fafbfc;
+  }
+  .metric .num { font-size: 30px; font-weight: 800; color: #0078d4; }
+  .metric .num.red    { color: #d13438; }
+  .metric .num.orange { color: #ca5010; }
+  .metric .num.green  { color: #107c10; }
+  .metric .lbl { font-size: 12px; color: #666; margin-top: 4px; }
+
+  footer {
+    text-align: center; font-size: 11px; color: #888; margin-top: 30px;
+    padding-top: 14px; border-top: 1px solid #e0e4ea;
+  }
+</style>
+</head>
+<body>
+
+<div class="plano-header">
+  <h1>Plano de Teste — BUG-6898 — Erro CITNET IS × TAXA (Fairfax)</h1>
+  <div class="subtitulo">Sustentação CITWEB · CITNET · Módulo Nacional · Cálculo IS nas Prévias</div>
+  <div class="badges">
+    <span class="badge tipo-bug">BUG-6898</span>
+    <span class="badge sprint">Sprint_6_Sustentacao</span>
+    <span class="badge">CITNET</span>
+    <span class="badge">FAIRFAX</span>
+    <span class="badge">MVK 372148</span>
+    <span class="badge validado">✓ Playwright MCP validado</span>
+    <span class="badge">21/05/2026 · Wesley Calegari</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 1. IDENTIFICAÇÃO -->
+  <div class="section">
+    <div class="section-title">1. Identificação</div>
+    <div class="section-body">
+      <table>
+        <tr><th style="width:200px">Campo</th><th>Valor</th></tr>
+        <tr><td>Card</td><td><strong>BUG-6898</strong> — Erro CITNET IS X TAXA — MVK 372148</td></tr>
+        <tr><td>Projeto / Board</td><td>CITWEB · Sustentação CITWEB</td></tr>
+        <tr><td>Sprint</td><td>Sprint_6_Sustentacao</td></tr>
+        <tr><td>Sistema</td><td>CITNET (sistema de faturamento externo da seguradora)</td></tr>
+        <tr><td>Seguradora</td><td>FAIRFAX</td></tr>
+        <tr><td>Módulo</td><td>Nacional — Autorização de Prévia para Faturamento</td></tr>
+        <tr><td>Responsável dev</td><td>Ricardo Lopes (task 6925)</td></tr>
+        <tr><td>Ticket Movidesk</td><td>MVK 372148</td></tr>
+        <tr><td>Autor do plano</td><td>Wesley Calegari — 21/05/2026</td></tr>
+        <tr><td>Validação MCP</td><td>Playwright MCP — 21/05/2026 — Fairfax HML confirmado (navegação, apólices, campos do Resumo da Fatura)</td></tr>
+        <tr><td>Features consultadas</td><td><code>features/_navegacao/login-citweb.md</code> · <code>features/averbacao/rcv-citnet.md</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-title">2. Descrição</div>
+    <div class="section-body">
+      <div class="info-box">
+        <strong>Problema reportado (ReproSteps do card):</strong><br>
+        O CITNET não estava considerando o cálculo de <strong>IS (Imposto Seletivo) × TAXA</strong> nas prévias do módulo Nacional para a seguradora Fairfax. O processo de prévia estava parado para o segurado <strong>ANDORINHA TRANSPORTADORA LTDA</strong> (CNPJ 46.435.293/0001-30), com faturamento impactado.
+      </div>
+      <div class="warn-box">
+        <strong>⚠️ Nuance importante:</strong> Comentário de Ricardo Lopes (13/05/2026) indica que as evidências enviadas pelo cliente mostravam o cálculo de <em>arredondamento</em> batendo corretamente, sem erro aparente. Foi solicitado aprofundamento. Isso sugere que o bug pode ocorrer em cenário específico — não em toda e qualquer prévia. Os testes devem incluir variações de valor para cobrir essa possibilidade.
+      </div>
+      <p style="line-height:1.8; font-size:13px;">
+        <strong>Solução implementada:</strong> task filha <strong>6925</strong> (Done) — correção do cálculo IS × TAXA nas prévias.<br>
+        <strong>Status dos testes:</strong> tasks 6997 e 7090 (Teste HML) estão <em>To Do</em> — este plano cobre essa etapa.<br>
+        <strong>Evidências no card:</strong> 4 screenshots de referência + "Evidências Erro CITNET IS X TX (2).docx" + 2 arquivos ZIP com consultas SQL — disponíveis como anexos no AzDO card 6898.
+      </p>
+    </div>
+  </div>
+
+  <!-- 3. ESCOPO -->
+  <div class="section">
+    <div class="section-title">3. Escopo</div>
+    <div class="section-body">
+      <table>
+        <tr>
+          <th style="width:50%">✅ In Scope</th>
+          <th>❌ Out of Scope</th>
+        </tr>
+        <tr>
+          <td>
+            <ul style="padding-left:18px; line-height:1.9; font-size:13px;">
+              <li>Cálculo IS × TAXA na geração de prévias — CITNET Nacional Fairfax</li>
+              <li>Apólices de referência: <strong>6540011049</strong> (Ramo 54) e <strong>6550006234</strong> (Ramo 55)</li>
+              <li>Arredondamento do valor IS calculado</li>
+              <li>Consistência do IS em diferentes valores de mercadoria</li>
+              <li>Regressão: IOF e prêmio líquido não impactados pela correção</li>
+            </ul>
+          </td>
+          <td>
+            <ul style="padding-left:18px; line-height:1.9; font-size:13px;">
+              <li>Módulos internacionais</li>
+              <li>Outras seguradoras no CITNET</li>
+              <li>Processo completo de averbação (além da prévia)</li>
+              <li>Faturamento / emissão de boleto</li>
+              <li>Ambiente de produção</li>
+            </ul>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-title">4. Pré-requisitos</div>
+    <div class="section-body">
+      <div class="ok-box">
+        <strong>✓ Confirmado via Playwright MCP (21/05/2026):</strong><br>
+        • Apólice <strong>6540011049</strong> existe no HML Fairfax — Ramo 54 (RCTR-C) · Subgrupo 1 · TRANSPORTES MARES DO SUL LTDA · <strong>194 averbações pendentes de prévia em 04/2026</strong><br>
+        • Apólice <strong>6550006234</strong> existe no HML Fairfax — Ramo 55 (RC-DC) · Subgrupo 1 · TRANSPORTES MARES DO SUL LTDA · <strong>194 averbações pendentes de prévia em 04/2026</strong><br>
+        • Ambas na situação "Aguardando Aprovação" — massa disponível para execução dos CTs.<br>
+        • Nota: o segurado no HML é <em>TRANSPORTES MARES DO SUL LTDA</em> (não ANDORINHA como no card original, que pertence ao ambiente produtivo).
+      </div>
+      <div class="warn-box">
+        <strong>⚠️ Campo IS não encontrado no Resumo da Fatura (HML, 04/2026):</strong><br>
+        Durante a validação via Playwright MCP, o "Resumo da Fatura" das apólices 6540011049 e 6550006234 <strong>não exibiu um campo IS</strong>. Os campos presentes foram: Valor Segurado, Prêmio Comercial, Prêmio Comercial Líquido, Prêmio Mínimo, Prêmio Manutenção, Ajuste, Prêmio Líquido, Juros, Custo, IOF e Prêmio Total.<br><br>
+        Isso provavelmente indica que a <strong>task 6925 ainda não foi deployada no HML Fairfax</strong>. <strong>Confirmar com Ricardo Lopes o deploy antes de executar os CTs P1.</strong> Também confirmar em qual campo/tela o IS aparece após o fix (Resumo da Fatura, detalhe de averbação ou outro).
+      </div>
+      <div class="warn-box">
+        <strong>⚠️ Antes de iniciar — itens obrigatórios:</strong><br>
+        1. Confirmar com Ricardo Lopes que a correção (task 6925) foi publicada no ambiente HML da Fairfax.<br>
+        2. Confirmar com Ricardo em qual tela/campo o IS aparece após o fix (campo no Resumo da Fatura, ou em outro lugar).<br>
+        3. Consultar os 4 screenshots e o arquivo "Evidências Erro CITNET IS X TX (2).docx" disponíveis no card 6898 — eles contêm os valores de referência para validação.<br>
+        4. Verificar a taxa IS configurada nas apólices em HML — necessária para calcular o resultado esperado.
+      </div>
+      <table>
+        <tr><th style="width:220px">Pré-requisito</th><th>Detalhe</th></tr>
+        <tr>
+          <td>Ambiente</td>
+          <td>
+            CITNET FAIRFAX HML<br>
+            <code>https://fairfax-hml-faturamento.nsseg.com.br/citnet/</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Credenciais CITNET</td>
+          <td>
+            Usuário: <strong>VOIDR-NSTEC</strong> · Senha: <strong>NS-Vo1dr@b</strong><br>
+            <strong>Atenção:</strong> No campo Filial da tela de login, deixar <em>Selecione…</em> (não selecionar nenhuma filial). Selecionar qualquer filial resulta em "Usuário/Senha inválido!" para este usuário.
+          </td>
+        </tr>
+        <tr>
+          <td>Apólices de referência</td>
+          <td>
+            <strong>6540011049</strong> — Ramo 54 (RCTR-C) · Subgrupo 1 · TRANSPORTES MARES DO SUL LTDA · 194 averbações · Competência 04/2026<br>
+            <strong>6550006234</strong> — Ramo 55 (RC-DC) · Subgrupo 1 · TRANSPORTES MARES DO SUL LTDA · 194 averbações · Competência 04/2026<br>
+            Ambas confirmadas como existentes e na situação "Aguardando Aprovação".
+          </td>
+        </tr>
+        <tr>
+          <td>Competência para testes</td>
+          <td><strong>04/2026</strong> — confirmada com dados disponíveis para ambas as apólices (competência 05/2026 não apresentou prévias pendentes no HML).</td>
+        </tr>
+        <tr>
+          <td>Taxa IS</td>
+          <td>
+            Verificar na configuração da apólice em HML qual é a taxa IS cadastrada. Esse valor é necessário para calcular o resultado esperado antes de cada CT.<br>
+            Fórmula esperada: <code>IS = prêmio_líquido × taxa_IS</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Deploy HML</td>
+          <td>Confirmar que a task 6925 (Done em dev) foi publicada no ambiente HML Fairfax. Sem isso, os P1 falharão por ambiente e não por bug.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-title">5. Casos de Teste</div>
+    <div class="section-body">
+
+      <div class="info-box">
+        <strong>Navegação base — confirmada via Playwright MCP (21/05/2026)</strong><br><br>
+        <strong>Login CITNET Fairfax HML:</strong><br>
+        1. Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/citnet/</code><br>
+        2. Campo <strong>Filial</strong>: deixar <em>Selecione…</em> — <u>não selecionar nenhuma filial</u><br>
+        3. Preencher <strong>Usuário</strong>: <code>VOIDR-NSTEC</code> e <strong>Senha</strong>: <code>NS-Vo1dr@b</code><br>
+        4. Clicar em <strong>Entrar</strong> — o menu principal do CITNET carregará<br><br>
+        <strong>Navegação até Aprovação de Prévias:</strong><br>
+        5. No menu superior, clicar em <strong>Faturamento</strong><br>
+        6. Clicar em <strong>Aprovação de Prévias</strong> → <strong>Aprovação</strong><br>
+        7. A tela <em>Autorização de Prévia para Faturamento</em> será exibida (URL: <code>/citnet/AutorizacaoPrevia/AutorizacaoPrevia</code>)<br><br>
+        <strong>Campos do formulário de consulta (confirmados):</strong><br>
+        • <strong>Filial</strong> (combobox) — selecionar a filial desejada aqui, dentro do módulo<br>
+        • <strong>Filtrar por</strong> (radio): Segurado Principal | <em>Ramo/Apólice/Subgrupo</em><br>
+        • <strong>Ramo</strong> (combobox, carregado por Filial)<br>
+        • <strong>Apólice</strong> (combobox, carregado após selecionar Ramo)<br>
+        • <strong>Subgrupo</strong> (combobox)<br>
+        • <strong>Competência</strong> (text, formato <em>Mes / Ano</em>, ex.: <code>04/2026</code>)<br>
+        • Botão <strong>Consultar</strong>
+      </div>
+
+      <div class="group-header">Grupo 1 — Cálculo IS × TAXA em Prévias (bug original)</div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-001</span>
+          <span class="ct-title">Verificar campo IS calculado no Resumo da Fatura — Apólice 6540011049 (Ramo 54)</span>
+          <span class="bloqueante">P1 Bloqueante</span>
+          <span class="tipo-ct">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Pré-condições</span>
+          <ul>
+            <li>CITNET Fairfax HML acessível e deploy da task 6925 confirmado</li>
+            <li>Logado com <code>VOIDR-NSTEC / NS-Vo1dr@b</code> (Filial = Selecione… no login)</li>
+            <li>Taxa IS da apólice 6540011049 verificada na configuração para cálculo do esperado</li>
+          </ul>
+          <span class="lbl">Dados de entrada</span>
+          <ul>
+            <li>Filial: <strong>FAIRFAX BRASIL SEG. CORP. S/A - 1</strong></li>
+            <li>Ramo: <strong>54 - RCTR-C</strong></li>
+            <li>Apólice: <strong>6540011049</strong></li>
+            <li>Competência: <strong>04/2026</strong></li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Realizar login no CITNET Fairfax HML (seguir info-box acima)</li>
+            <li>Navegar: Faturamento → Aprovação de Prévias → Aprovação</li>
+            <li>Na tela "Autorização de Prévia para Faturamento":
+              <ul>
+                <li>Filial → selecionar <strong>FAIRFAX BRASIL SEG. CORP. S/A - 1</strong></li>
+                <li>Filtrar por → selecionar <strong>Ramo/Apólice/Subgrupo</strong></li>
+                <li>Ramo → selecionar <strong>54 - RCTR-C</strong></li>
+                <li>Apólice → selecionar <strong>6540011049</strong> (carregada após selecionar Ramo)</li>
+                <li>Competência → preencher <strong>04/2026</strong></li>
+              </ul>
+            </li>
+            <li>Clicar em <strong>Consultar</strong></li>
+            <li>Na lista de resultados, localizar a linha: TRANSPORTES MARES DO SUL LTDA · Ramo 54 · Apólice 6540011049 · 194 averbações · "Aguardando Aprovação"</li>
+            <li>Clicar no botão <strong>Aprovar</strong> da linha → dialog "Resumo da Fatura" abrirá</li>
+            <li>No dialog "Resumo da Fatura", localizar o campo <strong>IS</strong> (Imposto Seletivo)</li>
+            <li>Anotar o valor exibido pelo sistema para o campo IS</li>
+            <li>Calcular manualmente: <code>IS esperado = Prêmio Líquido × taxa_IS</code></li>
+            <li>Comparar o valor exibido com o calculado — e com os screenshots de referência do card 6898</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          O campo IS está presente no "Resumo da Fatura" com valor igual ao resultado de <code>Prêmio Líquido × taxa_IS</code>, sem divergência. O arredondamento está correto (2 casas decimais). O valor bate com os screenshots de referência do card 6898.
+        </div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-002</span>
+          <span class="ct-title">Verificar campo IS calculado no Resumo da Fatura — Apólice 6550006234 (Ramo 55)</span>
+          <span class="bloqueante">P1 Bloqueante</span>
+          <span class="tipo-ct">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Pré-condições</span>
+          <ul>
+            <li>Mesmo ambiente e login do CT-CTN-001</li>
+            <li>Taxa IS da apólice 6550006234 verificada na configuração</li>
+          </ul>
+          <span class="lbl">Dados de entrada</span>
+          <ul>
+            <li>Filial: <strong>FAIRFAX BRASIL SEG. CORP. S/A - 1</strong></li>
+            <li>Ramo: <strong>55 - RC-DC</strong></li>
+            <li>Apólice: <strong>6550006234</strong></li>
+            <li>Competência: <strong>04/2026</strong></li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Seguir os passos 1–5 do CT-CTN-001, desta vez selecionando Ramo <strong>55 - RC-DC</strong> e Apólice <strong>6550006234</strong></li>
+            <li>Na lista de resultados, localizar a linha: TRANSPORTES MARES DO SUL LTDA · Ramo 55 · Apólice 6550006234 · 194 averbações</li>
+            <li>Clicar em <strong>Aprovar</strong> → dialog "Resumo da Fatura" abrirá</li>
+            <li>Localizar o campo <strong>IS</strong> no dialog</li>
+            <li>Calcular manualmente: <code>IS esperado = Prêmio Líquido × taxa_IS</code></li>
+            <li>Comparar valor exibido com o esperado</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          IS correto também para a segunda apólice de referência (Ramo 55) — confirma que o fix é consistente e não isolado a uma única apólice ou ramo.
+        </div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-003</span>
+          <span class="ct-title">IS não deve estar zerado em nenhuma prévia com taxa IS configurada</span>
+          <span class="bloqueante">P1 Bloqueante</span>
+          <span class="tipo-ct">Negativo / Regressão</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Contexto</span>
+          <p>Verifica diretamente o comportamento que caracterizava o bug: IS zerado ou ausente na prévia. É a confirmação mais direta de que o fix foi efetivo.</p>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Abrir o "Resumo da Fatura" para as apólices 6540011049 e 6550006234 (seguir CT-CTN-001/002)</li>
+            <li>Em cada dialog "Resumo da Fatura", verificar o campo <strong>IS</strong></li>
+            <li>Verificar se IS exibe valor diferente de <code>R$ 0,00</code> e diferente de campo vazio/ausente</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          Em nenhuma das prévias o campo IS exibe <code>R$ 0,00</code> ou está ausente quando a taxa IS está configurada na apólice. Qualquer IS zerado em apólice com taxa IS ativa é falha direta.
+        </div>
+      </div>
+
+      <div class="group-header">Grupo 2 — Arredondamento e Consistência do IS</div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-004</span>
+          <span class="ct-title">Validar arredondamento do IS — averbação com IS fracionado</span>
+          <span class="bloqueante">P1 Bloqueante</span>
+          <span class="tipo-ct">Limite</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Contexto</span>
+          <p>O comentário no card menciona especificamente o arredondamento. Este CT usa uma averbação cujo cálculo resulte em IS com mais de 2 casas decimais antes do arredondamento.</p>
+          <span class="lbl">Dados de entrada</span>
+          <ul>
+            <li>Consultar o arquivo <em>Consulta_14_05_2026_*.zip</em> dos anexos do card 6898 para identificar averbações com IS fracionado</li>
+            <li>Alternativamente: qualquer averbação das apólices 6540011049 / 6550006234 onde <code>prêmio × taxa_IS</code> resulte em fração &gt; 2 casas decimais</li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Navegar até o "Resumo da Fatura" da apólice alvo (seguir CT-CTN-001)</li>
+            <li>Anotar o IS exibido no dialog</li>
+            <li>Calcular manualmente: <code>IS bruto = Prêmio Líquido × taxa_IS</code></li>
+            <li>Arredondar para 2 casas decimais (método padrão bancário)</li>
+            <li>Comparar o IS exibido com o arredondado calculado</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          O IS exibido corresponde ao arredondamento correto para 2 casas decimais. Sem diferença de centavos em relação ao esperado.
+        </div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-005</span>
+          <span class="ct-title">IS consistente em múltiplas consultas do Resumo para o mesmo período</span>
+          <span class="importante">P2 Importante</span>
+          <span class="tipo-ct">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Abrir o "Resumo da Fatura" da apólice 6540011049 — anotar o IS calculado (valor 1)</li>
+            <li>Fechar o dialog (botão Fechar — sem processar)</li>
+            <li>Abrir novamente o "Resumo da Fatura" da mesma apólice e competência</li>
+            <li>Anotar o IS calculado (valor 2)</li>
+            <li>Comparar valor 1 com valor 2</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          IS idêntico nas duas consultas. Não há variação por reprocessamento ou estado interno acumulado.
+        </div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-006</span>
+          <span class="ct-title">IS calculado corretamente em apólice de Ramo diferente (ramo 55 vs 54)</span>
+          <span class="importante">P2 Importante</span>
+          <span class="tipo-ct">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Contexto</span>
+          <p>Valida que o fix se aplica a ambos os ramos presentes nas apólices de referência (Ramo 54 RCTR-C e Ramo 55 RC-DC), cobrindo a possibilidade de o bug ser ramo-específico.</p>
+          <span class="lbl">Dados de entrada</span>
+          <ul>
+            <li>Apólice 6540011049 (Ramo 54) — Prêmio Comercial confirmado: R$ 919.395,68</li>
+            <li>Apólice 6550006234 (Ramo 55) — Prêmio Comercial confirmado: R$ 827.456,11</li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Abrir Resumo da Fatura para apólice 6540011049 (Ramo 54) — anotar IS e resultado esperado</li>
+            <li>Fechar e abrir Resumo da Fatura para apólice 6550006234 (Ramo 55) — anotar IS e resultado esperado</li>
+            <li>Verificar que IS em ambas as prévias é <code>Prêmio Líquido × taxa_IS</code> para cada respectivo ramo</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          IS correto nos dois ramos. Nenhum ramo específico provoca IS zerado ou incorreto.
+        </div>
+      </div>
+
+      <div class="group-header">Grupo 3 — Regressão de Campos Financeiros</div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-007</span>
+          <span class="ct-title">IOF não foi impactado pela correção do IS — Apólice 6540011049</span>
+          <span class="importante">P2 Importante</span>
+          <span class="tipo-ct">Regressão</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Valor de referência (Resumo da Fatura validado via MCP, 04/2026)</span>
+          <ul>
+            <li>Prêmio Líquido: <strong>R$ 919.395,68</strong></li>
+            <li>IOF: <strong>R$ 67.851,40</strong></li>
+            <li>Prêmio Total: <strong>R$ 987.247,08</strong></li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Abrir o "Resumo da Fatura" da apólice 6540011049 (seguir CT-CTN-001)</li>
+            <li>Localizar o campo <strong>IOF</strong> no dialog</li>
+            <li>Verificar que IOF exibe <code>R$ 67.851,40</code> (ou o valor correspondente à alíquota vigente aplicada sobre o prêmio líquido)</li>
+            <li>Calcular manualmente: <code>IOF = Prêmio Líquido × alíquota_IOF</code></li>
+            <li>Comparar valor exibido com o esperado</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          IOF permanece em R$ 67.851,40 (ou valor correto pela alíquota). A alteração no cálculo IS não afetou o IOF.
+        </div>
+      </div>
+
+      <div class="ct-block">
+        <div class="ct-header">
+          <span class="ct-id">CT-CTN-008</span>
+          <span class="ct-title">Prêmio Líquido não foi alterado pela correção — Apólice 6540011049</span>
+          <span class="importante">P2 Importante</span>
+          <span class="tipo-ct">Regressão</span>
+        </div>
+        <div class="ct-body">
+          <span class="lbl">Valor de referência (Resumo da Fatura validado via MCP, 04/2026)</span>
+          <ul>
+            <li>Prêmio Comercial: <strong>R$ 919.395,68</strong></li>
+            <li>Prêmio Líquido: <strong>R$ 919.395,68</strong></li>
+            <li>Prêmio Total pré-fix: <strong>R$ 987.247,08</strong> (Prêmio Líquido + IOF, sem IS)</li>
+          </ul>
+          <span class="lbl">Passos</span>
+          <ol>
+            <li>Abrir o "Resumo da Fatura" da apólice 6540011049 (seguir CT-CTN-001)</li>
+            <li>Localizar os campos <strong>Prêmio Comercial</strong> e <strong>Prêmio Líquido</strong> no dialog</li>
+            <li>Verificar que Prêmio Líquido permanece em R$ 919.395,68</li>
+            <li>Confirmar que IS não entra na base de cálculo do prêmio em si — IS é um imposto adicional aplicado sobre o prêmio</li>
+            <li>Verificar que Prêmio Total = Prêmio Líquido + IOF + IS (após fix)</li>
+          </ol>
+          <span class="lbl">Resultado esperado</span>
+          Prêmio Líquido correto e inalterado (R$ 919.395,68). A correção afetou exclusivamente o campo IS. O Prêmio Total deverá ser maior que o valor pré-fix (R$ 987.247,08) em exatamente o valor do IS calculado.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 6. MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-title">6. Matriz de Rastreabilidade</div>
+    <div class="section-body">
+      <table>
+        <tr>
+          <th>Critério / Comportamento esperado</th>
+          <th style="width:130px; text-align:center">CT(s)</th>
+          <th style="width:120px; text-align:center">Resultado</th>
+        </tr>
+        <tr>
+          <td>IS calculado corretamente nas prévias — apólice 6540011049 (Ramo 54)</td>
+          <td style="text-align:center">CT-CTN-001</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>IS calculado corretamente nas prévias — apólice 6550006234 (Ramo 55)</td>
+          <td style="text-align:center">CT-CTN-002</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>IS não zerado / ausente em apólice com taxa IS configurada (bug original)</td>
+          <td style="text-align:center">CT-CTN-003</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>Arredondamento do IS correto (sem diferença de centavos)</td>
+          <td style="text-align:center">CT-CTN-004</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>IS consistente em múltiplas consultas do Resumo</td>
+          <td style="text-align:center">CT-CTN-005</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>IS correto em Ramo 54 (RCTR-C) e Ramo 55 (RC-DC)</td>
+          <td style="text-align:center">CT-CTN-006</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>IOF não impactado pela correção (regressão)</td>
+          <td style="text-align:center">CT-CTN-007</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+        <tr>
+          <td>Prêmio Líquido não alterado pela correção (regressão)</td>
+          <td style="text-align:center">CT-CTN-008</td>
+          <td class="result-pendente">— pendente —</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. MÉTRICAS -->
+  <div class="section">
+    <div class="section-title">7. Métricas do Plano</div>
+    <div class="section-body">
+      <div class="metrics">
+        <div class="metric">
+          <div class="num">8</div>
+          <div class="lbl">Total de CTs</div>
+        </div>
+        <div class="metric">
+          <div class="num red">4</div>
+          <div class="lbl">P1 Bloqueantes</div>
+        </div>
+        <div class="metric">
+          <div class="num orange">4</div>
+          <div class="lbl">P2 Importantes</div>
+        </div>
+        <div class="metric">
+          <div class="num green">0</div>
+          <div class="lbl">P3 Desejáveis</div>
+        </div>
+      </div>
+      <p style="margin-top:14px; font-size:13px; color:#666;">
+        Cobertura do comportamento reportado: 100% (CT-CTN-001 a 003 cobrem diretamente o bug). Regressão: 2 CTs (CT-CTN-007 e 008). Navegação e massa confirmadas via Playwright MCP.
+      </p>
+    </div>
+  </div>
+
+  <!-- 8. RISCOS -->
+  <div class="section">
+    <div class="section-title">8. Riscos</div>
+    <div class="section-body">
+      <table>
+        <tr>
+          <th>Risco</th>
+          <th style="width:100px">Probabilidade</th>
+          <th style="width:90px">Impacto</th>
+          <th>Mitigação</th>
+        </tr>
+        <tr>
+          <td><strong>Correção da task 6925 não publicada no HML</strong> — validação MCP não encontrou campo IS no Resumo da Fatura (04/2026)</td>
+          <td style="color:#d13438; font-weight:700">Alta</td>
+          <td style="color:#d13438; font-weight:700">Alto</td>
+          <td>Confirmar com Ricardo Lopes antes de iniciar. Se IS ainda ausente → ambiente não atualizado, não é bloqueio de bug no código.</td>
+        </tr>
+        <tr>
+          <td>Campo IS exibido em local diferente do "Resumo da Fatura" (ex.: detalhe por averbação ou documento final)</td>
+          <td style="color:#ca5010; font-weight:700">Média</td>
+          <td style="color:#ca5010; font-weight:700">Médio</td>
+          <td>Confirmar com Ricardo em qual tela/campo IS aparece após o fix. Ajustar os passos dos CTs P1 conforme necessário antes de executar.</td>
+        </tr>
+        <tr>
+          <td>Taxa IS não configurada em HML igual à produção</td>
+          <td style="color:#107c10; font-weight:700">Baixa</td>
+          <td style="color:#d13438; font-weight:700">Alto</td>
+          <td>Verificar a taxa IS diretamente na configuração da apólice no HML antes de calcular o resultado esperado.</td>
+        </tr>
+        <tr>
+          <td>Bug ocorre em cenário específico não coberto pelos CTs (conforme comentário no card)</td>
+          <td style="color:#ca5010; font-weight:700">Média</td>
+          <td style="color:#ca5010; font-weight:700">Médio</td>
+          <td>CT-CTN-006 cobre dois ramos distintos. Consultar os ZIPs SQL do card para identificar padrão nos dados originais.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Plano gerado em 21/05/2026 · Wesley Calegari · Board: Sustentação CITWEB · BUG-6898 · Sprint_6_Sustentacao<br>
+    Navegação e massa de dados validadas via Playwright MCP · Pronto para revisão — aguardando confirmação de deploy da task 6925 antes de executar.
+  </footer>
+
+</div>
+</body>
+</html>

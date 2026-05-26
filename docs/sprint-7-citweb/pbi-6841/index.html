@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — PBI 6841 — Conversor ramos HDI-YELUM (RCV)</title>
+<style>
+:root {
+  --bg: #0f1114;
+  --surface: #1a1d23;
+  --surface-2: #22262e;
+  --border: #343a46;
+  --text: #e6e8eb;
+  --muted: #9aa3ad;
+  --accent: #3b9eff;
+  --accent-dim: #1e4d7a;
+  --ok: #3fb950;
+  --ok-bg: rgba(63, 185, 80, 0.18);
+  --fail: #f85149;
+  --fail-bg: rgba(248, 81, 73, 0.18);
+  --pend: #8b949e;
+  --pend-bg: rgba(139, 148, 158, 0.2);
+  --block: #d29922;
+  --block-bg: rgba(210, 153, 34, 0.22);
+  --na: #6e7681;
+  --na-bg: rgba(110, 118, 129, 0.25);
+  --warn-bg: rgba(210, 153, 34, 0.12);
+  --info-bg: rgba(59, 158, 255, 0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+a { color: var(--accent); }
+header {
+  background: linear-gradient(135deg, #0a2744 0%, #152238 50%, var(--bg) 100%);
+  color: #fff;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+}
+header .badge {
+  background: var(--accent);
+  color: #0a1628;
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .9; margin-top: 4px; color: #c9d1d9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+
+/* Painel gerencial */
+.dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.dash-card .num {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.dash-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
+.dash-card.total .num { color: var(--accent); }
+.dash-card.aprovado .num { color: var(--ok); }
+.dash-card.reprovado .num { color: var(--fail); }
+.dash-card.pendente .num { color: var(--pend); }
+.dash-card.bloqueado .num { color: var(--block); }
+.dash-card.na .num { color: var(--na); }
+.dash-wide {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.dash-wide h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+.progress-bar {
+  height: 10px;
+  background: var(--surface-2);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.progress-bar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ok), #56d364);
+  border-radius: 6px;
+  width: 0%;
+  transition: width .35s ease;
+}
+.dash-meta { font-size: 13px; color: var(--muted); margin-top: 10px; }
+.dash-meta strong { color: var(--text); }
+.dash-actions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dash-actions button {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dash-actions button:hover { border-color: var(--accent); color: var(--accent); }
+
+.section {
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.section-header {
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+  padding: 12px 20px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--accent);
+}
+.section-body { padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+.info-item span { font-size: 13px; color: var(--text); }
+
+.warn-box {
+  background: var(--warn-bg);
+  border-left: 5px solid var(--block);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #e8c07d;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  border: 1px solid rgba(210, 153, 34, 0.25);
+}
+.info-box {
+  background: var(--info-bg);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #a9d3ff;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  border: 1px solid rgba(59, 158, 255, 0.2);
+}
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: #d2a8ff; }
+
+/* Cenário: barra retrátil colorida por status */
+.ct-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  transition: box-shadow .2s ease;
+}
+.ct-block[data-expanded="true"] {
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.ct-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  border-left: 5px solid var(--pend);
+  background: var(--pend-bg);
+  transition: background .2s ease, border-color .2s ease;
+}
+.ct-block[data-status="pendente"] .ct-bar {
+  border-left-color: var(--pend);
+  background: var(--pend-bg);
+}
+.ct-block[data-status="aprovado"] .ct-bar {
+  border-left-color: var(--ok);
+  background: var(--ok-bg);
+}
+.ct-block[data-status="reprovado"] .ct-bar {
+  border-left-color: var(--fail);
+  background: var(--fail-bg);
+}
+.ct-block[data-status="bloqueado"] .ct-bar {
+  border-left-color: var(--block);
+  background: var(--block-bg);
+}
+.ct-block[data-status="na"] .ct-bar {
+  border-left-color: var(--na);
+  background: var(--na-bg);
+}
+
+.ct-toggle {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.25);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.ct-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.ct-toggle .ct-chevron {
+  display: block;
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid currentColor;
+  margin-left: 3px;
+  transition: transform .2s ease;
+}
+.ct-block[data-expanded="true"] .ct-toggle .ct-chevron {
+  transform: rotate(90deg);
+}
+
+.ct-bar-main {
+  flex: 1;
+  min-width: 160px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ct-id { font-weight: 700; color: var(--accent); font-size: 12px; white-space: nowrap; }
+.ct-prio { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--accent-dim); color: #9ecbff; font-weight: 600; }
+.ct-prio.p2 { background: #5c2d1a; color: #ffab70; }
+.ct-title { font-weight: 600; font-size: 13px; color: var(--text); flex: 1 1 200px; }
+
+.ct-status-chip {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.1);
+  color: #c9d1d9;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.ct-block[data-status="pendente"] .ct-status-chip { color: #c9d1d9; }
+.ct-block[data-status="aprovado"] .ct-status-chip { color: #56d364; border-color: rgba(63,185,80,.4); }
+.ct-block[data-status="reprovado"] .ct-status-chip { color: #ff7b72; border-color: rgba(248,81,73,.4); }
+.ct-block[data-status="bloqueado"] .ct-status-chip { color: #e3b341; border-color: rgba(210,153,34,.4); }
+.ct-block[data-status="na"] .ct-status-chip { color: #8b949e; }
+
+.ct-panel {
+  border-top: 1px solid var(--border);
+  background: rgba(0,0,0,.15);
+}
+.ct-panel[hidden] { display: none !important; }
+
+.ct-grid { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.ct-field p, .ct-field ol, .ct-field ul, .ct-field pre { font-size: 13px; line-height: 1.55; color: #c9d1d9; }
+.ct-field ol, .ct-field ul { padding-left: 20px; }
+.ct-field li { margin-bottom: 6px; }
+.ct-field.full { grid-column: 1 / -1; }
+.ev-section { margin-top: 0; border-top: 1px dashed var(--border); padding: 10px 14px 14px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: var(--pend-bg); color: var(--pend); }
+
+/* Evidências injetadas (injetar_evidencias.py) */
+.ev-section .ev-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+}
+.ev-section .ev-badge.ev-ok {
+  background: var(--ok-bg);
+  color: #56d364;
+  border: 1px solid rgba(63, 185, 80, 0.35);
+}
+.ev-section .ev-badge.ev-falha {
+  background: var(--fail-bg);
+  color: #ff7b72;
+  border: 1px solid rgba(248, 81, 73, 0.35);
+}
+.ev-section .ev-data, .ev-section .ev-obs { font-size: 12px; color: var(--muted); }
+.ev-section .ev-screenshots { display: flex; flex-direction: column; gap: 18px; }
+.ev-section .ev-step-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+.ev-section .ev-step img {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+table.matriz { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+table.matriz th, table.matriz td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+table.matriz th { background: var(--surface-2); color: var(--muted); }
+table.matriz td { color: #c9d1d9; }
+
+.section-body > .hint-ct {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: rgba(59, 158, 255, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(59, 158, 255, 0.15);
+}
+
+#resultado-execucao {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+#resultado-execucao .global-line { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+#resultado-execucao .global-detail { font-size: 13px; color: var(--muted); }
+@media (max-width: 720px) {
+  .ct-grid { grid-template-columns: 1fr; }
+  .ct-bar { align-items: flex-start; }
+  .ct-status-chip { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="badge">PBI 6841</div>
+  <div>
+    <h1>[CITWEB] Ajustar exibição de módulos e ramo RCV Conversor — HDI-YELUM</h1>
+    <p>Sprint 7 Citweb — Iteração CITWEB\Sprint_7_Citweb — Execução alinhada ao cartão por entrada <strong>CITWEB</strong> (telha «Conversor de Arquivos»); triagem técnica do conversor MVC em código CitNet2.</p>
+  </div>
+</header>
+<div class="container">
+
+  <div class="dash" id="painel-gerencial" aria-label="Painel gerencial de execução">
+    <div class="dash-card total"><div class="num" id="dash-total">5</div><div class="lbl">Casos planejados</div></div>
+    <div class="dash-card aprovado"><div class="num" id="dash-aprovado">0</div><div class="lbl">Aprovado</div></div>
+    <div class="dash-card reprovado"><div class="num" id="dash-reprovado">0</div><div class="lbl">Reprovado</div></div>
+    <div class="dash-card pendente"><div class="num" id="dash-pendente">5</div><div class="lbl">Pendente</div></div>
+    <div class="dash-card bloqueado"><div class="num" id="dash-bloqueado">0</div><div class="lbl">Bloqueado</div></div>
+    <div class="dash-card na"><div class="num" id="dash-na">0</div><div class="lbl">N/A</div></div>
+    <div class="dash-wide">
+      <h2>Andamento</h2>
+      <div class="dash-meta">
+        <strong id="dash-resumo">0 de 5</strong> casos com resultado definido (aprovado, reprovado, bloqueado ou N/A).
+        <span id="dash-taxa"> — Taxa Aprovado/Reprovado: — sem casos decididos como aprovado/reprovado.</span>
+      </div>
+      <div class="progress-bar" title="Percentual de casos já executados ou dispensados"><div class="fill" id="dash-progress-fill" style="width:0%"></div></div>
+      <div class="dash-actions">
+        <span class="dash-meta">Os números refletem o atributo <span class="mono">data-status</span> de cada cenário no HTML (<span class="mono">pendente</span> · <span class="mono">aprovado</span> · <span class="mono">reprovado</span> · <span class="mono">bloqueado</span> · <span class="mono">na</span>). Após executar os testes, atualize esse valor no ficheiro e volte a abrir o plano.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="warn-box">
+    <strong>Triagem — CITWEB vs CITNET:</strong> o cartão ADO refere-se ao <strong>portal CITWEB</strong>; em HDI-YELUM HML o acesso esperado aos testes é o botão <strong>«Conversor de Arquivos»</strong> na home (<span class="mono">formaction Redirecionar?app=CONVERSOR</span>), não a telha/link <strong>CITNET</strong> da grelha — essa segunda via é cenário distinto para evidência.
+    A listagem de ramos no formulário <strong>MVC clássico</strong> continua mapeada em <span class="mono">CITNET/CitNet2</span>: <span class="mono">ConversorController</span>,
+    Na entrada CITWEB, o primeiro ecrã costuma pedir na barra <strong>Converte Arquivo → RCV</strong>; nesse modelo não há obrigatoriamente <span class="mono">select#c_rmo</span> na mesma página (o URL pode referir-se a <span class="mono">ConversorRCV</span>), embora a triagem técnica de ramos parametrizados continue sendo do CitNet/MVC onde existir.
+    Filial opcional <span class="mono">#c_org_prd</span> quando o formulário MVC estiver disponível na mesma tela que o dropdown de ramos. A URL pode ainda parecer CitNet ao abrir (<span class="mono">/citnet/...</span>) porque o mesmo app serve a tela; o que conta para conformidade ao PBI é a <strong>entrada pela home CITWEB</strong>.
+    <strong>Navegação:</strong> após login, só clicar nos botões/telhas permitidos (sem colar URL). F5 na página já aberta do conversor é permitido.
+  </div>
+
+  <div class="info-box">
+    <strong>Comportamento atual (pré-correção — referência código):</strong> para <span class="mono">idSeguradora == &quot;HDI&quot;</span>,
+    o controller aplica <span class="mono">RamoProdutoService().Listar(&quot;HDI&quot;)</span> e filtra
+    <span class="mono">c_rmo != 22 &amp;&amp; != 38 &amp;&amp; != 55</span>, o que <strong>não</strong> restringe ao exclusivo RCV (59).
+    Pós-correção esperada (AC): lista dinâmica conforme tabela ramo/produto por cliente; YELUM/HDI-YELUM só RCV na prática operacional.
+  </div>
+
+  <div class="section">
+    <div class="section-header">Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Work item</label><span>6841</span></div>
+        <div class="info-item"><label>Tipo</label><span>Product Backlog Item</span></div>
+        <div class="info-item"><label>Estado (ADO)</label><span>In Progress</span></div>
+        <div class="info-item"><label>Cliente / contexto</label><span>HDI-YELUM — Conversor — ramo RCV (59)</span></div>
+        <div class="info-item"><label>Tags</label><span>citweb; HDI-Yelum</span></div>
+        <div class="info-item"><label>Iteration</label><span>CITWEB\Sprint_7_Citweb</span></div>
+        <div class="info-item"><label>ADO</label><span><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/6841">Abrir #6841</a></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Tasks filhas (ADO)</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead><tr><th>ID</th><th>Título</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>6970</td><td>Desenvolvimento</td><td>In Progress</td></tr>
+          <tr><td>6971</td><td>Caso de teste</td><td>To Do</td></tr>
+          <tr><td>6972</td><td>Teste QA</td><td>To Do</td></tr>
+          <tr><td>6973</td><td>Teste Staging</td><td>To Do</td></tr>
+          <tr><td>6974</td><td>PR Main</td><td>To Do</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Critérios de aceite (síntese)</div>
+    <div class="section-body">
+      <ul style="padding-left:20px;line-height:1.65;color:#c9d1d9;">
+        <li>Utilizador conversor HDI-YELUM vê <strong>apenas</strong> o ramo RCV (não exposto a outros ramos fora do escopo).</li>
+        <li>Ramos não parametrizados para o cliente <strong>não</strong> aparecem.</li>
+        <li>Listagem lida <strong>dinamicamente</strong> da tabela de ramo/produto; alteração de parametrização reflete sem deploy de código.</li>
+        <li><strong>Isolamento:</strong> outros clientes/seguradoras não são impactados indevidamente.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Pré-requisitos</div>
+    <div class="section-body">
+      <ul style="padding-left:20px;line-height:1.65;color:#c9d1d9;">
+        <li>Ambiente HML acordado para <strong>YELUM / HDI</strong> com build que contenha a alteração do PBI (QA/Staging conforme tasks 6972/6973).</li>
+        <li>Utilizador HML que, após login no portal CITWEB, veja na home a telha <strong>Conversor de Arquivos</strong> (entrada esperada aos testes do PBI). Se o CitNet exigir segundo login dentro desse fluxo, credenciais com permissão ao conversor (validar perfil).</li>
+        <li>Conhecimento da massa em tabela de ramo/produto para HDI-YELUM (para CT de dados / administrador): [documentar URL de cadastro tabelas ou script SQL após confirmação com Dev].</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Casos de teste</div>
+    <div class="section-body">
+      <p class="hint-ct">Cada cenário inicia <strong>retraído</strong>. A faixa mostra a <strong>cor do resultado do teste</strong> (por defeito <strong>Pendente</strong>). Clique na faixa ou na seta para ver o passo a passo. Quando a execução real estiver feita, altere no HTML o <span class="mono">data-status</span> do bloco desse cenário para o resultado obtido — o badge e o painel gerencial passam a refletir o novo valor ao reabrir o ficheiro.</p>
+
+      <!-- CT 001 -->
+      <div class="ct-block" data-ct="CT-PBI-6841-001" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-001" aria-label="Expandir ou fechar CT-PBI-6841-001"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-PBI-6841-001</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Conversor YELUM — dropdown Ramo contém apenas RCV (59)</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-001" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>AC: &quot;visualizar apenas o ramo RCV&quot;; &quot;ramos não parametrizados não aparecem&quot;.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Sessão no portal HDI‑YELUM HML; utilizador que consiga ver a telha <strong>Conversor de Arquivos</strong> na home. Alternativa apenas para cenário paralelo (não PBI principal): entrada por CITNET + menu Conversor.</p>
+            </div>
+            <div class="ct-field full"><label>Passos (menu — sem URL interna na barra)</label>
+              <ol>
+                <li>Abrir a página de <strong>login</strong> do portal HML (única exceção de URL completa), se ainda não autenticado.</li>
+                <li>Autenticar com credenciais HML YELUM/HDI válidas.</li>
+                <li>Na home do portal, clicar no botão <strong>«Conversor de Arquivos»</strong> (não usar a telha CITNET), aguardando nova página/aba conforme ambiente.</li>
+                <li>Na barra do módulo, <strong>Converte Arquivo → RCV</strong> (NSTech); <em>ou</em>, se aparecer apenas o formulário MVC com dropdown, usar os passos de Ramo/Filial abaixo sem este passo prévio duplicado.</li>
+                <li>Aguardar carregamento completo da tela (tabela/lista de produtos MVC com <span class="mono">#c_rmo</span> OU tela NSTech já no contexto RCV).</li>
+                <li>Se o bloco <strong>Filial</strong> estiver visível (<span class="mono">select#c_org_prd</span>), selecionar uma filial válida <em>antes</em> de validar o Ramo (a tela pode depender dessa ordem).</li>
+                <li>Localizar o campo <strong>Ramo</strong> (<span class="mono">select#c_rmo</span>).</li>
+                <li>Abrir o dropdown e listar todas as opções (rótulo visível; se precisar do código, usar inspeção do elemento <span class="mono">option[value]</span> nas DevTools).</li>
+                <li>Se o formulário NSTech apenas RCV aparecer sem <span class="mono">select#c_rmo</span>, validar o critério de ramo apenas pela própria tela já dedicada ao RCV (Orientação/tab) e registar esse desvio da checklist MVC nos comentários de execução.</li>
+              <p>Para HDI-YELUM parametrizado só com RCV: exatamente <strong>uma</strong> opção de produto correspondente a <strong>RCV (59)</strong> após filial preenchida (quando aplicável).
+              Não devem aparecer outros ramos fora da parametrização (ex.: 21, 38, 54, 56, 58) salvo acordo explícito de massa em HML.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-PBI-6841-001"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 002 -->
+      <div class="ct-block" data-ct="CT-PBI-6841-002" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-002" aria-label="Expandir ou fechar CT-PBI-6841-002"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-PBI-6841-002</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Regressão — seleção RCV permite prosseguir fluxo mínimo do conversor</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-002" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Garantir que, com lista restrita, o utilizador consegue selecionar RCV e atingir estado pronto para uso da área de upload / arquivo de teste, sem erro de servidor (não é obrigatório concluir lote real se o ambiente proibir).</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Mesmo HML e utilizador do CT-001 (ou equivalente). Se a aplicação estiver em modo <strong>conversor automático</strong>, a área manual pode estar oculta — nesse caso marcar execução como <strong>N/A</strong> com nota ou repetir com usuário/config que exiba o conversor manual.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Da home logada em CITWEB, abrir <strong>Conversor de Arquivos</strong>; completar segundo login apenas se surgir (<span class="mono">#usuario</span>).</li>
+                <li>No shell NSTech, abrir o menu superior <strong>Converte Arquivo</strong> e escolher <strong>RCV</strong>.</li>
+                <li>Se aparecer formulário MVC com <span class="mono">select#c_rmo</span> (cenário menos comum nesta entrada): preencher <span class="mono">select#c_org_prd</span> (Filial) se visível; em <span class="mono">select#c_rmo</span> escolher <strong>RCV</strong> (59).</li>
+                <li>Verificar ausência de erro de servidor e que o conversor está utilizável (<span class="mono">input type=file</span> / Importar ou <span class="mono">#AreaDeUpload</span>, conforme layout).</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Evidência</label>
+              <p>Captura com Filial (se houver) e Ramo = RCV selecionados, e área de interação principal visível.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-PBI-6841-002"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 003 -->
+      <div class="ct-block" data-ct="CT-PBI-6841-003" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-003" aria-label="Expandir ou fechar CT-PBI-6841-003"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-PBI-6841-003</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Dinâmico — alteração na parametrização ramo/produto reflete no conversor sem alteração de código</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-003" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>AC: leitura dinâmica da tabela; mudança reflete automaticamente.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li><strong>[Coordenação]</strong> Com Dev/DBA, identificar registro(s) de ramo/produto para HDI-YELUM em HML e plano reversível de alteração.</li>
+                <li>Login (se necessário) e abrir <strong>Conversor</strong> por menu.</li>
+                <li>Preencher <span class="mono">#c_org_prd</span> quando visível; registar estado <strong>antes</strong>: print das opções de <span class="mono">#c_rmo</span> + nota de horário.</li>
+                <li>Aplicar alteração na parametrização (ex.: segundo ramo temporário permitido em HML, ou remoção controlada — conforme política de dados).</li>
+                <li>Manter a mesma sessão ou novo login conforme combinado; voltar ao <strong>Conversor</strong> só por menu. Se a lista não atualizar, recarregar a página do conversor (F5) <strong>uma vez</strong> e reavaliar (sem navegar por URL colada).</li>
+                <li>Confirmar que as opções de <span class="mono">#c_rmo</span> mudaram de acordo com a tabela.</li>
+                <li>Reverter parametrização e repetir verificação opcional para fechar evidência de ida e volta.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Lista de ramos acompanha os dados persistidos após nova requisição ao servidor; não exige novo deploy de aplicação só para refletir a mudança na tabela.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-PBI-6841-003"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 004 -->
+      <div class="ct-block" data-ct="CT-PBI-6841-004" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-004" aria-label="Expandir ou fechar CT-PBI-6841-004"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-PBI-6841-004</span>
+            <span class="ct-prio p2">P2</span>
+            <span class="ct-title">Isolamento — outro cliente (ex.: NSTECH/MITSUI) mantém lista de ramos própria</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-004" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>AC: outros clientes não impactados.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Credenciais HML de <strong>outra</strong> seguradora/base acordada com o time; baseline documentada (print ou lista esperada de ramos) antes deste PBI, se possível.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Encerrar sessão do teste YELUM (ou usar janela anónima / outro browser) para evitar mistura de contexto.</li>
+                <li>Abrir login do HML do <strong>outro</strong> cliente e autenticar com utilizador que tenha <strong>Conversor</strong>.</li>
+                <li>Pelo menu, abrir <strong>Conversor</strong> (caminho pode diferir do YELUM — seguir o que o layout desse cliente exibir).</li>
+                <li>Preencher <span class="mono">#c_org_prd</span> se obrigatório para liberar o restante do formulário.</li>
+                <li>Inspecionar <span class="mono">select#c_rmo</span>: não deve &quot;colapsar&quot; para somente RCV nem perder ramos que a baseline considera legítimos para esse cliente.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Comportamento alinhado ao esperado para aquele cliente; qualquer diferença em relação à baseline documentar como reprovação ou bloqueio conforme severidade.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-PBI-6841-004"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 005 -->
+      <div class="ct-block" data-ct="CT-PBI-6841-005" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-005" aria-label="Expandir ou fechar CT-PBI-6841-005"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-PBI-6841-005</span>
+            <span class="ct-prio p2">P2</span>
+            <span class="ct-title">Regressão — Conversor exportação / layout HDI (se aplicável ao escopo)</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-005" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Nota de escopo</label>
+              <p>Layout YELUM costuma expor <strong>Conversor</strong> direto no menu. O fluxo <strong>Conversor Exportação</strong> pode existir noutro layout ou submenu. Só executar os passos abaixo se o escopo do PBI/task 6971 incluir exportação; caso contrário marcar <strong>N/A</strong> com justificativa.</p>
+            </div>
+            <div class="ct-field full"><label>Passos (condicionais)</label>
+              <ol>
+                <li>Autenticar no HML YELUM/HDI conforme CT-001.</li>
+                <li>Se existir entrada de menu ou botão claramente identificado como <strong>Conversor Exportação</strong> (ou equivalente), abri-lo <strong>só</strong> por esse controle (sem URL colada).</li>
+                <li>Se não existir no ambiente: parar aqui e marcar <strong>N/A</strong> (&quot;fluxo não disponível no layout HML&quot;).</li>
+                <li>Se existir: validar carregamento sem erro e, se houver <span class="mono">select#c_rmo</span> (ou campo equivalente), consistência com a política de ramos desse ecrã.</li>
+              </ol>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-PBI-6841-005"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Matriz de rastreabilidade</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead>
+          <tr><th>Critério de aceite (síntese)</th><th>CTs</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Apenas RCV para utilizador HDI-YELUM no conversor</td><td>CT-PBI-6841-001, 002</td></tr>
+          <tr><td>Ramos não parametrizados ausentes</td><td>CT-PBI-6841-001</td></tr>
+          <tr><td>Listagem dinâmica tabela ramo/produto</td><td>CT-PBI-6841-003</td></tr>
+          <tr><td>Isolamento entre clientes</td><td>CT-PBI-6841-004</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">Riscos e métricas</div>
+    <div class="section-body">
+      <p style="line-height:1.65;color:#c9d1d9;"><strong>Riscos:</strong> diferença entre branding YELUM e <span class="mono">Session[&quot;idSeguradora&quot;]</span> (<span class="mono">HDI</span> vs outro);
+      cache de página; ausência de massa clara na tabela em HML para CT 003; conversor automático ocultando painel manual (CT 002).</p>
+      <p style="line-height:1.65;margin-top:8px;color:#c9d1d9;"><strong>Métricas sugeridas:</strong> contagem de opções em <span class="mono">#c_rmo</span> antes/depois; zero erros HTTP 500 na action <span class="mono">Conversor</span> GET.</p>
+    </div>
+  </div>
+
+  <div id="resultado-execucao" class="resultado pendente mixed">
+    <div class="global-line" id="global-line">Resultado global — 1 aprovado, 4 pendentes</div>
+    <div class="global-detail" id="global-detail">Execução parcial — concluir pendentes ou marcar bloqueado/N/A com justificativa no HTML.</div>
+  </div>
+
+</div>
+<script>
+(function () {
+  var STATUS_LABELS = {
+    pendente: 'Pendente',
+    aprovado: 'Aprovado',
+    reprovado: 'Reprovado',
+    bloqueado: 'Bloqueado',
+    na: 'N/A'
+  };
+  var VALID = { pendente: 1, aprovado: 1, reprovado: 1, bloqueado: 1, na: 1 };
+
+  function canonicalStatus(raw) {
+    var s = (raw || 'pendente').toString().toLowerCase().trim();
+    if (s === 'passou') s = 'aprovado';
+    if (s === 'reprovou') s = 'reprovado';
+    return VALID[s] ? s : 'pendente';
+  }
+
+  function applyCanonical(block) {
+    var c = canonicalStatus(block.getAttribute('data-status'));
+    block.setAttribute('data-status', c);
+    var chip = block.querySelector('.ct-status-chip');
+    if (chip) chip.textContent = STATUS_LABELS[c] || c;
+  }
+
+  var blocks = document.querySelectorAll('.ct-block[data-ct]');
+
+  function setExpanded(block, expanded) {
+    block.setAttribute('data-expanded', expanded ? 'true' : 'false');
+    var panel = block.querySelector('.ct-panel');
+    var btn = block.querySelector('.ct-toggle');
+    if (panel) panel.hidden = !expanded;
+    if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function toggleBlock(block) {
+    setExpanded(block, block.getAttribute('data-expanded') !== 'true');
+  }
+
+  blocks.forEach(function (block) {
+    applyCanonical(block);
+    setExpanded(block, false);
+    var bar = block.querySelector('.ct-bar');
+    var toggleBtn = block.querySelector('.ct-toggle');
+
+    if (bar) {
+      bar.addEventListener('click', function () {
+        toggleBlock(block);
+      });
+    }
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleBlock(block);
+      });
+    }
+  });
+
+  function refreshDashboard() {
+    var total = blocks.length;
+    var c = { pendente: 0, aprovado: 0, reprovado: 0, bloqueado: 0, na: 0 };
+    blocks.forEach(function (block) {
+      var st = canonicalStatus(block.getAttribute('data-status'));
+      if (c[st] !== undefined) c[st]++;
+    });
+
+    document.getElementById('dash-total').textContent = String(total);
+    document.getElementById('dash-aprovado').textContent = String(c.aprovado);
+    document.getElementById('dash-reprovado').textContent = String(c.reprovado);
+    document.getElementById('dash-pendente').textContent = String(c.pendente);
+    document.getElementById('dash-bloqueado').textContent = String(c.bloqueado);
+    document.getElementById('dash-na').textContent = String(c.na);
+
+    var definidos = c.aprovado + c.reprovado + c.bloqueado + c.na;
+    var pctDefinidos = total ? Math.round((definidos / total) * 100) : 0;
+    document.getElementById('dash-resumo').textContent = definidos + ' de ' + total;
+    document.getElementById('dash-progress-fill').style.width = pctDefinidos + '%';
+
+    var decididosBin = c.aprovado + c.reprovado;
+    var taxaEl = document.getElementById('dash-taxa');
+    if (decididosBin === 0) {
+      taxaEl.textContent = '';
+    } else {
+      var pctOk = Math.round((c.aprovado / decididosBin) * 100);
+      taxaEl.textContent = ' — Taxa Aprovado/Reprovado: ' + pctOk + '% aprovados (' + c.aprovado + '/' + decididosBin + ').';
+    }
+
+    var gLine = document.getElementById('global-line');
+    var gDet = document.getElementById('global-detail');
+    var rej = document.getElementById('resultado-execucao');
+    rej.classList.remove('ok', 'fail', 'mixed', 'pending');
+
+    if (definidos === 0) {
+      gLine.textContent = 'Resultado global — todos pendentes';
+      gDet.textContent = 'Altere no HTML o atributo data-status de cada cenário após os testes; ao reabrir este ficheiro o painel e este resumo atualizam.';
+      rej.classList.add('pending');
+    } else {
+      var parts = [];
+      if (c.aprovado) parts.push(c.aprovado + ' aprovado' + (c.aprovado > 1 ? 's' : ''));
+      if (c.reprovado) parts.push(c.reprovado + ' reprovado' + (c.reprovado > 1 ? 's' : ''));
+      if (c.bloqueado) parts.push(c.bloqueado + ' bloqueado' + (c.bloqueado > 1 ? 's' : ''));
+      if (c.na) parts.push(c.na + ' N/A');
+      if (c.pendente) parts.push(c.pendente + ' pendente' + (c.pendente > 1 ? 's' : ''));
+      gLine.textContent = 'Resultado global — ' + parts.join(', ');
+      if (c.reprovado > 0 && c.aprovado === 0 && c.pendente === 0) {
+        gDet.textContent = 'Situação crítica: não há cenário aprovado; revisar defeitos antes de liberar.';
+        rej.classList.add('fail');
+      } else if (c.reprovado > 0) {
+        gDet.textContent = 'Há reprovações — acompanhar correção e rerun.';
+        rej.classList.add('mixed');
+      } else if (definidos === total && c.reprovado === 0 && c.aprovado > 0) {
+        gDet.textContent = 'Todos com resultado; nenhuma reprovação entre aprovado/reprovado. Validar evidências antes do go-live.';
+        rej.classList.add('ok');
+      } else {
+        gDet.textContent = 'Execução parcial — concluir pendentes ou marcar bloqueado/N/A com justificativa no HTML.';
+        rej.classList.add('mixed');
+      }
+    }
+  }
+
+  refreshDashboard();
+})();
+</script>
+<style>
+#resultado-execucao.ok { border-left: 4px solid var(--ok); }
+#resultado-execucao.fail { border-left: 4px solid var(--fail); }
+#resultado-execucao.mixed { border-left: 4px solid var(--block); }
+#resultado-execucao.pending { border-left: 4px solid var(--pend); }
+</style>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG-6897: AXA FOB — Deduções/Acréscimos no Cálculo Streit</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px; color: #252525; }
+  h1 { color: #0078d4; border-bottom: 3px solid #0078d4; padding-bottom: 8px; }
+  h2 { color: #1b3a6b; margin-top: 32px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
+  th { background: #0078d4; color: white; padding: 8px 12px; text-align: left; }
+  td { border: 1px solid #d1d1d1; padding: 8px 12px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+  .group-header { background: #0078d4; color: white; font-size: 15px; font-weight: bold; padding: 10px 16px; border-radius: 4px 4px 0 0; margin-top: 24px; }
+  .ct-block { border: 1px solid #d1d1d1; border-left: 3px solid #d1d1d1; padding: 16px; margin-bottom: 8px; background: white; border-radius: 0 4px 4px 4px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; margin-right: 8px; }
+  .bloqueante { background: #d13438; }
+  .importante { background: #ca5010; }
+  .desejavel { background: #605e5c; }
+  .warn-box { background: #fff4ce; border-left: 4px solid #f7630c; padding: 12px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  .info-box { background: #deecf9; border-left: 4px solid #0078d4; padding: 12px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  .steps ol { margin: 8px 0; padding-left: 20px; }
+  .steps li { margin-bottom: 4px; }
+  .label { font-weight: bold; color: #605e5c; font-size: 12px; text-transform: uppercase; display: block; margin-top: 8px; }
+  .ct-id { font-family: monospace; font-weight: bold; color: #0078d4; font-size: 14px; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #d1d1d1; font-size: 12px; color: #605e5c; }
+  .metrics { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .metric-box { border: 1px solid #d1d1d1; border-radius: 4px; padding: 12px 20px; text-align: center; min-width: 100px; }
+  .metric-num { font-size: 28px; font-weight: bold; color: #0078d4; }
+  .metric-label { font-size: 12px; color: #605e5c; }
+  ul.scope { padding-left: 20px; }
+</style>
+</head>
+<body>
+
+<h1>Plano de Teste — BUG-6897<br><small style="font-size:16px;color:#605e5c">AXA — Divergência FOB: Deduções/Acréscimos não aplicados no cálculo Streit/CITWEB</small></h1>
+
+<h2>1. Identificação</h2>
+<table>
+  <tr><th style="width:200px">Campo</th><th>Valor</th></tr>
+  <tr><td>Card</td><td>BUG-6897 — Movidesk 341516 - TECSD-31038 | Divergência FOB CIT x SISCOMEX</td></tr>
+  <tr><td>Sprint / Release</td><td>Sprint 6 — Sustentação CITWEB</td></tr>
+  <tr><td>Seguradora</td><td>AXA</td></tr>
+  <tr><td>Módulo</td><td>CITWEB — Averbação Internacional / Streit (processamento FOB)</td></tr>
+  <tr><td>Prioridade do Card</td><td>3 — Média</td></tr>
+  <tr><td>Responsável dev</td><td>Itamar Prado</td></tr>
+  <tr><td>Autor do plano</td><td>QA — Wesley Moreira</td></tr>
+  <tr><td>Data</td><td>21/05/2026</td></tr>
+</table>
+
+<h2>2. Descrição</h2>
+<p>
+  Ao processar um DI (Declaração de Importação) contendo valores de <strong>Deduções/Acréscimos</strong>,
+  o sistema não estava considerando essas informações no cálculo do valor do FOB. Mesmo com a opção de
+  deduzir Deduções/Acréscimos marcada tanto na <strong>Apólice</strong> quanto na tela de processamento
+  do <strong>Streit</strong>, o valor final do FOB permanecia sem aplicação dessas regras.
+</p>
+<p>
+  O fluxo envolve: processamento do pacote no sistema <strong>Quorum</strong> → carga no <strong>Streit</strong>
+  → processamento no Streit → valor do FOB refletido no <strong>CITWEB</strong> (averbação).
+</p>
+<p><strong>Task de desenvolvimento:</strong> Task 6909 — Análise e desenvolvimento (Done).</p>
+
+<div class="info-box">
+  <strong>Contexto do fluxo:</strong><br>
+  1. Quorum processa o pacote DI com valores de Deduções/Acréscimos<br>
+  2. Streit recebe a carga do pacote<br>
+  3. Streit processa e calcula o FOB considerando (ou não) as Deduções/Acréscimos da apólice<br>
+  4. CITWEB recebe e exibe a averbação com o valor FOB calculado<br>
+  A parametrização da apólice deve prevalecer no processamento do Streit.
+</div>
+
+<div class="warn-box">
+  ⚠️ <strong>Dependência de acesso ao Streit:</strong> este plano pressupõe que o testador tem acesso ao
+  ambiente HML do Streit para executar o processamento de pacotes. Confirmar disponibilidade do ambiente
+  e acesso antes de iniciar. Caso o Streit não esteja disponível no HML, alguns CTs deverão ser executados
+  em ambiente específico ou com suporte do responsável pelo Streit (Itamar Prado).
+</div>
+<div class="info-box">
+  ✅ <strong>Campo FOB confirmado via Playwright MCP (21/05/2026) — localização no CITWEB AXA:</strong><br>
+  Menu <strong>Internacional → Averbação → Importação → Definitiva</strong><br>
+  Seção <strong>"Moeda da Provisória"</strong>: campo <code>FOB</code> (textbox editável) + campo
+  <code>Câmbio</code> + campo <code>Saldo FOB</code> (somente leitura/disabled).<br>
+  Campo adicional confirmado: <strong>"DI ou DUIMP/Adição/Item"</strong> — referência para localizar a DI processada.<br>
+  Este é o campo onde o valor FOB final (após processamento Streit) deve ser verificado.
+</div>
+
+<h2>3. Escopo</h2>
+<p><strong>In scope:</strong></p>
+<ul class="scope">
+  <li>Processamento de DI com Deduções/Acréscimos HABILITADOS na apólice AXA</li>
+  <li>Processamento de DI com Deduções/Acréscimos DESABILITADOS na apólice AXA</li>
+  <li>Processamento de DI SEM valores de Deduções/Acréscimos</li>
+  <li>Verificação do valor FOB apresentado no CITWEB após processamento Streit</li>
+  <li>Não regressão de outros cálculos do Streit</li>
+</ul>
+<p><strong>Out of scope:</strong></p>
+<ul class="scope">
+  <li>Processo de geração da DI no sistema Quorum (upstream do Streit)</li>
+  <li>Outros campos do cálculo além do FOB (Prêmio, IS, IOF, etc.)</li>
+  <li>Averbações de exportação (Ramo 28) — apenas importação (Ramo 25)</li>
+</ul>
+<p><strong>Ramo envolvido:</strong> Ramo 25 (Importação) — processamento de DI via Streit para seguradora AXA.</p>
+
+<h2>4. Pré-requisitos</h2>
+<div class="warn-box">
+  ⚠️ <strong>Massa de dados crítica:</strong> é necessário ter acesso a pacotes DI com e sem Deduções/Acréscimos
+  e a apólices AXA com a parametrização correspondente configurada. Confirmar com Itamar Prado antes de executar.
+</div>
+<table>
+  <tr><th>Item</th><th>Detalhe</th></tr>
+  <tr><td>Ambiente CITWEB</td><td>HML AXA — https://axa-hml-faturamento.nsseg.com.br/login/<br>Usuário: <code>FRED</code> | Senha: <code>DERF</code></td></tr>
+  <tr><td>Ambiente Streit</td><td>⚠️ URL e credenciais do Streit HML AXA — confirmar com Itamar</td></tr>
+  <tr><td>Massa CT-FOB-001</td><td>Apólice AXA com Deduções/Acréscimos HABILITADOS + pacote DI com valores de Deduções/Acréscimos</td></tr>
+  <tr><td>Massa CT-FOB-002</td><td>Apólice AXA com Deduções/Acréscimos DESABILITADOS + pacote DI equivalente</td></tr>
+  <tr><td>Massa CT-FOB-003</td><td>Pacote DI SEM valores de Deduções/Acréscimos (campo zerado ou ausente)</td></tr>
+  <tr><td>Cálculo de referência</td><td>Valor FOB esperado para cada cenário — confirmar com negócio/Itamar</td></tr>
+</table>
+
+<h2>5. Casos de Teste</h2>
+
+<div class="group-header">GRUPO 1 — Cálculo FOB com Deduções/Acréscimos Habilitados</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-FOB-001</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Processar DI com Deduções/Acréscimos HABILITADOS na apólice → FOB reflete dedução no CITWEB</strong>
+  <span class="label">Pré-condições</span>
+  HML AXA. Apólice com opção "Deduzir Deduções/Acréscimos" HABILITADA. Pacote DI com valor de Deduções/Acréscimos > 0.
+  <span class="label">Dados de entrada</span>
+  Apólice: ⚠️ a confirmar (com Ded/Acrésc habilitados). Pacote DI: ⚠️ a confirmar. Valor FOB esperado (com dedução): ⚠️ a confirmar.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Confirmar que a apólice tem Deduções/Acréscimos HABILITADOS (verificar parametrização)</li>
+    <li>Acessar o Streit HML e carregar o pacote DI com valores de Deduções/Acréscimos</li>
+    <li>Processar o pacote no Streit, verificando que a opção de deduzir está marcada</li>
+    <li>Acessar o CITWEB (https://axa-hml-faturamento.nsseg.com.br/login/ — FRED/DERF)</li>
+    <li>Acessar CITWEB AXA → menu <strong>Internacional → Averbação → Importação → Definitiva</strong></li>
+    <li>Localizar a averbação pelo campo <strong>"DI ou DUIMP/Adição/Item"</strong> correspondente ao DI processado</li>
+    <li>Verificar o valor do <strong>FOB</strong> na seção "Moeda da Provisória" da averbação</li>
+    <li>Comparar com o valor esperado (FOB = valor total − Deduções/Acréscimos)</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O FOB exibido no CITWEB reflete corretamente a aplicação das Deduções/Acréscimos conforme parametrização da apólice.
+  O valor deve ser igual ao FOB calculado com a dedução aplicada.
+  <span class="label">Tipo</span> Positivo
+</div>
+
+<div class="group-header">GRUPO 2 — Cálculo FOB com Deduções/Acréscimos Desabilitados</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-FOB-002</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Processar DI com Deduções/Acréscimos DESABILITADOS na apólice → FOB sem dedução no CITWEB</strong>
+  <span class="label">Pré-condições</span>
+  HML AXA. Apólice com opção "Deduzir Deduções/Acréscimos" DESABILITADA. Mesmo pacote DI do CT-FOB-001 (com valores de Ded/Acrésc).
+  <span class="label">Dados de entrada</span>
+  Apólice: ⚠️ a confirmar (com Ded/Acrésc desabilitados). Pacote DI: mesmo do CT-FOB-001. Valor FOB esperado (sem dedução): ⚠️ a confirmar.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Confirmar que a apólice tem Deduções/Acréscimos DESABILITADOS</li>
+    <li>Carregar e processar o pacote DI no Streit</li>
+    <li>Verificar o FOB na averbação correspondente no CITWEB</li>
+    <li>Comparar com o valor esperado (FOB = valor total, sem dedução)</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O FOB exibido no CITWEB corresponde ao valor total SEM aplicação de Deduções/Acréscimos, pois a parametrização
+  da apólice está desabilitada. O sistema respeita a configuração da apólice.
+  <span class="label">Tipo</span> Positivo
+</div>
+
+<div class="group-header">GRUPO 3 — Processamento sem Deduções/Acréscimos</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-FOB-003</span> <span class="badge importante">P2 Importante</span>
+  <strong>Processar DI SEM valores de Deduções/Acréscimos → FOB calculado normalmente</strong>
+  <span class="label">Pré-condições</span>
+  HML AXA. Pacote DI sem campo Deduções/Acréscimos (valor zero ou ausente). Qualquer apólice AXA.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Carregar e processar pacote DI sem Deduções/Acréscimos no Streit</li>
+    <li>Verificar o FOB na averbação correspondente no CITWEB</li>
+    <li>Comparar com o valor esperado (FOB = valor integral do DI, sem dedução)</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  FOB calculado normalmente sem impacto da lógica de Deduções/Acréscimos. Valor correto e sem erros de processamento.
+  <span class="label">Tipo</span> Positivo
+</div>
+
+<div class="group-header">GRUPO 4 — Não Regressão do Streit</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-FOB-004</span> <span class="badge importante">P2 Importante</span>
+  <strong>Outros cálculos do Streit não são impactados pela correção do FOB</strong>
+  <span class="label">Pré-condições</span>
+  HML AXA. Pacote DI válido para processamento normal.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Processar um pacote DI completo no Streit</li>
+    <li>Verificar no CITWEB a averbação gerada: prêmio, IOF e demais campos calculados</li>
+    <li>Comparar com valores de referência anteriores à correção</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  Demais campos calculados (prêmio, IOF, etc.) permanecem inalterados. Apenas o FOB foi afetado pela correção.
+  <span class="label">Tipo</span> Regressão
+</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-FOB-005</span> <span class="badge desejavel">P3 Desejável</span>
+  <strong>Evidência de cálculo — prints com valores de FOB antes e depois da correção</strong>
+  <span class="label">Pré-condições</span>
+  Ter registros históricos de processamentos anteriores à correção para comparação.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Localizar averbação processada antes da correção (com Ded/Acrésc habilitados) — verificar FOB incorreto</li>
+    <li>Reprocessar ou criar averbação equivalente após a correção — verificar FOB correto</li>
+    <li>Registrar ambos os valores como evidência</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  Evidência clara de antes/depois, confirmando que o FOB agora reflete corretamente as Deduções/Acréscimos.
+  <span class="label">Tipo</span> Comparativo / Evidência
+</div>
+
+<h2>6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+  <tr><td>FOB considera Ded/Acrésc quando habilitado na apólice</td><td>CT-FOB-001</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td></tr>
+  <tr><td>FOB ignora Ded/Acrésc quando desabilitado na apólice</td><td>CT-FOB-002</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td></tr>
+  <tr><td>Parametrização da apólice prevalece no processamento Streit</td><td>CT-FOB-001, CT-FOB-002</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td></tr>
+  <tr><td>Processamento sem Ded/Acrésc não afetado</td><td>CT-FOB-003</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td></tr>
+  <tr><td>Outros cálculos do Streit não impactados</td><td>CT-FOB-004</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td></tr>
+  <tr><td>Evidências da correção com prints e validações do FOB</td><td>CT-FOB-005</td><td style="color:#605e5c;font-weight:bold">N/A</td></tr>
+</table>
+
+<h2>7. Métricas</h2>
+<div class="metrics">
+  <div class="metric-box"><div class="metric-num">5</div><div class="metric-label">Total de CTs</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#d13438">2</div><div class="metric-label">P1 Bloqueantes</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#ca5010">2</div><div class="metric-label">P2 Importantes</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#605e5c">1</div><div class="metric-label">P3 Desejáveis</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#d13438">0%</div><div class="metric-label">Executado</div></div>
+</div>
+
+<h2>8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr>
+    <td>Ambiente Streit HML não disponível ou sem acesso</td>
+    <td>Alta</td><td>Crítico</td>
+    <td>Confirmar acesso com Itamar Prado antes de agendar execução. Fallback: execução em ambiente específico.</td>
+  </tr>
+  <tr>
+    <td>Ausência de pacotes DI com Deduções/Acréscimos disponíveis em HML</td>
+    <td>Alta</td><td>Alto</td>
+    <td>Solicitar massa de teste ao desenvolvedor (Itamar) ou ao time AXA com pacotes de referência.</td>
+  </tr>
+  <tr>
+    <td>Valores de FOB esperados não documentados</td>
+    <td>Média</td><td>Médio</td>
+    <td>Solicitar ao negócio/Itamar os valores de referência para cada cenário antes da execução.</td>
+  </tr>
+</table>
+
+<div class="footer">
+  <strong>BUG-6897</strong> — AXA FOB Deduções/Acréscimos | Sprint 6 Sustentação CITWEB<br>
+  Gerado em: 21/05/2026 | Autor: Wesley Moreira<br>
+  ⚠️ Dependência de acesso ao Streit HML (URL/credenciais) — confirmar com Itamar Prado antes de executar<br>
+  ✅ Campo FOB confirmado no CITWEB: Internacional → Averbação → Importação → Definitiva → seção "Moeda da Provisória"
+</div>
+
+<h2>9. Resultado da Execução</h2>
+<div class="warn-box">
+  ⛔ <strong>EXECUÇÃO BLOQUEADA — 21/05/2026</strong><br>
+  Todos os CTs do plano estão bloqueados por dependência externa.
+</div>
+<table>
+  <tr><th>CT</th><th>Status</th><th>Motivo do Bloqueio</th></tr>
+  <tr><td>CT-FOB-001</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td><td>Acesso ao sistema Streit HML indisponível (sem URL/credenciais). Massa de dados (pacotes DI com Deduções/Acréscimos) não disponível em HML AXA. Confirmar com Itamar Prado.</td></tr>
+  <tr><td>CT-FOB-002</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td><td>Mesma dependência: Streit HML + massa de dados.</td></tr>
+  <tr><td>CT-FOB-003</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td><td>Mesma dependência: Streit HML.</td></tr>
+  <tr><td>CT-FOB-004</td><td style="color:#d13438;font-weight:bold">BLOQUEADO</td><td>Mesma dependência: Streit HML + valores de referência não documentados.</td></tr>
+  <tr><td>CT-FOB-005</td><td style="color:#605e5c;font-weight:bold">N/A</td><td>CT de comparação antes/depois — depende dos CTs anteriores e de registros históricos pré-correção.</td></tr>
+</table>
+<div class="info-box">
+  <strong>Ação necessária:</strong> Confirmar com Itamar Prado a URL e credenciais do Streit HML, além de disponibilizar pacotes DI com Deduções/Acréscimos para reexecução dos testes.
+</div>
+</body>
+</html>

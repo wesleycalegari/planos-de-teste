@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-6897 · AXA FOB Deduções/Acréscimos Streit</title>
+<style>
+:root {
+  --bg-root:#0d1117; --bg-surface:#161b22; --bg-card:#1c2128; --bg-raised:#21262d;
+  --border:#30363d; --text:#e6edf3; --text-muted:#8b949e;
+  --blue:#58a6ff; --blue-dim:#1f6feb; --blue-bg:#0a1628;
+  --green:#3fb950; --green-bg:#09200f;
+  --red:#f85149; --red-bg:#200d0d;
+  --orange:#e08456; --orange-bg:#1e0f04;
+  --yellow:#d29922; --yellow-bg:#221a04;
+  --p1-color:#f85149; --p1-bg:rgba(248,81,73,.12); --p1-border:rgba(248,81,73,.35);
+  --p2-color:#e08456; --p2-bg:rgba(224,132,86,.12); --p2-border:rgba(224,132,86,.35);
+  --p3-color:#8b949e; --p3-bg:rgba(139,148,158,.10); --p3-border:rgba(139,148,158,.30);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg-root);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{position:sticky;top:0;z-index:100;background:var(--bg-surface);border-bottom:1px solid var(--border);padding:8px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.topbar-badge{background:var(--blue-dim);color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px;letter-spacing:.5px}
+.topbar-title{font-size:13px;font-weight:600;color:var(--text)}
+.tag{background:var(--bg-raised);border:1px solid var(--border);color:var(--text-muted);font-size:11px;padding:2px 8px;border-radius:4px}
+.tag.bug{color:var(--red);border-color:rgba(248,81,73,.4)}
+.tag.seg{color:var(--blue);border-color:rgba(88,166,255,.35)}
+.tag.sprint{color:var(--green);border-color:rgba(63,185,80,.35)}
+.tag.block{color:var(--orange);border-color:rgba(224,132,86,.35)}
+.hero{background:var(--bg-surface);border-bottom:1px solid var(--border);padding:28px 40px 24px}
+.hero-card{font-size:13px;color:var(--blue);font-weight:600;margin-bottom:6px}
+.hero h1{font-size:26px;font-weight:700;color:var(--text);line-height:1.3;margin-bottom:8px}
+.hero-meta{font-size:13px;color:var(--text-muted)}
+.hero-meta span{margin-right:20px}
+.metrics-strip{background:var(--bg-card);border-bottom:1px solid var(--border);display:grid;grid-template-columns:repeat(6,1fr)}
+.metric-cell{padding:14px 10px;text-align:center;border-right:1px solid var(--border)}
+.metric-cell:last-child{border-right:none}
+.metric-n{font-size:28px;font-weight:800;color:var(--blue)}
+.metric-n.red{color:var(--red)} .metric-n.orange{color:var(--orange)} .metric-n.muted{color:var(--text-muted)} .metric-n.green{color:var(--green)}
+.metric-lbl{font-size:11px;color:var(--text-muted);margin-top:2px}
+.content{max-width:1140px;margin:0 auto;padding:28px 24px 60px}
+.section{background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden}
+.section-hd{background:var(--bg-raised);border-bottom:1px solid var(--border);padding:10px 20px;font-size:11px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.8px}
+.section-body{padding:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg-raised);color:var(--text-muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;border:1px solid var(--border);text-align:left}
+td{padding:8px 12px;border:1px solid var(--border);vertical-align:top;color:var(--text)}
+tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+code{background:var(--bg-raised);padding:1px 6px;border-radius:3px;font-family:Consolas,monospace;font-size:12px;color:var(--blue)}
+.warn-box{background:var(--yellow-bg);border-left:3px solid var(--yellow);padding:12px 16px;border-radius:0 4px 4px 0;margin:12px 0;font-size:13px;line-height:1.7}
+.info-box{background:var(--blue-bg);border-left:3px solid var(--blue-dim);padding:12px 16px;border-radius:0 4px 4px 0;margin:12px 0;font-size:13px;line-height:1.7}
+.ok-box{background:var(--green-bg);border-left:3px solid var(--green);padding:12px 16px;border-radius:0 4px 4px 0;margin:12px 0;font-size:13px;line-height:1.7}
+.err-box{background:var(--red-bg);border-left:3px solid var(--red);padding:12px 16px;border-radius:0 4px 4px 0;margin:12px 0;font-size:13px;line-height:1.7}
+.group-hd{background:var(--blue-dim);color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;padding:8px 16px;border-radius:5px;margin:24px 0 10px}
+.ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:12px;overflow:hidden}
+.ct-block.p1{border-left:3px solid var(--p1-color)} .ct-block.p2{border-left:3px solid var(--p2-color)} .ct-block.p3{border-left:3px solid var(--p3-color)}
+.ct-head{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--bg-raised);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.ct-id{font-family:Consolas,monospace;font-weight:700;font-size:13px;color:var(--blue);white-space:nowrap}
+.ct-title{font-weight:600;font-size:13px;flex:1}
+.badge{display:inline-block;padding:2px 9px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap}
+.badge.bloqueante{background:var(--p1-bg);color:var(--p1-color);border:1px solid var(--p1-border)}
+.badge.importante{background:var(--p2-bg);color:var(--p2-color);border:1px solid var(--p2-border)}
+.badge.desejavel{background:var(--p3-bg);color:var(--p3-color);border:1px solid var(--p3-border)}
+.badge.tipo{background:var(--bg-card);color:var(--text-muted);border:1px solid var(--border)}
+.ct-body{padding:14px 16px;font-size:13px;background:var(--bg-card)}
+.ct-meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.ct-meta-item .lbl{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ct-steps ol{padding-left:20px} .ct-steps li{margin-bottom:4px}
+.ct-result{margin-top:12px;padding:10px 14px;background:var(--bg-raised);border-radius:4px;border:1px solid var(--border)}
+.ct-result .lbl{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.ct-ev{margin-top:10px}
+.ct-ev img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px}
+.r-ok{color:var(--green);font-weight:700;text-align:center} .r-fail{color:var(--red);font-weight:700;text-align:center}
+.r-pend{color:var(--text-muted);font-style:italic;text-align:center} .r-block{color:var(--orange);font-weight:700;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-6897 · AXA FOB Deduções/Acréscimos Streit</span>
+  <span class="tag bug">BUG-6897</span>
+  <span class="tag seg">AXA</span>
+  <span class="tag">CITWEB</span>
+  <span class="tag">Ramo 25</span>
+  <span class="tag sprint">Sprint_6_Sustentacao</span>
+  <span class="tag block">⚠ Bloqueado — Streit HML</span>
+</div>
+
+<div class="hero">
+  <div class="hero-card">BUG-6897</div>
+  <h1>AXA CITWEB — Divergência FOB: Deduções/Acréscimos não aplicados no Streit</h1>
+  <div class="hero-meta">
+    <span>Autor: Wesley Moreira</span>
+    <span>Data: 22/05/2026</span>
+    <span>Dev: Itamar Prado (task 6909 — Done)</span>
+    <span>Movidesk: 341516 / TECSD-31038</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric-cell"><div class="metric-n">5</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric-cell"><div class="metric-n red">2</div><div class="metric-lbl">P1 Bloqueantes</div></div>
+  <div class="metric-cell"><div class="metric-n orange">2</div><div class="metric-lbl">P2 Importantes</div></div>
+  <div class="metric-cell"><div class="metric-n muted">1</div><div class="metric-lbl">P3 Desejáveis</div></div>
+  <div class="metric-cell"><div class="metric-n green">1</div><div class="metric-lbl">BUG coberto</div></div>
+  <div class="metric-cell"><div class="metric-n green">5</div><div class="metric-lbl">CAs mapeados</div></div>
+</div>
+
+<div class="content">
+
+  <!-- 1. IDENTIFICAÇÃO -->
+  <div class="section">
+    <div class="section-hd">1. Identificação</div>
+    <div class="section-body">
+      <table>
+        <tr><th style="width:200px">Campo</th><th>Valor</th></tr>
+        <tr><td>Card</td><td><strong>BUG-6897</strong> — Movidesk 341516 - TECSD-31038 | Divergência FOB CIT x SISCOMEX</td></tr>
+        <tr><td>Sprint / Release</td><td>Sprint_6_Sustentacao · Sustentação CITWEB</td></tr>
+        <tr><td>Sistema</td><td>CITWEB — Averbação Internacional / Streit (processamento FOB)</td></tr>
+        <tr><td>Seguradora</td><td>AXA</td></tr>
+        <tr><td>Módulo</td><td>Internacional → Averbação → Importação → Definitiva</td></tr>
+        <tr><td>Ramo</td><td>Ramo 25 (Importação)</td></tr>
+        <tr><td>Responsável dev</td><td>Itamar Prado (task 6909 — Done)</td></tr>
+        <tr><td>Autor do plano</td><td>Wesley Moreira · 22/05/2026</td></tr>
+        <tr><td>Estado HML</td><td>⚠️ BLOQUEADO — sem URL/credenciais do Streit HML · massa de dados (DIs com Ded/Acrésc) indisponível</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-hd">2. Descrição</div>
+    <div class="section-body">
+      <p style="font-size:13px;line-height:1.8;margin-bottom:12px">
+        Ao processar um DI (Declaração de Importação) com valores de <strong>Deduções/Acréscimos</strong>, o sistema não aplicava essas deduções no cálculo do FOB — mesmo com a opção habilitada na apólice e na tela de processamento do Streit. O FOB final permanecia sem a dedução.
+      </p>
+      <div class="info-box">
+        <strong>Fluxo envolvido:</strong><br>
+        1. Quorum processa pacote DI com valores de Deduções/Acréscimos<br>
+        2. Streit recebe a carga do pacote<br>
+        3. Streit processa e calcula o FOB considerando (ou não) as Deduções/Acréscimos da apólice<br>
+        4. CITWEB recebe e exibe a averbação com o valor FOB calculado<br>
+        A parametrização da apólice deve prevalecer no processamento do Streit.
+      </div>
+      <div class="warn-box">
+        <strong>⚠️ Dependência de acesso ao Streit HML:</strong> todos os CTs P1 e P2 dependem do Streit HML AXA para processamento de pacotes DI. Confirmar URL e credenciais com Itamar Prado antes de executar.
+      </div>
+      <div class="ok-box">
+        <strong>✅ Campo FOB confirmado via Playwright MCP (21/05/2026):</strong><br>
+        Menu Internacional → Averbação → Importação → Definitiva → seção <strong>"Moeda da Provisória"</strong>: campo <code>FOB</code> (textbox editável) + campo <code>Câmbio</code> + campo <code>Saldo FOB</code> (somente leitura). Localizador da DI: campo <strong>"DI ou DUIMP/Adição/Item"</strong>.
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ESCOPO -->
+  <div class="section">
+    <div class="section-hd">3. Escopo</div>
+    <div class="section-body">
+      <table>
+        <tr>
+          <th style="width:50%">✅ In Scope</th>
+          <th>❌ Out of Scope</th>
+        </tr>
+        <tr>
+          <td style="line-height:1.9">
+            • Processamento DI com Deduções/Acréscimos HABILITADOS na apólice<br>
+            • Processamento DI com Deduções/Acréscimos DESABILITADOS na apólice<br>
+            • Processamento DI SEM valores de Deduções/Acréscimos<br>
+            • Verificação FOB no CITWEB após processamento Streit<br>
+            • Não regressão de outros cálculos do Streit
+          </td>
+          <td style="line-height:1.9">
+            • Geração do DI no sistema Quorum (upstream)<br>
+            • Outros campos do cálculo além do FOB (Prêmio, IS, IOF)<br>
+            • Averbações de exportação (Ramo 28)<br>
+            • Outras seguradoras
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-hd">4. Pré-requisitos</div>
+    <div class="section-body">
+      <div class="err-box">
+        <strong>⛔ Bloqueio ativo:</strong> sem acesso ao Streit HML AXA (URL e credenciais não disponíveis) e sem pacotes DI com Deduções/Acréscimos em HML. Confirmar com <strong>Itamar Prado</strong> antes de agendar execução.
+      </div>
+      <div class="warn-box">
+        <strong>Massa de dados crítica:</strong> necessário ter pacotes DI com e sem Deduções/Acréscimos e apólices AXA com a parametrização correspondente configurada.
+      </div>
+      <table>
+        <tr><th style="width:200px">Item</th><th>Detalhe</th></tr>
+        <tr><td>Ambiente CITWEB</td><td>HML AXA — <code>https://axa-hml-faturamento.nsseg.com.br/login/</code><br>Usuário: <code>FRED</code> | Senha: <code>DERF</code></td></tr>
+        <tr><td>Ambiente Streit</td><td>⚠️ URL e credenciais do Streit HML AXA — confirmar com Itamar Prado</td></tr>
+        <tr><td>Massa CT-FOB-001</td><td>Apólice AXA com Deduções/Acréscimos HABILITADOS + pacote DI com valores de Ded/Acrésc</td></tr>
+        <tr><td>Massa CT-FOB-002</td><td>Apólice AXA com Deduções/Acréscimos DESABILITADOS + pacote DI equivalente</td></tr>
+        <tr><td>Massa CT-FOB-003</td><td>Pacote DI SEM valores de Deduções/Acréscimos (campo zerado ou ausente)</td></tr>
+        <tr><td>Cálculo referência</td><td>Valor FOB esperado para cada cenário — confirmar com Itamar</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 5. CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-hd">5. Casos de Teste</div>
+    <div class="section-body">
+
+      <div class="group-hd">Grupo 1 — FOB com Deduções/Acréscimos Habilitados</div>
+
+      <div class="ct-block p1">
+        <div class="ct-head">
+          <span class="ct-id">CT-FOB-001</span>
+          <span class="ct-title">Processar DI com Deduções/Acréscimos HABILITADOS → FOB reflete dedução no CITWEB</span>
+          <span class="badge bloqueante">P1 Bloqueante</span>
+          <span class="badge tipo">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <div class="ct-meta">
+            <div class="ct-meta-item">
+              <div class="lbl">Pré-condições</div>
+              HML AXA · apólice com "Deduzir Deduções/Acréscimos" HABILITADA · pacote DI com valor Ded/Acrésc > 0 · Streit HML acessível
+            </div>
+            <div class="ct-meta-item">
+              <div class="lbl">Dados de entrada</div>
+              Apólice: ⚠️ a confirmar (Ded/Acrésc habilitados) · Pacote DI: ⚠️ a confirmar · FOB esperado (com dedução): ⚠️ a confirmar
+            </div>
+          </div>
+          <div class="ct-steps">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Passos</div>
+            <ol>
+              <li>Confirmar que a apólice tem Deduções/Acréscimos HABILITADOS</li>
+              <li>Acessar o Streit HML e carregar o pacote DI com valores de Ded/Acrésc</li>
+              <li>Processar o pacote no Streit com a opção de deduzir marcada</li>
+              <li>Acessar CITWEB AXA (<code>https://axa-hml-faturamento.nsseg.com.br/login/</code> — FRED/DERF)</li>
+              <li>Internacional → Averbação → Importação → Definitiva</li>
+              <li>Localizar averbação pelo campo "DI ou DUIMP/Adição/Item"</li>
+              <li>Na seção "Moeda da Provisória", verificar campo <strong>FOB</strong></li>
+              <li>Comparar com esperado: <code>FOB = valor total − Deduções/Acréscimos</code></li>
+            </ol>
+          </div>
+          <div class="ct-result">
+            <div class="lbl">Resultado esperado</div>
+            FOB exibido no CITWEB reflete a aplicação das Deduções/Acréscimos conforme parametrização da apólice. Valor igual ao FOB calculado com a dedução.
+          </div>
+          <div class="ct-ev">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Evidências</div>
+            <img src="evidencias/CT-FOB-001_fob_com_deducoes.png" alt="CT-FOB-001 — FOB com deduções habilitadas">
+          </div>
+        </div>
+      </div>
+
+      <div class="group-hd">Grupo 2 — FOB com Deduções/Acréscimos Desabilitados</div>
+
+      <div class="ct-block p1">
+        <div class="ct-head">
+          <span class="ct-id">CT-FOB-002</span>
+          <span class="ct-title">Processar DI com Deduções/Acréscimos DESABILITADOS → FOB sem dedução no CITWEB</span>
+          <span class="badge bloqueante">P1 Bloqueante</span>
+          <span class="badge tipo">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <div class="ct-meta">
+            <div class="ct-meta-item">
+              <div class="lbl">Pré-condições</div>
+              HML AXA · apólice com "Deduzir Deduções/Acréscimos" DESABILITADA · mesmo pacote DI do CT-FOB-001
+            </div>
+            <div class="ct-meta-item">
+              <div class="lbl">Dados de entrada</div>
+              Apólice: ⚠️ a confirmar (Ded/Acrésc desabilitados) · FOB esperado (sem dedução): ⚠️ a confirmar
+            </div>
+          </div>
+          <div class="ct-steps">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Passos</div>
+            <ol>
+              <li>Confirmar que a apólice tem Deduções/Acréscimos DESABILITADOS</li>
+              <li>Carregar e processar o mesmo pacote DI no Streit</li>
+              <li>Verificar o FOB na averbação correspondente no CITWEB</li>
+              <li>Comparar com esperado: <code>FOB = valor total (sem dedução)</code></li>
+            </ol>
+          </div>
+          <div class="ct-result">
+            <div class="lbl">Resultado esperado</div>
+            FOB corresponde ao valor total SEM aplicação de Deduções/Acréscimos. O sistema respeita a configuração da apólice.
+          </div>
+          <div class="ct-ev">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Evidências</div>
+            <img src="evidencias/CT-FOB-002_fob_sem_deducoes.png" alt="CT-FOB-002 — FOB sem deduções">
+          </div>
+        </div>
+      </div>
+
+      <div class="group-hd">Grupo 3 — Processamento sem Deduções/Acréscimos</div>
+
+      <div class="ct-block p2">
+        <div class="ct-head">
+          <span class="ct-id">CT-FOB-003</span>
+          <span class="ct-title">Processar DI SEM valores de Deduções/Acréscimos → FOB calculado normalmente</span>
+          <span class="badge importante">P2 Importante</span>
+          <span class="badge tipo">Positivo</span>
+        </div>
+        <div class="ct-body">
+          <div class="ct-meta">
+            <div class="ct-meta-item">
+              <div class="lbl">Pré-condições</div>
+              Pacote DI sem campo Deduções/Acréscimos (valor zero ou ausente) · qualquer apólice AXA
+            </div>
+            <div class="ct-meta-item">
+              <div class="lbl">Dados de entrada</div>
+              Pacote DI sem Ded/Acrésc · apólice AXA qualquer · FOB esperado = valor integral do DI
+            </div>
+          </div>
+          <div class="ct-steps">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Passos</div>
+            <ol>
+              <li>Carregar e processar pacote DI sem Deduções/Acréscimos no Streit</li>
+              <li>Verificar o FOB na averbação correspondente no CITWEB</li>
+              <li>Comparar com esperado (FOB = valor integral do DI, sem dedução)</li>
+            </ol>
+          </div>
+          <div class="ct-result">
+            <div class="lbl">Resultado esperado</div>
+            FOB calculado normalmente sem impacto da lógica de Deduções/Acréscimos. Valor correto e sem erros de processamento.
+          </div>
+          <div class="ct-ev">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Evidências</div>
+            <img src="evidencias/CT-FOB-003_fob_sem_campo_deducoes.png" alt="CT-FOB-003 — DI sem deduções">
+          </div>
+        </div>
+      </div>
+
+      <div class="group-hd">Grupo 4 — Não Regressão do Streit</div>
+
+      <div class="ct-block p2">
+        <div class="ct-head">
+          <span class="ct-id">CT-FOB-004</span>
+          <span class="ct-title">Outros cálculos do Streit não são impactados pela correção do FOB</span>
+          <span class="badge importante">P2 Importante</span>
+          <span class="badge tipo">Regressão</span>
+        </div>
+        <div class="ct-body">
+          <div class="ct-steps">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Passos</div>
+            <ol>
+              <li>Processar um pacote DI completo no Streit</li>
+              <li>Verificar no CITWEB a averbação gerada: prêmio, IOF e demais campos calculados</li>
+              <li>Comparar com valores de referência anteriores à correção</li>
+            </ol>
+          </div>
+          <div class="ct-result">
+            <div class="lbl">Resultado esperado</div>
+            Demais campos calculados (prêmio, IOF, etc.) permanecem inalterados. Apenas o FOB foi afetado pela correção.
+          </div>
+          <div class="ct-ev">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Evidências</div>
+            <img src="evidencias/CT-FOB-004_regressao_streit.png" alt="CT-FOB-004 — Regressão Streit">
+          </div>
+        </div>
+      </div>
+
+      <div class="ct-block p3">
+        <div class="ct-head">
+          <span class="ct-id">CT-FOB-005</span>
+          <span class="ct-title">Evidência de cálculo — comparação antes/depois da correção</span>
+          <span class="badge desejavel">P3 Desejável</span>
+          <span class="badge tipo">Comparativo</span>
+        </div>
+        <div class="ct-body">
+          <div class="ct-steps">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Passos</div>
+            <ol>
+              <li>Localizar averbação processada antes da correção (com Ded/Acrésc habilitados) — verificar FOB incorreto</li>
+              <li>Reprocessar ou criar averbação equivalente após a correção — verificar FOB correto</li>
+              <li>Registrar ambos os valores como evidência</li>
+            </ol>
+          </div>
+          <div class="ct-result">
+            <div class="lbl">Resultado esperado</div>
+            Evidência clara de antes/depois confirmando que o FOB agora reflete corretamente as Deduções/Acréscimos.
+          </div>
+          <div class="ct-ev">
+            <div class="lbl" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Evidências</div>
+            <img src="evidencias/CT-FOB-005_antes_depois.png" alt="CT-FOB-005 — Antes/Depois">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 6. MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-hd">6. Matriz de Rastreabilidade</div>
+    <div class="section-body">
+      <table>
+        <tr><th>Critério de Aceite</th><th style="width:130px;text-align:center">CT(s)</th><th style="width:130px;text-align:center">Resultado</th></tr>
+        <tr><td>FOB considera Ded/Acrésc quando habilitado na apólice</td><td style="text-align:center">CT-FOB-001</td><td class="r-block">BLOQUEADO</td></tr>
+        <tr><td>FOB ignora Ded/Acrésc quando desabilitado na apólice</td><td style="text-align:center">CT-FOB-002</td><td class="r-block">BLOQUEADO</td></tr>
+        <tr><td>Parametrização da apólice prevalece no processamento Streit</td><td style="text-align:center">CT-FOB-001, CT-FOB-002</td><td class="r-block">BLOQUEADO</td></tr>
+        <tr><td>Processamento sem Ded/Acrésc não afetado</td><td style="text-align:center">CT-FOB-003</td><td class="r-block">BLOQUEADO</td></tr>
+        <tr><td>Outros cálculos do Streit não impactados</td><td style="text-align:center">CT-FOB-004</td><td class="r-block">BLOQUEADO</td></tr>
+        <tr><td>Evidências da correção com prints e validações do FOB</td><td style="text-align:center">CT-FOB-005</td><td class="r-pend">N/A</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. MÉTRICAS -->
+  <div class="section">
+    <div class="section-hd">7. Métricas do Plano</div>
+    <div class="section-body">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center">
+          <div style="font-size:30px;font-weight:800;color:var(--blue)">5</div><div style="font-size:11px;color:var(--text-muted)">Total CTs</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center">
+          <div style="font-size:30px;font-weight:800;color:var(--red)">2</div><div style="font-size:11px;color:var(--text-muted)">P1 Bloqueantes</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center">
+          <div style="font-size:30px;font-weight:800;color:var(--orange)">2</div><div style="font-size:11px;color:var(--text-muted)">P2 Importantes</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center">
+          <div style="font-size:30px;font-weight:800;color:var(--text-muted)">1</div><div style="font-size:11px;color:var(--text-muted)">P3 Desejáveis</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:14px;text-align:center">
+          <div style="font-size:30px;font-weight:800;color:var(--orange)">0%</div><div style="font-size:11px;color:var(--text-muted)">Executado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. RISCOS -->
+  <div class="section">
+    <div class="section-hd">8. Riscos</div>
+    <div class="section-body">
+      <table>
+        <tr><th>Risco</th><th style="width:110px">Probabilidade</th><th style="width:90px">Impacto</th><th>Mitigação</th></tr>
+        <tr>
+          <td>Ambiente Streit HML não disponível ou sem acesso</td>
+          <td style="color:var(--red);font-weight:700">Alta</td><td style="color:var(--red);font-weight:700">Crítico</td>
+          <td>Confirmar acesso com Itamar Prado. Fallback: execução em ambiente específico com suporte do Itamar.</td>
+        </tr>
+        <tr>
+          <td>Ausência de pacotes DI com Deduções/Acréscimos em HML</td>
+          <td style="color:var(--red);font-weight:700">Alta</td><td style="color:var(--orange);font-weight:700">Alto</td>
+          <td>Solicitar massa de teste ao desenvolvedor (Itamar) ou ao time AXA com pacotes de referência.</td>
+        </tr>
+        <tr>
+          <td>Valores de FOB esperados não documentados</td>
+          <td style="color:var(--orange);font-weight:700">Média</td><td style="color:var(--orange);font-weight:700">Médio</td>
+          <td>Solicitar ao negócio/Itamar os valores de referência antes da execução.</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 9. RESULTADOS DA EXECUÇÃO -->
+  <div class="section">
+    <div class="section-hd">9. Resultados da Execução</div>
+    <div class="section-body">
+      <div class="err-box">
+        <strong>⛔ EXECUÇÃO BLOQUEADA — 21/05/2026</strong><br>
+        Todos os CTs dependem de acesso ao Streit HML AXA (URL + credenciais) e massa de dados (pacotes DI com Deduções/Acréscimos). Nenhum desses recursos estava disponível.<br><br>
+        <strong>Ação necessária:</strong> Confirmar com <strong>Itamar Prado</strong> a URL e credenciais do Streit HML, além de disponibilizar pacotes DI de referência.
+      </div>
+      <table>
+        <tr><th>CT</th><th>Título</th><th style="width:130px;text-align:center">Status</th><th>Motivo</th></tr>
+        <tr><td>CT-FOB-001</td><td>FOB com Ded/Acrésc habilitados</td><td class="r-block">BLOQUEADO</td><td>Streit HML + massa de dados indisponíveis</td></tr>
+        <tr><td>CT-FOB-002</td><td>FOB com Ded/Acrésc desabilitados</td><td class="r-block">BLOQUEADO</td><td>Streit HML + massa de dados indisponíveis</td></tr>
+        <tr><td>CT-FOB-003</td><td>DI sem valores de Ded/Acrésc</td><td class="r-block">BLOQUEADO</td><td>Streit HML indisponível</td></tr>
+        <tr><td>CT-FOB-004</td><td>Regressão outros cálculos Streit</td><td class="r-block">BLOQUEADO</td><td>Streit HML + valores referência não documentados</td></tr>
+        <tr><td>CT-FOB-005</td><td>Evidência antes/depois</td><td class="r-pend">N/A</td><td>Depende dos CTs anteriores e de registros históricos</td></tr>
+      </table>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

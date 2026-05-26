@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Plano de Teste — BUG-6696: CHUBB — Correções de Vulnerabilidades de Segurança</title>
+<style>
+  body { font-family: 'Segoe UI', sans-serif; max-width: 1100px; margin: 0 auto; padding: 24px; color: #252525; }
+  h1 { color: #0078d4; border-bottom: 3px solid #0078d4; padding-bottom: 8px; }
+  h2 { color: #1b3a6b; margin-top: 32px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 16px; }
+  th { background: #0078d4; color: white; padding: 8px 12px; text-align: left; }
+  td { border: 1px solid #d1d1d1; padding: 8px 12px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+  .group-header { background: #0078d4; color: white; font-size: 15px; font-weight: bold; padding: 10px 16px; border-radius: 4px 4px 0 0; margin-top: 24px; }
+  .ct-block { border: 1px solid #d1d1d1; border-left: 3px solid #d1d1d1; padding: 16px; margin-bottom: 8px; background: white; border-radius: 0 4px 4px 4px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 12px; font-weight: bold; color: white; margin-right: 8px; }
+  .bloqueante { background: #d13438; }
+  .importante { background: #ca5010; }
+  .desejavel { background: #605e5c; }
+  .warn-box { background: #fff4ce; border-left: 4px solid #f7630c; padding: 12px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  .info-box { background: #deecf9; border-left: 4px solid #0078d4; padding: 12px 16px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+  .steps ol { margin: 8px 0; padding-left: 20px; }
+  .steps li { margin-bottom: 4px; }
+  .label { font-weight: bold; color: #605e5c; font-size: 12px; text-transform: uppercase; display: block; margin-top: 8px; }
+  .ct-id { font-family: monospace; font-weight: bold; color: #0078d4; font-size: 14px; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #d1d1d1; font-size: 12px; color: #605e5c; }
+  .metrics { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .metric-box { border: 1px solid #d1d1d1; border-radius: 4px; padding: 12px 20px; text-align: center; min-width: 100px; }
+  .metric-num { font-size: 28px; font-weight: bold; color: #0078d4; }
+  .metric-label { font-size: 12px; color: #605e5c; }
+  ul.scope { padding-left: 20px; }
+  code { background: #f5f5f5; padding: 1px 4px; border-radius: 3px; font-family: monospace; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>Plano de Teste — BUG-6696<br><small style="font-size:16px;color:#605e5c">CHUBB CITNET — Correções de Vulnerabilidades: Headers, Errors, Input e AntiForgery</small></h1>
+
+<h2>1. Identificação</h2>
+<table>
+  <tr><th style="width:200px">Campo</th><th>Valor</th></tr>
+  <tr><td>Card</td><td>BUG-6696 — 3238 - Correções de Vulnerabilidades – Segurança (Headers, Errors, Input e AntiForgery)</td></tr>
+  <tr><td>Sprint / Release</td><td>Sprint 6 — Sustentação CITWEB</td></tr>
+  <tr><td>Seguradora</td><td>CHUBB</td></tr>
+  <tr><td>Módulo</td><td>CITNET CHUBB — Segurança da Aplicação</td></tr>
+  <tr><td>Prioridade do Card</td><td>3 — Média</td></tr>
+  <tr><td>Responsável dev</td><td>Allan Rodrigo Bluemond</td></tr>
+  <tr><td>Autor do plano</td><td>QA — Wesley Moreira</td></tr>
+  <tr><td>Data</td><td>21/05/2026</td></tr>
+</table>
+
+<h2>2. Descrição</h2>
+<p>Foram identificadas as seguintes vulnerabilidades na aplicação CITNET CHUBB e corrigidas na task 6766 (Done):</p>
+<ol>
+  <li><strong>Headers de segurança ausentes</strong> — Referrer-Policy e Permissions-Policy não implementados</li>
+  <li><strong>Stack trace exposto</strong> — mensagens de erro detalhadas expostas ao usuário, permitindo reconhecimento de infraestrutura</li>
+  <li><strong>Parâmetros URL refletidos sem sanitização</strong> — <code>?erro=</code> e <code>?trace=</code> refletidos na página, habilitando phishing/defacement</li>
+  <li><strong>AntiForgery Token inválido</strong> — erro de CSRF token na rota <code>/AverbacaoInternacional/AverbacaoExportacao</code> após atualização</li>
+</ol>
+
+<div class="info-box">
+  <strong>Contexto:</strong> a task 6703 (Done) registrou o erro específico de AntiForgery na exportação de averbação
+  internacional: <code>HttpAntiForgeryException — The anti-forgery cookie token and form field token do not match.</code><br>
+  Este plano valida que todas as 4 vulnerabilidades foram corrigidas.
+</div>
+
+<h2>3. Escopo</h2>
+<p><strong>In scope:</strong></p>
+<ul class="scope">
+  <li>Presença de headers Referrer-Policy e Permissions-Policy nas respostas HTTP</li>
+  <li>Ausência de stack trace em mensagens de erro ao usuário</li>
+  <li>Não reflexão de parâmetros <code>?erro=</code> e <code>?trace=</code> na página</li>
+  <li>Funcionamento correto do AntiForgery token em AverbacaoExportacao</li>
+  <li>Regressão funcional — funcionalidade do CITNET CHUBB não impactada pelas correções</li>
+</ul>
+<p><strong>Out of scope:</strong></p>
+<ul class="scope">
+  <li>Scan completo de vulnerabilidades (responsabilidade da ferramenta Appscan/VeraCode)</li>
+  <li>Outras seguradoras além de CHUBB</li>
+  <li>Vulnerabilidades de bibliotecas desatualizadas (cobertas pelo card 6694)</li>
+</ul>
+
+<h2>4. Pré-requisitos</h2>
+<div class="warn-box">
+  ⚠️ <strong>BLOQUEIO DE ACESSO CONFIRMADO (21/05/2026) — Navegação não validada via Playwright MCP:</strong><br>
+  O CITNET CHUBB em <code>https://chubb-hml-faturamento.nsseg.com.br/citnet/</code> redireciona
+  constantemente para <code>/citnet/Home/FimSessao</code> ("Sessao indisponível!"), independente da URL tentada.<br>
+  As rotas de login conhecidas (<code>/Home/LoginForm</code>, <code>/Account/Login</code>) retornam HTTP 4xx.<br>
+  <strong>Ação necessária:</strong> confirmar com Allan Rodrigo Bluemond como acessar o CITNET CHUBB HML.<br>
+  <strong>Nota para CT-SEC-001/002:</strong> mesmo sem autenticar, os headers de segurança podem ser verificados
+  na resposta da página de FimSessao ou Login via DevTools.
+</div>
+<div class="warn-box">
+  ⚠️ <strong>Ferramenta de inspeção HTTP:</strong> alguns CTs requerem verificação dos response headers HTTP.
+  Use o DevTools do browser (F12 → aba Network) para inspecionar as respostas. Não é necessária ferramenta adicional.
+</div>
+<table>
+  <tr><th>Item</th><th>Detalhe</th></tr>
+  <tr><td>Ambiente</td><td>HML CHUBB — https://chubb-hml-faturamento.nsseg.com.br/citnet/</td></tr>
+  <tr><td>Credenciais CITNET</td><td>Usuário: <code>VOIDR-NSTEC</code> | Senha: <code>NS-Vo1dr@b</code><br>Filial: NÃO selecionar nenhuma (deixar "Selecione…")<br>⚠️ Login inacessível via URL padrão — ver bloqueio acima</td></tr>
+  <tr><td>Ferramenta</td><td>Browser Chrome/Edge com DevTools (F12) para inspeção de headers e console</td></tr>
+  <tr><td>Apólice de teste</td><td>⚠️ Identificar apólice CHUBB ativa com averbação internacional para CT-SEC-004</td></tr>
+</table>
+
+<h2>5. Casos de Teste</h2>
+
+<div class="group-header">GRUPO 1 — Headers de Segurança HTTP</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-001</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Response HTTP do CITNET CHUBB inclui header Referrer-Policy</strong>
+  <span class="label">Pré-condições</span>
+  Browser Chrome/Edge com DevTools. CITNET CHUBB HML acessível.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Abrir DevTools (F12) → aba Network</li>
+    <li>Acessar https://chubb-hml-faturamento.nsseg.com.br/citnet/</li>
+    <li>Selecionar qualquer request HTML da listagem</li>
+    <li>Verificar os Response Headers da requisição</li>
+    <li>Procurar pelo header <code>Referrer-Policy</code></li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O header <code>Referrer-Policy</code> está presente nas respostas HTTP do CITNET CHUBB com um valor definido
+  (ex.: <code>strict-origin-when-cross-origin</code> ou similar).
+  <span class="label">Tipo</span> Segurança
+</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-002</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Response HTTP inclui header Permissions-Policy</strong>
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Mesmos passos do CT-SEC-001</li>
+    <li>Procurar pelo header <code>Permissions-Policy</code> nos Response Headers</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O header <code>Permissions-Policy</code> está presente com valor definido que restrinja features desnecessárias.
+  <span class="label">Tipo</span> Segurança
+</div>
+
+<div class="group-header">GRUPO 2 — Exposição de Stack Trace</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-003</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Erros de aplicação não expõem stack trace ao usuário</strong>
+  <span class="label">Pré-condições</span>
+  CITNET CHUBB HML. Necessário provocar uma condição de erro (ex.: URL inválida, parâmetro incorreto).
+  <span class="label">Dados de entrada</span>
+  URL com parâmetro inválido: <code>https://chubb-hml-faturamento.nsseg.com.br/citnet/Home/Error?msg=teste</code>
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Logar no CITNET CHUBB com VOIDR-NSTEC / NS-Vo1dr@b (Filial = Selecione…)</li>
+    <li>Tentar acessar uma rota que cause erro (URL inválida ou com parâmetro forçado)</li>
+    <li>Observar a mensagem de erro exibida ao usuário</li>
+    <li>Verificar se há informações técnicas (nome de DLLs, caminhos de servidor, stack trace) expostas</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  A mensagem de erro exibida ao usuário é amigável e genérica, sem stack trace, caminhos do servidor
+  ou informações técnicas de infraestrutura.
+  <span class="label">Tipo</span> Segurança / Negativo
+</div>
+
+<div class="group-header">GRUPO 3 — Reflexão de Parâmetros URL</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-004</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Parâmetro ?erro= na URL não é refletido (renderizado) na página</strong>
+  <span class="label">Dados de entrada</span>
+  URL: <code>https://chubb-hml-faturamento.nsseg.com.br/citnet/?erro=&lt;script&gt;alert(1)&lt;/script&gt;</code>
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Logar no CITNET CHUBB</li>
+    <li>Adicionar manualmente na URL o parâmetro <code>?erro=&lt;script&gt;alert(1)&lt;/script&gt;</code></li>
+    <li>Pressionar Enter para carregar a URL</li>
+    <li>Verificar se o conteúdo do parâmetro é exibido ou executado na página</li>
+    <li>Verificar se aparece algum alert/popup ou se o texto do script aparece na tela</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O conteúdo do parâmetro <code>?erro=</code> NÃO é refletido/renderizado na página. Nenhum alert popup aparece.
+  A página exibe mensagem de erro genérica ou redireciona para uma página de erro adequada.
+  <span class="label">Tipo</span> Segurança / XSS
+</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-005</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>Parâmetro ?trace= na URL não é refletido na página</strong>
+  <span class="label">Dados de entrada</span>
+  URL com <code>?trace=qualquer_valor_injetado</code>
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Adicionar o parâmetro <code>?trace=testeinjecao</code> na URL do CITNET CHUBB</li>
+    <li>Carregar a URL</li>
+    <li>Verificar se o valor "testeinjecao" aparece em algum lugar da página</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  O valor do parâmetro <code>?trace=</code> NÃO é exibido na página. Sem reflexão de conteúdo controlado pelo usuário.
+  <span class="label">Tipo</span> Segurança
+</div>
+
+<div class="group-header">GRUPO 4 — AntiForgery Token (CSRF)</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-006</span> <span class="badge bloqueante">P1 Bloqueante</span>
+  <strong>AntiForgery token válido na rota AverbacaoExportacao — sem erro 0x80004005</strong>
+  <span class="label">Pré-condições</span>
+  CITNET CHUBB HML. Apólice com averbação internacional disponível para exportação.
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Logar no CITNET CHUBB (VOIDR-NSTEC / NS-Vo1dr@b, Filial = Selecione…)</li>
+    <li>Navegar até Averbação Internacional</li>
+    <li>Localizar uma averbação existente</li>
+    <li>Acionar a funcionalidade de Exportação (AverbacaoExportacao)</li>
+    <li>Verificar se o sistema processa a exportação sem erro de AntiForgery</li>
+    <li>Verificar que não aparece erro <em>"anti-forgery cookie token and form field token do not match"</em></li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  A exportação de averbação internacional é processada sem erro de AntiForgery. Sem HttpAntiForgeryException.
+  <span class="label">Tipo</span> Segurança / Funcional
+</div>
+
+<div class="group-header">GRUPO 5 — Regressão Funcional</div>
+
+<div class="ct-block">
+  <span class="ct-id">CT-SEC-007</span> <span class="badge importante">P2 Importante</span>
+  <strong>Funcionalidades principais do CITNET CHUBB não impactadas pelas correções de segurança</strong>
+  <span class="label">Passos</span>
+  <div class="steps"><ol>
+    <li>Acessar o CITNET CHUBB normalmente (login com credenciais válidas)</li>
+    <li>Verificar que o menu principal carrega corretamente</li>
+    <li>Navegar até Averbação Internacional → verificar que a tela carrega</li>
+    <li>Navegar até Averbação Nacional (se disponível) → verificar carregamento</li>
+    <li>Verificar que formulários submetem sem erro relacionado a AntiForgery</li>
+  </ol></div>
+  <span class="label">Resultado esperado</span>
+  Todas as funcionalidades principais do CITNET CHUBB funcionam normalmente. As correções de segurança
+  não introduziram regressões funcionais.
+  <span class="label">Tipo</span> Regressão
+</div>
+
+<h2>6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Vulnerabilidade / Critério</th><th>CT(s)</th><th>Resultado</th></tr>
+  <tr><td>Header Referrer-Policy implementado</td><td>CT-SEC-001</td><td>—</td></tr>
+  <tr><td>Header Permissions-Policy implementado</td><td>CT-SEC-002</td><td>—</td></tr>
+  <tr><td>Stack trace não exposto em erros</td><td>CT-SEC-003</td><td>—</td></tr>
+  <tr><td>Parâmetro ?erro= não refletido na página (anti-XSS)</td><td>CT-SEC-004</td><td>—</td></tr>
+  <tr><td>Parâmetro ?trace= não refletido (anti-phishing)</td><td>CT-SEC-005</td><td>—</td></tr>
+  <tr><td>AntiForgery token válido em AverbacaoExportacao</td><td>CT-SEC-006</td><td>—</td></tr>
+  <tr><td>Regressão funcional não introduzida</td><td>CT-SEC-007</td><td>—</td></tr>
+</table>
+
+<h2>7. Métricas</h2>
+<div class="metrics">
+  <div class="metric-box"><div class="metric-num">7</div><div class="metric-label">Total de CTs</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#d13438">6</div><div class="metric-label">P1 Bloqueantes</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#ca5010">1</div><div class="metric-label">P2 Importantes</div></div>
+  <div class="metric-box"><div class="metric-num" style="color:#605e5c">0</div><div class="metric-label">P3 Desejáveis</div></div>
+  <div class="metric-box"><div class="metric-num">100%</div><div class="metric-label">Cobertura CA</div></div>
+</div>
+
+<h2>8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr>
+    <td>Headers de segurança presentes no HML mas ausentes em produção</td>
+    <td>Baixa</td><td>Alto</td>
+    <td>Testar em HML e registrar evidências; verificar config de deploy antes de publicar.</td>
+  </tr>
+  <tr>
+    <td>Apólice CHUBB com averbação internacional não disponível para teste do AntiForgery</td>
+    <td>Média</td><td>Médio</td>
+    <td>Identificar apólice antes de executar. Se não existir, criar uma averbação de teste.</td>
+  </tr>
+  <tr>
+    <td>Novos parâmetros de URL refletidos não cobertos pelos CTs específicos</td>
+    <td>Baixa</td><td>Médio</td>
+    <td>Ampliar teste para outros parâmetros de URL ao longo da execução exploratória.</td>
+  </tr>
+</table>
+
+<div class="footer">
+  <strong>BUG-6696</strong> — CHUBB Vulnerabilidades de Segurança | Sprint 6 Sustentação CITWEB<br>
+  Gerado em: 21/05/2026 | Autor: Wesley Moreira<br>
+  Estado: card "Em homologação na seguradora" — testes a executar no HML CHUBB<br>
+  ⚠️ BLOQUEIO: CITNET CHUBB inacessível via URL padrão (FimSessao loop) — confirmar acesso com Allan antes de executar<br>
+  Nota: CT-SEC-001/002 (headers HTTP) podem ser verificados mesmo sem login autenticado
+</div>
+</body>
+</html>
