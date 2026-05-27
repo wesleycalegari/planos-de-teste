@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — PBI 7137 — Relação de Embarques Simplificada RCV</title>
+<style>
+:root {
+  --bg: #0f1114;
+  --surface: #1a1d23;
+  --surface-2: #22262e;
+  --border: #343a46;
+  --text: #e6e8eb;
+  --muted: #9aa3ad;
+  --accent: #3b9eff;
+  --accent-dim: #1e4d7a;
+  --ok: #3fb950;
+  --ok-bg: rgba(63, 185, 80, 0.18);
+  --fail: #f85149;
+  --fail-bg: rgba(248, 81, 73, 0.18);
+  --pend: #8b949e;
+  --pend-bg: rgba(139, 148, 158, 0.2);
+  --block: #d29922;
+  --block-bg: rgba(210, 153, 34, 0.22);
+  --na: #6e7681;
+  --na-bg: rgba(110, 118, 129, 0.25);
+  --warn-bg: rgba(210, 153, 34, 0.12);
+  --info-bg: rgba(59, 158, 255, 0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); line-height: 1.5; }
+a { color: var(--accent); }
+header {
+  background: linear-gradient(135deg, #0a2744 0%, #152238 50%, var(--bg) 100%);
+  color: #fff; padding: 24px 32px; display: flex; align-items: center; gap: 20px;
+  border-bottom: 1px solid var(--border);
+}
+header .badge { background: var(--accent); color: #0a1628; font-weight: 700; font-size: 16px; border-radius: 8px; padding: 8px 16px; white-space: nowrap; }
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .9; margin-top: 4px; color: #c9d1d9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+.dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-align: center; }
+.dash-card .num { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.dash-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
+.dash-card.total .num { color: var(--accent); }
+.dash-card.aprovado .num { color: var(--ok); }
+.dash-card.reprovado .num { color: var(--fail); }
+.dash-card.pendente .num { color: var(--pend); }
+.dash-card.bloqueado .num { color: var(--block); }
+.dash-card.na .num { color: var(--na); }
+.dash-wide { grid-column: 1 / -1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.dash-wide h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+.progress-bar { height: 10px; background: var(--surface-2); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+.progress-fill { height: 100%; background: var(--ok); border-radius: 6px; transition: width .4s ease; }
+.dash-wide p { font-size: 12px; color: var(--muted); margin-top: 8px; }
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+.section-header { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); padding: 12px 18px; border-bottom: 1px solid var(--border); border-left: 3px solid var(--accent); background: rgba(59,158,255,.06); }
+.section-body { padding: 16px 18px; }
+.section-body p, .section-body ul, .section-body ol { color: #c9d1d9; }
+.section-body li { margin-bottom: 4px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.info-item { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.info-item label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: block; margin-bottom: 4px; }
+.info-item span { font-size: 13px; font-weight: 500; }
+.matriz { width: 100%; border-collapse: collapse; font-size: 13px; }
+.matriz th { background: var(--surface-2); color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+.matriz td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: #c9d1d9; }
+.matriz tr:last-child td { border-bottom: none; }
+.matriz tr:hover td { background: rgba(255,255,255,.03); }
+.badge-sm { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge-ok { background: var(--ok-bg); color: var(--ok); }
+.badge-fail { background: var(--fail-bg); color: var(--fail); }
+.badge-pend { background: var(--pend-bg); color: var(--pend); }
+.badge-block { background: var(--block-bg); color: var(--block); }
+.badge-na { background: var(--na-bg); color: var(--na); }
+.badge-prog { background: rgba(59,158,255,.15); color: #3b9eff; }
+.badge-p1 { background: rgba(248,81,73,.15); color: #f85149; }
+.badge-p2 { background: rgba(210,153,34,.15); color: #d29922; }
+.warn-box { background: var(--warn-bg); border-left: 3px solid var(--block); border-radius: 0 6px 6px 0; padding: 10px 14px; margin-bottom: 12px; color: #e8c07d; font-size: 13px; }
+.info-box { background: var(--info-bg); border-left: 3px solid var(--accent-dim); border-radius: 0 6px 6px 0; padding: 10px 14px; margin-bottom: 12px; color: #a9d3ff; font-size: 13px; }
+.hint-ct { font-size: 12px; color: var(--muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; margin-bottom: 16px; }
+.hint-ct .mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 11px; background: rgba(255,255,255,.07); padding: 1px 5px; border-radius: 3px; }
+.ct-block { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+.ct-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer; user-select: none; border-left: 4px solid var(--pend); transition: background .15s; }
+.ct-bar:hover { background: rgba(255,255,255,.04); }
+[data-status="aprovado"] .ct-bar { border-left-color: var(--ok); }
+[data-status="reprovado"] .ct-bar { border-left-color: var(--fail); }
+[data-status="pendente"]  .ct-bar { border-left-color: var(--pend); }
+[data-status="bloqueado"] .ct-bar { border-left-color: var(--block); }
+[data-status="n/a"]       .ct-bar { border-left-color: var(--na); }
+.ct-toggle { background: none; border: none; cursor: pointer; padding: 2px; flex-shrink: 0; display: flex; align-items: center; }
+.ct-chevron { display: inline-block; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 7px solid var(--muted); transition: transform .2s; }
+[data-expanded="true"] .ct-chevron { transform: rotate(180deg); }
+.ct-bar-main { flex: 1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ct-id { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; color: var(--accent); font-weight: 600; }
+.ct-prio { font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+.p1 { background: rgba(248,81,73,.15); color: #f85149; }
+.p2 { background: rgba(210,153,34,.15); color: #d29922; }
+.ct-title { font-size: 13px; color: var(--text); }
+.ct-status-chip { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 10px; white-space: nowrap; flex-shrink: 0; }
+[data-status="aprovado"] .ct-status-chip { background: var(--ok-bg); color: var(--ok); }
+[data-status="reprovado"] .ct-status-chip { background: var(--fail-bg); color: var(--fail); }
+[data-status="pendente"]  .ct-status-chip { background: var(--pend-bg); color: var(--pend); }
+[data-status="bloqueado"] .ct-status-chip { background: var(--block-bg); color: var(--block); }
+[data-status="n/a"]       .ct-status-chip { background: var(--na-bg); color: var(--na); }
+.ct-panel { padding: 14px 16px; border-top: 1px solid var(--border); background: rgba(0,0,0,.15); }
+.ct-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
+.ct-field.full { grid-column: 1 / -1; }
+.ct-field label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); display: block; margin-bottom: 6px; }
+.ct-field p, .ct-field ol, .ct-field ul { font-size: 13px; color: #c9d1d9; }
+.ct-field ol, .ct-field ul { padding-left: 18px; }
+.ct-field li { margin-bottom: 4px; }
+.ev-section { padding: 10px 0 2px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: var(--pend-bg); color: var(--pend); }
+.ev-section img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; display: block; }
+.ev-section .ev-caption { font-size: 11px; color: var(--muted); margin-top: 3px; margin-bottom: 10px; }
+.mono { font-family: 'Cascadia Code','Consolas',monospace; font-size: 12px; background: rgba(255,255,255,.07); padding: 1px 5px; border-radius: 3px; }
+#resultado-execucao { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">PBI 7137</div>
+  <div>
+    <h1>Relação de Embarques Simplificada RCV</h1>
+    <p>Módulo: CITWEB Nacional &nbsp;|&nbsp; Ramo: 59 — RC-V &nbsp;|&nbsp; Sprint 7 Citweb &nbsp;|&nbsp; Autor: Wesley Moreira &nbsp;|&nbsp; 27/05/2026 &nbsp;|&nbsp; Dev: José Ribeiro Carvalho</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="warn-box">
+    ⚠️ <strong>PBI em desenvolvimento (In Progress).</strong> A task #7153 (Análise e Desenvolvimento) ainda está em andamento. Este plano foi elaborado com base na descrição do PBI e no código existente. Aguardar build HML antes de executar.
+  </div>
+
+  <!-- Dashboard -->
+  <div class="dash">
+    <div class="dash-card total"><div class="num" id="dash-total">4</div><div class="lbl">Total CTs</div></div>
+    <div class="dash-card aprovado"><div class="num" id="dash-aprov">0</div><div class="lbl">Aprovado</div></div>
+    <div class="dash-card reprovado"><div class="num" id="dash-reprov">0</div><div class="lbl">Reprovado</div></div>
+    <div class="dash-card pendente"><div class="num" id="dash-pend">4</div><div class="lbl">Pendente</div></div>
+    <div class="dash-card bloqueado"><div class="num" id="dash-block">0</div><div class="lbl">Bloqueado</div></div>
+    <div class="dash-card na"><div class="num" id="dash-na">0</div><div class="lbl">N/A</div></div>
+    <div class="dash-wide">
+      <h2>Progresso de execução</h2>
+      <div class="progress-bar"><div class="progress-fill" id="dash-prog" style="width:0%"></div></div>
+      <p id="dash-prog-txt">0 de 4 CTs concluídos</p>
+    </div>
+  </div>
+
+  <!-- Identificação -->
+  <div class="section">
+    <div class="section-header">Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>PBI</label><span><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7137" target="_blank">#7137</a></span></div>
+        <div class="info-item"><label>Título</label><span>[CITWEB] Relação de Embarques Simplificada RCV</span></div>
+        <div class="info-item"><label>Seguradora</label><span>Genérico — qualquer seguradora com apólice ramo 59</span></div>
+        <div class="info-item"><label>Ramo</label><span>59 — RC-V (RCV)</span></div>
+        <div class="info-item"><label>Sprint</label><span>Sprint 7 Citweb (25/05–05/06/2026)</span></div>
+        <div class="info-item"><label>Estado</label><span><span class="badge-sm badge-prog">In Progress</span></span></div>
+        <div class="info-item"><label>Desenvolvedor</label><span>José Ribeiro Carvalho</span></div>
+        <div class="info-item"><label>Módulo</label><span>CITWEB Nacional — RelatorioPreviaDomain / RelatorioFechamentoDomain</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tasks filhas -->
+  <div class="section">
+    <div class="section-header">Tasks filhas (ADO)</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead><tr><th>#</th><th>Título</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7153" target="_blank">7153</a></td><td>Análise e Desenvolvimento</td><td><span class="badge-sm badge-prog">In Progress</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Critérios de aceite -->
+  <div class="section">
+    <div class="section-header">Síntese dos critérios de aceite</div>
+    <div class="section-body">
+      <div class="info-box">
+        O relatório <strong>Relação de Embarques Simplificada</strong>, ao ser gerado para apólices ramo 59 (RCV), deve buscar os dados averbação por averbação na tabela <span class="mono">tb_cme_avb_rcv_cit</span>. Atualmente as colunas abaixo aparecem incorretas (dados ausentes ou de outra tabela).
+      </div>
+      <table class="matriz" style="margin-top:4px">
+        <thead><tr><th>Coluna no relatório</th><th>Campo fonte (após fix)</th><th>Tabela</th></tr></thead>
+        <tbody>
+          <tr><td>Documento</td><td><span class="mono">c_id_vgm</span></td><td><span class="mono">tb_cme_avb_rcv_cit</span></td></tr>
+          <tr><td>Valor do Prêmio</td><td><span class="mono">v_cml_pmo_vgm</span></td><td><span class="mono">tb_cme_avb_rcv_cit</span></td></tr>
+          <tr><td>Qtde Embarques</td><td><span class="mono">v_qtd_avb</span></td><td><span class="mono">tb_cme_avb_rcv_cit</span></td></tr>
+        </tbody>
+      </table>
+      <ul style="padding-left:20px;line-height:1.65;color:#c9d1d9;margin-top:12px">
+        <li><strong>CA-01:</strong> Relatório gerado na <strong>Prévia</strong> (Conta Mensal → Prévia) exibe Documento, Valor do Prêmio e Qtde Embarques corretos para cada averbação RCV.</li>
+        <li><strong>CA-02:</strong> Relatório gerado na <strong>Emissão</strong> exibe os mesmos campos corretos.</li>
+        <li><strong>CA-03:</strong> Relatório gerado na <strong>Impressão</strong> exibe os mesmos campos corretos.</li>
+        <li><strong>CA-04:</strong> Regressão — relatório de ramos não-RCV (ex: ramo 21) continua gerado sem alteração.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Pré-requisitos -->
+  <div class="section">
+    <div class="section-header">Pré-requisitos e massa de dados</div>
+    <div class="section-body">
+      <ul style="padding-left:20px;line-height:1.65;color:#c9d1d9;">
+        <li>Build HML com a alteração do PBI deployada (aguardar conclusão da task #7153 e deploy).</li>
+        <li><strong>Massa RCV:</strong> Apólice ramo 59 com ao menos <strong>2 averbações fechadas</strong> (em <span class="mono">tb_cme_avb_rcv_cit</span>) no período de referência, de forma que os campos <span class="mono">c_id_vgm</span>, <span class="mono">v_cml_pmo_vgm</span> e <span class="mono">v_qtd_avb</span> estejam preenchidos. Usar qualquer seguradora que possua RCV em HML (ex.: KOVR, NSTECH).</li>
+        <li><strong>Massa regressão:</strong> Apólice ramo 21 (Transporte Nacional) com fechamento existente para o CT-004.</li>
+        <li><strong>Credenciais:</strong> Usar <span class="mono">ROT_AUTO / T7Jjm6xF</span> na seguradora escolhida. URL padrão: <span class="mono">https://{seguradora}-hml-faturamento.nsseg.com.br/login/</span></li>
+        <li><strong>Permissão:</strong> Usuário deve ter permissão <span class="mono">TTFCN070</span> (acesso ao módulo Conta Mensal → Prévia).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Casos de teste -->
+  <div class="section">
+    <div class="section-header">Casos de teste</div>
+    <div class="section-body">
+      <p class="hint-ct">Cada cenário inicia <strong>retraído</strong>. Clique na faixa para expandir. Após executar, altere o <span class="mono">data-status</span> do bloco — o dashboard atualiza automaticamente.</p>
+
+      <!-- CT 001 -->
+      <div class="ct-block" data-ct="CT-RES-001" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-001" aria-label="Expandir CT-RES-001"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-RES-001</span>
+            <span class="ct-prio p1">P1</span>
+            <span class="ct-title">Prévia — Relação de Embarques Simplificada RCV com colunas corretas</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-001" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>CA-01 &nbsp;|&nbsp; PBI #7137 &nbsp;|&nbsp; <span class="mono">RelatorioPreviaDomain</span> → checkbox <span class="mono">indRelacaoEmbarquesSimplificada</span></p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo — fix principal (Prévia)</p></div>
+            <div class="ct-field"><label>Prioridade</label><p>P1</p></div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Apólice ramo 59 com ao menos 2 averbações fechadas na referência de competência escolhida. Os campos <span class="mono">c_id_vgm</span>, <span class="mono">v_cml_pmo_vgm</span> e <span class="mono">v_qtd_avb</span> devem estar preenchidos na tabela <span class="mono">tb_cme_avb_rcv_cit</span> (confirmar via query SQL se necessário).</p>
+            </div>
+            <div class="ct-field full"><label>Passo a passo</label>
+              <ol>
+                <li>Acessar CITWEB HML e autenticar.</li>
+                <li>No menu, navegar até <strong>Conta Mensal → Prévia</strong>.</li>
+                <li>Preencher os filtros: selecionar a apólice RCV (ramo 59) e o período de referência com averbações fechadas.</li>
+                <li>Marcar o checkbox <strong>Relação de Embarques Simplificada</strong> (<span class="mono">indRelacaoEmbarquesSimplificada</span>).</li>
+                <li>Clicar em gerar / visualizar o relatório.</li>
+                <li>Abrir o relatório gerado (Excel ou tela).</li>
+                <li>Localizar as colunas <strong>Documento</strong>, <strong>Valor do Prêmio</strong> e <strong>Qtde Embarques</strong>.</li>
+                <li>Comparar os valores com os dados da tabela <span class="mono">tb_cme_avb_rcv_cit</span> para a apólice e referência escolhidas.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>O relatório exibe <strong>uma linha por averbação RCV</strong> com os campos preenchidos corretamente:</p>
+              <ul>
+                <li><strong>Documento</strong> = valor de <span class="mono">c_id_vgm</span> da respectiva averbação</li>
+                <li><strong>Valor do Prêmio</strong> = valor de <span class="mono">v_cml_pmo_vgm</span></li>
+                <li><strong>Qtde Embarques</strong> = valor de <span class="mono">v_qtd_avb</span></li>
+              </ul>
+              <p style="margin-top:6px">Nenhum campo deve aparecer em branco, zerado ou com dado de outra tabela.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-RES-001"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 002 -->
+      <div class="ct-block" data-ct="CT-RES-002" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-002" aria-label="Expandir CT-RES-002"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-RES-002</span>
+            <span class="ct-prio p1">P1</span>
+            <span class="ct-title">Emissão — Relação de Embarques Simplificada RCV com colunas corretas</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-002" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>CA-02 &nbsp;|&nbsp; PBI #7137 &nbsp;|&nbsp; <span class="mono">RelatorioFechamentoDomain</span> → Relação de Embarques Simplificada no fluxo de Emissão</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo — fix (Emissão)</p></div>
+            <div class="ct-field"><label>Prioridade</label><p>P1</p></div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Apólice ramo 59 com fechamento mensal emitido (status de emissão concluído) na referência de competência. Mesma massa do CT-001 pode ser reutilizada se a prévia tiver sido processada.</p>
+            </div>
+            <div class="ct-field full"><label>Passo a passo</label>
+              <ol>
+                <li>No CITWEB HML, navegar até o módulo de <strong>Emissão</strong> (Conta Mensal → Emissão ou equivalente visível no menu — validar in loco).</li>
+                <li>Selecionar a apólice RCV com fechamento emitido e o período de referência.</li>
+                <li>Solicitar a geração da <strong>Relação de Embarques Simplificada</strong>.</li>
+                <li>Abrir o relatório gerado.</li>
+                <li>Verificar as colunas Documento, Valor do Prêmio e Qtde Embarques.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Idêntico ao CT-001: relatório com uma linha por averbação RCV, todos os três campos (<span class="mono">c_id_vgm</span>, <span class="mono">v_cml_pmo_vgm</span>, <span class="mono">v_qtd_avb</span>) preenchidos corretamente a partir de <span class="mono">tb_cme_avb_rcv_cit</span>.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-RES-002"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 003 -->
+      <div class="ct-block" data-ct="CT-RES-003" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-003" aria-label="Expandir CT-RES-003"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-RES-003</span>
+            <span class="ct-prio p1">P1</span>
+            <span class="ct-title">Impressão — Relação de Embarques Simplificada RCV com colunas corretas</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-003" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>CA-03 &nbsp;|&nbsp; PBI #7137 &nbsp;|&nbsp; <span class="mono">ImpressaoAverbacaoController</span> → Relação de Embarques Simplificada no fluxo de Impressão</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo — fix (Impressão)</p></div>
+            <div class="ct-field"><label>Prioridade</label><p>P1</p></div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Apólice ramo 59 com emissão concluída, apta para impressão. Mesma apólice dos CTs anteriores.</p>
+            </div>
+            <div class="ct-field full"><label>Passo a passo</label>
+              <ol>
+                <li>No CITWEB HML, navegar até o módulo de <strong>Impressão</strong> de averbações RCV (caminho a validar in loco — ex.: Conta Mensal → Impressão ou Averbação → Impressão).</li>
+                <li>Selecionar a apólice RCV emitida.</li>
+                <li>Solicitar a geração da <strong>Relação de Embarques Simplificada</strong>.</li>
+                <li>Abrir o relatório gerado.</li>
+                <li>Verificar as colunas Documento, Valor do Prêmio e Qtde Embarques.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Relatório com colunas corretas: Documento = <span class="mono">c_id_vgm</span>, Valor do Prêmio = <span class="mono">v_cml_pmo_vgm</span>, Qtde Embarques = <span class="mono">v_qtd_avb</span>. Dados lidos de <span class="mono">tb_cme_avb_rcv_cit</span> por averbação.</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-RES-003"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+      <!-- CT 004 -->
+      <div class="ct-block" data-ct="CT-RES-004" data-status="pendente" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-004" aria-label="Expandir CT-RES-004"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-RES-004</span>
+            <span class="ct-prio p2">P2</span>
+            <span class="ct-title">Regressão — Relação de Embarques Simplificada ramo 21 não afetada</span>
+          </div>
+          <span class="ct-status-chip" role="status">Pendente</span>
+        </div>
+        <div class="ct-panel" id="panel-004" role="region" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Rastreabilidade</label>
+              <p>CA-04 &nbsp;|&nbsp; PBI #7137 &nbsp;|&nbsp; Regressão — lógica para ramos não-RCV não deve ser alterada pela correção</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Regressão</p></div>
+            <div class="ct-field"><label>Prioridade</label><p>P2</p></div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Apólice ramo 21 (Transporte Nacional) com fechamento existente em alguma referência.</p>
+            </div>
+            <div class="ct-field full"><label>Passo a passo</label>
+              <ol>
+                <li>Na tela de Prévia (Conta Mensal → Prévia), selecionar apólice ramo 21 com fechamento.</li>
+                <li>Marcar o checkbox <strong>Relação de Embarques Simplificada</strong>.</li>
+                <li>Gerar o relatório.</li>
+                <li>Verificar que as colunas do relatório ramo 21 continuam preenchidas normalmente.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>O relatório Relação de Embarques Simplificada para ramo 21 é gerado sem erros e com os dados corretos — comportamento idêntico ao estado anterior ao PBI (nenhuma regressão introduzida pela alteração na leitura de <span class="mono">tb_cme_avb_rcv_cit</span>).</p>
+            </div>
+          </div>
+          <div class="ev-section" id="ev-CT-RES-004"><span class="ev-badge ev-pendente">Evidência pendente</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Matriz -->
+  <div class="section">
+    <div class="section-header">Matriz de rastreabilidade</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead><tr><th>CT</th><th>CA coberto</th><th>Fluxo</th><th>Prioridade</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="mono">CT-RES-001</span></td><td>CA-01 — Prévia RCV correto</td><td>Prévia</td><td><span class="badge-sm badge-p1">P1</span></td><td><span class="badge-sm badge-pend" id="ov-st-001">Pendente</span></td></tr>
+          <tr><td><span class="mono">CT-RES-002</span></td><td>CA-02 — Emissão RCV correto</td><td>Emissão</td><td><span class="badge-sm badge-p1">P1</span></td><td><span class="badge-sm badge-pend" id="ov-st-002">Pendente</span></td></tr>
+          <tr><td><span class="mono">CT-RES-003</span></td><td>CA-03 — Impressão RCV correto</td><td>Impressão</td><td><span class="badge-sm badge-p1">P1</span></td><td><span class="badge-sm badge-pend" id="ov-st-003">Pendente</span></td></tr>
+          <tr><td><span class="mono">CT-RES-004</span></td><td>CA-04 — Regressão ramo 21</td><td>Prévia</td><td><span class="badge-sm badge-p2">P2</span></td><td><span class="badge-sm badge-pend" id="ov-st-004">Pendente</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Riscos -->
+  <div class="section">
+    <div class="section-header">Riscos e observações</div>
+    <div class="section-body">
+      <div class="warn-box">
+        <strong>Risco 1 — Desenvolvimento em andamento:</strong> Os CTs dependem do deploy HML da task #7153. Não executar antes de confirmar build disponível com Fabíola ou José Ribeiro.
+      </div>
+      <div class="warn-box">
+        <strong>Risco 2 — Caminhos de navegação Emissão e Impressão:</strong> Os passos dos CTs 002 e 003 marcam <em>[validar in loco]</em> porque o caminho exato de menu para esses dois fluxos não está documentado em <span class="mono">features/</span>. Confirmar navegação na primeira execução e atualizar <span class="mono">features/faturamento/emissao.md</span>.
+      </div>
+      <div class="info-box">
+        <strong>Dica de validação:</strong> Para confirmar que os dados vêm de <span class="mono">tb_cme_avb_rcv_cit</span> e não de outra tabela, extrair via SQL os valores de <span class="mono">c_id_vgm</span>, <span class="mono">v_cml_pmo_vgm</span> e <span class="mono">v_qtd_avb</span> para a apólice/referência de teste e comparar diretamente com o que o relatório exibe. Divergência → reprovado.
+      </div>
+    </div>
+  </div>
+
+  <div id="resultado-execucao">Execução pendente — aguardando build HML com a alteração do PBI.</div>
+
+</div>
+
+<script>
+function canonicalStatus(s) {
+  if (!s) return 'pendente';
+  s = s.toLowerCase().trim();
+  if (['aprovado','aprovada','passou','pass','ok'].includes(s)) return 'aprovado';
+  if (['reprovado','reprovada','falhou','fail','failed'].includes(s)) return 'reprovado';
+  if (['bloqueado','blocked','block'].includes(s)) return 'bloqueado';
+  if (['n/a','na','n_a'].includes(s)) return 'n/a';
+  return 'pendente';
+}
+function updateDash() {
+  const blocks = document.querySelectorAll('.ct-block[data-ct]');
+  let total = blocks.length, aprov = 0, reprov = 0, pend = 0, block = 0, na = 0;
+  const labels = { aprovado:'Aprovado', reprovado:'Reprovado', pendente:'Pendente', bloqueado:'Bloqueado', 'n/a':'N/A' };
+  const ovMap = { 'CT-RES-001':'ov-st-001','CT-RES-002':'ov-st-002','CT-RES-003':'ov-st-003','CT-RES-004':'ov-st-004' };
+  const ovClass = { aprovado:'badge-ok', reprovado:'badge-fail', pendente:'badge-pend', bloqueado:'badge-block', 'n/a':'badge-na' };
+  blocks.forEach(b => {
+    const st = canonicalStatus(b.dataset.status);
+    const chip = b.querySelector('.ct-status-chip');
+    if (chip) chip.textContent = labels[st] || st;
+    const el = document.getElementById(ovMap[b.dataset.ct]);
+    if (el) { el.className = 'badge-sm ' + (ovClass[st]||'badge-pend'); el.textContent = labels[st]||st; }
+    if (st==='aprovado') aprov++;
+    else if (st==='reprovado') reprov++;
+    else if (st==='bloqueado') block++;
+    else if (st==='n/a') na++;
+    else pend++;
+  });
+  document.getElementById('dash-total').textContent = total;
+  document.getElementById('dash-aprov').textContent = aprov;
+  document.getElementById('dash-reprov').textContent = reprov;
+  document.getElementById('dash-pend').textContent = pend;
+  document.getElementById('dash-block').textContent = block;
+  document.getElementById('dash-na').textContent = na;
+  const done = aprov + reprov;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('dash-prog').style.width = pct + '%';
+  document.getElementById('dash-prog-txt').textContent = done + ' de ' + total + ' CTs concluídos';
+  const res = document.getElementById('resultado-execucao');
+  if (done === 0) { res.style.color=''; res.textContent='Execução pendente — aguardando build HML com a alteração do PBI.'; }
+  else if (reprov > 0) { res.style.color='var(--fail)'; res.textContent='✗ Execução com reprovação — '+reprov+' CT(s) reprovado(s).'; }
+  else if (done === total && aprov === total) { res.style.color='var(--ok)'; res.textContent='✓ Todos os CTs aprovados — PBI pronto para homologação.'; }
+  else { res.style.color='var(--accent)'; res.textContent='Execução em andamento — '+done+' de '+total+' CTs concluídos.'; }
+}
+document.querySelectorAll('.ct-bar').forEach(bar => {
+  bar.addEventListener('click', () => {
+    const block = bar.closest('.ct-block');
+    const panel = block.querySelector('.ct-panel');
+    const btn = bar.querySelector('.ct-toggle');
+    const expanded = block.dataset.expanded === 'true';
+    block.dataset.expanded = !expanded;
+    btn.setAttribute('aria-expanded', !expanded);
+    panel.hidden = expanded;
+  });
+});
+updateDash();
+</script>
+</body>
+</html>
