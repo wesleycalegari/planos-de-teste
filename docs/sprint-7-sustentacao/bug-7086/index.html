@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano de Teste — BUG-7086</title>
+  <style>
+    :root {
+      --bg: #1e1e1e;
+      --surface: #252526;
+      --surface2: #2d2d30;
+      --border: #3e3e42;
+      --text: #d4d4d4;
+      --text-muted: #888;
+      --blue: #0078d4;
+      --blue-light: #1a9fff;
+      --red: #b91c1c;
+      --green: #15803d;
+      --green-light: #22c55e;
+      --orange: #ca5010;
+      --yellow: #d97706;
+      --purple: #7c3aed;
+      --badge-p1: #b91c1c;
+      --badge-p2: #ca5010;
+      --badge-p3: #605e5c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; }
+
+    /* TOPBAR */
+    .topbar { background: #0e0e0e; border-bottom: 2px solid var(--red); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+    .topbar-badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 3px; letter-spacing: 1px; }
+    .topbar-title { font-size: 13px; color: var(--text-muted); }
+    .topbar-id { color: #fff; font-weight: 600; }
+
+    /* HERO */
+    .hero { background: linear-gradient(135deg, #1a0a0a 0%, #2a1010 100%); border-bottom: 1px solid #3a1a1a; padding: 28px 32px 22px; }
+    .hero h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .hero-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+    .hero-meta span { font-size: 12px; color: var(--text-muted); }
+    .hero-meta strong { color: var(--text); }
+
+    /* METRICS STRIP */
+    .metrics { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); }
+    .metric { flex: 1; padding: 16px 20px; border-right: 1px solid var(--border); text-align: center; }
+    .metric:last-child { border-right: none; }
+    .metric-val { font-size: 28px; font-weight: 700; line-height: 1; }
+    .metric-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-val.blue { color: var(--blue-light); }
+    .metric-val.green { color: var(--green-light); }
+    .metric-val.red { color: #f87171; }
+    .metric-val.orange { color: #fb923c; }
+    .metric-val.muted { color: var(--text-muted); }
+
+    /* PROGRESS BAR */
+    .progress-wrap { background: var(--surface); padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+    .progress-bar { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--green-light); border-radius: 3px; transition: width 0.3s; }
+    .progress-label { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    /* LAYOUT */
+    .content { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+    /* INFO / WARN BOX */
+    .info-box { background: #0d1f36; border: 1px solid #1a4d7a; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+    .info-box strong { color: var(--blue-light); }
+    .warn-box { background: #2a1f00; border: 1px solid #8a6200; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+    .warn-box strong { color: #fbbf24; }
+    .success-box { background: #0a2010; border: 1px solid #166534; border-radius: 6px; padding: 14px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.6; }
+    .success-box strong { color: var(--green-light); }
+
+    /* SECTION */
+    .section { margin-bottom: 28px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 14px; }
+
+    /* GROUP HEADER */
+    .group-header { background: var(--red); color: #fff; padding: 10px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+    .group-header-green { background: var(--green); color: #fff; padding: 10px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+    .group-header-blue { background: var(--blue); color: #fff; padding: 10px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+    .group-header-purple { background: var(--purple); color: #fff; padding: 10px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+
+    /* CT BLOCK */
+    .ct-block { background: var(--surface); border: 1px solid var(--border); border-top: none; margin-bottom: 2px; border-radius: 0; }
+    .ct-block:last-child { border-radius: 0 0 6px 6px; margin-bottom: 0; }
+    .ct-head { padding: 12px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+    .ct-head:hover { background: var(--surface2); }
+    .ct-id { font-size: 11px; font-weight: 700; color: var(--text-muted); font-family: monospace; min-width: 90px; }
+    .ct-title-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+    .ct-badges { display: flex; gap: 6px; align-items: center; }
+    .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .badge-p1 { background: var(--badge-p1); color: #fff; }
+    .badge-p2 { background: var(--badge-p2); color: #fff; }
+    .badge-p3 { background: var(--badge-p3); color: #ccc; }
+    .badge-pos { background: #166534; color: #bbf7d0; }
+    .badge-neg { background: #7c2020; color: #fca5a5; }
+    .badge-reg { background: #3d3d6b; color: #c4b5fd; }
+    .badge-apr { background: #166534; color: #bbf7d0; }
+    .badge-pen { background: #374151; color: #9ca3af; }
+    .badge-blq { background: #7c2d12; color: #fed7aa; }
+    .ct-toggle { font-size: 11px; color: var(--text-muted); transition: transform 0.2s; }
+    .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+    .ct-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+    .ct-block.expanded .ct-body { display: block; }
+
+    /* CT BODY CONTENT */
+    .ct-section { margin-top: 14px; }
+    .ct-section-label { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .ct-steps { list-style: none; counter-reset: steps; }
+    .ct-steps li { counter-increment: steps; padding: 5px 0 5px 28px; position: relative; font-size: 13px; line-height: 1.5; border-bottom: 1px solid #2a2a2a; }
+    .ct-steps li:last-child { border-bottom: none; }
+    .ct-steps li::before { content: counter(steps); position: absolute; left: 0; top: 5px; background: var(--border); color: var(--text-muted); font-size: 10px; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .ct-expected { background: #0a2010; border: 1px solid #166534; border-radius: 4px; padding: 10px 12px; font-size: 13px; margin-top: 8px; }
+    .ct-expected strong { color: var(--green-light); display: block; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ct-precond { background: var(--surface2); border-radius: 4px; padding: 10px 12px; font-size: 13px; }
+    .ct-precond strong { color: var(--blue-light); display: block; font-size: 11px; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* STATUS CHIP */
+    .ct-status-aprovado { background: #166534; color: #bbf7d0; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; }
+    .ct-status-pendente { background: #374151; color: #9ca3af; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; }
+    .ct-status-bloqueado { background: #7c2d12; color: #fed7aa; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 3px; }
+
+    /* EVIDÊNCIAS */
+    .ev-section { margin-top: 14px; background: var(--surface2); border-radius: 6px; padding: 12px; }
+    .ev-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .ev-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; background: #1a4d7a; color: #93c5fd; text-transform: uppercase; }
+    .ev-meta { font-size: 11px; color: var(--text-muted); }
+    .ev-screenshots { display: flex; flex-wrap: wrap; gap: 10px; }
+    .ev-step { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .ev-step img { max-width: 320px; border: 1px solid var(--border); border-radius: 4px; cursor: zoom-in; }
+    .ev-step-label { font-size: 10px; color: var(--text-muted); text-align: center; max-width: 320px; }
+
+    /* TABELA */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--surface2); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; text-align: left; border-bottom: 2px solid var(--border); }
+    td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: var(--surface2); }
+    code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: monospace; font-size: 12px; color: #9cdcfe; }
+
+    /* LIGHTBOX */
+    #lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.9); z-index: 9999; cursor: zoom-out; align-items: center; justify-content: center; }
+    #lb.open { display: flex; }
+    #lb img { max-width: 92vw; max-height: 92vh; border-radius: 6px; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-badge">BUG</span>
+  <span class="topbar-id">BUG-7086</span>
+  <span class="topbar-title">— Erro Flag "Ativar e desativar usuário" - CitWeb</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Plano de Teste — Flag Ativo/Inativo de Usuário</h1>
+  <div class="hero-meta">
+    <span><strong>Sprint:</strong> Sprint 7 Sustentação</span>
+    <span><strong>Sistema:</strong> CITWEB — Módulo Segurança</span>
+    <span><strong>Seguradora:</strong> FAIRFAX</span>
+    <span><strong>Severidade:</strong> Medium</span>
+    <span><strong>Autor:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 28/05/2026</span>
+    <span><strong>Ticket:</strong> #308760</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="metric-val blue" id="m-total">5</div><div class="metric-label">Total de CTs</div></div>
+  <div class="metric"><div class="metric-val green" id="m-apr">0</div><div class="metric-label">Aprovados</div></div>
+  <div class="metric"><div class="metric-val orange" id="m-pen">5</div><div class="metric-label">Pendentes</div></div>
+  <div class="metric"><div class="metric-val red" id="m-blq">0</div><div class="metric-label">Bloqueados</div></div>
+  <div class="metric"><div class="metric-val muted" id="m-rep">0</div><div class="metric-label">Reprovados</div></div>
+</div>
+
+<!-- PROGRESS BAR -->
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-label" id="progress-label">0 de 5 executados</span>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-title">Descrição do Bug</div>
+    <div class="info-box">
+      <strong>Problema:</strong> A flag "Ativo" no cadastro de usuários do CITWEB não bloqueava o acesso ao sistema.
+      Usuários com a flag <strong>desmarcada</strong> continuavam acessando o sistema normalmente.
+      Como contorno, o time estava sendo obrigado a <strong>excluir usuários</strong> para interromper acessos indevidos.<br><br>
+      <strong>Reportado por:</strong> Rafael dos Santos (FF Seguros / Fairfax) via e-mail em 20/04/2026 — Ticket interno #308760.<br><br>
+      <strong>Ambiente:</strong> Bug confirmado em Produção. Em HML, o campo da flag estava desabilitado antes da correção.
+      Após a correção, o campo está habilitado em HML e pode ser validado.
+    </div>
+  </div>
+
+  <!-- ESCOPO -->
+  <div class="section">
+    <div class="section-title">Escopo</div>
+    <div class="info-box">
+      <strong>In scope:</strong><br>
+      &nbsp;• Desmarcar flag "Ativo" de usuário → verificar bloqueio de login<br>
+      &nbsp;• Reativar flag "Ativo" de usuário → verificar restabelecimento de acesso<br>
+      &nbsp;• Regressão: login de usuário ativo não foi afetado pela correção<br><br>
+      <strong>Out of scope:</strong><br>
+      &nbsp;• Controle de acesso por grupo/perfil (objeto de outro card)<br>
+      &nbsp;• Fluxo de outros módulos (Nacional, Internacional, etc.)
+    </div>
+  </div>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-title">Pré-Requisitos e Massa de Dados</div>
+    <div class="success-box">
+      <strong>✔ Massa criada em 28/05/2026 — FAIRFAX HML</strong><br><br>
+      <strong>Usuário de teste:</strong><br>
+      &nbsp;• Código: <code>QATESTE</code><br>
+      &nbsp;• Nome: USUARIO QA TESTE<br>
+      &nbsp;• Senha: <code>Qa@12345</code><br>
+      &nbsp;• Grupo: EMISSAO<br>
+      &nbsp;• Ativo: <code>True</code> (estado inicial)
+    </div>
+    <div class="info-box">
+      <strong>Acesso ao módulo Segurança (administrador):</strong><br>
+      &nbsp;• URL: <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code><br>
+      &nbsp;• Usuário gestor: <code>ADMCIT</code> / Senha: <code>MSTCIT</code><br><br>
+      <strong>Caminho de navegação:</strong><br>
+      &nbsp;1. Login → Menu principal → botão <strong>Segurança</strong> (nova aba: /SEGURANCA)<br>
+      &nbsp;2. Nav esquerda: <strong>USUÁRIO</strong> → <strong>Usuário CIT</strong><br>
+      &nbsp;3. Campo "Código Usuário" → digitar <code>QATESTE</code> → clicar na lupa<br>
+    </div>
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <!-- GRUPO 1: DESATIVAÇÃO -->
+    <div class="group-header">Grupo 1 — Desativação de Usuário (flag Ativo → desmarcada)</div>
+
+    <!-- CT-USR-001 -->
+    <div class="ct-block" data-status="pendente">
+      <div class="ct-head">
+        <span class="ct-id">CT-USR-001</span>
+        <span class="ct-title-text">Administrador desmarca flag "Ativo" e salva — flag persiste desmarcada</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-neg">Negativo</span>
+          <span class="ct-status-pendente">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-label">Pré-condições</div>
+          <div class="ct-precond">
+            <strong>Estado inicial</strong>
+            • Ambiente: FAIRFAX HML<br>
+            • Logado como ADMCIT / MSTCIT no módulo Segurança<br>
+            • Usuário QATESTE cadastrado com Ativo = True<br>
+            • Navegar: Segurança → Usuário CIT → buscar QATESTE
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Passos</div>
+          <ol class="ct-steps">
+            <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code> e fazer login com <code>ADMCIT / MSTCIT</code></li>
+            <li>No menu principal, clicar no botão <strong>Segurança</strong> — uma nova aba é aberta com o módulo SEGURANÇA</li>
+            <li>Na navegação lateral, expandir <strong>USUÁRIO</strong> e clicar em <strong>Usuário CIT</strong></li>
+            <li>No campo "Código Usuário", digitar <code>QATESTE</code> e clicar no ícone de lupa (busca)</li>
+            <li>Verificar que o formulário carregou os dados do usuário QATESTE com a checkbox <strong>Ativo</strong> marcada</li>
+            <li><strong>Desmarcar</strong> a checkbox <strong>Ativo</strong></li>
+            <li>Clicar no botão <strong>Salvar</strong></li>
+            <li>Aguardar mensagem de confirmação do sistema</li>
+            <li>Recarregar o usuário QATESTE (buscar novamente) para verificar persistência</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Resultado Esperado</div>
+          <div class="ct-expected">
+            <strong>✔ Critério de aceite</strong>
+            Sistema exibe mensagem de sucesso após salvar. Ao recarregar o usuário QATESTE, a checkbox <strong>Ativo</strong> aparece <strong>desmarcada</strong>, confirmando que a alteração foi persistida corretamente.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-USR-002 -->
+    <div class="ct-block" data-status="pendente">
+      <div class="ct-head">
+        <span class="ct-id">CT-USR-002</span>
+        <span class="ct-title-text">Usuário inativo tenta realizar login — sistema bloqueia o acesso</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-neg">Negativo</span>
+          <span class="ct-status-pendente">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-label">Pré-condições</div>
+          <div class="ct-precond">
+            <strong>Estado inicial</strong>
+            • CT-USR-001 executado com sucesso (QATESTE com Ativo = False)<br>
+            • Abrir nova aba ou janela anônima para simular login do usuário QATESTE
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Passos</div>
+          <ol class="ct-steps">
+            <li>Abrir nova aba ou janela anônima</li>
+            <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Preencher Usuário: <code>QATESTE</code></li>
+            <li>Preencher Senha: <code>Qa@12345</code></li>
+            <li>Clicar em <strong>Acessar</strong></li>
+            <li>Observar a resposta do sistema</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Resultado Esperado</div>
+          <div class="ct-expected">
+            <strong>✔ Critério de aceite — CA3</strong>
+            O sistema <strong>não permite</strong> o login do usuário QATESTE. É exibida uma mensagem de erro/bloqueio indicando que o usuário está inativo ou não tem permissão de acesso. O usuário <strong>não é redirecionado</strong> para o Menu principal.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 2: REATIVAÇÃO -->
+    <div class="group-header-green">Grupo 2 — Reativação de Usuário (flag Ativo → marcada)</div>
+
+    <!-- CT-USR-003 -->
+    <div class="ct-block" data-status="pendente">
+      <div class="ct-head">
+        <span class="ct-id">CT-USR-003</span>
+        <span class="ct-title-text">Administrador reativa flag "Ativo" e salva — flag persiste marcada</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pos">Positivo</span>
+          <span class="ct-status-pendente">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-label">Pré-condições</div>
+          <div class="ct-precond">
+            <strong>Estado inicial</strong>
+            • CT-USR-001 e CT-USR-002 executados (QATESTE com Ativo = False)<br>
+            • Logado como ADMCIT / MSTCIT no módulo Segurança
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Passos</div>
+          <ol class="ct-steps">
+            <li>No módulo Segurança → Usuário CIT, buscar <code>QATESTE</code></li>
+            <li>Verificar que a checkbox <strong>Ativo</strong> está <strong>desmarcada</strong></li>
+            <li><strong>Marcar</strong> a checkbox <strong>Ativo</strong></li>
+            <li>Clicar no botão <strong>Salvar</strong></li>
+            <li>Aguardar mensagem de confirmação do sistema</li>
+            <li>Recarregar o usuário QATESTE (buscar novamente) para verificar persistência</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Resultado Esperado</div>
+          <div class="ct-expected">
+            <strong>✔ Critério de aceite — CA2</strong>
+            Sistema exibe mensagem de sucesso. Ao recarregar o usuário QATESTE, a checkbox <strong>Ativo</strong> aparece <strong>marcada</strong>, confirmando a reativação com sucesso.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-USR-004 -->
+    <div class="ct-block" data-status="pendente">
+      <div class="ct-head">
+        <span class="ct-id">CT-USR-004</span>
+        <span class="ct-title-text">Usuário reativado realiza login com sucesso</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pos">Positivo</span>
+          <span class="ct-status-pendente">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-label">Pré-condições</div>
+          <div class="ct-precond">
+            <strong>Estado inicial</strong>
+            • CT-USR-003 executado com sucesso (QATESTE com Ativo = True novamente)
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Passos</div>
+          <ol class="ct-steps">
+            <li>Abrir nova aba ou janela anônima</li>
+            <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Preencher Usuário: <code>QATESTE</code></li>
+            <li>Preencher Senha: <code>Qa@12345</code></li>
+            <li>Clicar em <strong>Acessar</strong></li>
+            <li>Observar a resposta do sistema</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Resultado Esperado</div>
+          <div class="ct-expected">
+            <strong>✔ Critério de aceite — CA2</strong>
+            O sistema <strong>permite</strong> o login do usuário QATESTE. O usuário é redirecionado para o Menu principal do CITWEB com acesso às funcionalidades do grupo EMISSAO.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 3: REGRESSÃO -->
+    <div class="group-header-blue">Grupo 3 — Regressão</div>
+
+    <!-- CT-USR-005 -->
+    <div class="ct-block" data-status="pendente">
+      <div class="ct-head">
+        <span class="ct-id">CT-USR-005</span>
+        <span class="ct-title-text">Usuário ativo (ROT_AUTO) realiza login normalmente — regressão do fluxo de autenticação</span>
+        <div class="ct-badges">
+          <span class="badge badge-p3">P3</span>
+          <span class="badge badge-reg">Regressão</span>
+          <span class="ct-status-pendente">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-label">Pré-condições</div>
+          <div class="ct-precond">
+            <strong>Estado inicial</strong>
+            • Usuário ROT_AUTO deve estar ativo no sistema FAIRFAX HML<br>
+            • Nenhuma alteração deve ter sido feita na flag Ativo do ROT_AUTO
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Passos</div>
+          <ol class="ct-steps">
+            <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Preencher Usuário: <code>ROT_AUTO</code></li>
+            <li>Preencher Senha: <code>T7Jjm6xF</code></li>
+            <li>Clicar em <strong>Acessar</strong></li>
+            <li>Verificar redirecionamento para Menu principal</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-label">Resultado Esperado</div>
+          <div class="ct-expected">
+            <strong>✔ Regressão</strong>
+            O usuário ROT_AUTO (ativo) realiza login com sucesso e acessa o Menu principal do CITWEB. A correção da flag Ativo não impactou o fluxo de autenticação de usuários ativos.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section CTs -->
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-title">Matriz de Rastreabilidade</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Critério de Aceite</th>
+          <th>CTs</th>
+          <th>Resultado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Administrador desmarca flag "Ativo" → usuário perde acesso imediatamente</td>
+          <td><code>CT-USR-001</code> <code>CT-USR-002</code></td>
+          <td><span class="ct-status-pendente">PENDENTE</span></td>
+        </tr>
+        <tr>
+          <td>Administrador reativa flag "Ativo" → usuário volta a ter acesso</td>
+          <td><code>CT-USR-003</code> <code>CT-USR-004</code></td>
+          <td><span class="ct-status-pendente">PENDENTE</span></td>
+        </tr>
+        <tr>
+          <td>Usuários inativos não conseguem realizar login</td>
+          <td><code>CT-USR-002</code></td>
+          <td><span class="ct-status-pendente">PENDENTE</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MÉTRICAS -->
+  <div class="section">
+    <div class="section-title">Métricas</div>
+    <table>
+      <thead>
+        <tr><th>Prioridade</th><th>Quantidade</th><th>CTs</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>P1 — Bloqueante</td><td>4</td><td><code>CT-USR-001</code> <code>CT-USR-002</code> <code>CT-USR-003</code> <code>CT-USR-004</code></td></tr>
+        <tr><td>P3 — Desejável</td><td>1</td><td><code>CT-USR-005</code></td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>5</strong></td><td>Cobertura: 3/3 CAs (100%)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <div class="section-title">Riscos</div>
+    <div class="warn-box">
+      <strong>⚠ Ambiente HML — campo desabilitado antes da correção</strong><br>
+      O campo "Ativo" estava desabilitado em HML antes da correção do bug. Foi verificado em 28/05/2026 que o campo
+      está habilitado após a correção. Se a correção for revertida ou não implantada corretamente, todos os CTs que
+      dependem da flag serão bloqueados.<br><br>
+      <strong>⚠ Mensagem de bloqueio de login</strong><br>
+      O texto exato da mensagem exibida ao tentar login com usuário inativo não foi verificado previamente (campo estava bloqueado em HML).
+      O CT-USR-002 deve capturar o texto exato da mensagem como evidência durante a execução.
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="this.classList.remove('open')">
+  <img id="lb-img" src="" alt="">
+</div>
+
+<script>
+  // Accordion
+  document.querySelectorAll('.ct-head').forEach(h => {
+    h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+  });
+
+  // Lightbox
+  document.querySelectorAll('.ev-step img').forEach(img => {
+    img.addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('lb-img').src = img.src;
+      document.getElementById('lb').classList.add('open');
+    });
+  });
+
+  // Métricas dinâmicas
+  function updateMetrics() {
+    const blocks = document.querySelectorAll('.ct-block[data-status]');
+    let apr = 0, pen = 0, blq = 0, rep = 0;
+    blocks.forEach(b => {
+      const s = b.getAttribute('data-status');
+      if (s === 'aprovado') apr++;
+      else if (s === 'pendente') pen++;
+      else if (s === 'bloqueado') blq++;
+      else if (s === 'reprovado') rep++;
+    });
+    const total = blocks.length;
+    document.getElementById('m-total').textContent = total;
+    document.getElementById('m-apr').textContent = apr;
+    document.getElementById('m-pen').textContent = pen;
+    document.getElementById('m-blq').textContent = blq;
+    document.getElementById('m-rep').textContent = rep;
+    const exec = apr + blq + rep;
+    document.getElementById('progress-fill').style.width = (exec / total * 100) + '%';
+    document.getElementById('progress-label').textContent = exec + ' de ' + total + ' executados';
+  }
+  updateMetrics();
+</script>
+</body>
+</html>
