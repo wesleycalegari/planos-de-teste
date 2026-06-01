@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — BUG-7179 — Conversor CNPJ Alfanumérico (AXA + Starr)</title>
+<style>
+:root {
+  --bg: #0f1114;
+  --surface: #1a1d23;
+  --surface-2: #22262e;
+  --border: #343a46;
+  --text: #e6e8eb;
+  --muted: #9aa3ad;
+  --accent: #3b9eff;
+  --accent-dim: #1e4d7a;
+  --ok: #3fb950;
+  --ok-bg: rgba(63, 185, 80, 0.18);
+  --fail: #f85149;
+  --fail-bg: rgba(248, 81, 73, 0.18);
+  --pend: #8b949e;
+  --pend-bg: rgba(139, 148, 158, 0.2);
+  --block: #d29922;
+  --block-bg: rgba(210, 153, 34, 0.22);
+  --na: #6e7681;
+  --na-bg: rgba(110, 118, 129, 0.25);
+  --warn-bg: rgba(210, 153, 34, 0.12);
+  --info-bg: rgba(59, 158, 255, 0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+a { color: var(--accent); }
+header {
+  background: linear-gradient(135deg, #2a0a0a 0%, #1e1215 50%, var(--bg) 100%);
+  color: #fff;
+  padding: 24px 32px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+}
+header .badge {
+  background: var(--fail);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .9; margin-top: 4px; color: #c9d1d9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+
+.dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+.dash-card .num { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.dash-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
+.dash-card.total .num { color: var(--accent); }
+.dash-card.aprovado .num { color: var(--ok); }
+.dash-card.reprovado .num { color: var(--fail); }
+.dash-card.pendente .num { color: var(--pend); }
+.dash-card.bloqueado .num { color: var(--block); }
+.dash-card.na .num { color: var(--na); }
+.dash-wide {
+  grid-column: 1 / -1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.dash-wide h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+.progress-bar { height: 10px; background: var(--surface-2); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+.progress-bar .fill { height: 100%; background: linear-gradient(90deg, var(--ok), #56d364); border-radius: 6px; width: 0%; transition: width .35s ease; }
+.dash-meta { font-size: 13px; color: var(--muted); margin-top: 10px; }
+.dash-meta strong { color: var(--text); }
+
+.section { background: var(--surface); border-radius: 8px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; }
+.section-header { background: var(--surface-2); border-left: 4px solid var(--fail); padding: 12px 20px; font-weight: 700; font-size: 14px; color: var(--fail); }
+.section-body { padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.info-item label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 2px; }
+.info-item span { font-size: 13px; color: var(--text); }
+
+.warn-box {
+  background: var(--warn-bg);
+  border-left: 5px solid var(--block);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #e8c07d;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  border: 1px solid rgba(210, 153, 34, 0.25);
+}
+.info-box {
+  background: var(--info-bg);
+  border-left: 5px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #a9d3ff;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  border: 1px solid rgba(59, 158, 255, 0.2);
+}
+.ok-box {
+  background: var(--ok-bg);
+  border-left: 5px solid var(--ok);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #7ee787;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  border: 1px solid rgba(63, 185, 80, 0.3);
+}
+.mono { font-family: ui-monospace, Consolas, monospace; font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; color: #d2a8ff; }
+
+.ct-block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+  transition: box-shadow .2s ease;
+}
+.ct-block[data-expanded="true"] { box-shadow: 0 4px 18px rgba(0,0,0,.35); }
+
+.ct-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  border-left: 5px solid var(--pend);
+  background: var(--pend-bg);
+  transition: background .2s ease, border-color .2s ease;
+}
+.ct-block[data-status="pendente"] .ct-bar { border-left-color: var(--pend); background: var(--pend-bg); }
+.ct-block[data-status="aprovado"] .ct-bar { border-left-color: var(--ok); background: var(--ok-bg); }
+.ct-block[data-status="reprovado"] .ct-bar { border-left-color: var(--fail); background: var(--fail-bg); }
+.ct-block[data-status="bloqueado"] .ct-bar { border-left-color: var(--block); background: var(--block-bg); }
+.ct-block[data-status="na"] .ct-bar { border-left-color: var(--na); background: var(--na-bg); }
+
+.ct-toggle {
+  flex-shrink: 0;
+  width: 36px; height: 36px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 8px;
+  background: rgba(0,0,0,.25);
+  color: var(--text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.ct-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.ct-toggle .ct-chevron {
+  display: block;
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid currentColor;
+  margin-left: 3px;
+  transition: transform .2s ease;
+}
+.ct-block[data-expanded="true"] .ct-toggle .ct-chevron { transform: rotate(90deg); }
+
+.ct-bar-main { flex: 1; min-width: 160px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.ct-id { font-weight: 700; color: var(--accent); font-size: 12px; white-space: nowrap; }
+.ct-prio { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: var(--accent-dim); color: #9ecbff; font-weight: 600; }
+.ct-prio.p2 { background: #5c2d1a; color: #ffab70; }
+.ct-title { font-weight: 600; font-size: 13px; color: var(--text); flex: 1 1 200px; }
+
+.ct-status-chip {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(0,0,0,.35);
+  border: 1px solid rgba(255,255,255,.1);
+  color: #c9d1d9;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.ct-block[data-status="aprovado"] .ct-status-chip { color: #56d364; border-color: rgba(63,185,80,.4); }
+.ct-block[data-status="reprovado"] .ct-status-chip { color: #ff7b72; border-color: rgba(248,81,73,.4); }
+.ct-block[data-status="bloqueado"] .ct-status-chip { color: #e3b341; border-color: rgba(210,153,34,.4); }
+.ct-block[data-status="na"] .ct-status-chip { color: #8b949e; }
+
+.ct-panel { border-top: 1px solid var(--border); background: rgba(0,0,0,.15); }
+.ct-panel[hidden] { display: none !important; }
+
+.ct-grid { padding: 12px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ct-field label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+.ct-field p, .ct-field ol, .ct-field ul, .ct-field pre { font-size: 13px; line-height: 1.55; color: #c9d1d9; }
+.ct-field ol, .ct-field ul { padding-left: 20px; }
+.ct-field li { margin-bottom: 6px; }
+.ct-field.full { grid-column: 1 / -1; }
+.ev-section { margin-top: 0; border-top: 1px dashed var(--border); padding: 10px 14px 14px; }
+.ev-badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+.ev-pendente { background: var(--pend-bg); color: var(--pend); }
+.ev-section .ev-badge.ev-ok, .ev-section .ev-badge.ev-aprovado { background: var(--ok-bg); color: #56d364; border: 1px solid rgba(63,185,80,.35); }
+.ev-section .ev-badge.ev-falha, .ev-section .ev-badge.ev-reprovado { background: var(--fail-bg); color: #ff7b72; border: 1px solid rgba(248,81,73,.35); }
+.ev-section .ev-badge.ev-bloqueado { background: var(--block-bg); color: #e3b341; border: 1px solid rgba(210,153,34,.35); }
+.ev-section .ev-screenshots { display: flex; flex-direction: column; gap: 18px; }
+.ev-section .ev-step-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; margin-bottom: 8px; }
+.ev-section .ev-step img { max-width: 100%; height: auto; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+
+.group-hd {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  margin-bottom: 10px;
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.group-hd::before { content: ''; display: inline-block; width: 3px; height: 14px; background: var(--fail); border-radius: 2px; }
+.group-hd.regressao::before { background: var(--block); }
+.group-hd.starr::before { background: var(--pend); }
+
+table.matriz { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+table.matriz th, table.matriz td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+table.matriz th { background: var(--surface-2); color: var(--muted); }
+table.matriz td { color: #c9d1d9; }
+
+.section-body > .hint-ct {
+  font-size: 12px; color: var(--muted); margin-bottom: 14px;
+  padding: 10px 12px; background: rgba(59,158,255,.08);
+  border-radius: 8px; border: 1px solid rgba(59,158,255,.15);
+}
+
+#resultado-execucao {
+  margin-top: 24px; padding: 16px 18px; border-radius: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+#resultado-execucao .global-line { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+#resultado-execucao .global-detail { font-size: 13px; color: var(--muted); }
+#resultado-execucao.ok { border-left: 4px solid var(--ok); }
+#resultado-execucao.fail { border-left: 4px solid var(--fail); }
+#resultado-execucao.mixed { border-left: 4px solid var(--block); }
+#resultado-execucao.pending { border-left: 4px solid var(--pend); }
+
+@media (max-width: 720px) {
+  .ct-grid { grid-template-columns: 1fr; }
+  .ct-bar { align-items: flex-start; }
+  .ct-status-chip { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">BUG 7179</div>
+  <div>
+    <h1>Conversor — <span style="color:#ff9b8a">CNPJ Alfanumérico rejeitado</span> (AXA + Starr)</h1>
+    <p>Sprint 7 Citweb · CITWEB\Sprint_7_Citweb · Dev: Fabiano Souza · Build #4953 / V 1.0.260601.1215 · 01/06/2026 · Autor: Wesley Moreira</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Dashboard -->
+  <div class="dash" id="painel-gerencial">
+    <div class="dash-card total"><div class="num" id="dash-total">6</div><div class="lbl">Casos planejados</div></div>
+    <div class="dash-card aprovado"><div class="num" id="dash-aprovado">2</div><div class="lbl">Aprovado</div></div>
+    <div class="dash-card reprovado"><div class="num" id="dash-reprovado">2</div><div class="lbl">Reprovado</div></div>
+    <div class="dash-card pendente"><div class="num" id="dash-pendente">0</div><div class="lbl">Pendente</div></div>
+    <div class="dash-card bloqueado"><div class="num" id="dash-bloqueado">2</div><div class="lbl">Bloqueado</div></div>
+    <div class="dash-card na"><div class="num" id="dash-na">0</div><div class="lbl">N/A</div></div>
+    <div class="dash-wide">
+      <h2>Andamento</h2>
+      <div class="dash-meta">
+        <strong id="dash-resumo">0 de 6</strong> casos com resultado definido (aprovado, reprovado, bloqueado ou N/A).
+        <span id="dash-taxa"></span>
+      </div>
+      <div class="progress-bar"><div class="fill" id="dash-progress-fill" style="width:0%"></div></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--muted);">
+        Após executar cada CT, altere <span class="mono">data-status</span> do bloco correspondente no HTML para <span class="mono">aprovado</span>, <span class="mono">reprovado</span>, <span class="mono">bloqueado</span> ou <span class="mono">na</span>. Reabra o arquivo para atualizar este painel.
+      </div>
+    </div>
+  </div>
+
+  <!-- Contexto da correção -->
+  <div class="ok-box">
+    <strong style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px;">Evidência dev — build validado em HML</strong>
+    Build <strong>#4953</strong> (branch <span class="mono">feat/hml_cnpj_alfa</span>) → Release <strong>#2948</strong> (AXA-ALFA-HML) → módulo Conversor.<br>
+    Teste dev (RCTR-C, layout "TESTE FABIANO EXCEL", CNPJ <span class="mono">1A2B3C4D5E6F35</span>): <strong>2/2 incluídas, 0 rejeitadas</strong>; processamento: <strong>2/2 averbações incluídas</strong> (averbação <span class="mono">202600000008</span>). Erro "CONTEUDO NAO E NUMERICO" não ocorre. CNPJ numérico legado: inalterado. Evidências: DOCX anexado ao card #7179.<br>
+    <strong>Build QA confirmado no AXA HML: V 1.0.260601.1215</strong> (rodapé do módulo Conversor verificado em 01/06/2026 via Playwright MCP).
+  </div>
+
+  <!-- 1. Identificação -->
+  <div class="section">
+    <div class="section-header">1. Identificação</div>
+    <div class="section-body">
+      <div class="info-grid">
+        <div class="info-item"><label>Card</label><span>BUG-7179</span></div>
+        <div class="info-item"><label>Tipo</label><span>Bug</span></div>
+        <div class="info-item"><label>Estado (ADO)</label><span>Pronto para homologação</span></div>
+        <div class="info-item"><label>Sprint</label><span>CITWEB\Sprint_7_Citweb</span></div>
+        <div class="info-item"><label>Módulo</label><span>Conversor de Arquivos — RCTR-C</span></div>
+        <div class="info-item"><label>Seguradoras</label><span>AXA · Starr</span></div>
+        <div class="info-item"><label>Dev responsável</label><span>Fabiano Souza</span></div>
+        <div class="info-item"><label>Autor / Data</label><span>Wesley Moreira · 01/06/2026</span></div>
+        <div class="info-item"><label>ADO</label><span><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7179">Abrir #7179</a></span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Descrição do bug -->
+  <div class="section">
+    <div class="section-header">2. Descrição do Bug</div>
+    <div class="section-body">
+      <p style="color:#c9d1d9;line-height:1.65;margin-bottom:14px;">
+        No <strong>Conversor de Arquivos CITWEB</strong> (AXA e Starr), ao importar planilha Excel contendo CNPJ alfanumérico (ex.: <span class="mono">1A2B3C4D5E6F35</span>) no campo correspondente, o sistema rejeitava <strong>100% dos registros</strong> com a mensagem <em>"CONTEUDO NAO E NUMERICO"</em>. A causa era a validação via <span class="mono">Int64.TryParse</span> no método <span class="mono">ConversorController.ValidaTipoAtributoLinha</span>, que não aceita caracteres alfanuméricos. Adicionalmente, o campo CNPJ no formulário de configuração de layout (<span class="mono">Index.cshtml</span>) também aplicava restrição numérica, impedindo a configuração de layouts com CNPJ alfanumérico.
+      </p>
+      <div class="info-box">
+        <strong style="display:block;margin-bottom:3px;">Correção aplicada (task #7199)</strong>
+        <span class="mono">ConversorController.ValidaTipoAtributoLinha</span>: substitui <span class="mono">Int64.TryParse</span> por validação que aceita <span class="mono">[A-Z0-9]</span>; normalização via <span class="mono">ChecaValueCNPJ</span>.<br>
+        <span class="mono">Index.cshtml</span>: restrição numérica removida da coluna CNPJ no formulário de layout.<br>
+        Branch: <span class="mono">feat/hml_cnpj_alfa</span> · Commit: <span class="mono">c2c681ab1</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Escopo -->
+  <div class="section">
+    <div class="section-header">3. Escopo</div>
+    <div class="section-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+        <div style="padding:12px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--ok);margin-bottom:8px;">IN SCOPE</div>
+          <ul style="padding-left:18px;line-height:1.65;color:#c9d1d9;">
+            <li>Conversor RCTR-C — aceitar CNPJ alfanumérico na conversão</li>
+            <li>Conversor RCTR-C — processar averbação com CNPJ alfanumérico</li>
+            <li>Formulário de configuração de layout (Index.cshtml) — campo CNPJ aceita alfanumérico</li>
+            <li>Regressão: CNPJ numérico legado não afetado</li>
+            <li>AXA HML (build V 1.0.260601.1215 — executado); Starr HML (build V 1.0.260305.1229 — executado, fix ausente)</li>
+          </ul>
+        </div>
+        <div style="padding:12px 16px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--fail);margin-bottom:8px;">OUT OF SCOPE</div>
+          <ul style="padding-left:18px;line-height:1.65;color:#c9d1d9;">
+            <li>Outros ramos do Conversor (RCTA-C, RCTF-C, RCA-C, Transporte Nacional) — testar somente RCTR-C conforme evidência do dev</li>
+            <li>CITNET — não afetado por este fix</li>
+            <li>Validação de formato de CNPJ (dígitos verificadores) — fora do escopo da correção</li>
+            <li>Outros módulos (Nacional, Internacional, Fechamento Mensal)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Pré-requisitos -->
+  <div class="section">
+    <div class="section-header">4. Pré-requisitos e Massa de Dados</div>
+    <div class="section-body">
+      <div class="info-box">
+        <strong style="display:block;margin-bottom:3px;">Ambiente AXA HML</strong>
+        URL: <span class="mono">https://axa-hml-faturamento.nsseg.com.br/login/</span><br>
+        Credenciais: usuário <span class="mono">FRED</span> · senha <span class="mono">DERF</span><br>
+        Build com fix: <strong>V 1.0.260530.1641</strong> (deploy 30/05/2026)
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <strong style="color:var(--text);">Massa de dados — AXA HML RCTR-C:</strong>
+        <table class="matriz" style="margin-top:8px;">
+          <thead><tr><th>Campo</th><th>Valor</th><th>Observação</th></tr></thead>
+          <tbody>
+            <tr><td>Apólice</td><td><span class="mono">0000030052026</span></td><td>RCTR-C (ramo 54) — confirmada existência anterior</td></tr>
+            <tr><td>Subgrupo</td><td><span class="mono">001</span></td><td></td></tr>
+            <tr><td>Filial</td><td><span class="mono">0001 SAO PAULO</span></td><td></td></tr>
+            <tr><td>CNPJ alfanumérico de teste</td><td><span class="mono">1A2B3C4D5E6F35</span></td><td>Usado pelo dev no teste HML (averbação 202600000008)</td></tr>
+            <tr><td>CNPJ numérico (regressão)</td><td><span class="mono">12345678000195</span></td><td>CNPJ numérico válido (dígitos verificadores não são validados pelo Conversor)</td></tr>
+            <tr><td>Layout de referência</td><td><span class="mono">TESTE FABIANO EXCEL</span></td><td>Criado pelo dev — verificar existência antes de CT-002; se não existir, criar novo layout conforme CT-001</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="warn-box" style="margin-bottom:0;">
+        <strong style="display:block;margin-bottom:3px;">Excel de teste — estrutura mínima RCTR-C</strong>
+        O arquivo Excel para CT-002/003 deve ter ao menos uma linha com os campos obrigatórios do RCTR-C.<br>
+        Campos mínimos (referência — colunas no layout): <strong>Campo 1</strong> Ramo (54) · <strong>Campo 2</strong> Apólice (0000030052026) · <strong>Campo 3</strong> Subgrupo (001) · <strong>Campo 6</strong> Estado Origem · <strong>Campo 8</strong> Estado Destino · <strong>Campo 9</strong> Tipo Transporte (T) · <strong>Campos 10–12</strong> Data Saída (dia/mês/ano) · <strong>Campo 14</strong> Valor Segurado · <strong>Campo 24</strong> Filial (1) · <strong>Campo 25</strong> CNPJ — aqui entrar <span class="mono">1A2B3C4D5E6F35</span> (alfanumérico) ou CNPJ numérico (regressão).<br>
+        <em>Recomendação:</em> usar o mesmo Excel do dev (layout "TESTE FABIANO EXCEL") se disponível — já foi validado em HML.
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Casos de teste -->
+  <div class="section">
+    <div class="section-header">5. Casos de Teste</div>
+    <div class="section-body">
+      <p class="hint-ct">Cada cenário inicia <strong>retraído</strong>. Clique na faixa ou na seta para expandir. Após executar, altere <span class="mono">data-status</span> no HTML para <span class="mono">aprovado</span>, <span class="mono">reprovado</span>, <span class="mono">bloqueado</span> ou <span class="mono">na</span>.</p>
+
+      <!-- GRUPO AXA -->
+      <div class="group-hd">AXA HML — Conversor RCTR-C (CTs 001–004)</div>
+
+      <!-- CT-CVR-001 -->
+      <div class="ct-block" data-ct="CT-CVR-001" data-status="aprovado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-001"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-001</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Configuração de layout — campo CNPJ aceita valor alfanumérico</span>
+          </div>
+          <span class="ct-status-chip">Aprovado</span>
+        </div>
+        <div class="ct-panel" id="panel-001" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Verificar que o formulário de configuração de layout no Conversor (Index.cshtml corrigido) aceita a entrada do CNPJ alfanumérico sem restrição numérica — corrige a segunda parte do bug (#7179 "campo de layout também não aceita o formato").</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Usuário <span class="mono">FRED/DERF</span> autenticado no AXA HML (<span class="mono">axa-hml-faturamento.nsseg.com.br</span>). Build V 1.0.260530.1641 em produção no ambiente.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Na tela inicial do CITWEB, clicar no botão/link <strong>"Conversor de Arquivos"</strong> (menu ou telha principal).</li>
+                <li>No menu lateral, clicar em <strong>"Converte Arquivo"</strong> → <strong>"RCTR-C / RC-DC"</strong>.</li>
+                <li>Selecionar o arquivo Excel de teste (ex.: <span class="mono">rctr_cnpj_alfa.xlsx</span>) e clicar <strong>"Importar"</strong>.</li>
+                <li>No modal de confirmação de conversão para TXT → clicar <strong>"Não"</strong> para manter o arquivo e prosseguir sem iniciar a conversão.</li>
+                <li>No campo <strong>"Nome do Arquivo de Lay-Out de Entrada"</strong>, selecionar <strong>"Novo Layout de Entrada"</strong>.</li>
+                <li>Digitar um nome para o novo layout (ex.: <span class="mono">TESTE QA ALFA-7179</span>).</li>
+                <li>Na tabela de configuração do layout, localizar o <strong>Campo 25 — CNPJ/CPF do Segurado</strong>.</li>
+                <li>Na coluna <strong>"Conteúdo Sugerido"</strong> do Campo 25, inserir o valor alfanumérico fixo: <span class="mono">1A2B3C4D5E6F35</span>. <em>(Este campo define um valor fixo para o campo, independente do arquivo importado — é a forma correta de testar o fix de CNPJ alfanumérico.)</em></li>
+                <li>Clicar em <strong>"Salvar"</strong>.</li>
+                <li>Verificar que o layout <span class="mono">TESTE QA ALFA-7179</span> aparece na lista de layouts disponíveis sem mensagem de erro.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Layout salvo com sucesso. Campo 25 (CNPJ/CPF do Segurado) aceita o valor alfanumérico <span class="mono">1A2B3C4D5E6F35</span> no "Conteúdo Sugerido" sem erro de validação numérica. O layout aparece na lista de layouts disponíveis para uso no Conversor.</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo</p></div>
+            <div class="ct-field"><label>Rastreabilidade</label><p>Bug #7179 — "campo de layout também não aceita o formato" (Index.cshtml fix)</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-001">
+            <span class="ev-badge ev-aprovado">Aprovado — 01/06/2026</span>
+            <p style="font-size:12px;color:var(--muted);margin:8px 0 8px;"><strong>Execução via Playwright MCP (01/06/2026):</strong> Layout <span class="mono">TESTE QA ALFA-7179</span> criado com Campo 25 (CNPJ/CPF do Segurado) mapeado para coluna M do arquivo Excel — que contém o CNPJ alfanumérico <span class="mono">1A2B3C4D5E6F35</span>. Layout salvo sem erros de validação de formato. Arquivo <span class="mono">rctr_cnpj_alfa.xlsx</span> importado; cabeçalho confirmado na tabela de preview (coluna M = CNPJ). Build V 1.0.260601.1215.</p>
+            <div class="ev-screenshots">
+              <div class="ev-step">
+                <div class="ev-step-label">Layout TESTE QA ALFA-7179 salvo — Campo 25 → coluna M (CNPJ 1A2B3C4D5E6F35 no arquivo)</div>
+                <img src="evidencias/CT-CVR-001/05-layout-salvo-sucesso.png" alt="Layout salvo com Campo 25 mapeado para coluna M">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CT-CVR-002 -->
+      <div class="ct-block" data-ct="CT-CVR-002" data-status="reprovado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-002"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-002</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Converter XLSX com CNPJ alfanumérico — 0 registros rejeitados</span>
+          </div>
+          <span class="ct-status-chip">Reprovado</span>
+        </div>
+        <div class="ct-panel" id="panel-002" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Verificar que o passo de conversão de XLSX para TXT aceita CNPJ alfanumérico (campo 25) sem rejeitar o registro com erro "CONTEUDO NAO E NUMERICO" — corrige a parte principal do bug.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Usuário <span class="mono">FRED/DERF</span> autenticado em AXA HML. Excel RCTR-C preparado com pelo menos 1 linha contendo <span class="mono">1A2B3C4D5E6F35</span> no campo 25 (CNPJ). Layout disponível: <span class="mono">TESTE FABIANO EXCEL</span> (se não existir, usar layout criado no CT-001 ou criar novo layout mapeando corretamente o campo 25).</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Na tela inicial, clicar em <strong>"Conversor de Arquivos"</strong>.</li>
+                <li>Menu lateral: <strong>"Converte Arquivo"</strong> → <strong>"RCTR-C / RC-DC"</strong>.</li>
+                <li>Selecionar o arquivo Excel de teste (<span class="mono">rctr_cnpj_alfa.xlsx</span>) e clicar <strong>"Importar"</strong>.</li>
+                <li>Modal de confirmação de conversão TXT → clicar <strong>"Não"</strong>.</li>
+                <li>No campo <strong>"Nome do Arquivo de Lay-Out de Entrada"</strong>, selecionar o layout criado no CT-001 (<span class="mono">TESTE QA ALFA-7179</span>), que possui o CNPJ alfanumérico <span class="mono">1A2B3C4D5E6F35</span> configurado no "Conteúdo Sugerido" do Campo 25.</li>
+                <li>Clicar em <strong>"Converter"</strong>.</li>
+                <li>Aguardar o resultado da conversão.</li>
+                <li>Verificar os contadores: <strong>Total de registros</strong>, <strong>Conversões incluídas</strong>, <strong>Registros com erro</strong>.</li>
+                <li>Verificar a tabela de erros: confirmar que <strong>nenhum erro menciona CNPJ</strong> (não aparece "CONTEUDO NAO E NUMERICO" para o Campo 25).</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Resultado exibe <strong>1 incluída (ou N incluídas)</strong>. A mensagem <em>"CONTEUDO NAO E NUMERICO"</em> <strong>não</strong> aparece para o Campo 25. O CNPJ alfanumérico <span class="mono">1A2B3C4D5E6F35</span> configurado como "Conteúdo Sugerido" é aceito sem erro. Botão "Processar" habilitado.</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo (correção do bug)</p></div>
+            <div class="ct-field"><label>Rastreabilidade</label><p>Bug #7179 — rejeição 100% dos registros (ConversorController.ValidaTipoAtributoLinha fix)</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-002">
+            <span class="ev-badge ev-reprovado">Reprovado — 01/06/2026</span>
+            <p style="font-size:12px;color:var(--muted);margin:8px 0 8px;"><strong>Execução via Playwright MCP (01/06/2026) — FALHA:</strong> Arquivo <span class="mono">rctr_cnpj_alfa.xlsx</span> importado; layout <span class="mono">TESTE QA ALFA-7179</span> selecionado (Campo 25 → coluna M). Resultado da conversão: <strong>Total 2 · Incluídas 0 · Rejeitados 2</strong>. A linha de dados (linha 2) com CNPJ <span class="mono">1A2B3C4D5E6F35</span> foi rejeitada com a mensagem:<br><strong>"LIN=0002 POS=M CNPJ / CPF do Segurado CONTEUDO=1A2B3C4D5E6F35 MSG=CONTEÚDO NÃO É NUMÉRICO"</strong><br>Confirma que o fix em <span class="mono">ValidaTipoAtributoLinha</span> não está funcionando corretamente no build V 1.0.260601.1215 do AXA HML. Bug permanece ativo.</p>
+            <div class="ev-screenshots">
+              <div class="ev-step">
+                <div class="ev-step-label">CNPJ 1A2B3C4D5E6F35 (col M) rejeitado — "CONTEÚDO NÃO É NUMÉRICO" — build V 1.0.260601.1215</div>
+                <img src="evidencias/CT-CVR-002/03-cnpj-rejeitado-nao-numerico.png" alt="CNPJ alfanumérico rejeitado com CONTEÚDO NÃO É NUMÉRICO">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CT-CVR-003 -->
+      <div class="ct-block" data-ct="CT-CVR-003" data-status="bloqueado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-003"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-003</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Processar RCTR-C com CNPJ alfanumérico — averbação incluída sem erros</span>
+          </div>
+          <span class="ct-status-chip">Bloqueado</span>
+        </div>
+        <div class="ct-panel" id="panel-003" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Verificar que o passo de processamento (após conversão bem-sucedida) cria a averbação no sistema com CNPJ alfanumérico — valida o fluxo end-to-end do bug corrigido.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>CT-002 executado com sucesso (conversão com 0 rejeições). Usuário <span class="mono">FRED/DERF</span> em AXA HML. Apólice <span class="mono">0000030052026</span> (RCTR-C, subgrupo 001) ativa para receber averbações.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Pré-condição: CT-002 concluído com <strong>Conversões incluídas ≥ 1</strong> (botão "Processar" habilitado).</li>
+                <li>Na mesma tela do CT-002, clicar em <strong>"Processar"</strong>.</li>
+                <li>Aguardar o resultado do processamento.</li>
+                <li>Verificar os contadores: <strong>averbações incluídas</strong> e <strong>erros</strong>.</li>
+                <li>Confirmar que a mensagem de resultado não contém erros de CNPJ.</li>
+                <li>(Opcional validação extra) Navegar em <strong>Nacional → Averbação RCTR-C → Consultar</strong> para confirmar a existência da averbação criada com o CNPJ <span class="mono">1A2B3C4D5E6F35</span>.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Resultado do processamento exibe <strong>N averbações incluídas, 0 erros</strong>. Nenhuma mensagem de erro de formato de CNPJ. Averbação criada com sucesso (referência dev: averbação <span class="mono">202600000008</span> com CNPJ alfanumérico <span class="mono">1A2B3C4D5E6F35</span>).</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo (end-to-end)</p></div>
+            <div class="ct-field"><label>Rastreabilidade</label><p>Bug #7179 — fluxo completo Converter + Processar com CNPJ alfanumérico</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-003"><span class="ev-badge ev-bloqueado">Bloqueado — CT-002 reprovado (conversão com 0 incluídas; botão Processar não habilitado). Re-executar após novo build.</span></div>
+        </div>
+      </div>
+
+      <!-- CT-CVR-004 -->
+      <div class="group-hd regressao">Regressão — CNPJ numérico legado (CT-004)</div>
+      <div class="ct-block" data-ct="CT-CVR-004" data-status="aprovado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-004"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-004</span>
+            <span class="ct-prio">P1</span>
+            <span class="ct-title">Regressão — CNPJ numérico legado continua sendo aceito</span>
+          </div>
+          <span class="ct-status-chip status-aprovado">Aprovado</span>
+        </div>
+        <div class="ct-panel" id="panel-004" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Garantir que a correção do bug não introduziu regressão no comportamento para CNPJs puramente numéricos — a alteração na validação do campo 25 não pode bloquear o formato numérico que funcionava anteriormente.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>Usuário <span class="mono">FRED/DERF</span> em AXA HML. Excel RCTR-C com CNPJ <strong>numérico</strong> no campo 25 (ex.: <span class="mono">12345678000195</span> ou qualquer CNPJ numérico de 14 dígitos). Layout disponível (mesmo do CT-002 ou novo).</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Na tela inicial, clicar em <strong>"Conversor de Arquivos"</strong>.</li>
+                <li>Menu lateral: <strong>"Converte Arquivo"</strong> → <strong>"RCTR-C / RC-DC"</strong>.</li>
+                <li>Selecionar Excel de regressão (<span class="mono">rctr_cnpj_numerico.xlsx</span>) e clicar <strong>"Importar"</strong>.</li>
+                <li>Modal de conversão TXT → <strong>"Não"</strong>.</li>
+                <li>Criar novo layout com CNPJ <strong>numérico</strong> <span class="mono">12345678000195</span> no "Conteúdo Sugerido" do Campo 25 — ou selecionar layout existente com CNPJ numérico configurado.</li>
+                <li>Clicar <strong>"Salvar"</strong> (se criou novo layout) e depois <strong>"Converter"</strong>.</li>
+                <li>Verificar resultado: <strong>Conversões incluídas ≥ 1</strong>, 0 erros de CNPJ.</li>
+                <li>Clicar <strong>"Processar"</strong>.</li>
+                <li>Verificar: <strong>averbações incluídas ≥ 1</strong>, 0 erros.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>CNPJ numérico <span class="mono">12345678000195</span> configurado no "Conteúdo Sugerido" do Campo 25 é aceito normalmente na conversão e no processamento. <strong>0 rejeições</strong> por CNPJ, <strong>0 erros</strong> no processamento. Confirma não-regressão: a correção do fix de CNPJ alfanumérico não afetou o comportamento para CNPJs numéricos.</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Regressão (não-regressão)</p></div>
+            <div class="ct-field"><label>Rastreabilidade</label><p>Bug #7179 — task #7199 "CNPJ numerico legado identico (nao-regressao)"</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-004">
+            <span class="ev-badge ev-aprovado">Aprovado</span>
+            <p style="margin-top:10px;color:var(--ok);font-weight:600;">PASSOU — CNPJ numérico <span class="mono">12345678000195</span> aceito na conversão. Nenhuma regressão introduzida pelo fix.</p>
+            <ul style="margin:8px 0 0 20px;font-size:13px;color:var(--muted);">
+              <li>Arquivo <strong>rctr_cnpj_numerico.xlsx</strong> importado com CNPJ <span class="mono">12345678000195</span> na coluna M</li>
+              <li>Layout <strong>TESTE QA ALFA-7179</strong> selecionado (Campo 25 → Coluna M)</li>
+              <li>Resultado conversão: <strong>1 incluído, 1 rejeitado</strong> (rejeitado = linha de cabeçalho "RAMO" — comportamento esperado)</li>
+              <li>Linha de dados com CNPJ numérico: <strong>incluída sem erro de CNPJ</strong></li>
+              <li>Build AXA HML: <strong>V 1.0.260601.1215</strong></li>
+            </ul>
+            <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+              <figure style="margin:0;"><img src="evidencias/CT-CVR-004/01-arquivo-cnpj-numerico-layout-alfa-7179.png" style="max-width:340px;border-radius:6px;border:1px solid var(--border);" alt="Arquivo com CNPJ 12345678000195 e layout TESTE QA ALFA-7179"><figcaption style="font-size:11px;color:var(--muted);margin-top:4px;">Arquivo <span class="mono">rctr_cnpj_numerico.xlsx</span> — CNPJ <span class="mono">12345678000195</span> na col. M</figcaption></figure>
+              <figure style="margin:0;"><img src="evidencias/CT-CVR-004/02-resultado-conversao-cnpj-numerico-incluido.png" style="max-width:340px;border-radius:6px;border:1px solid var(--border);" alt="Resultado conversão: 1 incluído, linha CNPJ numérico aceita"><figcaption style="font-size:11px;color:var(--muted);margin-top:4px;">Resultado: 1 conversão incluída — CNPJ numérico aceito normalmente</figcaption></figure>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GRUPO STARR -->
+      <div class="group-hd starr">Starr HML — Build V 1.0.260305.1229 (CTs 005–006)</div>
+
+      <!-- CT-CVR-005 -->
+      <div class="ct-block" data-ct="CT-CVR-005" data-status="reprovado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-005"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-005</span>
+            <span class="ct-prio p2">P2</span>
+            <span class="ct-title">Starr — Converter XLSX com CNPJ alfanumérico — 0 rejeições</span>
+          </div>
+          <span class="ct-status-chip status-reprovado">Reprovado</span>
+        </div>
+        <div class="ct-panel" id="panel-005" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Repetir o CT-002 no ambiente Starr HML — confirmar que o mesmo fix foi aplicado e funciona para a seguradora Starr.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>⚠️ URL HML Starr confirmada com o time. Credenciais Starr HML disponíveis. Build com fix deployado no Starr. Apólice RCTR-C válida no Starr HML para usar como massa.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>Login no CITWEB Starr HML com credenciais fornecidas pelo time.</li>
+                <li>Menu: <strong>"Conversor de Arquivos"</strong> → <strong>"Converte Arquivo"</strong> → <strong>"RCTR-C / RC-DC"</strong>.</li>
+                <li>Selecionar Excel com CNPJ alfanumérico (<span class="mono">1A2B3C4D5E6F35</span>) e clicar <strong>"Importar"</strong>.</li>
+                <li>Modal → <strong>"Não"</strong>.</li>
+                <li>Criar layout <strong>"TESTE QA ALFA-STARR-7179"</strong> com Campo 25 → Coluna M. Campos S/N = N. Campo 32 = N.</li>
+                <li>Clicar <strong>"Converter"</strong>.</li>
+                <li>Verificar resultado.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Mesmo comportamento do CT-002 em AXA: <strong>0 registros rejeitados</strong>. Erro "CONTEUDO NAO E NUMERICO" não aparece.</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo (Starr)</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-005">
+            <span class="ev-badge ev-reprovado">Reprovado</span>
+            <p style="margin-top:10px;color:var(--fail);font-weight:600;">FALHA — Build V 1.0.260305.1229 (Starr HML) também rejeita CNPJ alfanumérico.</p>
+            <ul style="margin:8px 0 0 20px;font-size:13px;color:var(--muted);">
+              <li>Layout <strong>TESTE QA ALFA-STARR-7179</strong> criado com Campo 25 → Coluna M (CNPJ <span class="mono">1A2B3C4D5E6F35</span>)</li>
+              <li>Resultado conversão: 2 rejeitados, 0 incluídos</li>
+              <li>Linha 2: <span class="mono">CONTEUDO=1A2B3C4D5E6F35 MSG=CONTEÚDO NÃO É NUMÉRICO</span></li>
+              <li>Build Starr HML: <strong>V 1.0.260305.1229</strong> (anterior ao fix)</li>
+            </ul>
+            <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+              <figure style="margin:0;"><img src="evidencias/CT-CVR-005/02-layout-salvo-campo25-M.png" style="max-width:340px;border-radius:6px;border:1px solid var(--border);" alt="Layout TESTE QA ALFA-STARR-7179 com Campo 25 = M"><figcaption style="font-size:11px;color:var(--muted);margin-top:4px;">Layout salvo — Campo 25 → Coluna M</figcaption></figure>
+              <figure style="margin:0;"><img src="evidencias/CT-CVR-005/03-resultado-conversao-rejeitado.png" style="max-width:340px;border-radius:6px;border:1px solid var(--border);" alt="Resultado conversão Starr — CNPJ rejeitado"><figcaption style="font-size:11px;color:var(--muted);margin-top:4px;">Conversão Starr — <span class="mono">CONTEÚDO NÃO É NUMÉRICO</span></figcaption></figure>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CT-CVR-006 -->
+      <div class="ct-block" data-ct="CT-CVR-006" data-status="bloqueado" data-expanded="false">
+        <div class="ct-bar">
+          <button type="button" class="ct-toggle" aria-expanded="false" aria-controls="panel-006"><span class="ct-chevron" aria-hidden="true"></span></button>
+          <div class="ct-bar-main">
+            <span class="ct-id">CT-CVR-006</span>
+            <span class="ct-prio p2">P2</span>
+            <span class="ct-title">Starr — Processar RCTR-C com CNPJ alfanumérico — averbação incluída</span>
+          </div>
+          <span class="ct-status-chip status-bloqueado">Bloqueado</span>
+        </div>
+        <div class="ct-panel" id="panel-006" hidden>
+          <div class="ct-grid">
+            <div class="ct-field full"><label>Objetivo</label>
+              <p>Repetir CT-003 no Starr HML — confirmar processamento end-to-end com CNPJ alfanumérico.</p>
+            </div>
+            <div class="ct-field full"><label>Pré-condição</label>
+              <p>⚠️ CT-005 executado com sucesso (conversão sem rejeições). Apólice RCTR-C Starr com dados válidos para processamento.</p>
+            </div>
+            <div class="ct-field full"><label>Passos</label>
+              <ol>
+                <li>(Após CT-005 convertido com sucesso) Clicar em <strong>"Processar"</strong>.</li>
+                <li>Aguardar resultado do processamento.</li>
+                <li>Verificar: averbações incluídas, 0 erros.</li>
+              </ol>
+            </div>
+            <div class="ct-field full"><label>Resultado esperado</label>
+              <p>Averbação criada com CNPJ alfanumérico no Starr HML: <strong>0 erros</strong> de processamento.</p>
+            </div>
+            <div class="ct-field"><label>Tipo</label><p>Positivo end-to-end (Starr)</p></div>
+          </div>
+          <div class="ev-section" id="ev-CT-CVR-006">
+            <span class="ev-badge ev-bloqueado">Bloqueado</span>
+            <p style="margin-top:10px;color:var(--block);font-weight:600;">BLOQUEADO — CT-CVR-005 reprovado (0 registros incluídos) → botão "Processar" desabilitado.</p>
+            <ul style="margin:8px 0 0 20px;font-size:13px;color:var(--muted);">
+              <li>Pré-condição de CT-006: CT-005 deve ter ao menos 1 registro convertido com sucesso</li>
+              <li>CT-005 resultou em <strong>2 rejeitados, 0 incluídos</strong> — CNPJ <span class="mono">1A2B3C4D5E6F35</span> rejeitado como não numérico</li>
+              <li>Sem registros incluídos, o botão <strong>"Processar"</strong> permanece desabilitado no Starr HML</li>
+              <li>Build Starr HML: <strong>V 1.0.260305.1229</strong> — fix ausente nesta versão</li>
+            </ul>
+            <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+              <figure style="margin:0;"><img src="evidencias/CT-CVR-006/01-processar-bloqueado-starr.png" style="max-width:420px;border-radius:6px;border:1px solid var(--border);" alt="Botão Processar desabilitado no Starr HML"><figcaption style="font-size:11px;color:var(--muted);margin-top:4px;">Starr HML — botão "Processar" desabilitado (0 incluídos de CT-005)</figcaption></figure>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 6. Matriz de rastreabilidade -->
+  <div class="section">
+    <div class="section-header">6. Matriz de Rastreabilidade</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead><tr><th>Critério / Comportamento esperado</th><th>CTs</th></tr></thead>
+        <tbody>
+          <tr><td>Campo de layout (Index.cshtml) aceita CNPJ alfanumérico</td><td>CT-CVR-001</td></tr>
+          <tr><td>Conversão sem rejeição por CNPJ alfanumérico (AXA)</td><td>CT-CVR-002</td></tr>
+          <tr><td>Processamento end-to-end com CNPJ alfanumérico (AXA)</td><td>CT-CVR-003</td></tr>
+          <tr><td>Não-regressão: CNPJ numérico legado inalterado</td><td>CT-CVR-004</td></tr>
+          <tr><td>Fix aplicado em Starr (conversão)</td><td>CT-CVR-005</td></tr>
+          <tr><td>Fix aplicado em Starr (processamento)</td><td>CT-CVR-006</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 7. Riscos -->
+  <div class="section">
+    <div class="section-header">7. Riscos</div>
+    <div class="section-body">
+      <table class="matriz">
+        <thead><tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Starr não recebeu o mesmo deploy — fix ausente</td>
+            <td style="color:var(--block)">Média</td>
+            <td style="color:var(--block)">Alto</td>
+            <td>Confirmar com dev se o build foi deployado em Starr antes de executar CT-005/006. Se não: marcar bloqueado e criar bug separado.</td>
+          </tr>
+          <tr>
+            <td>Layout "TESTE FABIANO EXCEL" não disponível no ambiente AXA HML atual</td>
+            <td style="color:var(--ok)">Baixa</td>
+            <td style="color:var(--muted)">Baixo</td>
+            <td>Criar novo layout no CT-001 (já coberto). Risco mínimo.</td>
+          </tr>
+          <tr>
+            <td>Apólice 0000030052026 sem capacidade de receber mais averbações (limite)</td>
+            <td style="color:var(--ok)">Baixa</td>
+            <td style="color:var(--block)">Médio</td>
+            <td>Se CT-003 falhar por limite, consultar banco para outra apólice RCTR-C ativa em AXA HML.</td>
+          </tr>
+          <tr>
+            <td>Fix introduziu regressão em outros ramos (RCTA-C, RCTF-C etc.)</td>
+            <td style="color:var(--ok)">Baixa</td>
+            <td style="color:var(--block)">Médio</td>
+            <td>Fora do escopo deste card; avaliar se o dev validou os outros ramos. Se houver suspeita, testar converter em um ramo adicional.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Resultado global -->
+  <div id="resultado-execucao" class="pending">
+    <div class="global-line" id="global-line">Resultado global — re-execução pendente com fluxo corrigido (Conteúdo Sugerido)</div>
+    <div class="global-detail" id="global-detail">
+      Plano atualizado com o fluxo correto do alfa (CT080–CT083): campo 25 (CNPJ) deve ser configurado como <strong>"Conteúdo Sugerido"</strong> no layout, não por leitura de posição fixa do TXT. CTs 001–004 aguardam re-execução via Playwright MCP com este fluxo. CTs 005–006 aguardam credenciais Starr HML.
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  var STATUS_LABELS = { pendente: 'Pendente', aprovado: 'Aprovado', reprovado: 'Reprovado', bloqueado: 'Bloqueado', na: 'N/A' };
+  var VALID = { pendente: 1, aprovado: 1, reprovado: 1, bloqueado: 1, na: 1 };
+
+  function canonicalStatus(raw) {
+    var s = (raw || 'pendente').toString().toLowerCase().trim();
+    if (s === 'passou') s = 'aprovado';
+    if (s === 'reprovou') s = 'reprovado';
+    return VALID[s] ? s : 'pendente';
+  }
+
+  function applyCanonical(block) {
+    var c = canonicalStatus(block.getAttribute('data-status'));
+    block.setAttribute('data-status', c);
+    var chip = block.querySelector('.ct-status-chip');
+    if (chip) chip.textContent = STATUS_LABELS[c] || c;
+  }
+
+  var blocks = document.querySelectorAll('.ct-block[data-ct]');
+
+  function setExpanded(block, expanded) {
+    block.setAttribute('data-expanded', expanded ? 'true' : 'false');
+    var panel = block.querySelector('.ct-panel');
+    var btn = block.querySelector('.ct-toggle');
+    if (panel) panel.hidden = !expanded;
+    if (btn) btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  }
+
+  function toggleBlock(block) {
+    setExpanded(block, block.getAttribute('data-expanded') !== 'true');
+  }
+
+  blocks.forEach(function (block) {
+    applyCanonical(block);
+    setExpanded(block, false);
+    var bar = block.querySelector('.ct-bar');
+    var toggleBtn = block.querySelector('.ct-toggle');
+    if (bar) bar.addEventListener('click', function () { toggleBlock(block); });
+    if (toggleBtn) toggleBtn.addEventListener('click', function (e) { e.stopPropagation(); toggleBlock(block); });
+  });
+
+  function refreshDashboard() {
+    var total = blocks.length;
+    var c = { pendente: 0, aprovado: 0, reprovado: 0, bloqueado: 0, na: 0 };
+    blocks.forEach(function (block) {
+      var st = canonicalStatus(block.getAttribute('data-status'));
+      if (c[st] !== undefined) c[st]++;
+    });
+
+    document.getElementById('dash-total').textContent = String(total);
+    document.getElementById('dash-aprovado').textContent = String(c.aprovado);
+    document.getElementById('dash-reprovado').textContent = String(c.reprovado);
+    document.getElementById('dash-pendente').textContent = String(c.pendente);
+    document.getElementById('dash-bloqueado').textContent = String(c.bloqueado);
+    document.getElementById('dash-na').textContent = String(c.na);
+
+    var definidos = c.aprovado + c.reprovado + c.bloqueado + c.na;
+    var pct = total ? Math.round((definidos / total) * 100) : 0;
+    document.getElementById('dash-resumo').textContent = definidos + ' de ' + total;
+    document.getElementById('dash-progress-fill').style.width = pct + '%';
+
+    var bin = c.aprovado + c.reprovado;
+    var taxaEl = document.getElementById('dash-taxa');
+    taxaEl.textContent = bin === 0 ? '' : ' — Taxa: ' + Math.round((c.aprovado / bin) * 100) + '% aprovados (' + c.aprovado + '/' + bin + ').';
+
+    var gLine = document.getElementById('global-line');
+    var gDet = document.getElementById('global-detail');
+    var rej = document.getElementById('resultado-execucao');
+    rej.classList.remove('ok', 'fail', 'mixed', 'pending');
+
+    if (definidos === 0) {
+      gLine.textContent = 'Resultado global — todos pendentes';
+      gDet.textContent = 'Altere no HTML o data-status de cada cenário após os testes; ao reabrir este arquivo o painel atualiza.';
+      rej.classList.add('pending');
+    } else {
+      var parts = [];
+      if (c.aprovado) parts.push(c.aprovado + ' aprovado' + (c.aprovado > 1 ? 's' : ''));
+      if (c.reprovado) parts.push(c.reprovado + ' reprovado' + (c.reprovado > 1 ? 's' : ''));
+      if (c.bloqueado) parts.push(c.bloqueado + ' bloqueado' + (c.bloqueado > 1 ? 's' : ''));
+      if (c.na) parts.push(c.na + ' N/A');
+      if (c.pendente) parts.push(c.pendente + ' pendente' + (c.pendente > 1 ? 's' : ''));
+      gLine.textContent = 'Resultado global — ' + parts.join(', ');
+      if (c.reprovado > 0 && c.aprovado === 0 && c.pendente === 0) {
+        gDet.textContent = 'Situação crítica: nenhum cenário aprovado. Revisar antes de liberar.';
+        rej.classList.add('fail');
+      } else if (c.reprovado > 0) {
+        gDet.textContent = 'Há reprovações — acompanhar correção e rerun.';
+        rej.classList.add('mixed');
+      } else if (definidos === total && c.reprovado === 0 && c.aprovado > 0) {
+        gDet.textContent = 'Todos com resultado, nenhuma reprovação. Validar evidências antes do go-live.';
+        rej.classList.add('ok');
+      } else {
+        gDet.textContent = 'Execução parcial — concluir pendentes ou marcar bloqueado/N/A com justificativa.';
+        rej.classList.add('mixed');
+      }
+    }
+  }
+
+  refreshDashboard();
+})();
+</script>
+</body>
+</html>
