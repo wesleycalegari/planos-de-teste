@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7281 RCTR-C CNPJ Alfanumérico</title>
+<style>
+  :root {
+    --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--border:#30363d;
+    --text:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;
+    --yellow:#d29922;--red:#f85149;--purple:#bc8cff;--orange:#e3b341;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px}
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px}
+  .topbar-id{font-size:13px;font-weight:700;color:var(--red);background:#2d1117;border:1px solid var(--red)44;border-radius:6px;padding:3px 10px}
+  .topbar-title{font-size:14px;color:var(--text)}
+  .topbar-env{margin-left:auto;font-size:11px;color:var(--muted);background:#21262d;border:1px solid var(--border);border-radius:12px;padding:3px 10px}
+  .hero{padding:24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#1a0d0d,#161b22)}
+  .hero h1{font-size:22px;font-weight:700;color:var(--red)}
+  .hero-sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .info-cell{background:var(--bg2);padding:12px 16px}
+  .info-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .info-value{font-size:13px;color:var(--text);margin-top:2px;font-weight:600}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+  .metric{background:var(--bg2);padding:14px;text-align:center}
+  .metric-val{font-size:26px;font-weight:700}
+  .metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+  .m-total .metric-val{color:var(--blue)}
+  .m-pass .metric-val{color:var(--green)}
+  .m-fail .metric-val{color:var(--red)}
+  .m-pend .metric-val{color:var(--yellow)}
+  .content{padding:24px;max-width:1000px;margin:0 auto}
+  .section{margin-bottom:24px}
+  .section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .info-box{background:#1a2a3a;border:1px solid #388bfd33;border-radius:6px;padding:10px 14px;font-size:12px;color:#79c0ff;margin-bottom:10px}
+  .warn-box{background:#2d2010;border:1px solid #d2992233;border-radius:6px;padding:10px 14px;font-size:12px;color:#e3b341;margin-bottom:10px}
+  /* CT BLOCKS */
+  .ct-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+  .ct-head{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-num{font-size:11px;font-weight:700;color:var(--muted);min-width:36px}
+  .ct-title{flex:1;font-size:13px}
+  .ct-perfil{font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid var(--border);color:var(--muted)}
+  .perfil-interno{border-color:#388bfd55;color:var(--blue)}
+  .perfil-segurado{border-color:#3fb95055;color:var(--green)}
+  .ct-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;min-width:80px;text-align:center}
+  .badge-pendente{background:#21262d;color:var(--muted);border:1px solid var(--border)}
+  .badge-pass{background:#1a3a2a;color:var(--green);border:1px solid #2ea04322}
+  .badge-fail{background:#3a1a1a;color:var(--red);border:1px solid #f8514922}
+  .badge-bloq{background:#2a2040;color:var(--purple);border:1px solid #bc8cff22}
+  .ct-toggle{color:var(--muted);font-size:11px;transition:transform .2s}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:0 16px 16px;border-top:1px solid var(--bg3)}
+  .ct-block.expanded .ct-body{display:block}
+  .steps{margin-top:10px}
+  .step{display:flex;gap:10px;margin-bottom:6px;font-size:12px}
+  .step-n{background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:1px}
+  .step-txt{color:var(--text)}
+  .step-txt b{color:var(--blue)}
+  .result-box{margin-top:12px;background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px}
+  .result-lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  /* Evidências */
+  .ev-section{margin-top:14px}
+  .ev-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .ev-thumb{cursor:pointer;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg3);transition:border-color .15s}
+  .ev-thumb:hover{border-color:var(--blue)}
+  .ev-thumb img{display:block;height:100px;width:auto;max-width:180px;object-fit:cover}
+  .ev-label{font-size:10px;color:var(--muted);padding:2px 6px;background:var(--bg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  .ev-pending{color:var(--muted);font-size:11px;font-style:italic;padding:8px 0}
+  /* Lightbox */
+  .lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:92vw;max-height:85vh;border-radius:8px}
+  .lightbox-cap{color:#aaa;font-size:12px}
+  .lb-close{position:absolute;top:16px;right:20px;font-size:30px;color:#fff;cursor:pointer}
+  .lb-nav{position:absolute;top:50%;transform:translateY(-50%);font-size:36px;color:#fff;cursor:pointer;padding:8px 16px;background:rgba(0,0,0,.3);border-radius:6px;user-select:none}
+  .lb-nav.prev{left:8px}
+  .lb-nav.next{right:8px}
+  .footer{text-align:center;padding:20px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);margin-top:24px}
+</style>
+</head>
+<body>
+<div class="lightbox" id="lb" onclick="lbBg(event)">
+  <span class="lb-close" onclick="closeLb()">&#x2715;</span>
+  <span class="lb-nav prev" onclick="lbNav(-1);event.stopPropagation()">&#x2039;</span>
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-cap" id="lb-cap"></div>
+  <span class="lb-nav next" onclick="lbNav(1);event.stopPropagation()">&#x203a;</span>
+</div>
+
+<div class="topbar">
+  <span class="topbar-id">BUG-7281</span>
+  <span class="topbar-title">Erro ao enviar dados — Averba&ccedil;&atilde;o RCTR-C com CNPJ Alfanum&eacute;rico</span>
+  <span class="topbar-env">CITNET &middot; AXA Alfa HML</span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7281 &mdash; Averba&ccedil;&atilde;o RCTR-C com CNPJ Alfanum&eacute;rico</h1>
+  <div class="hero-sub">Sistema: CITNET &middot; M&oacute;dulo: Averba&ccedil;&atilde;o Nacional &rarr; RCTR-C &middot; Sprint 8 Sustenta&ccedil;&atilde;o</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-cell"><div class="info-label">Card</div><div class="info-value">BUG-7281</div></div>
+  <div class="info-cell"><div class="info-label">Sistema</div><div class="info-value">CITNET</div></div>
+  <div class="info-cell"><div class="info-label">M&oacute;dulo</div><div class="info-value">Averba&ccedil;&atilde;o RCTR-C</div></div>
+  <div class="info-cell"><div class="info-label">Ambiente</div><div class="info-value">AXA Alfa HML</div></div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="m-total">2</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-pass"><div class="metric-val" id="m-pass">0</div><div class="metric-lbl">PASS</div></div>
+  <div class="metric m-fail"><div class="metric-val" id="m-fail">1</div><div class="metric-lbl">FAIL</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Bloqueado</div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Descri&ccedil;&atilde;o do Bug</div>
+    <div class="info-box">
+      Ao realizar uma averba&ccedil;&atilde;o RCTR-C com segurado e/ou corretor cujo CNPJ seja alfanum&eacute;rico (ex: <b>A3.H9K.7PX/0001-57</b>), o sistema apresenta <b>&ldquo;Erro ao enviar dados&rdquo;</b>, impedindo o envio.
+      Cen&aacute;rios: CNPJ alfanum&eacute;rico sem zeros &agrave; esquerda e com zeros &agrave; esquerda.<br>
+      Fix: sistema deve aceitar CNPJs alfanum&eacute;ricos normalmente e concluir a averba&ccedil;&atilde;o.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pr&eacute;-requisitos</div>
+    <div class="info-box">
+      <b>CITNET AXA Alfa:</b> https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/<br>
+      <b>Perfil INTERNO:</b> usu&aacute;rio <b>interno</b> / senha <b>11</b><br>
+      <b>Perfil SEGURADO:</b> usu&aacute;rio <b>SEGURADO</b> / senha <b>NovaSenha12345!a</b> (sem sele&ccedil;&atilde;o de filial, v&ecirc; apenas ap&oacute;lices vinculadas)<br>
+      <b>Massa:</b> Ap&oacute;lice RCTR-C com condi&ccedil;&atilde;o comercial configurada &mdash; descoberta dinamicamente na tela.<br>
+      <b>CNPJ de teste:</b> A3.H9K.7PX/0001-57 (alfanum&eacute;rico 3% taxa) e 02.329.717/0001-07 (alfanum&eacute;rico 2% taxa, com zeros)
+    </div>
+  </div>
+
+  <!-- CT01 -->
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="ct-block" id="ct01-block">
+      <div class="ct-head">
+        <span class="ct-num">CT01</span>
+        <span class="ct-title">Averba&ccedil;&atilde;o RCTR-C com CNPJ alfanum&eacute;rico &mdash; Perfil INTERNO</span>
+        <span class="ct-perfil perfil-interno">INTERNO</span>
+        <span class="ct-badge badge-fail" id="ct01-badge">FAIL</span>
+        <span class="ct-toggle">&#x25ba;</span>
+      </div>
+      <div class="ct-body">
+        <div class="result-box">
+          <div class="result-lbl">Crit&eacute;rio de Aceite</div>
+          Averba&ccedil;&atilde;o RCTR-C gravada com sucesso (modal &ldquo;Grava&ccedil;&atilde;o efetuada&rdquo;) usando segurado com CNPJ alfanum&eacute;rico. Nenhum erro &ldquo;Erro ao enviar dados&rdquo; deve aparecer.
+        </div>
+        <div class="steps">
+          <div class="step"><span class="step-n">1</span><span class="step-txt">Acessar <b>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</b> &rarr; login <b>interno / 11</b></span></div>
+          <div class="step"><span class="step-n">2</span><span class="step-txt">Menu <b>Averba&ccedil;&otilde;es</b> &rarr; <b>Nacional</b> &rarr; <b>RCTR-C</b></span></div>
+          <div class="step"><span class="step-n">3</span><span class="step-txt">Selecionar filial e ap&oacute;lice RCTR-C dispon&iacute;vel (usar primeira com condi&ccedil;&atilde;o comercial)</span></div>
+          <div class="step"><span class="step-n">4</span><span class="step-txt">Campo Segurado: buscar / informar CNPJ alfanum&eacute;rico <b>A3.H9K.7PX/0001-57</b></span></div>
+          <div class="step"><span class="step-n">5</span><span class="step-txt">Campo Corretor: buscar / informar CNPJ alfanum&eacute;rico <b>02.329.717/0001-07</b> (zeros &agrave; esquerda)</span></div>
+          <div class="step"><span class="step-n">6</span><span class="step-txt">Preencher demais campos obrigat&oacute;rios: documento, data sa&iacute;da, valor IS, percurso</span></div>
+          <div class="step"><span class="step-n">7</span><span class="step-txt">Clicar em <b>Gravar</b></span></div>
+          <div class="step"><span class="step-n">8</span><span class="step-txt"><b>Resultado esperado:</b> modal &ldquo;Grava&ccedil;&atilde;o efetuada&rdquo; &mdash; sem &ldquo;Erro ao enviar dados&rdquo;</span></div>
+          <div class="step"><span class="step-n">9</span><span class="step-txt">Capturar screenshot do modal de sucesso e consultar averba&ccedil;&atilde;o na grid</span></div>
+        </div>
+        <div class="result-box" style="margin-top:10px;border-left:3px solid var(--red)">
+          <div class="result-lbl" style="color:var(--red)">&#x2718; RESULTADO: FAIL &mdash; Bug n&atilde;o corrigido</div>
+          Sistema rejeita CNPJ alfanum&eacute;rico <b>A3.H9K.7PX/0001-57</b> com mensagem <b>&ldquo;CNPJ Inv&aacute;lido&rdquo;</b> ao tentar gravar.<br>
+          Tipo Doc: Outros (NS, ETC) &middot; Doc: 001/12345678 &middot; Data: 12/06/2026 &middot; Origem: ZZ &middot; Destino: ZZ &middot; RCTR-C: 1000,00<br>
+          Data execu&ccedil;&atilde;o: 12/06/2026 &middot; Ambiente: AXA Alfa HML &middot; Ap&oacute;lice: 10/3 SGP 1
+        </div>
+        <div class="ev-section">
+          <div class="ev-title">Evid&ecirc;ncias (10 capturas)</div>
+          <div class="ev-grid" id="ev-ct01">
+            <div class="ev-thumb" onclick="openLb('ev-ct01',0)"><img src="evidencias/CT01_interno/01-form-inicial.png" alt=""><div class="ev-label">01 form inicial</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',1)"><img src="evidencias/CT01_interno/02-form-apolice-selecionada.png" alt=""><div class="ev-label">02 ap&oacute;lice selecionada</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',2)"><img src="evidencias/CT01_interno/03-form-tipo-cte.png" alt=""><div class="ev-label">03 tipo CTE</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',3)"><img src="evidencias/CT01_interno/04-modal-municipio.png" alt=""><div class="ev-label">04 modal munic&iacute;pio</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',4)"><img src="evidencias/CT01_interno/05-busca-municipio.png" alt=""><div class="ev-label">05 busca munic&iacute;pio</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',5)"><img src="evidencias/CT01_interno/06-gravar-resultado.png" alt=""><div class="ev-label">06 gravar 1&ordf; tentativa</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',6)"><img src="evidencias/CT01_interno/07-gravar-cnpj-invalido.png" alt=""><div class="ev-label">07 CNPJ Inv&aacute;lido (CTE 44ch)</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',7)"><img src="evidencias/CT01_interno/08-form-preenchido.png" alt=""><div class="ev-label">08 form preenchido Outros</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',8)"><img src="evidencias/CT01_interno/09-resultado-gravar.png" alt=""><div class="ev-label">09 FAIL &mdash; CNPJ Inv&aacute;lido</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct01',9)"><img src="evidencias/CT01_interno/10-form-cnpj-campo.png" alt=""><div class="ev-label">10 campo CNPJ preenchido</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT02 -->
+    <div class="ct-block" id="ct02-block">
+      <div class="ct-head">
+        <span class="ct-num">CT02</span>
+        <span class="ct-title">Averba&ccedil;&atilde;o RCTR-C com CNPJ alfanum&eacute;rico &mdash; Perfil SEGURADO</span>
+        <span class="ct-perfil perfil-segurado">SEGURADO</span>
+        <span class="ct-badge badge-bloq" id="ct02-badge">BLOQUEADO</span>
+        <span class="ct-toggle">&#x25ba;</span>
+      </div>
+      <div class="ct-body">
+        <div class="info-box">Perfil SEGURADO: login sem sele&ccedil;&atilde;o de filial, visualiza apenas ap&oacute;lices vinculadas ao usu&aacute;rio.</div>
+        <div class="result-box">
+          <div class="result-lbl">Crit&eacute;rio de Aceite</div>
+          Perfil SEGURADO consegue realizar averba&ccedil;&atilde;o RCTR-C com CNPJ alfanum&eacute;rico sem erro. Se o perfil n&atilde;o tiver ap&oacute;lice RCTR-C vinculada: registrar como N/A justificado.
+        </div>
+        <div class="steps">
+          <div class="step"><span class="step-n">1</span><span class="step-txt">Sair da sess&atilde;o atual &rarr; login com <b>SEGURADO / NovaSenha12345!a</b></span></div>
+          <div class="step"><span class="step-n">2</span><span class="step-txt">Verificar tela inicial (sem sele&ccedil;&atilde;o de filial) e menu dispon&iacute;vel</span></div>
+          <div class="step"><span class="step-n">3</span><span class="step-txt">Menu <b>Averba&ccedil;&otilde;es</b> &rarr; <b>Nacional</b> &rarr; <b>RCTR-C</b></span></div>
+          <div class="step"><span class="step-n">4</span><span class="step-txt">Verificar ap&oacute;lices dispon&iacute;veis (vinculadas ao perfil SEGURADO)</span></div>
+          <div class="step"><span class="step-n">5</span><span class="step-txt">Selecionar ap&oacute;lice e repetir os mesmos passos do CT01 com CNPJ alfanum&eacute;rico</span></div>
+          <div class="step"><span class="step-n">6</span><span class="step-txt"><b>Resultado esperado:</b> averba&ccedil;&atilde;o gravada com sucesso ou N/A justificado (sem ap&oacute;lice vinculada)</span></div>
+        </div>
+        <div class="result-box" style="margin-top:10px;border-left:3px solid var(--purple)">
+          <div class="result-lbl" style="color:var(--purple)">&#x26A0; RESULTADO: BLOQUEADO &mdash; Login inv&aacute;lido</div>
+          Usu&aacute;rio <b>SEGURADO</b> / senha <b>NovaSenha12345!a</b> n&atilde;o autenticado no ambiente AXA Alfa HML.<br>
+          Sistema retornou: <b>&ldquo;Verifique o nome de usu&aacute;rio/senha!&rdquo;</b><br>
+          Data execu&ccedil;&atilde;o: 12/06/2026 &middot; O CT01 (INTERNO) j&aacute; confirma o bug &mdash; CT02 bloqueado por credencial ausente neste ambiente.
+        </div>
+        <div class="ev-section">
+          <div class="ev-title">Evid&ecirc;ncias (2 capturas)</div>
+          <div class="ev-grid" id="ev-ct02">
+            <div class="ev-thumb" onclick="openLb('ev-ct02',0)"><img src="evidencias/CT02_segurado/01-home-logado.png" alt=""><div class="ev-label">01 p&oacute;s-logout interno</div></div>
+            <div class="ev-thumb" onclick="openLb('ev-ct02',1)"><img src="evidencias/CT02_segurado/02-login-segurado.png" alt=""><div class="ev-label">02 login SEGURADO &mdash; BLOQ</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Riscos e Observa&ccedil;&otilde;es</div>
+    <div class="warn-box">
+      Segurado/corretor com CNPJ alfanum&eacute;rico deve estar cadastrado no sistema antes da averba&ccedil;&atilde;o.<br>
+      Se o cadastro de pessoa n&atilde;o aceitar CNPJ alfanum&eacute;rico: registrar como bloqueio e testar via API direta.<br>
+      Ap&oacute;lice RCTR-C com condi&ccedil;&atilde;o comercial obrigat&oacute;ria para completar a averba&ccedil;&atilde;o.
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">BUG-7281 &middot; CITNET AXA Alfa HML &middot; Sprint 8 Sustenta&ccedil;&atilde;o &middot; QA Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+var lbD={},lbC='',lbI=0;
+function openLb(gid,idx){
+  var g=document.getElementById(gid);
+  var ts=g.querySelectorAll('.ev-thumb');
+  lbD[gid]=Array.from(ts).map(t=>({src:t.querySelector('img').src,cap:t.querySelector('.ev-label').textContent}));
+  lbC=gid;lbI=idx;showLb();
+}
+function showLb(){
+  var d=lbD[lbC][lbI];
+  document.getElementById('lb-img').src=d.src;
+  document.getElementById('lb-cap').textContent=d.cap+' ('+(lbI+1)+'/'+lbD[lbC].length+')';
+  document.getElementById('lb').classList.add('open');
+}
+function lbNav(dir){lbI=(lbI+dir+lbD[lbC].length)%lbD[lbC].length;showLb();}
+function closeLb(){document.getElementById('lb').classList.remove('open');}
+function lbBg(e){if(e.target===document.getElementById('lb'))closeLb();}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('lb').classList.contains('open'))return;
+  if(e.key==='Escape')closeLb();
+  if(e.key==='ArrowRight')lbNav(1);
+  if(e.key==='ArrowLeft')lbNav(-1);
+});
+</script>
+</body>
+</html>
