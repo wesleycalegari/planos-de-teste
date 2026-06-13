@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — BUG-7315</title>
+<style>
+:root{
+  --bg:#1e1e2e;--surface:#252537;--surface2:#2e2e45;--border:#3a3a55;
+  --blue:#4f9cf9;--blue-dim:#2a4a7f;--green:#4ec9a0;--green-dim:#1a4a38;
+  --red:#f85149;--red-dim:#4a1a1a;--yellow:#e3b341;--yellow-dim:#4a3a10;
+  --orange:#f0883e;--purple:#bc8cff;
+  --text:#cdd6f4;--text-muted:#6c7086;--text-bright:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:linear-gradient(135deg,#0f0f23,#1a1a3e);border-bottom:2px solid var(--blue);padding:12px 24px;display:flex;align-items:center;gap:16px}
+.topbar .logo{font-size:18px;font-weight:700;color:var(--blue);letter-spacing:.5px}
+.topbar .sep{color:var(--border);font-size:20px}
+.topbar .subtitle{color:var(--text-muted);font-size:13px}
+.hero{background:linear-gradient(135deg,var(--surface),var(--surface2));border-bottom:1px solid var(--border);padding:24px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.hero-title{font-size:20px;font-weight:700;color:var(--text-bright);margin-bottom:6px}
+.hero-sub{color:var(--text-muted);font-size:13px;margin-bottom:12px}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.meta-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
+.meta-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.meta-value{font-size:13px;color:var(--text-bright);font-weight:600;margin-top:2px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px}
+.status-pendente{background:#3a3a10;color:#e3b341;border:1px solid #e3b341}
+.status-pass{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.status-fail{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.status-bloq{background:#3a1a4a;color:#bc8cff;border:1px solid #bc8cff}
+.metrics-strip{background:var(--surface2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;gap:24px;flex-wrap:wrap}
+.metric-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 20px;min-width:100px;text-align:center}
+.metric-num{font-size:28px;font-weight:800;line-height:1}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+.m-total{color:var(--blue)}.m-pass{color:var(--green)}.m-fail{color:var(--red)}.m-bloq{color:var(--purple)}.m-pend{color:var(--yellow)}
+.progress-bar{flex:1;min-width:200px;display:flex;flex-direction:column;justify-content:center}
+.pb-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--green),#2de0a5);border-radius:4px;transition:width .5s}
+.section{padding:20px 24px}
+.section-title{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';display:block;width:4px;height:18px;background:var(--blue);border-radius:2px}
+.info-box{background:#1a2a4a;border:1px solid var(--blue-dim);border-left:4px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:13px}
+.warn-box{background:#3a2a10;border:1px solid #6a4a10;border-left:4px solid var(--yellow);border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:13px}
+.group-header{background:linear-gradient(90deg,var(--blue-dim),transparent);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;margin:16px 0 8px;font-weight:700;color:var(--blue);font-size:14px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-head{padding:12px 16px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;transition:background .2s}
+.ct-head:hover{background:var(--surface2)}
+.ct-id{font-family:monospace;font-size:12px;color:var(--text-muted);min-width:110px}
+.ct-title{font-weight:600;color:var(--text-bright);flex:1}
+.ct-toggle{color:var(--text-muted);font-size:11px;transition:transform .2s}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-p1{background:#4a1a1a;color:#f85149;border:1px solid #f85149}
+.badge-p2{background:#3a2a10;color:#f0883e;border:1px solid #f0883e}
+.badge-pass{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.badge-fail{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.badge-bloq{background:#2a1a4a;color:#bc8cff;border:1px solid #bc8cff}
+.badge-pend{background:#3a3a10;color:#e3b341;border:1px solid #e3b341}
+.field-group{margin-top:12px}
+.field-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.steps-list{list-style:none;counter-reset:step}
+.steps-list li{counter-increment:step;padding:6px 0 6px 28px;position:relative;border-bottom:1px solid var(--border);font-size:13px}
+.steps-list li:last-child{border-bottom:none}
+.steps-list li::before{content:counter(step);position:absolute;left:0;top:6px;background:var(--blue-dim);color:var(--blue);width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.expected{background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:10px;margin-top:8px;font-size:13px}
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.evidence-thumb{position:relative;border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;aspect-ratio:16/9;background:var(--bg)}
+.evidence-thumb img{width:100%;height:100%;object-fit:cover;transition:opacity .2s}
+.evidence-thumb:hover img{opacity:.8}
+.evidence-thumb .thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:10px;color:#fff;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column}
+.lightbox.active{display:flex}
+.lightbox img{max-width:90vw;max-height:80vh;border-radius:8px;border:1px solid var(--border)}
+.lightbox-caption{color:#fff;margin-top:12px;font-size:13px}
+.lightbox-close{position:absolute;top:16px;right:24px;color:#fff;font-size:28px;cursor:pointer;line-height:1}
+.result-box{margin-top:12px;border-radius:6px;padding:12px;font-size:13px;line-height:1.7}
+.result-pass{background:var(--green-dim);border:1px solid var(--green)}
+.result-bloq{background:#2a1a4a;border:1px solid #bc8cff}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th{background:var(--surface2);color:var(--text-muted);font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+code{background:var(--surface2);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">QA CITWEB</div>
+  <div class="sep">|</div>
+  <div class="subtitle">Sprint 8 · Sustentação · Epic 7283 — Homologação CITNET AXA ALFA</div>
+</div>
+
+<div class="hero">
+  <div>
+    <div class="hero-title">BUG-7315 — WI/SISCOMEX travado na carga de DI/DUIMP</div>
+    <div class="hero-sub">CITWEB AXA ALFA HML · Módulo: Interface CIT x WI/SISCOMEX → DI Processamento</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">Card</div><div class="meta-value">BUG-7315</div></div>
+      <div class="meta-item"><div class="meta-label">Sprint</div><div class="meta-value">Sprint 8</div></div>
+      <div class="meta-item"><div class="meta-label">Ambiente</div><div class="meta-value">AXA ALFA HML</div></div>
+      <div class="meta-item"><div class="meta-label">Módulo</div><div class="meta-value">WI / SISCOMEX</div></div>
+      <div class="meta-item"><div class="meta-label">Autor</div><div class="meta-value">Wesley Moreira</div></div>
+      <div class="meta-item"><div class="meta-label">Execução</div><div class="meta-value">12/06/2026</div></div>
+    </div>
+  </div>
+  <div><span class="status-badge status-pass">✅ PASS / BLOQ</span></div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric-box"><div class="metric-num m-total">2</div><div class="metric-label">Total CTs</div></div>
+  <div class="metric-box"><div class="metric-num m-pass">1</div><div class="metric-label">Pass</div></div>
+  <div class="metric-box"><div class="metric-num m-fail">0</div><div class="metric-label">Fail</div></div>
+  <div class="metric-box"><div class="metric-num m-bloq">1</div><div class="metric-label">Bloqueado</div></div>
+  <div class="metric-box"><div class="metric-num m-pend">0</div><div class="metric-label">Pendente</div></div>
+  <div class="progress-bar">
+    <div style="font-size:12px;color:var(--text-muted)">Cobertura executada</div>
+    <div class="pb-track"><div class="pb-fill" style="width:100%"></div></div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:4px">2 / 2 CTs concluídos</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Descrição do Bug</div>
+  <div class="info-box">
+    <strong>Problema:</strong> No módulo WI/SISCOMEX, ao realizar a carga de uma DI/DUIMP, o processo fica travado (<em>hanging</em>), mesmo com apenas 1 DI e 1 DUIMP.<br><br>
+    <strong>Módulo:</strong> Interface CIT x WI/SISCOMEX → DI Processamento<br>
+    <strong>Sistema:</strong> CITWEB AXA ALFA HML<br>
+    <strong>Tags:</strong> Alfanumerico, AXA, citweb
+  </div>
+  <div class="warn-box">
+    <strong>⚠️ Critério de aceite:</strong> DI/DUIMP processadas corretamente — o processamento deve ser concluído sem travar e retornar as estatísticas (lidas, desprezadas, inconsistentes, incluídas).
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Escopo</div>
+  <table>
+    <tr><th>In Scope</th><th>Out of Scope</th></tr>
+    <tr><td>Processamento de DI/DUIMP no módulo SISCOMEX</td><td>Outros módulos de importação</td></tr>
+    <tr><td>Verificação que o processamento conclui sem travar</td><td>Módulo Nacional/Gestão</td></tr>
+    <tr><td>Perfil INTERNO (ROT_AUTO) e perfil SEGURADO</td><td>Outros ambientes além de AXA ALFA HML</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">Massa de Dados Utilizada</div>
+  <div class="info-box">
+    <strong>Apólice:</strong> <code>2250622000253</code> — Filial 0001 SAO PAULO<br>
+    <strong>Tipo:</strong> Provisória Única (aceita processamento de DI)<br>
+    <strong>DIs disponíveis:</strong> 3 DIs com desembaraço entre 11/03/2026 e 27/03/2026 — identificadas via relatório <em>DI's/DUIMP's não Averbadas</em><br>
+    <strong>Mês/Ano de Movimento:</strong> 03/2026<br>
+    <strong>Resultado:</strong> 3 lidas | 0 desprezadas | 3 inconsistentes | 0 incluídas (inconsistências esperadas em HML — dados incompletos de teste)
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">Grupo 1 — Perfil INTERNO (ROT_AUTO) · Via módulo Interface CIT x WI/SISCOMEX</div>
+
+  <div class="ct-block expanded" id="ct01">
+    <div class="ct-head" onclick="toggleCT('ct01')">
+      <span class="ct-id">CT-SIS-001</span>
+      <span class="ct-title">Processar DI/DUIMP no SISCOMEX sem travamento</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pass">PASS</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="field-group">
+        <div class="field-label">Pré-condições</div>
+        <div class="info-box" style="margin:0">
+          Ambiente: <strong>CITWEB AXA ALFA HML</strong> — Módulo Interface CIT x WI/SISCOMEX<br>
+          URL: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/InterfaceSTREITI/</code><br>
+          Login: <code>ROT_AUTO / T7Jjm6xF</code> — Filial: <code>0001 SAO PAULO</code><br>
+          Apólice tipo "provisória única" com DIs disponíveis: <code>2250622000253</code>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Passos</div>
+        <ol class="steps-list">
+          <li>Fazer login em <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login</code> com <code>ROT_AUTO / T7Jjm6xF</code></li>
+          <li>Navegar para <strong>Declarações Adições → DI Processamento → Processar Declarações / Adições</strong></li>
+          <li>Verificar relatório "DI's/DUIMP's não Averbadas" (Relatórios → Geral) para confirmar DIs disponíveis</li>
+          <li>Preencher: Filial <code>0001 SAO PAULO</code>, Apólice <code>2250622000253</code></li>
+          <li>Preencher critérios: Desembaraço de <code>11/03/2026</code> até <code>27/03/2026</code></li>
+          <li>Preencher Mês/Ano de Movimento: <code>03/2026</code></li>
+          <li>Marcar checkbox "Processar DI's"</li>
+          <li>Clicar em <strong>Processar</strong></li>
+          <li>No diálogo de confirmação, clicar <strong>Sim</strong></li>
+          <li>Aguardar o resultado e verificar se conclui sem travar</li>
+        </ol>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado Esperado</div>
+        <div class="expected">
+          Processamento concluído sem travar. Sistema exibe "Processamento efetuado com sucesso." com contadores de DIs lidas/desprezadas/inconsistentes/incluídas.
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado Obtido</div>
+        <div class="result-box result-pass">
+          ✅ <strong>PASS</strong> — O processamento foi concluído com sucesso sem travar.<br>
+          Sistema exibiu: <strong>"Processamento efetuado com sucesso."</strong><br>
+          Contadores: <strong>Lidas: 3 | Desprezadas: 0 | Inconsistentes: 3 | Incluídas: 0</strong><br>
+          As 3 inconsistências são esperadas em HML (dados incompletos do ambiente de teste), mas o processamento concluiu — o bug de travamento foi corrigido.<br>
+          Data de execução: 12/06/2026 | Build: V 1.0.260613.2338
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Evidências</div>
+        <div class="evidence-grid" id="ev-ct01"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo 2 — Perfil SEGURADO</div>
+
+  <div class="ct-block expanded" id="ct02">
+    <div class="ct-head" onclick="toggleCT('ct02')">
+      <span class="ct-id">CT-SIS-002</span>
+      <span class="ct-title">Processar DI/DUIMP — perfil SEGURADO</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-bloq">BLOQUEADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="field-group">
+        <div class="field-label">Pré-condições</div>
+        <div class="info-box" style="margin:0">
+          Credenciais: <code>SEGURADO / NovaSenha12345!a</code><br>
+          URL: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login</code>
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Passos</div>
+        <ol class="steps-list">
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login</code></li>
+          <li>Informar usuário <code>SEGURADO</code> e senha <code>NovaSenha12345!a</code></li>
+          <li>Clicar em <strong>Acessar</strong></li>
+          <li>Verificar se login é aceito e o módulo SISCOMEX é acessível</li>
+        </ol>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado Esperado</div>
+        <div class="expected">
+          Login com perfil SEGURADO deve ser concedido. Se acesso ao módulo SISCOMEX for negado, registrar como BLOQUEADO.
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado Obtido</div>
+        <div class="result-box result-bloq">
+          🔒 <strong>BLOQUEADO</strong> — Login com credenciais <code>SEGURADO / NovaSenha12345!a</code> retornou:<br>
+          <em>"Usuário ou senha incorretos. Verifique suas credenciais e tente novamente."</em><br>
+          O usuário SEGURADO não possui acesso válido ao CITWEB AXA ALFA HML neste ambiente.<br>
+          CT não pôde ser executado por limitação de credenciais no ambiente HML.
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Evidências</div>
+        <div class="evidence-grid" id="ev-ct02"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Status</th></tr>
+    <tr><td>DI/DUIMP processada sem travar (perfil interno)</td><td>CT-SIS-001</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>DI/DUIMP processada sem travar (perfil segurado)</td><td>CT-SIS-002</td><td><span class="badge badge-bloq">BLOQUEADO</span></td></tr>
+    <tr><td>Sistema retorna estatísticas de processamento</td><td>CT-SIS-001</td><td><span class="badge badge-pass">PASS</span></td></tr>
+  </table>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close">×</span>
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-caption" id="lb-cap"></div>
+</div>
+
+<script>
+function toggleCT(id){document.getElementById(id).classList.toggle('expanded')}
+function openLightbox(src,cap){document.getElementById('lb-img').src=src;document.getElementById('lb-cap').textContent=cap;document.getElementById('lightbox').classList.add('active');event.stopPropagation();}
+function closeLightbox(){document.getElementById('lightbox').classList.remove('active')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox()});
+function loadEvidence(ctId, evGridId, files){
+  const grid=document.getElementById(evGridId);
+  if(!grid||!files||!files.length){if(grid)grid.innerHTML='<span style="color:var(--text-muted);font-size:12px">Sem evidências capturadas</span>';return;}
+  files.forEach(f=>{const div=document.createElement('div');div.className='evidence-thumb';div.innerHTML=`<img src="evidencias/${ctId}/${f}" alt="${f}" loading="lazy"><div class="thumb-label">${f}</div>`;div.onclick=()=>openLightbox(`evidencias/${ctId}/${f}`,f);grid.appendChild(div);});
+}
+loadEvidence('CT01_interno','ev-ct01',[
+  'b7315-02-di-formulario.png',
+  'b7315-03-di-preenchido.png',
+  'b7315-08-di-apolice-valida.png',
+  'b7315-10-di-confirmacao.png',
+  'b7315-11-di-processado.png',
+  'b7315-12-di-sucesso.png'
+]);
+loadEvidence('CT02_segurado','ev-ct02',[
+  'b7315-CT02-01-login-segurado.png',
+  'b7315-CT02-02-login-resultado.png'
+]);
+</script>
+</body>
+</html>
