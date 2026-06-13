@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — BUG-7377</title>
+<style>
+:root{
+  --bg:#1e1e2e;--surface:#252537;--surface2:#2e2e45;--border:#3a3a55;
+  --blue:#4f9cf9;--blue-dim:#2a4a7f;--green:#4ec9a0;--green-dim:#1a4a38;
+  --red:#f85149;--red-dim:#4a1a1a;--yellow:#e3b341;--yellow-dim:#4a3a10;
+  --orange:#f0883e;--purple:#bc8cff;
+  --text:#cdd6f4;--text-muted:#6c7086;--text-bright:#ffffff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:linear-gradient(135deg,#0f0f23,#1a1a3e);border-bottom:2px solid var(--blue);padding:12px 24px;display:flex;align-items:center;gap:16px}
+.topbar .logo{font-size:18px;font-weight:700;color:var(--blue);letter-spacing:.5px}
+.topbar .sep{color:var(--border);font-size:20px}
+.topbar .subtitle{color:var(--text-muted);font-size:13px}
+.hero{background:linear-gradient(135deg,var(--surface),var(--surface2));border-bottom:1px solid var(--border);padding:24px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.hero-title{font-size:20px;font-weight:700;color:var(--text-bright);margin-bottom:6px}
+.hero-sub{color:var(--text-muted);font-size:13px;margin-bottom:12px}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.meta-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px}
+.meta-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.meta-value{font-size:13px;color:var(--text-bright);font-weight:600;margin-top:2px}
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px}
+.status-pass{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.status-bloq{background:#3a1a4a;color:#bc8cff;border:1px solid #bc8cff}
+.metrics-strip{background:var(--surface2);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;gap:24px;flex-wrap:wrap}
+.metric-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 20px;min-width:100px;text-align:center}
+.metric-num{font-size:28px;font-weight:800;line-height:1}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-top:4px}
+.m-total{color:var(--blue)}.m-pass{color:var(--green)}.m-fail{color:var(--red)}.m-bloq{color:var(--purple)}.m-pend{color:var(--yellow)}
+.progress-bar{flex:1;min-width:200px;display:flex;flex-direction:column;justify-content:center}
+.pb-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.pb-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--green),#2de0a5);border-radius:4px}
+.section{padding:20px 24px}
+.section-title{font-size:15px;font-weight:700;color:var(--blue);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';display:block;width:4px;height:18px;background:var(--blue);border-radius:2px}
+.info-box{background:#1a2a4a;border:1px solid var(--blue-dim);border-left:4px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:13px}
+.warn-box{background:#3a2a10;border:1px solid #6a4a10;border-left:4px solid var(--yellow);border-radius:6px;padding:12px 16px;margin-bottom:12px;font-size:13px}
+.group-header{background:linear-gradient(90deg,var(--blue-dim),transparent);border:1px solid var(--blue);border-radius:8px;padding:12px 16px;margin:16px 0 8px;font-weight:700;color:var(--blue);font-size:14px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-head{padding:12px 16px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:10px;transition:background .2s}
+.ct-head:hover{background:var(--surface2)}
+.ct-id{font-family:monospace;font-size:12px;color:var(--text-muted);min-width:110px}
+.ct-title{font-weight:600;color:var(--text-bright);flex:1}
+.ct-toggle{color:var(--text-muted);font-size:11px;transition:transform .2s}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 16px 16px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-p1{background:#4a1a1a;color:#f85149;border:1px solid #f85149}
+.badge-p2{background:#3a2a10;color:#f0883e;border:1px solid #f0883e}
+.badge-pass{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.badge-fail{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.badge-bloq{background:#2a1a4a;color:#bc8cff;border:1px solid #bc8cff}
+.badge-pend{background:#3a3a10;color:#e3b341;border:1px solid #e3b341}
+.field-group{margin-top:12px}
+.field-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.steps-list{list-style:none;counter-reset:step}
+.steps-list li{counter-increment:step;padding:6px 0 6px 28px;position:relative;border-bottom:1px solid var(--border);font-size:13px}
+.steps-list li:last-child{border-bottom:none}
+.steps-list li::before{content:counter(step);position:absolute;left:0;top:6px;background:var(--blue-dim);color:var(--blue);width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;line-height:1}
+.expected{background:var(--green-dim);border:1px solid var(--green);border-radius:6px;padding:10px;margin-top:8px;font-size:13px}
+.evidence-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.evidence-thumb{position:relative;border:1px solid var(--border);border-radius:6px;overflow:hidden;cursor:pointer;aspect-ratio:16/9;background:var(--bg)}
+.evidence-thumb img{width:100%;height:100%;object-fit:cover;transition:opacity .2s}
+.evidence-thumb:hover img{opacity:.8}
+.evidence-thumb .thumb-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:10px;color:#fff;padding:3px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;flex-direction:column}
+.lightbox.active{display:flex}
+.lightbox img{max-width:90vw;max-height:80vh;border-radius:8px;border:1px solid var(--border)}
+.lightbox-caption{color:#fff;margin-top:12px;font-size:13px}
+.lightbox-close{position:absolute;top:16px;right:24px;color:#fff;font-size:28px;cursor:pointer;line-height:1}
+.result-box{margin-top:12px;border-radius:6px;padding:12px;font-size:13px;line-height:1.7}
+.result-pass{background:var(--green-dim);border:1px solid var(--green)}
+.result-bloq{background:#2a1a4a;border:1px solid #bc8cff}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+th{background:var(--surface2);color:var(--text-muted);font-size:11px;text-transform:uppercase;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:8px 10px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:none}
+code{background:var(--surface2);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">QA CITWEB</div>
+  <div class="sep">|</div>
+  <div class="subtitle">Sprint 8 · Sustentação · Epic 7283 — Homologação CITNET AXA ALFA</div>
+</div>
+
+<div class="hero">
+  <div>
+    <div class="hero-title">BUG-7377 — CT0002 – Transporte Nacional | Erro ao Incluir Averbação Manual</div>
+    <div class="hero-sub">CITWEB AXA ALFA HML · Módulo: CITNET → Averbações → Transporte Nacional</div>
+    <div class="meta-grid">
+      <div class="meta-item"><div class="meta-label">Card</div><div class="meta-value">BUG-7377</div></div>
+      <div class="meta-item"><div class="meta-label">Sprint</div><div class="meta-value">Sprint 8</div></div>
+      <div class="meta-item"><div class="meta-label">Ambiente</div><div class="meta-value">AXA ALFA HML</div></div>
+      <div class="meta-item"><div class="meta-label">Módulo</div><div class="meta-value">CITNET / Transporte Nacional</div></div>
+      <div class="meta-item"><div class="meta-label">Autor</div><div class="meta-value">Wesley Moreira</div></div>
+      <div class="meta-item"><div class="meta-label">Execução</div><div class="meta-value">13/06/2026</div></div>
+    </div>
+  </div>
+  <div><span class="status-badge status-pass">✅ PASS / BLOQ</span></div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric-box"><div class="metric-num m-total">2</div><div class="metric-label">Total CTs</div></div>
+  <div class="metric-box"><div class="metric-num m-pass">1</div><div class="metric-label">Pass</div></div>
+  <div class="metric-box"><div class="metric-num m-fail">0</div><div class="metric-label">Fail</div></div>
+  <div class="metric-box"><div class="metric-num m-bloq">1</div><div class="metric-label">Bloqueado</div></div>
+  <div class="metric-box"><div class="metric-num m-pend">0</div><div class="metric-label">Pendente</div></div>
+  <div class="progress-bar">
+    <div class="pb-label">Cobertura executada — 1/2 concluído (50%)</div>
+    <div class="pb-track"><div class="pb-fill" style="width:50%"></div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Contexto</div>
+  <div class="info-box">
+    <strong>Bug reportado:</strong> Ao tentar incluir uma averbação manual de Transporte Nacional via CITNET, o sistema apresentava erro impedindo a gravação.<br><br>
+    <strong>Correção verificada:</strong> Após a correção, a averbação é gravada com sucesso. O fluxo completo (preencher formulário → Gravar → confirmar campos obrigatórios → Gravar → "Gravação efetuada com sucesso!") funcionou corretamente.<br><br>
+    <strong>Tags:</strong> Alfanumerico · Citnet · Transporte Nacional
+  </div>
+  <div class="warn-box">
+    <strong>⚠️ Acesso SEGURADO bloqueado em AXA ALFA HML:</strong> O usuário SEGURADO não possui cadastro/acesso ao módulo CITNET no ambiente de homologação AXA ALFA. Erro: "Verifique o nome de usuário/senha!" Este comportamento é consistente com todos os outros bugs testados deste epic e não é regressão do BUG-7377.
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Pré-requisitos</div>
+  <table>
+    <tr><th>Item</th><th>Detalhe</th></tr>
+    <tr><td>Ambiente</td><td>AXA ALFA HML — <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+    <tr><td>Credenciais INTERNO</td><td>Usuário: <code>FRED</code> | Senha: <code>DERF</code></td></tr>
+    <tr><td>Credenciais SEGURADO</td><td>Usuário: <code>SEGURADO</code> | Senha: <code>NovaSenha12345!a</code> — bloqueado neste ambiente</td></tr>
+    <tr><td>Apólice de teste</td><td><code>1776113315769</code> | Filial: <code>1 - SAO PAULO</code> | Subgrupo: <code>1 - 11324123412412341234</code> (Apólice Diária)</td></tr>
+    <tr><td>Navegação</td><td>Login CITNET → menu <strong>Averbações</strong> → <strong>Transporte Nacional</strong></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">Grupo 1 — Incluir Averbação Manual (Transporte Nacional CITNET)</div>
+
+  <!-- CT-TNT-001 -->
+  <div class="ct-block expanded">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-TNT-001</span>
+      <span class="ct-title">Incluir averbação manual de Transporte Nacional — perfil INTERNO</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pass">✅ PASS</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="field-group">
+        <div class="field-label">Pré-condições</div>
+        <ul style="padding-left:18px;font-size:13px;line-height:2">
+          <li>Ambiente: AXA ALFA HML</li>
+          <li>Usuário INTERNO (FRED/DERF) logado no CITNET</li>
+          <li>Apólice <code>1776113315769</code> disponível para inclusão de averbação (Apólice Diária)</li>
+        </ul>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Passos executados</div>
+        <ol class="steps-list">
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e efetuar login com <strong>FRED / DERF</strong></li>
+          <li>Clicar em <strong>Averbações</strong> (menu superior) → <strong>Transporte Nacional</strong></li>
+          <li>Na tela <em>Cadastro de Averbações Transporte Nacional</em>, selecionar Filial: <strong>1 - SAO PAULO</strong></li>
+          <li>Selecionar Apólice: <strong>1776113315769</strong></li>
+          <li>Selecionar Subgrupo: <strong>1 - 11324123412412341234</strong> (Apólice Diária)</li>
+          <li>Preencher campo <strong>Documento Série</strong>: <code>A</code></li>
+          <li>Preencher campo <strong>Documento Número</strong>: <code>123456</code></li>
+          <li>Preencher <strong>Data Saída</strong>: <code>13/06/2026</code></li>
+          <li>Preencher <strong>Veículo</strong>: <code>ABC1234</code></li>
+          <li>Confirmar <strong>Meio de Transporte</strong>: Rodoviário (automático), <strong>Cobertura Básica</strong>: AMPLA A (automática)</li>
+          <li>Selecionar <strong>Origem</strong>: SÃO PAULO</li>
+          <li>Selecionar <strong>Destino</strong>: RIO DE JANEIRO</li>
+          <li>Preencher <strong>Verbas Mercadoria</strong>: <code>10.000,00</code></li>
+          <li>Clicar no botão <strong>Gravar</strong></li>
+          <li>Verificar mensagem de resultado</li>
+          <li>Clicar em <strong>Fechar</strong> no dialog de sucesso</li>
+          <li>Clicar em <strong>Novo</strong> para limpar o formulário</li>
+          <li>Preencher campo <strong>Protocolo</strong> com <code>1</code> e clicar no botão de busca (lupa)</li>
+          <li>Verificar se o registro é recuperado corretamente</li>
+        </ol>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado esperado</div>
+        <div class="expected">
+          ✅ Sistema exibe dialog "Gravação efetuada com sucesso!" com Protocolo gerado e Data da Inclusão.<br>
+          ✅ Consulta por Protocolo retorna o registro com todos os dados preenchidos.
+        </div>
+      </div>
+      <div class="result-box result-pass">
+        <strong>✅ PASSOU</strong> — Averbação gravada com sucesso: <strong>Protocolo = 1</strong>, Data da Inclusão: <strong>13/06/2026 16:42:00</strong>.<br>
+        Consulta por Protocolo=1 retornou o registro com Mercadoria=10.000,00, dados de origem/destino SP→RJ, Veículo ABC1234.
+      </div>
+      <div class="field-group">
+        <div class="field-label">Evidências</div>
+        <div class="evidence-grid">
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-03-citnet-tela-inicial.png','Tela inicial CITNET — Transporte Nacional')">
+            <img src="evidencias/CT-TNT-001/CT-7377-03-citnet-tela-inicial.png" alt="Tela inicial">
+            <div class="thumb-label">Tela inicial CITNET</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-04-citnet-formulario-preenchido.png','Formulário preenchido antes de Gravar')">
+            <img src="evidencias/CT-TNT-001/CT-7377-04-citnet-formulario-preenchido.png" alt="Formulário preenchido">
+            <div class="thumb-label">Formulário preenchido</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-05-validacao-documento.png','Validação: campos Documento obrigatórios')">
+            <img src="evidencias/CT-TNT-001/CT-7377-05-validacao-documento.png" alt="Validação documento">
+            <div class="thumb-label">Validação Documento</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-06-gravar-resultado.png','Dialog: Gravação efetuada com sucesso!')">
+            <img src="evidencias/CT-TNT-001/CT-7377-06-gravar-resultado.png" alt="Gravar sucesso">
+            <div class="thumb-label">✅ Gravar — Sucesso</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-08-form-topo.png','Formulário salvo — topo com todos os campos')">
+            <img src="evidencias/CT-TNT-001/CT-7377-08-form-topo.png" alt="Formulário salvo topo">
+            <div class="thumb-label">Formulário salvo</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-10-consulta-resultado.png','Consulta por Protocolo=1 — registro recuperado')">
+            <img src="evidencias/CT-TNT-001/CT-7377-10-consulta-resultado.png" alt="Consulta resultado">
+            <div class="thumb-label">✅ Consulta Protocolo=1</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-001/CT-7377-11-consulta-topo.png','Consulta topo — formulário recuperado')">
+            <img src="evidencias/CT-TNT-001/CT-7377-11-consulta-topo.png" alt="Consulta topo">
+            <div class="thumb-label">Consulta — topo form</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-TNT-002 -->
+  <div class="ct-block expanded">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-TNT-002</span>
+      <span class="ct-title">Incluir averbação manual de Transporte Nacional — perfil SEGURADO</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-bloq">🚫 BLOQUEADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="field-group">
+        <div class="field-label">Pré-condições</div>
+        <ul style="padding-left:18px;font-size:13px;line-height:2">
+          <li>Ambiente: AXA ALFA HML</li>
+          <li>Usuário SEGURADO (SEGURADO/NovaSenha12345!a)</li>
+        </ul>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Passos executados</div>
+        <ol class="steps-list">
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+          <li>Preencher <strong>Usuário</strong>: <code>SEGURADO</code></li>
+          <li>Preencher <strong>Senha</strong>: <code>NovaSenha12345!a</code></li>
+          <li>Clicar em <strong>Acessar</strong></li>
+          <li>Observar resultado</li>
+        </ol>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Resultado esperado</div>
+        <div class="expected">
+          ✅ Login bem-sucedido e acesso ao módulo Transporte Nacional para incluir averbação manual.
+        </div>
+      </div>
+      <div class="result-box result-bloq">
+        <strong>🚫 BLOQUEADO</strong> — Login CITNET recusado para o usuário SEGURADO no ambiente AXA ALFA HML.<br>
+        Mensagem: <em>"Verifique o nome de usuário/senha!"</em><br><br>
+        <strong>Causa:</strong> O usuário SEGURADO não possui cadastro/acesso ao módulo CITNET neste ambiente de homologação.<br>
+        Este comportamento é recorrente em todos os BUGs do Epic 7283 e não é regressão do BUG-7377.<br>
+        <strong>Impacto no resultado do bug:</strong> CT-TNT-001 (perfil INTERNO) validou a correção com sucesso — bug resolvido.
+      </div>
+      <div class="field-group">
+        <div class="field-label">Evidências</div>
+        <div class="evidence-grid">
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-002/CT-7377-12-citnet-login-page.png','Tela de login CITNET — perfil SEGURADO')">
+            <img src="evidencias/CT-TNT-002/CT-7377-12-citnet-login-page.png" alt="Login SEGURADO">
+            <div class="thumb-label">LOGIN CitNet — SEGURADO</div>
+          </div>
+          <div class="evidence-thumb" onclick="openLightbox('evidencias/CT-TNT-002/CT-7377-13-segurado-login-resultado.png','Erro de login: Verifique o nome de usuário/senha!')">
+            <img src="evidencias/CT-TNT-002/CT-7377-13-segurado-login-resultado.png" alt="Erro login SEGURADO">
+            <div class="thumb-label">🚫 Erro login SEGURADO</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section">
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table>
+    <tr><th>Critério</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Averbação manual Transporte Nacional gravada com sucesso via CITNET (perfil INTERNO)</td><td>CT-TNT-001</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Consulta da averbação gravada por Protocolo retorna dados corretos</td><td>CT-TNT-001</td><td><span class="badge badge-pass">PASS</span></td></tr>
+    <tr><td>Perfil SEGURADO consegue acessar o módulo CITNET e incluir averbação</td><td>CT-TNT-002</td><td><span class="badge badge-bloq">BLOQUEADO</span></td></tr>
+  </table>
+</div>
+
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightbox-img" src="" alt="">
+  <div id="lightbox-caption" class="lightbox-caption"></div>
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+function openLightbox(src,caption){
+  document.getElementById('lightbox-img').src=src;
+  document.getElementById('lightbox-caption').textContent=caption;
+  document.getElementById('lightbox').classList.add('active');
+  event.stopPropagation();
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('active');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+</script>
+</body>
+</html>
