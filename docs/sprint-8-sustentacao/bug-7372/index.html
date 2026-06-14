@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7372 — Erros perfil Segurado conversor RCTA-C e averbação importação</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922; --orange: #e3b341; --purple: #a371f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--blue); }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: #0d2818; color: #3fb950; border: 1px solid #3fb950; }
+  .badge-fail { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .badge-warn { background: #1f1200; color: #e3b341; border: 1px solid #d29922; }
+  .badge-bloq { background: #1e1a2d; color: #a371f7; border: 1px solid #a371f733; }
+  .badge-p1 { background: #3d1a1a; color: #f85149; }
+  .badge-p2 { background: #2d1d00; color: #d29922; }
+  .badge-int { background: #0d2818; color: #3fb950; }
+  .badge-cor { background: #0d1f38; color: var(--blue); }
+  .badge-seg { background: #1e1a2d; color: #a371f7; }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .metric { text-align: center; min-width: 70px; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .val-pass { color: #3fb950; }
+  .val-warn { color: #e3b341; }
+  .val-bloq { color: #a371f7; }
+  .progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; margin: 0 24px 0; }
+  .progress-bar div { height: 100%; float: left; }
+  .pb-pass { background: #3fb950; }
+  .pb-warn { background: #e3b341; }
+  .pb-bloq { background: #a371f7; }
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #e3b341; }
+  .bloq-box { background: #1e1a2d; border: 1px solid #a371f733; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #d2a8ff; }
+  .group-header { background: var(--blue); color: #0d1117; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+  .group-header-warn { background: #e3b341; }
+  .group-header-bloq { background: #a371f7; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  .ct-title { flex: 1; font-weight: 600; color: #e6edf3; }
+  .ct-toggle { font-size: 12px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  .result-pass { background: #0d2818; border: 1px solid #3fb950; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #3fb950; margin-top: 8px; }
+  .result-warn { background: #1f1200; border: 1px solid #d29922; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #e3b341; margin-top: 8px; }
+  .result-bloq { background: #1e1a2d; border: 1px solid #a371f733; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #d2a8ff; margin-top: 8px; }
+  code { background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+  .evidencias { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .evidencias a { display: block; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .evidencias img { width: 200px; height: 120px; object-fit: cover; display: block; }
+  .evidencias .ev-label { font-size: 10px; color: var(--text-muted); padding: 3px 6px; background: var(--bg3); text-align: center; }
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA</span>
+  <span class="breadcrumb">
+    <a href="../epic-7283/index.html">Epic #7283</a> › BUG-7372
+  </span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7372 — Erros perfil Segurado: conversor RCTA-C e averbação importação</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET AXA ALFA</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Autor:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 14/06/2026</span>
+    <span><strong>Módulos:</strong> Conversor RCTA-C · Averbação Importação Definitiva</span>
+    <span><strong>Resultado:</strong>
+      <span class="badge badge-pass">3 PASS</span>
+      <span class="badge badge-warn">1 WARN</span>
+      <span class="badge badge-bloq">1 BLOQ</span>
+    </span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val val-pass">3</div><div class="lbl">PASS</div></div>
+  <div class="metric"><div class="val val-warn">1</div><div class="lbl">WARN</div></div>
+  <div class="metric"><div class="val val-bloq">1</div><div class="lbl">BLOQ</div></div>
+  <div class="metric"><div class="val" style="color:var(--text-muted)">5</div><div class="lbl">Total CTs</div></div>
+</div>
+<div class="progress-bar" style="margin-top:0; padding: 8px 24px; background: var(--bg2); border-bottom: 1px solid var(--border);">
+  <div style="height:8px; background: var(--bg3); border-radius:4px; overflow:hidden;">
+    <div class="pb-pass" style="width:60%; float:left; height:100%;"></div>
+    <div class="pb-warn" style="width:20%; float:left; height:100%;"></div>
+    <div class="pb-bloq" style="width:20%; float:left; height:100%;"></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Análise do Bug</div>
+    <div class="info-box">
+      <strong>Bug #1 — Conversor RCTA-C:</strong> campos Sim/Não ausentes no layout.<br>
+      Campos afetados: <code>#cmbSeparaDec14</code> (linha 14 — Valor Segurado Separador Decimal)
+      e <code>#txtSugerido16</code> (linha 16 — Animais Vivos S/N).<br>
+      Fix verificado para perfil INTERNO: campos presentes e visíveis após seleção de layout.<br>
+      Perfil CORRETOR: <strong>não verificável</strong> — endpoint <code>/Cliente/ListarPorCorretor</code>
+      retorna HTTP 500 (pre-existing bug).<br>
+      Perfil SEGURADO: <strong>bloqueado</strong> — coluna <code>tb_cit_net_usu.u_cpf_cgc</code> é FLOAT
+      em HML, impede localizar usuário <code>6P4WZ4L2000111</code>.
+    </div>
+    <div class="info-box">
+      <strong>Bug #2 — Averbação Importação Definitiva:</strong> botão Gravar não funcionava
+      para certos perfis.<br>
+      Fix verificado: INTERNO e CORRETOR conseguem submeter ao endpoint
+      <code>AverbacaoInternacional/Gravar</code> (HTTP 200). Definitiva CORRETOR gravada
+      em <code>tb_cit_net_averb_int</code> com <code>n_usu_alt = "CORRETOR"</code> (evidência DB).
+    </div>
+  </div>
+
+  <!-- ====== GRUPO: Bug #1 — Conversor RCTA-C ====== -->
+  <div class="group-header">Bug #1 — Conversor RCTA-C: campos Sim/Não</div>
+
+  <!-- CT-RTA-001 -->
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-RTA-001</span>
+      <span class="ct-title">Conversor RCTA-C — perfil INTERNO: campos Sim/Não visíveis</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-int">INTERNO</span>
+      <span class="badge badge-pass">PASS</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-lbl">Pré-condições</div>
+        <div>Usuário: <code>interno / 11</code> · Ambiente: CITNET AXA HML · Filial 1 — SÃO PAULO</div>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Passos</div>
+        <ol class="steps">
+          <li>Login CITNET com <code>interno/11</code></li>
+          <li>Menu <strong>Conversor</strong></li>
+          <li>Selecionar Filial: <strong>1 — SÃO PAULO</strong></li>
+          <li>Selecionar Ramo: <strong>52 — RCTA-C</strong></li>
+          <li>Selecionar Segurado e Layout disponível</li>
+          <li>Verificar tabela de layout: confirmar que linha 14 (<em>Valor Segurado Separador Decimal</em>)
+            e linha 16 (<em>Animais Vivos S/N</em>) estão presentes e visíveis</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Resultado esperado</div>
+        <div>Campos <code>#cmbSeparaDec14</code> e <code>#txtSugerido16</code> visíveis na tabela de layout RCTA-C</div>
+      </div>
+      <div class="result-pass">
+        ✅ PASS — Campos Sim/Não verificados e visíveis para perfil INTERNO. Layout RCTA-C exibe
+        linha 14 (Separador Decimal) e linha 16 (Animais Vivos S/N) corretamente.
+      </div>
+      <div class="ct-section" style="margin-top:14px;">
+        <div class="ct-section-lbl">Evidências</div>
+        <div class="evidencias">
+          <a href="evidencias/CT-RTA-001/CT-7372-01-home-interno.png" target="_blank">
+            <img src="evidencias/CT-RTA-001/CT-7372-01-home-interno.png" alt="home-interno">
+            <div class="ev-label">home-interno</div>
+          </a>
+          <a href="evidencias/CT-RTA-001/CT-7372-02-conversor-aberto-interno.png" target="_blank">
+            <img src="evidencias/CT-RTA-001/CT-7372-02-conversor-aberto-interno.png" alt="conversor-aberto">
+            <div class="ev-label">conversor-aberto</div>
+          </a>
+          <a href="evidencias/CT-RTA-001/CT-7372-03-layout-table.png" target="_blank">
+            <img src="evidencias/CT-RTA-001/CT-7372-03-layout-table.png" alt="layout-table">
+            <div class="ev-label">layout-table</div>
+          </a>
+          <a href="evidencias/CT-RTA-001/CT-7372-04-layout-simcnao-visivel.png" target="_blank">
+            <img src="evidencias/CT-RTA-001/CT-7372-04-layout-simcnao-visivel.png" alt="sim-nao-visivel">
+            <div class="ev-label">sim-nao-visivel</div>
+          </a>
+          <a href="evidencias/CT-RTA-001/CT-7372-05-conversor-simcnao-confirmado.png" target="_blank">
+            <img src="evidencias/CT-RTA-001/CT-7372-05-conversor-simcnao-confirmado.png" alt="confirmado">
+            <div class="ev-label">campos-confirmados</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-RTA-003 -->
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-RTA-003</span>
+      <span class="ct-title">Conversor RCTA-C — perfil CORRETOR: campos Sim/Não visíveis</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-cor">CORRETOR</span>
+      <span class="badge badge-warn">WARN</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-lbl">Pré-condições</div>
+        <div>Usuário: <code>CORRETOR / NovaSenha12345!a</code> · Ambiente: CITNET AXA HML</div>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Passos</div>
+        <ol class="steps">
+          <li>Login CITNET com <code>CORRETOR/NovaSenha12345!a</code></li>
+          <li>Menu <strong>Conversor</strong></li>
+          <li>Selecionar Filial: <strong>1 — SÃO PAULO</strong></li>
+          <li>Selecionar Ramo: <strong>52 — RCTA-C</strong></li>
+          <li>Observar comportamento do dropdown de segurado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Resultado esperado</div>
+        <div>Campos Sim/Não visíveis no layout RCTA-C</div>
+      </div>
+      <div class="result-warn">
+        ⚠️ WARN — Endpoint <code>/alfa/citnet/Cliente/ListarPorCorretor</code> retorna
+        <strong>HTTP 500</strong> ao selecionar ramo RCTA-C. O dropdown de segurado não carrega,
+        impedindo a seleção de layout. O fix do Bug #1 (campos Sim/Não) não pode ser verificado
+        para o perfil CORRETOR devido a este erro pré-existente.<br><br>
+        <strong>Impacto:</strong> este é um bug independente — o Conversor RCTA-C
+        é inutilizável pelo perfil CORRETOR no ambiente HML.
+        <strong>Recomendação:</strong> abrir task separada para investigação do HTTP 500 em
+        <code>ListarPorCorretor</code>.
+      </div>
+      <div class="ct-section" style="margin-top:14px;">
+        <div class="ct-section-lbl">Evidências</div>
+        <div class="evidencias">
+          <a href="evidencias/CT-RTA-003/CT-7372-10-home-corretor.png" target="_blank">
+            <img src="evidencias/CT-RTA-003/CT-7372-10-home-corretor.png" alt="home-corretor">
+            <div class="ev-label">home-corretor</div>
+          </a>
+          <a href="evidencias/CT-RTA-003/CT-7372-11-conversor-corretor-erro500.png" target="_blank">
+            <img src="evidencias/CT-RTA-003/CT-7372-11-conversor-corretor-erro500.png" alt="erro500">
+            <div class="ev-label">conversor-erro-500</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== GRUPO: Bug #2 — Averbação Importação ====== -->
+  <div class="group-header" style="margin-top:28px;">Bug #2 — Averbação Importação: Gravar</div>
+
+  <!-- CT-RTA-002 -->
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-RTA-002</span>
+      <span class="ct-title">Averbação Importação Definitiva — perfil INTERNO: Gravar funciona</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-int">INTERNO</span>
+      <span class="badge badge-pass">PASS</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-lbl">Pré-condições</div>
+        <div>Usuário: <code>interno / 11</code> · Apólice: <code>12062026</code> · Subgrupo: 1 — SEGURADO ALFA NOVO · Provisória: <code>20260001</code></div>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Passos</div>
+        <ol class="steps">
+          <li>Login CITNET com <code>interno/11</code></li>
+          <li>Menu <strong>Averbações → Importação-Definitiva</strong></li>
+          <li>Selecionar apólice <code>12062026</code>, subgrupo <code>1</code>, provisória <code>20260001</code></li>
+          <li>Preencher campos obrigatórios: data saída, data movimento, FOB, navio</li>
+          <li>Confirmar modal "Averbação será faturada no mês/ano da data de movimento. Confirma?"</li>
+          <li>Verificar resposta do servidor</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Resultado esperado</div>
+        <div>Servidor processa Gravar (HTTP 200). Mensagem de sucesso ou "já existe" (se definitiva já gravada)</div>
+      </div>
+      <div class="result-pass">
+        ✅ PASS — Gravar processado pelo servidor (HTTP 200). Resposta: "Já existe uma averbação
+        para esta provisória" — indica que INTERNO havia criado a definitiva anteriormente.
+        Saldo FOB da provisória: <code>v_sld_fob = -100</code> (negativo = definitiva consumiu o saldo).
+      </div>
+      <div class="ct-section" style="margin-top:14px;">
+        <div class="ct-section-lbl">Evidências</div>
+        <div class="evidencias">
+          <a href="evidencias/CT-RTA-002/CT-7372-06-averb-importacao-aberta.png" target="_blank">
+            <img src="evidencias/CT-RTA-002/CT-7372-06-averb-importacao-aberta.png" alt="form-aberta">
+            <div class="ev-label">form-aberta</div>
+          </a>
+          <a href="evidencias/CT-RTA-002/CT-7372-07-averb-imp-form-preenchido.png" target="_blank">
+            <img src="evidencias/CT-RTA-002/CT-7372-07-averb-imp-form-preenchido.png" alt="form-preenchido">
+            <div class="ev-label">form-preenchido</div>
+          </a>
+          <a href="evidencias/CT-RTA-002/CT-7372-08-averb-imp-resultado-gravar.png" target="_blank">
+            <img src="evidencias/CT-RTA-002/CT-7372-08-averb-imp-resultado-gravar.png" alt="gravar-result">
+            <div class="ev-label">gravar-result</div>
+          </a>
+          <a href="evidencias/CT-RTA-002/CT-7372-09-averb-imp-ja-existe.png" target="_blank">
+            <img src="evidencias/CT-RTA-002/CT-7372-09-averb-imp-ja-existe.png" alt="ja-existe">
+            <div class="ev-label">ja-existe</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-RTA-004 -->
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-RTA-004</span>
+      <span class="ct-title">Averbação Importação Definitiva — perfil CORRETOR: Gravar funciona</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-cor">CORRETOR</span>
+      <span class="badge badge-pass">PASS</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-lbl">Pré-condições</div>
+        <div>Usuário: <code>CORRETOR / NovaSenha12345!a</code> · Apólice: <code>12062026</code> · Subgrupo: 1 — SEGURADO ALFA NOVO · Provisória: <code>20260001</code></div>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Passos</div>
+        <ol class="steps">
+          <li>Login CITNET com <code>CORRETOR/NovaSenha12345!a</code></li>
+          <li>Menu <strong>Averbações → Importação-Definitiva</strong></li>
+          <li>Selecionar apólice <code>12062026</code>, subgrupo <code>1</code>, provisória <code>20260001</code></li>
+          <li>Preencher campos: data saída <code>12/06/2026</code>, navio <code>14 — MARUBA COTOPAXI</code></li>
+          <li>Confirmar modal "Averbação será faturada no mês/ano da data de movimento. Confirma?"</li>
+          <li>Verificar que servidor processa a requisição (HTTP 200)</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-lbl">Resultado esperado</div>
+        <div>Servidor processa Gravar (HTTP 200) sem erro de autorização/autenticação para CORRETOR</div>
+      </div>
+      <div class="result-pass">
+        ✅ PASS — Gravar atingiu o servidor (HTTP 200). Resposta de validação de dados:
+        <code>{"codigo":0,"lista":"Erro|Informar a Origem do Percurso..."}</code> — erro de dados de teste
+        (origem/destino), <strong>não</strong> de autorização de perfil.<br><br>
+        <strong>Evidência adicional (DB):</strong> <code>tb_cit_net_averb_int.n_usu_alt = "CORRETOR"</code>
+        confirma que CORRETOR gravou definitiva com sucesso em sessão anterior.
+      </div>
+      <div class="ct-section" style="margin-top:14px;">
+        <div class="ct-section-lbl">Evidências</div>
+        <div class="evidencias">
+          <a href="evidencias/CT-RTA-004/CT-7372-12-averb-imp-corretor-form.png" target="_blank">
+            <img src="evidencias/CT-RTA-004/CT-7372-12-averb-imp-corretor-form.png" alt="form-corretor">
+            <div class="ev-label">form-corretor</div>
+          </a>
+          <a href="evidencias/CT-RTA-004/CT-7372-13-averb-imp-corretor-gravar-result.png" target="_blank">
+            <img src="evidencias/CT-RTA-004/CT-7372-13-averb-imp-corretor-gravar-result.png" alt="gravar-result">
+            <div class="ev-label">gravar-result</div>
+          </a>
+          <a href="evidencias/CT-RTA-004/CT-7372-14-averb-imp-corretor-server-response.png" target="_blank">
+            <img src="evidencias/CT-RTA-004/CT-7372-14-averb-imp-corretor-server-response.png" alt="server-response">
+            <div class="ev-label">server-response</div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== GRUPO: Perfil SEGURADO — bloqueado ====== -->
+  <div class="group-header group-header-bloq" style="margin-top:28px;">Perfil SEGURADO — Bloqueado (ambiente HML)</div>
+
+  <!-- CT-RTA-005 -->
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-RTA-005</span>
+      <span class="ct-title">Conversor RCTA-C e Averbação Importação — perfil SEGURADO</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-seg">SEGURADO</span>
+      <span class="badge badge-bloq">BLOQUEADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-lbl">Pré-condições necessárias (não disponíveis)</div>
+        <ol class="steps">
+          <li>Usuário SEGURADO funcional no CITNET HML — código <code>6P4WZ4L2000111</code></li>
+          <li>Coluna <code>tb_cit_net_usu.u_cpf_cgc</code> deve ser do tipo correto (não FLOAT)</li>
+        </ol>
+      </div>
+      <div class="result-bloq">
+        🔒 BLOQUEADO — Coluna <code>tb_cit_net_usu.u_cpf_cgc</code> é do tipo <strong>FLOAT</strong>
+        no banco HML. O CPF/CNPJ armazenado como FLOAT sofre perda de precisão, impossibilitando
+        a localização exata do usuário <code>6P4WZ4L2000111</code>.<br><br>
+        O title do card menciona "perfil Segurado" como afetado pelo bug, mas o ambiente HML
+        não suporta login de SEGURADO com esse usuário devido à estrutura do banco.<br><br>
+        <strong>Ação requerida:</strong> corrigir tipo da coluna <code>u_cpf_cgc</code> em HML
+        ou criar usuário SEGURADO com dados compatíveis com o tipo FLOAT.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  BUG-7372 · Sprint 8 Sustentação · CITNET AXA ALFA HML · QA: Wesley Moreira · 14/06/2026
+</footer>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
