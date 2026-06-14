@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7378 — Autorização de Prévia: Erro ao Filtrar por Segurado (Perfil CORRETOR)</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922; --orange: #e3702a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--blue); }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: #0f2d17; color: #3fb950; border: 1px solid #3fb950; }
+  .badge-fail { background: #2d0f0f; color: #f85149; border: 1px solid #f85149; }
+  .badge-bloq { background: #2d2208; color: #d29922; border: 1px solid #d29922; }
+  .badge-p1 { background: #3d1a1a; color: #f85149; }
+  .badge-p2 { background: #2d1a00; color: #e3702a; }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .metric { text-align: center; min-width: 70px; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .val.pass { color: var(--green); }
+  .metric .val.fail { color: var(--red); }
+  .metric .val.bloq { color: var(--yellow); }
+  .metric .val.total { color: var(--blue); }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .content { max-width: 980px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .fail-box { background: #2d0f0f; border: 1px solid #f8514966; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #f0a0a0; }
+  .warn-box { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #e3b341; }
+  .bloq-box { background: #1e1a2d; border: 1px solid #a371f733; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #d2a8ff; }
+  .group-header { padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+  .group-pass { background: #1a3a1a; color: #3fb950; border: 1px solid #3fb950; }
+  .group-fail { background: #3a1a1a; color: #f85149; border: 1px solid #f85149; }
+  .group-bloq { background: #2d2208; color: #d29922; border: 1px solid #d29922; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-top: none; margin-bottom: 0; overflow: hidden; }
+  .ct-block:last-child { border-radius: 0 0 6px 6px; margin-bottom: 16px; }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  .ct-title { flex: 1; font-weight: 600; color: #e6edf3; }
+  .ct-toggle { font-size: 12px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 12px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  .result-pass { background: #0f2d17; border: 1px solid #3fb950; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #3fb950; margin-top: 8px; }
+  .result-fail { background: #2d0f0f; border: 1px solid #f85149; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #f0a0a0; margin-top: 8px; }
+  .result-bloq { background: #2d2208; border: 1px solid #d29922; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #d29922; margin-top: 8px; }
+  code { background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+  .ev-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .ev-grid a { display: block; }
+  .ev-grid img { border: 1px solid var(--border); border-radius: 4px; height: 90px; cursor: pointer; transition: opacity .2s; }
+  .ev-grid img:hover { opacity: .8; }
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA</span>
+  <span class="breadcrumb">
+    <a href="../epic-7283/index.html">Epic #7283</a> › BUG-7378
+  </span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7378 — Autorização de Prévia: Erro ao Filtrar por Segurado (Perfil CORRETOR)</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET AXA ALFA</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Autor:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 14/06/2026</span>
+    <span><strong>Módulo:</strong> Faturamento → Autorização de Prévia</span>
+    <span><strong>Resultado:</strong> <span class="badge badge-fail">FALHOU</span></span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val total">4</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val pass">2</div><div class="lbl">PASS</div></div>
+  <div class="metric"><div class="val fail">1</div><div class="lbl">FAIL</div></div>
+  <div class="metric"><div class="val bloq">1</div><div class="lbl">BLOQUEADO</div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Análise Técnica</div>
+    <div class="info-box">
+      <strong>Tela:</strong> Faturamento → Aprovação de Prévias → Aprovação<br>
+      <strong>URL:</strong> <code>/alfa/citnet/AutorizacaoPrevia/AutorizacaoPrevia?tipo=N</code><br><br>
+      O formulário possui três modos de filtragem via radiobutton:
+      <code>Segurado Principal</code> | <code>Ramo/Apólice/Subgrupo</code> | <code>Competência</code>.<br><br>
+      Ao selecionar <strong>Segurado Principal</strong>, o sistema realiza uma chamada AJAX para carregar
+      o dropdown de Segurados. Para o perfil <strong>INTERNO</strong>, a chamada retorna com sucesso.
+      Para o perfil <strong>CORRETOR</strong>, a chamada falha e exibe modal
+      <code>"ATENÇÃO! Erro Consulta Segurado!"</code> — impedindo o uso do filtro.<br><br>
+      O filtro <code>Ramo/Apólice/Subgrupo</code> funciona corretamente para ambos os perfis.
+    </div>
+    <div class="fail-box">
+      ❌ <strong>Bug NÃO corrigido para CORRETOR.</strong> O perfil INTERNO foi corrigido, porém o backend ainda
+      retorna erro ao carregar a lista de Segurados via AJAX quando o usuário é do tipo CORRETOR.
+      Card deve retornar para desenvolvimento.
+    </div>
+    <div class="warn-box">
+      ⚠️ Perfil SEGURADO (6P4WZ4L2000111) permanece inacessível no HML: coluna
+      <code>tb_cit_net_usu.u_cpf_cgc</code> é FLOAT — limitação de ambiente, não de código.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <!-- GRUPO PASS -->
+    <div class="group-header group-pass">✅ INTERNO — Filtro Segurado Principal</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-APF-001</span>
+        <span class="ct-title">INTERNO — Filtro Segurado Principal → Consultar sem erro</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pass">PASS</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Ambiente e perfil</div>
+          <div>URL: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code> | Login: <code>interno / 11</code></div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login com usuário <strong>interno</strong> / senha <strong>11</strong></li>
+            <li>Clicar em <strong>Faturamento</strong> → <strong>Aprovação de Prévias</strong> → <strong>Aprovação</strong></li>
+            <li>Selecionar <strong>Filial:</strong> 1 - SAO PAULO</li>
+            <li>Clicar no radio <strong>Segurado Principal</strong></li>
+            <li>Aguardar dropdown "Segurado" carregar</li>
+            <li>Selecionar <strong>Segurado:</strong> TST RELATORIO STATUS</li>
+            <li>Preencher <strong>Competência:</strong> 05/2026</li>
+            <li>Clicar em <strong>Consultar</strong></li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado esperado</div>
+          <div>Grid exibido sem erro. Sistema não apresenta tela/modal de erro.</div>
+        </div>
+        <div class="result-pass">
+          ✅ PASS — Dropdown "Segurado" carregou corretamente. Consulta retornou grid com 5 páginas
+          de resultados (Segurado, Filial, Ramo, Apólice, Subgrupo, Situação: Aguardando Aprovação).
+          Nenhum modal de erro exibido.
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="ev-grid">
+            <a href="evidencias/CT-APF-001/CT-7378-01-autorizacao-previa-segurado.png" target="_blank"><img src="evidencias/CT-APF-001/CT-7378-01-autorizacao-previa-segurado.png" title="Tela inicial - Segurado Principal selecionado"></a>
+            <a href="evidencias/CT-APF-001/CT-7378-02-form-preenchido.png" target="_blank"><img src="evidencias/CT-APF-001/CT-7378-02-form-preenchido.png" title="Formulário preenchido"></a>
+            <a href="evidencias/CT-APF-001/CT-7378-03-resultado-consulta.png" target="_blank"><img src="evidencias/CT-APF-001/CT-7378-03-resultado-consulta.png" title="Resultado - grid apareceu"></a>
+            <a href="evidencias/CT-APF-001/CT-7378-04-resultado-full.png" target="_blank"><img src="evidencias/CT-APF-001/CT-7378-04-resultado-full.png" title="Grid completo - 5 páginas"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO FAIL -->
+    <div class="group-header group-fail">❌ CORRETOR — Filtro Segurado Principal (Bug ativo)</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-APF-002</span>
+        <span class="ct-title">CORRETOR — Filtro Segurado Principal → "Erro Consulta Segurado!"</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-fail">FAIL</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Ambiente e perfil</div>
+          <div>URL: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code> | Login: <code>CORRETOR / NovaSenha12345!a</code></div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login com usuário <strong>CORRETOR</strong> / senha <strong>NovaSenha12345!a</strong></li>
+            <li>Clicar em <strong>Faturamento</strong> → <strong>Aprovação de Prévias</strong> → <strong>Aprovação</strong></li>
+            <li>Clicar no radio <strong>Segurado Principal</strong></li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado esperado</div>
+          <div>Dropdown "Segurado" carrega com os Segurados vinculados ao CORRETOR.</div>
+        </div>
+        <div class="result-fail">
+          ❌ FAIL — Ao clicar em "Segurado Principal", o sistema exibe imediatamente modal de erro:
+          <strong>"ATENÇÃO! Erro Consulta Segurado!"</strong>. O dropdown não carrega.
+          A chamada AJAX backend falha para o perfil CORRETOR.
+          Bug reportado não foi corrigido para este perfil.
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="ev-grid">
+            <a href="evidencias/CT-APF-002/CT-7378-05-corretor-home.png" target="_blank"><img src="evidencias/CT-APF-002/CT-7378-05-corretor-home.png" title="Tela inicial CORRETOR logado"></a>
+            <a href="evidencias/CT-APF-002/CT-7378-06-corretor-segurado-principal.png" target="_blank"><img src="evidencias/CT-APF-002/CT-7378-06-corretor-segurado-principal.png" title="Erro ao clicar Segurado Principal"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO REGRESSÃO PASS -->
+    <div class="group-header group-pass">✅ Regressão — Ramo/Apólice/Subgrupo (CORRETOR)</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-APF-003</span>
+        <span class="ct-title">CORRETOR — Filtro Ramo/Apólice/Subgrupo continua funcionando</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pass">PASS</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Verificar regressão: o filtro padrão Ramo/Apólice/Subgrupo não foi afetado pela alteração.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Logado como CORRETOR (sessão anterior)</li>
+            <li>Manter radio <strong>Ramo/Apólice/Subgrupo</strong> selecionado</li>
+            <li>Preencher <strong>Competência:</strong> 05/2026</li>
+            <li>Clicar em <strong>Consultar</strong></li>
+          </ol>
+        </div>
+        <div class="result-pass">
+          ✅ PASS — Sistema retornou mensagem de negócio válida:
+          "Não há movimento ou autorização de fechamento para 05/2026".
+          Nenhum erro técnico. Comportamento esperado para CORRETOR sem prévias nessa competência.
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="ev-grid">
+            <a href="evidencias/CT-APF-003/CT-7378-07-corretor-regressao-apo.png" target="_blank"><img src="evidencias/CT-APF-003/CT-7378-07-corretor-regressao-apo.png" title="Regressão CORRETOR Ramo/Apólice/Subgrupo"></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO BLOQ -->
+    <div class="group-header group-bloq">🔒 SEGURADO — Bloqueado (ambiente HML)</div>
+
+    <div class="ct-block">
+      <div class="ct-head">
+        <span class="ct-id">CT-APF-004</span>
+        <span class="ct-title">SEGURADO — Acesso à tela (bloqueado por limitação de ambiente)</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-bloq">BLOQUEADO</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="result-bloq">
+          🔒 BLOQUEADO — Usuário SEGURADO (<code>6P4WZ4L2000111</code>) não existe no HML.
+          Coluna <code>tb_cit_net_usu.u_cpf_cgc</code> é FLOAT no banco HML — impede localização do usuário.
+          Limitação de ambiente confirmada em sessões anteriores (BUG-7317, BUG-7291, BUG-7290).
+          Dev validou via PR #1688.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>
+  BUG-7378 · Sprint 8 Sustentação · CITNET AXA ALFA HML · QA: Wesley Moreira · 14/06/2026
+</footer>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
