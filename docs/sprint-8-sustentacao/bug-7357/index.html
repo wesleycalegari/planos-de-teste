@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7357 — Erro conversor ao acessar e selecionar ramo</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922; --orange: #db6d28; --purple: #bc8cff;
+    --pass: #1a4731; --pass-border: #2ea043;
+    --fail: #3d1a1a; --fail-border: #f85149;
+    --bloq: #2d2208; --bloq-border: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--blue); letter-spacing: 1px; }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: #1a4731; color: #3fb950; border: 1px solid #2ea043; }
+  .badge-fail { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .badge-bloq { background: #2d2208; color: #d29922; border: 1px solid #d29922; }
+  .badge-warn { background: #2d2208; color: #e3b341; border: 1px solid #d29922; }
+  .badge-p1 { background: #3d1a1a; color: #f85149; }
+  .badge-p2 { background: #2d1f0a; color: #db6d28; }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+  .metric { text-align: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric.pass .val { color: #3fb950; }
+  .metric.warn .val { color: #d29922; }
+  .metric.total .val { color: var(--blue); }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .bar { height: 8px; border-radius: 4px; background: var(--bg3); overflow: hidden; display: flex; }
+  .progress-bar .seg-pass { background: #2ea043; }
+  .progress-bar .seg-warn { background: #d29922; }
+  .progress-bar .lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .content { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #e3b341; }
+  .group-header { background: var(--blue); color: #0d1117; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .ct-head { padding: 12px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  .ct-title { flex: 1; font-weight: 600; color: #e6edf3; }
+  .ct-toggle { font-size: 12px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 12px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .ct-section-val { font-size: 13px; color: var(--text); }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  ol.steps li strong { color: #e6edf3; }
+  .result-pass { background: var(--pass); border: 1px solid var(--pass-border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #3fb950; margin-top: 8px; }
+  .result-warn { background: #1f1200; border: 1px solid #d29922; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #e3b341; margin-top: 8px; }
+  .evidence-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .ev-thumb { cursor: pointer; }
+  .ev-thumb img { width: 160px; height: 100px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; display: block; }
+  .ev-thumb .ev-label { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 3px; }
+  .ev-thumb:hover img { border-color: var(--blue); }
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 92vw; max-height: 85vh; border-radius: 6px; border: 1px solid var(--border); }
+  .lightbox .lb-close { color: #fff; font-size: 28px; position: absolute; top: 16px; right: 24px; cursor: pointer; }
+  .lightbox .lb-caption { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+  table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.summary th { background: var(--bg3); color: var(--text-muted); font-size: 11px; text-transform: uppercase; padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
+  table.summary td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: middle; }
+  table.summary tr:nth-child(even) td { background: #0d1117; }
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA</span>
+  <span class="breadcrumb">
+    <a href="../epic-7283/index.html">Epic #7283</a> › BUG-7357
+  </span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7357 — Erro conversor ao acessar e selecionar ramo</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET AXA ALFA</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Autor:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 14/06/2026</span>
+    <span><strong>Ambiente:</strong> HML — axa-hml-faturamento.nsseg.com.br/alfa/citnet</span>
+    <span><strong>Resultado:</strong> <span class="badge badge-pass">PASS</span></span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric total"><div class="val">2</div><div class="lbl">Total CTs</div></div>
+  <div class="metric pass"><div class="val">1</div><div class="lbl">PASS</div></div>
+  <div class="metric warn"><div class="val">1</div><div class="lbl">WARN</div></div>
+  <div class="progress-bar">
+    <div class="bar">
+      <div class="seg-pass" style="width:50%"></div>
+      <div class="seg-warn" style="width:50%"></div>
+    </div>
+    <div class="lbl">PASS 50% · WARN 50%</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Descrição do Bug</div>
+    <div class="info-box">
+      <strong>Comportamento original:</strong> Ao acessar a tela do Conversor, o sistema exibia uma
+      mensagem de erro imediatamente. Ao tentar selecionar qualquer ramo, também apresentava erro,
+      inviabilizando completamente a funcionalidade.<br><br>
+      <strong>Correção:</strong> Tela do Conversor agora abre sem erro para perfil INTERNO.
+      Combo Filial, Ramo e Segurado populam corretamente. Seleção de ramo funciona sem erro.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pré-requisitos</div>
+    <div class="info-box">
+      <strong>Perfil INTERNO:</strong> interno / 11<br>
+      <strong>Perfil CORRETOR:</strong> CORRETOR / NovaSenha12345!a<br>
+      <strong>URL base:</strong> https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/<br>
+      <strong>Tela de teste:</strong> Conversor (menu superior → Conversor)
+    </div>
+    <div class="warn-box">
+      ⚠️ Perfil CORRETOR: "Erro Consulta Segurado!" ao abrir o Conversor — sem Segurado vinculado
+      ao CORRETOR no HML. Comportamento pré-existente documentado em BUG-7290/CT17.
+      Não é regressão do BUG-7357.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="group-header">Perfil INTERNO — Acesso e seleção de ramo</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-CVR-001</span>
+        <span class="ct-title">Login INTERNO → Conversor abre sem erro e permite selecionar ramo</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pass">PASS</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <div class="ct-section-val">Ambiente HML CITNET AXA ALFA. Usuário: interno / Senha: 11</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <strong>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</strong></li>
+            <li>Preencher Usuário: <strong>interno</strong> / Senha: <strong>11</strong> → clicar <strong>Acessar</strong></li>
+            <li>Verificar home — exibe "INTERNO" no menu</li>
+            <li>Clicar em <strong>Conversor</strong> (menu superior)</li>
+            <li>Verificar que tela "Conversor de Layout - CitNet" carrega sem mensagem de erro</li>
+            <li>Verificar que combo <strong>Filial</strong> está populado</li>
+            <li>Selecionar <strong>Filial = 1 - SAO PAULO</strong></li>
+            <li>Selecionar <strong>Ramo = 54 - RCTR-C</strong></li>
+            <li>Verificar que combo <strong>Segurado</strong> se popula sem erro</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado esperado</div>
+          <div class="ct-section-val">Conversor abre sem mensagem de erro. Filial populada. Ramo selecionável sem erro. Segurado popula após selecionar ramo.</div>
+        </div>
+        <div class="result-pass">✅ PASS — Conversor abriu sem erro. Combo Filial com 34 opções. Ramo "54 - RCTR-C" selecionado sem erro. Combo Segurado populado com lista completa de segurados da apólice.</div>
+        <div class="ct-section" style="margin-top:12px">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="evidence-grid">
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-CVR-001/CT-7357-01-interno-home.png','Home INTERNO logado')">
+              <img src="evidencias/CT-CVR-001/CT-7357-01-interno-home.png" alt="Home INTERNO">
+              <div class="ev-label">Home INTERNO</div>
+            </div>
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-CVR-001/CT-7357-02-conversor-aberto.png','Conversor aberto sem erro')">
+              <img src="evidencias/CT-CVR-001/CT-7357-02-conversor-aberto.png" alt="Conversor aberto">
+              <div class="ev-label">Conversor sem erro ✅</div>
+            </div>
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-CVR-001/CT-7357-03-ramo-segurado-ok.png','Ramo 54 selecionado — Segurado populado')">
+              <img src="evidencias/CT-CVR-001/CT-7357-03-ramo-segurado-ok.png" alt="Ramo + Segurado OK">
+              <div class="ev-label">Ramo + Segurado OK ✅</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group-header" style="background:#d29922;margin-top:20px">Perfil CORRETOR — Verificação</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-CVR-002</span>
+        <span class="ct-title">Login CORRETOR → Conversor (sem Segurado vinculado no HML)</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-warn">WARN</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <div class="ct-section-val">Usuário: CORRETOR / NovaSenha12345!a (exibe "QA CORRETOR")</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Fazer login com perfil CORRETOR</li>
+            <li>Navegar para <strong>Conversor</strong> (menu superior)</li>
+            <li>Verificar mensagem ao carregar</li>
+          </ol>
+        </div>
+        <div class="result-warn">
+          ⚠️ WARN — "ATENÇÃO! Erro Consulta Segurado!" ao abrir o Conversor.<br>
+          Comportamento pré-existente: CORRETOR não tem Segurado vinculado no HML.<br>
+          Documentado anteriormente em BUG-7290/CT17 (BLOQUEADO). Não é regressão do BUG-7357.
+          Combo Ramo ainda aparece populado corretamente — erro é apenas no carregamento do Segurado.
+        </div>
+        <div class="ct-section" style="margin-top:12px">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="evidence-grid">
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-CVR-002/CT-7357-04-corretor-conversor.png','Conversor CORRETOR — Erro Consulta Segurado')">
+              <img src="evidencias/CT-CVR-002/CT-7357-04-corretor-conversor.png" alt="CORRETOR Conversor">
+              <div class="ev-label">Erro Consulta Segurado</div>
+            </div>
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-CVR-002/CT-7357-05-corretor-erro-consulta-segurado.png','Dialog Erro Consulta Segurado')">
+              <img src="evidencias/CT-CVR-002/CT-7357-05-corretor-erro-consulta-segurado.png" alt="Dialog erro">
+              <div class="ev-label">Dialog aviso</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">Resumo de Execução</div>
+    <table class="summary">
+      <thead>
+        <tr><th>CT</th><th>Título</th><th>Perfil</th><th>Prioridade</th><th>Resultado</th><th>Observação</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CT-CVR-001</td>
+          <td>Conversor abre sem erro + ramo selecionável</td>
+          <td>INTERNO</td>
+          <td><span class="badge badge-p1">P1</span></td>
+          <td><span class="badge badge-pass">PASS</span></td>
+          <td>Filial, Ramo e Segurado carregaram. Bug corrigido.</td>
+        </tr>
+        <tr>
+          <td>CT-CVR-002</td>
+          <td>Conversor CORRETOR (sem Segurado vinculado)</td>
+          <td>CORRETOR</td>
+          <td><span class="badge badge-p2">P2</span></td>
+          <td><span class="badge badge-warn">WARN</span></td>
+          <td>"Erro Consulta Segurado!" — limitação de massa pré-existente (BUG-7290/CT17)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+  <span class="lb-close" onclick="closeLightbox()">✕</span>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-caption" class="lb-caption"></div>
+</div>
+
+<footer>
+  BUG-7357 · Sprint 8 Sustentação · CITNET AXA ALFA HML · QA: Wesley Moreira · 14/06/2026
+</footer>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+function openLightbox(src, cap) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-caption').textContent = cap;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+</script>
+</body>
+</html>
