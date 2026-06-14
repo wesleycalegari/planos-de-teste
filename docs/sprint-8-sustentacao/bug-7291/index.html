@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7291 — Erro perfil Segurado CNPJ alfanumérico</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922; --orange: #db6d28; --purple: #bc8cff;
+    --pass: #1a4731; --pass-border: #2ea043;
+    --fail: #3d1a1a; --fail-border: #f85149;
+    --bloq: #2d2208; --bloq-border: #d29922;
+    --passbloq: #1a3a2a; --passbloq-border: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* TOPBAR */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--blue); letter-spacing: 1px; }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass { background: #1a4731; color: #3fb950; border: 1px solid #2ea043; }
+  .badge-fail { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .badge-bloq { background: #2d2208; color: #d29922; border: 1px solid #d29922; }
+  .badge-passbloq { background: #1a3a2a; color: #56d364; border: 1px solid #3fb950; }
+  .badge-warn { background: #2d2208; color: #e3b341; border: 1px solid #d29922; }
+  .badge-p1 { background: #3d1a1a; color: #f85149; }
+  .badge-p2 { background: #2d1f0a; color: #db6d28; }
+
+  /* METRICS STRIP */
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+  .metric { text-align: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric.pass .val { color: #3fb950; }
+  .metric.fail .val { color: #f85149; }
+  .metric.bloq .val { color: #d29922; }
+  .metric.passbloq .val { color: #56d364; }
+  .metric.total .val { color: var(--blue); }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .bar { height: 8px; border-radius: 4px; background: var(--bg3); overflow: hidden; display: flex; }
+  .progress-bar .seg-pass { background: #2ea043; }
+  .progress-bar .seg-bloq { background: #d29922; }
+  .progress-bar .seg-fail { background: #f85149; }
+  .progress-bar .lbl { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* CONTENT */
+  .content { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+  .info-box { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #e3b341; }
+
+  /* CT BLOCK */
+  .group-header { background: var(--blue); color: #0d1117; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .ct-head { padding: 12px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--text-muted); }
+  .ct-title { flex: 1; font-weight: 600; color: #e6edf3; }
+  .ct-toggle { font-size: 12px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+
+  .ct-section { margin-bottom: 12px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .ct-section-val { font-size: 13px; color: var(--text); }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  ol.steps li strong { color: #e6edf3; }
+
+  .result-pass { background: var(--pass); border: 1px solid var(--pass-border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #3fb950; margin-top: 8px; }
+  .result-fail { background: var(--fail); border: 1px solid var(--fail-border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #f85149; margin-top: 8px; }
+  .result-bloq { background: var(--bloq); border: 1px solid var(--bloq-border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #d29922; margin-top: 8px; }
+
+  /* EVIDENCE */
+  .evidence-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .ev-thumb { cursor: pointer; }
+  .ev-thumb img { width: 160px; height: 100px; object-fit: cover; border: 1px solid var(--border); border-radius: 4px; display: block; }
+  .ev-thumb .ev-label { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 3px; }
+  .ev-thumb:hover img { border-color: var(--blue); }
+
+  /* LIGHTBOX */
+  .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.88); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; }
+  .lightbox.active { display: flex; }
+  .lightbox img { max-width: 92vw; max-height: 85vh; border-radius: 6px; border: 1px solid var(--border); }
+  .lightbox .lb-close { color: #fff; font-size: 28px; position: absolute; top: 16px; right: 24px; cursor: pointer; }
+  .lightbox .lb-caption { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+
+  /* TABLE */
+  table.summary { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.summary th { background: var(--bg3); color: var(--text-muted); font-size: 11px; text-transform: uppercase; padding: 8px 12px; text-align: left; border: 1px solid var(--border); }
+  table.summary td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: middle; }
+  table.summary tr:nth-child(even) td { background: #0d1117; }
+
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA</span>
+  <span class="breadcrumb">
+    <a href="../epic-7283/index.html">Epic #7283</a> › BUG-7291
+  </span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7291 — Erro ao acessar telas com perfil Segurado</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET AXA ALFA</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Autor:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 14/06/2026</span>
+    <span><strong>Ambiente:</strong> HML — axa-hml-faturamento.nsseg.com.br/alfa/citnet</span>
+    <span><strong>Resultado:</strong> <span class="badge badge-passbloq">PASS(BLOQ)</span></span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric total"><div class="val">2</div><div class="lbl">Total CTs</div></div>
+  <div class="metric pass"><div class="val">1</div><div class="lbl">PASS</div></div>
+  <div class="metric bloq"><div class="val">1</div><div class="lbl">BLOQUEADO</div></div>
+  <div class="progress-bar">
+    <div class="bar">
+      <div class="seg-pass" style="width:50%"></div>
+      <div class="seg-bloq" style="width:50%"></div>
+    </div>
+    <div class="lbl">PASS 50% · BLOQ 50%</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Descrição do Bug</div>
+    <div class="info-box">
+      <strong>Causa raiz:</strong> Em <code>FilialRepository.Listar_Por_Segurado_Axa()</code> o CNPJ do segurado era
+      concatenado diretamente na query SQL. Para segurado com CNPJ alfanumérico (ex.: <code>6P4WZ4L2000111</code>)
+      isso gerava <em>"Incorrect syntax near 'P4WZ4L2000111'"</em>, quebrando todas as telas
+      (ex.: Averbação RCTR-C).<br><br>
+      <strong>Correção:</strong> commit <code>d536f7c4</code> — filtro passou a usar parâmetro <code>@u_cpf_cgc</code>
+      via <code>AddParametro</code> em vez de concatenação de string. Presente no PR #1688
+      (branch <code>fix/ado-7317-citnet-idusuario-parse-alfa</code>).
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pré-requisitos</div>
+    <div class="info-box">
+      <strong>Perfil INTERNO:</strong> interno / 11<br>
+      <strong>Perfil SEGURADO (CNPJ alfanumérico):</strong> usuário <code>6P4WZ4L2000111</code>
+      (CNPJ: 6P.4WZ.4L2/0001-11) — não presente no HML DB consultado<br>
+      <strong>URL base:</strong> https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/<br>
+      <strong>Tela de teste:</strong> Averbações → Nacional → RCTR-C
+    </div>
+    <div class="warn-box">
+      ⚠️ Usuário SEGURADO com CNPJ alfanumérico não localizado no banco HML
+      (<code>tb_cit_net_usu.u_cpf_cgc</code> é coluna FLOAT — não aceita letras).
+      CT-SGD-002 executado com tentativa de login <code>AXA0711</code> (único SEGURADO alphanumerico no DB).
+      Login falhou. Validação do cenário específico referenciada no comentário do dev (Fabiano Souza, 12/06/2026).
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="group-header">Perfil INTERNO — Regressão</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-SGD-001</span>
+        <span class="ct-title">Login INTERNO → Averbações RCTR-C carrega sem erro</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pass">PASS</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <div class="ct-section-val">Ambiente HML CITNET AXA ALFA. Usuário: interno / Senha: 11</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <strong>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</strong></li>
+            <li>Preencher Usuário: <strong>interno</strong> / Senha: <strong>11</strong></li>
+            <li>Clicar <strong>Acessar</strong></li>
+            <li>Verificar que home carrega (título "CitNet Home Page")</li>
+            <li>Clicar em <strong>Averbações</strong> (menu topo)</li>
+            <li>Submenu Nacional → clicar <strong>RCTR-C</strong></li>
+            <li>Verificar que formulário carrega completo (combo Filial populado)</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado esperado</div>
+          <div class="ct-section-val">Formulário "Cadastro de Averbações RCTR-C" carrega completamente. Combo Filial listado com todas as filiais. Sem mensagem "Ocorreu um erro no processamento".</div>
+        </div>
+        <div class="result-pass">✅ PASS — formulário carregou corretamente. Combo Filial com 34 opções (SAO PAULO, RIBEIRÃO PRETO, etc.). Nenhum erro de processamento. Login: interno/11.</div>
+        <div class="ct-section" style="margin-top:12px">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="evidence-grid">
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-SGD-001/CT-7291-01-interno-login.png','Login INTERNO preenchido')">
+              <img src="evidencias/CT-SGD-001/CT-7291-01-interno-login.png" alt="Login INTERNO">
+              <div class="ev-label">Login INTERNO</div>
+            </div>
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-SGD-001/CT-7291-02-interno-home.png','Home INTERNO logado')">
+              <img src="evidencias/CT-SGD-001/CT-7291-02-interno-home.png" alt="Home">
+              <div class="ev-label">Home logado</div>
+            </div>
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-SGD-001/CT-7291-03-interno-rctrc-ok.png','RCTR-C carregado sem erro')">
+              <img src="evidencias/CT-SGD-001/CT-7291-03-interno-rctrc-ok.png" alt="RCTR-C OK">
+              <div class="ev-label">RCTR-C sem erro ✅</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group-header" style="background:#d29922;margin-top:20px">Perfil SEGURADO — Cenário do Bug (CNPJ alfanumérico)</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head">
+        <span class="ct-id">CT-SGD-002</span>
+        <span class="ct-title">Login SEGURADO (CNPJ alfanumérico) → Averbações RCTR-C sem erro de SQL</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-bloq">BLOQUEADO</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <div class="ct-section-val">Usuário SEGURADO com CNPJ alfanumérico <code>6P4WZ4L2000111</code> (CNPJ: 6P.4WZ.4L2/0001-11). Usuário NÃO localizado em tb_cit_net_usu do HML (coluna u_cpf_cgc é FLOAT, incompatível com alfanumérico).</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos esperados</div>
+          <ol class="steps">
+            <li>Acessar https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</li>
+            <li>Preencher Usuário: <strong>6P4WZ4L2000111</strong></li>
+            <li>Clicar <strong>Acessar</strong></li>
+            <li>Verificar que home carrega sem erro</li>
+            <li>Navegar para Averbações → Nacional → RCTR-C</li>
+            <li>Verificar que tela carrega sem "Incorrect syntax near" / "Ocorreu um erro no processamento"</li>
+            <li>Verificar combo Apólice/Subgrupo populado com apólices do segurado</li>
+          </ol>
+        </div>
+        <div class="result-bloq">
+          🔒 BLOQUEADO — Usuário SEGURADO com CNPJ alfanumérico não existe no HML DB.<br>
+          Tentativa com <code>AXA0711</code> (único login SEGURADO alfanumérico encontrado em tb_cit_net_usu) falhou — senha incorreta ou conta inativa.<br><br>
+          <strong>Validação do dev (referência):</strong> Fabiano Souza em 12/06/2026 confirmou via E2E em HML:
+          login com 6P4WZ4L2000111 funcionou, RCTR-C carregou sem erro, combo Apólice/Subgrupo populado
+          (6062026/5506062026) — evidência anexada ao card BUG-7291 no AzDO.
+        </div>
+        <div class="ct-section" style="margin-top:12px">
+          <div class="ct-section-lbl">Evidências</div>
+          <div class="evidence-grid">
+            <div class="ev-thumb" onclick="openLightbox('evidencias/CT-SGD-002/CT-7291-04-segurado-login-fail.png','Tentativa login AXA0711 falhou')">
+              <img src="evidencias/CT-SGD-002/CT-7291-04-segurado-login-fail.png" alt="Login fail">
+              <div class="ev-label">Login AXA0711 falhou</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">Resumo de Execução</div>
+    <table class="summary">
+      <thead>
+        <tr>
+          <th>CT</th>
+          <th>Título</th>
+          <th>Perfil</th>
+          <th>Prioridade</th>
+          <th>Resultado</th>
+          <th>Observação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CT-SGD-001</td>
+          <td>Login INTERNO → RCTR-C sem erro</td>
+          <td>INTERNO</td>
+          <td><span class="badge badge-p1">P1</span></td>
+          <td><span class="badge badge-pass">PASS</span></td>
+          <td>Regressão OK — formulário RCTR-C carregou</td>
+        </tr>
+        <tr>
+          <td>CT-SGD-002</td>
+          <td>Login SEGURADO alfanumérico → RCTR-C sem SQL error</td>
+          <td>SEGURADO</td>
+          <td><span class="badge badge-p1">P1</span></td>
+          <td><span class="badge badge-bloq">BLOQUEADO</span></td>
+          <td>Usuário 6P4WZ4L2000111 não existe no HML DB; dev validou em 12/06</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div id="lightbox" class="lightbox" onclick="closeLightbox()">
+  <span class="lb-close" onclick="closeLightbox()">✕</span>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-caption" class="lb-caption"></div>
+</div>
+
+<footer>
+  BUG-7291 · Sprint 8 Sustentação · CITNET AXA ALFA HML · QA: Wesley Moreira · 14/06/2026
+</footer>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+function openLightbox(src, cap) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-caption').textContent = cap;
+  document.getElementById('lightbox').classList.add('active');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('active');
+}
+</script>
+</body>
+</html>
