@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG — PBI-6719 — Erro 500 Int16 Overflow ao cancelar apólice no último dia do mês</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149; --yellow: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--red); }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+  .hero { background: linear-gradient(135deg, #1a0505 0%, #161b22 100%); border-bottom: 1px solid #5a1a1a; padding: 28px 24px 20px; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: #f85149; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-crit { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .badge-p1   { background: #3d1a1a; color: #f85149; }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 32px; flex-wrap: wrap; }
+  .metric .val { font-size: 20px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+  .content { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box  { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .fail-box  { background: #200a0a; border: 1px solid #5a1a1a; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #f85149; }
+  .warn-box  { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #e3b341; }
+  .pass-box  { background: #0d2e18; border: 1px solid #3fb950; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #3fb950; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+  pre { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; overflow-x: auto; margin: 8px 0; }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 6px; font-size: 13px; }
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+  .ev-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: zoom-in; transition: border-color .2s; }
+  .ev-item:hover { border-color: var(--blue); }
+  .ev-item img { width: 100%; display: block; }
+  .ev-item .ev-cap { padding: 6px 10px; font-size: 11px; color: var(--text-muted); }
+  /* LIGHTBOX */
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:96vw; max-height:90vh; border-radius:6px; border:1px solid var(--border); box-shadow:0 8px 40px #000; }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:96vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:16px; right:20px; font-size:28px; color:#c9d1d9; cursor:pointer; line-height:1; background:none; border:none; }
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">BUG</span>
+  <span class="breadcrumb">
+    <a href="../pbi-6719/">PBI-6719</a> › Bug — Int16 Overflow ao cancelar no último dia do mês
+  </span>
+</div>
+
+<div class="hero">
+  <h1>BUG — Erro 500: Int16 Overflow ao cancelar apólice no último dia do mês</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITWEB KOVR HML Nacional — Ramo 21</span>
+    <span><strong>PBI origem:</strong> #6719 (Tasks #6821 + #6932)</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Encontrado por:</strong> Wesley Moreira (QA)</span>
+    <span><strong>Data:</strong> 15/06/2026</span>
+    <span><strong>Severidade:</strong> <span class="badge badge-crit">CRÍTICO</span></span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:#f85149">500</div><div class="lbl">HTTP Error</div></div>
+  <div class="metric"><div class="val" style="color:#e3b341">Int16</div><div class="lbl">Tipo Overflow</div></div>
+  <div class="metric"><div class="val" style="color:#8b949e">2266</div><div class="lbl">Linha (aspx.cs)</div></div>
+  <div class="metric"><div class="val" style="color:#f85149">100%</div><div class="lbl">Reproduzível</div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Descrição</div>
+    <div class="fail-box">
+      Ao tentar salvar o cancelamento de uma apólice com data igual ao <strong>último dia do mês</strong> (ex: 31/05/2026), quando existe fatura fechada para a mesma competência (05/2026), o sistema retorna <strong>Erro 500 — Erro interno no servidor</strong>.<br><br>
+      A exceção é: <code>Value was either too large or too small for an Int16</code>, gerada em <code>CadApolice21.aspx.cs:2266</code> durante o evento <code>btnSalvarDadosApolice_Click</code>.<br><br>
+      O fix do PBI-6719 removeu o bloqueio de validação para esse cenário (último dia do mês), permitindo que o fluxo chegue até o save — porém, um overflow de tipo <code>Int16</code> no código de persistência impede a conclusão.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Ambiente</div>
+    <div class="info-box">
+      <strong>URL:</strong> <code>https://kovr-hml-faturamento.nsseg.com.br/dadosapolice/Default.aspx</code><br>
+      <strong>Build:</strong> V 1.0.260602.1734<br>
+      <strong>Apólice:</strong> <code>0000006022026</code> — Ramo 21, Filial 0001 SÃO PAULO, Tipo Diária, Vigência 01/01/2026–01/01/2027<br>
+      <strong>Fatura:</strong> 133, competência 05/2026, emitida em 08/06/2026<br>
+      <strong>Usuário:</strong> ROT_AUTO (GESTOR)
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Passos para Reproduzir</div>
+    <ol class="steps">
+      <li>Acessar CITWEB KOVR HML: <code>https://kovr-hml-faturamento.nsseg.com.br/login/</code> com usuário <code>ROT_AUTO / T7Jjm6xF</code></li>
+      <li>Ir para <strong>Dados da Apólice - RCTR-C</strong> (menu Averbação → ou aba de navegação)</li>
+      <li>Pesquisar apólice <code>6022026</code>, Filial <code>0001 - SÃO PAULO</code></li>
+      <li>Confirmar que a apólice possui <strong>Fatura 133 para competência 05/2026</strong> (visível em Fechamento Mensal → Impressão → Ramo 21, Mês 05/2026)</li>
+      <li>No formulário DadosApolice, preencher campo <strong>Cancelamento</strong> com <code>31/05/2026</code> (último dia de maio)</li>
+      <li>Clicar em <strong>Atualizar</strong></li>
+      <li><strong>Resultado:</strong> Erro 500 — "Value was either too large or too small for an Int16"</li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Comportamento Esperado vs Obtido</div>
+    <div class="pass-box">
+      ✅ <strong>Esperado (comportamento do fix PBI-6719):</strong> O sistema deve <strong>aceitar e salvar</strong> o cancelamento em 31/05/2026, exibindo mensagem de sucesso "Atualização dos dados efetuada com sucesso". O fix permite cancelamento no último dia do mês mesmo com fatura fechada para a mesma competência.
+    </div>
+    <div class="fail-box">
+      ❌ <strong>Obtido:</strong> O sistema retorna <strong>Erro 500 interno</strong>. O cancelamento não é salvo. A tela do iframe exibe "Erro 500 - Erro interno no servidor! A pagina não pode ser exibida, pois há algum erro de execução no servidor."
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Stack Trace</div>
+    <pre>Exceção: Value was either too large or too small for an Int16.
+
+   at DadosApolice.CadApolice21.btnSalvarDadosApolice_Click(Object sender, EventArgs e)
+      in D:\a\1\s\DadosApolice\CadApolice21.aspx.cs:line 2266
+   at System.Web.UI.WebControls.LinkButton.OnClick(EventArgs e)
+   at System.Web.UI.WebControls.LinkButton.RaisePostBackEvent(String eventArgument)
+   at System.Web.UI.Page.ProcessRequestMain(Boolean includeStagesBeforeAsyncPoint,
+      Boolean includeStagesAfterAsyncPoint)</pre>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Hipótese Técnica</div>
+    <div class="warn-box">
+      ⚠️ A exceção <code>Int16 overflow</code> ocorre em <code>CadApolice21.aspx.cs:2266</code> durante o save. Hipótese: algum cálculo numérico envolvendo o dia 31 (ou a competência 05/2026 após o fix) excede o range do tipo <code>Int16</code> (–32.768 a 32.767).<br><br>
+      Possíveis causas:<br>
+      • Número de dias calculados entre datas sendo atribuído a variável <code>short</code> em vez de <code>int</code><br>
+      • Código de competência calculado (ex: ano × 100 + mês = 202605) excedendo Int16 ao ser atribuído a campo de tipo errado<br>
+      • O fix removeu uma validação que antes impedia chegar a esse trecho de código com esse valor<br><br>
+      <strong>Nota:</strong> Os cenários CT-003 (30/04/2026) e CT-002 (15/05/2026) retornaram bloqueio com mensagem amigável sem erro 500, pois caem em branches de validação que não chegam à linha 2266. Apenas o cenário do <em>último dia do mês</em> (liberado pelo fix) atinge essa linha.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Contexto — Cenários Funcionando vs Falhando</div>
+    <div class="info-box">
+      <strong>CT-003 (30/04/2026 — mês anterior à fatura):</strong> ✅ Bloqueio amigável — não chega à linha 2266<br>
+      <strong>CT-002 (15/05/2026 — mesmo mês, dia intermediário):</strong> ✅ Bloqueio amigável — não chega à linha 2266<br>
+      <strong>CT-001 (31/05/2026 — último dia, mesmo mês da fatura):</strong> ❌ Erro 500 Int16 overflow — chega à linha 2266 após o fix remover o bloqueio
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Evidências</div>
+    <div class="ev-grid">
+      <div class="ev-item">
+        <img src="evidencias/CT-6719-busca-ramo21-mai2026.png" alt="Fatura 133 — 05/2026">
+        <div class="ev-cap">Fatura 133 existente para competência 05/2026 (confirmação de massa)</div>
+      </div>
+      <div class="ev-item">
+        <img src="evidencias/CT-6719-001-01-cancelamento-31mai-preenchido.png" alt="Campo preenchido">
+        <div class="ev-cap">Campo Cancelamento preenchido com 31/05/2026 (último dia do mês)</div>
+      </div>
+      <div class="ev-item">
+        <img src="evidencias/CT-6719-001-02-resultado-31mai.png" alt="Erro 500">
+        <div class="ev-cap">Resultado: Erro 500 — "Erro interno no servidor" ao clicar Atualizar</div>
+      </div>
+      <div class="ev-item">
+        <img src="evidencias/CT-6719-001-03-erro500-detalhes.png" alt="Stack trace">
+        <div class="ev-cap">Detalhes: Int16 overflow em CadApolice21.aspx.cs:2266</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  BUG — PBI-6719 · Sprint 8 Sustentação · CITWEB KOVR HML · QA: Wesley Moreira · 15/06/2026
+</footer>
+
+<div id="lb">
+  <button class="lb-close" onclick="closeLb()">&#x2715;</button>
+  <img id="lb-img" src="" alt="">
+  <div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<script>
+  function openLb(src, cap) {
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lb-cap').textContent = cap;
+    document.getElementById('lb').classList.add('open');
+  }
+  function closeLb() {
+    document.getElementById('lb').classList.remove('open');
+    document.getElementById('lb-img').src = '';
+  }
+  document.getElementById('lb').addEventListener('click', function(e) {
+    if (e.target === this) closeLb();
+  });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeLb(); });
+  document.querySelectorAll('.ev-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var img = this.querySelector('img');
+      var cap = this.querySelector('.ev-cap');
+      openLb(img.src, cap ? cap.textContent : '');
+    });
+  });
+</script>
+
+</body>
+</html>
