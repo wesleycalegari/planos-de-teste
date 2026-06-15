@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBI-6719 — KOVR Cancelamento Apólice Regra 24h</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --blue: #58a6ff; --green: #3fb950; --red: #f85149;
+    --yellow: #d29922; --orange: #e3b341;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* TOPBAR */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { font-size: 18px; font-weight: 700; color: var(--blue); }
+  .topbar .breadcrumb { color: var(--text-muted); font-size: 13px; }
+  .topbar .breadcrumb a { color: var(--blue); text-decoration: none; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, #0d1117 0%, #161b22 100%); border-bottom: 1px solid var(--border); padding: 28px 24px 20px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: #e6edf3; }
+  .hero .meta { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+
+  /* BADGES */
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-pass   { background: #0d2e18; color: #3fb950; border: 1px solid #3fb950; }
+  .badge-fail   { background: #3d1a1a; color: #f85149; border: 1px solid #f85149; }
+  .badge-pend   { background: #1a1f2e; color: #58a6ff; border: 1px solid #58a6ff; }
+  .badge-bloq   { background: #2d2208; color: #d29922; border: 1px solid #d29922; }
+  .badge-p1     { background: #3d1a1a; color: #f85149; }
+  .badge-p2     { background: #2d1f0a; color: #e3b341; }
+  .badge-p3     { background: #1a2a1a; color: #3fb950; }
+
+  /* METRICS STRIP */
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 24px; flex-wrap: wrap; }
+  .metric { text-align: center; min-width: 60px; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+
+  /* LAYOUT */
+  .content { max-width: 960px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+  /* BOXES */
+  .info-box  { background: #0d1f38; border: 1px solid #1f4068; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box  { background: #1f1200; border: 1px solid #5a3e00; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: var(--orange); }
+  .pass-box  { background: #0d2e18; border: 1px solid #3fb950; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #3fb950; }
+  .pend-box  { background: #0d1a2e; border: 1px solid #58a6ff; border-radius: 6px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; color: #58a6ff; }
+
+  /* CTs */
+  .group-header { background: #58a6ff; color: #0d1117; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 10px; overflow: hidden; }
+  .ct-block.group-first { border-radius: 0 6px 6px 6px; }
+  .ct-bar { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .ct-bar:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--text-muted); min-width: 110px; }
+  .ct-title { flex: 1; font-weight: 600; color: #e6edf3; font-size: 13px; }
+  .ct-panel { border-top: 1px solid var(--border); padding: 16px; display: none; }
+  .ct-panel.open { display: block; }
+  .ct-section { margin-bottom: 12px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  .result-pend { background: #0d1a2e; border: 1px solid #58a6ff; border-radius: 4px; padding: 8px 12px; font-size: 13px; color: #58a6ff; margin-top: 8px; }
+  code { background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+
+  /* MATRIX */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg3); }
+
+  footer { text-align: center; color: var(--text-muted); font-size: 12px; padding: 24px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA</span>
+  <span class="breadcrumb">
+    Sprint 8 — Sustentação › <strong>PBI-6719</strong>
+  </span>
+</div>
+
+<div class="hero">
+  <h1>PBI-6719 — KOVR: Cancelamento de Apólice — Regra Último Dia do Mês</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITWEB KOVR HML</span>
+    <span><strong>Sprint:</strong> 8 — Sustentação</span>
+    <span><strong>Módulo:</strong> Nacional → Cadastros → Apólice → Cancelamento</span>
+    <span><strong>Dev:</strong> Ivan Mauricio / Ricardo Lopes</span>
+    <span><strong>Autor QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 15/06/2026</span>
+    <span><strong>Status:</strong> <span class="badge badge-pend">PENDENTE EXECUÇÃO</span></span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)">5</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--blue)">0</div><div class="lbl">PASS</div></div>
+  <div class="metric"><div class="val" style="color:var(--text-muted)">0</div><div class="lbl">FAIL</div></div>
+  <div class="metric"><div class="val" style="color:var(--blue)">5</div><div class="lbl">Pendente</div></div>
+  <div class="metric"><div class="val" style="color:var(--red)">2</div><div class="lbl">P1</div></div>
+  <div class="metric"><div class="val" style="color:var(--orange)">2</div><div class="lbl">P2</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)">1</div><div class="lbl">P3</div></div>
+  <div class="metric"><div class="val">100%</div><div class="lbl">Cobertura CA</div></div>
+</div>
+
+<div class="content">
+
+  <!-- CONTEXTO -->
+  <div class="section">
+    <div class="section-title">Contexto e Regra de Negócio</div>
+    <div class="info-box">
+      <strong>Problema:</strong> Ao cancelar uma apólice KOVR informando como data de cancelamento o <strong>último dia do mês</strong>,
+      o sistema bloqueava a operação quando existiam faturas emitidas para aquela mesma competência —
+      exigindo cancelamento prévio da fatura antes de prosseguir.<br><br>
+      <strong>Exemplos do erro:</strong> Data de cancelamento 30/04/2025 com fatura fechada referente a abril/2025;
+      data 31/12/2025 com fatura de dezembro/2025.<br><br>
+      <strong>Correção (tasks #6821 + #6932 — Done):</strong> Estendida a <em>regra de 24 horas</em> já existente nos
+      Relatórios de SLA e Análise de Produção para o fluxo de cancelamento de apólice.
+      O sistema agora deve permitir o cancelamento com data no último dia do mês mesmo havendo fatura emitida na mesma competência.
+    </div>
+    <div class="pass-box">
+      ✅ <strong>Bloqueador de maio resolvido (15/06/2026):</strong> Permissão <code>TTFCN001</code> (Módulo Nacional)
+      concedida ao usuário <code>FRED</code> em KOVR HML — acesso ao Nacional confirmado via navegação.
+    </div>
+  </div>
+
+  <!-- PRÉ-CONDIÇÕES -->
+  <div class="section">
+    <div class="section-title">Pré-condições e Massa de Dados</div>
+    <table>
+      <tr><th>Item</th><th>Detalhe</th></tr>
+      <tr><td>Ambiente</td><td>CITWEB KOVR HML — <code>https://kovr-hml-faturamento.nsseg.com.br/Login</code></td></tr>
+      <tr><td>Credencial</td><td><code>FRED / DERF</code> — acesso Nacional confirmado ✅</td></tr>
+      <tr><td>Módulo</td><td>Nacional → Cadastros → Apólice → Ramo 21 (Transporte Nacional) → aba Consulta</td></tr>
+      <tr><td>Massa CT-6719-001 / 003</td><td>Apólice <code>0000000001910</code> (TRAN SIMULACAO) — Filial 0001 SÃO PAULO — Vigência 01/12/2025–01/12/2026 ✅ confirmada em maio. <em>Verificar se possui fatura fechada na competência alvo antes da execução.</em></td></tr>
+      <tr><td>Massa CT-6719-002</td><td>Qualquer apólice ativa com fatura fechada — usar data de cancelamento em dia que <strong>não</strong> seja o último do mês (ex.: 15/06/2026)</td></tr>
+      <tr><td>Massa CT-6719-004</td><td>Apólice com faturas em múltiplas competências — verificar no banco HML; se necessário, usar outra apólice da grid de consulta</td></tr>
+      <tr><td>Navegação confirmada</td><td>Nacional → Cadastros → Apólice → Ramo 21 → aba Consulta → selecionar apólice → formulário DadosApolice → campo <code>txtDataCancelamento</code> → botão Atualizar → dialog confirmação</td></tr>
+    </table>
+  </div>
+
+  <!-- GRUPO 1 -->
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="group-header">GRUPO 1 — Cancelamento no Último Dia do Mês (Cenários da CA)</div>
+
+    <div class="ct-block group-first">
+      <div class="ct-bar" onclick="toggle(this)">
+        <span class="ct-id">CT-6719-001</span>
+        <span class="ct-title">Cancelar apólice no último dia do mês com fatura fechada na mesma competência → DEVE PERMITIR</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Verificar que o sistema permite o cancelamento com data = último dia do mês mesmo existindo fatura fechada na mesma competência — cenário principal do fix.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ol class="steps">
+            <li>CITWEB KOVR HML — login com <code>FRED / DERF</code></li>
+            <li>Apólice <code>0000000001910</code> ativa com fatura emitida para a competência do mês de teste</li>
+            <li>Data de cancelamento = último dia do mês (ex.: 30/06/2026)</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Fazer login em <code>https://kovr-hml-faturamento.nsseg.com.br/Login</code> com <code>FRED / DERF</code></li>
+            <li>Clicar em <strong>Nacional</strong> → abre módulo Nacional</li>
+            <li>Menu: <strong>Cadastros → Apólice → Transporte Nacional (Ramo 21)</strong></li>
+            <li>Na aba <strong>Consulta</strong>: localizar apólice <code>0000000001910</code> e clicar no ícone de edição</li>
+            <li>No formulário DadosApolice, localizar campo <strong>"Cancelamento:"</strong> (<code>txtDataCancelamento</code>)</li>
+            <li>Preencher com o último dia do mês corrente via datepicker (ex.: 30/06/2026)</li>
+            <li>Clicar em <strong>"Atualizar"</strong> e confirmar no dialog</li>
+            <li>Observar se o sistema bloqueia ou permite o cancelamento</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="result-pend">
+            ⏳ Sistema <strong>permite</strong> o cancelamento sem exibir mensagem de bloqueio solicitando cancelamento prévio da fatura.
+            O cancelamento é concluído com sucesso.
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <div>Positivo — Cenário Principal do Fix</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggle(this)">
+        <span class="ct-id">CT-6719-002</span>
+        <span class="ct-title">Cancelar apólice em data que NÃO é o último dia do mês com fatura fechada → comportamento anterior mantido</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Verificar regressão: o fix não deve alterar o comportamento para cancelamentos em datas que não são o último dia do mês.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ol class="steps">
+            <li>CITWEB KOVR HML — login com <code>FRED / DERF</code></li>
+            <li>Apólice ativa com fatura fechada na competência</li>
+            <li>Data de cancelamento = dia que <strong>não</strong> é o último do mês (ex.: 15/06/2026)</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login KOVR CITWEB (<code>FRED / DERF</code>) → Nacional → Cadastros → Apólice → Ramo 21</li>
+            <li>Selecionar apólice com fatura fechada via aba Consulta</li>
+            <li>Informar data de cancelamento em dia que <strong>não</strong> seja o último do mês</li>
+            <li>Clicar Atualizar → confirmar no dialog</li>
+            <li>Observar o comportamento do sistema</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="result-pend">
+            ⏳ O comportamento para datas que <strong>não</strong> são o último dia do mês permanece igual ao anterior à correção.
+            Se havia validação de fatura para esses casos, ela deve ser mantida. O fix não deve alterar cenários fora do escopo.
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <div>Regressão</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggle(this)">
+        <span class="ct-id">CT-6719-003</span>
+        <span class="ct-title">Cancelar apólice no último dia do mês SEM fatura emitida na competência → DEVE PERMITIR</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Verificar que o cancelamento no último dia do mês funciona normalmente quando não há fatura emitida — comportamento que já funcionava antes deve continuar funcionando.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ol class="steps">
+            <li>CITWEB KOVR HML — login com <code>FRED / DERF</code></li>
+            <li>Apólice ativa <strong>sem</strong> fatura emitida para a competência do cancelamento</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login KOVR CITWEB (<code>FRED / DERF</code>) → Nacional → Cadastros → Apólice → Ramo 21</li>
+            <li>Selecionar apólice sem fatura emitida na competência</li>
+            <li>Informar data de cancelamento = último dia do mês</li>
+            <li>Clicar Atualizar → confirmar no dialog</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="result-pend">
+            ⏳ Cancelamento concluído com sucesso, sem bloqueios. Comportamento normal — sem fatura não havia bloqueio antes, e deve continuar assim.
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <div>Positivo — Confirmação de comportamento já existente</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggle(this)">
+        <span class="ct-id">CT-6719-004</span>
+        <span class="ct-title">Cancelar apólice no último dia do mês com múltiplas competências faturadas</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Verificar que o sistema permite o cancelamento no último dia do mês mesmo quando existem faturas em múltiplas competências, não apenas na mais recente.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ol class="steps">
+            <li>CITWEB KOVR HML — login com <code>FRED / DERF</code></li>
+            <li>Apólice ativa com faturas emitidas em múltiplas competências (ex.: fev/2026, mar/2026, abr/2026)</li>
+            <li>Verificar no banco HML antes da execução; se não disponível, usar outra apólice</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login KOVR CITWEB (<code>FRED / DERF</code>) → Nacional → Cadastros → Apólice → Ramo 21</li>
+            <li>Selecionar apólice com múltiplas competências faturadas</li>
+            <li>Informar data de cancelamento = último dia do mês da competência mais recente</li>
+            <li>Clicar Atualizar → confirmar no dialog</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="result-pend">
+            ⏳ Sistema permite o cancelamento sem bloquear pelas faturas das competências anteriores.
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <div>Limite / Fronteira</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group-header">GRUPO 2 — Regressão do Fluxo de Cancelamento</div>
+
+    <div class="ct-block group-first">
+      <div class="ct-bar" onclick="toggle(this)">
+        <span class="ct-id">CT-6719-005</span>
+        <span class="ct-title">Regressão geral — fluxo completo de cancelamento não afetado pelo fix</span>
+        <span class="badge badge-p3">P3</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Objetivo</div>
+          <div>Confirmar que o fluxo completo de cancelamento de apólice (protocolo, endosso, histórico) funciona normalmente após o fix.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Executar ao menos um cancelamento válido em condições normais (ex.: sem fatura, data no meio do mês)</li>
+            <li>Verificar que o processo completo funciona: confirmação do dialog, registro do cancelamento na apólice</li>
+            <li>Verificar que o histórico de cancelamento é registrado corretamente</li>
+            <li>Confirmar que não há erros HTTP 500 ou comportamentos inesperados</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="result-pend">
+            ⏳ Fluxo completo de cancelamento funcional sem regressões. Sem erros de sistema.
+          </div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <div>Regressão</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIZ -->
+  <div class="section">
+    <div class="section-title">Matriz de Rastreabilidade</div>
+    <table>
+      <tr>
+        <th>Critério de Aceite</th>
+        <th>CT(s)</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>Sistema permite cancelamento no último dia do mês com fatura fechada</td>
+        <td><code>CT-6719-001</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Sem mensagem de bloqueio solicitando cancelamento prévio da fatura</td>
+        <td><code>CT-6719-001, CT-6719-004</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Datas diferentes do último dia → comportamento anterior mantido (sem impacto)</td>
+        <td><code>CT-6719-002</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Cancelamento sem fatura emitida na competência → PERMITIR</td>
+        <td><code>CT-6719-003</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Cancelamento com múltiplas competências faturadas → PERMITIR</td>
+        <td><code>CT-6719-004</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Demais cenários de cancelamento não impactados pelo fix</td>
+        <td><code>CT-6719-005</code></td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <div class="section-title">Riscos e Mitigações</div>
+    <table>
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr>
+        <td>Apólice 0000000001910 sem fatura fechada na competência alvo (CT-6719-001)</td>
+        <td>Média</td><td>Alto</td>
+        <td>Verificar no banco HML KOVR antes da execução; se necessário, usar outra apólice da grid de consulta com fatura emitida</td>
+      </tr>
+      <tr>
+        <td>Apólice com múltiplas competências faturadas não disponível (CT-6719-004)</td>
+        <td>Média</td><td>Médio</td>
+        <td>Verificar no banco HML; se necessário, criar fatura adicional para outra competência antes da execução</td>
+      </tr>
+      <tr>
+        <td>Data corrente pode não ser o último dia do mês — CT-6719-001 requer data específica</td>
+        <td>Alta</td><td>Médio</td>
+        <td>Usar competência passada: identificar apólice com fatura de mês anterior e usar o último dia desse mês como data de cancelamento (ex.: 31/05/2026)</td>
+      </tr>
+      <tr>
+        <td>Modal Nacional abre em popup separado (não rastreado via automação MCP)</td>
+        <td>Alta</td><td>Baixo</td>
+        <td>Execução manual dos CTs; evidências por screenshots em cada passo crítico</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  PBI-6719 · KOVR Cancelamento Apólice Regra 24h · Sprint 8 Sustentação CITWEB<br>
+  Gerado em: 15/06/2026 · Atualizado: 15/06/2026 · Autor: Wesley Moreira<br>
+  Build KOVR HML: V 1.0.260602.1734 · 5 CTs · Pendente execução · Bloqueador de maio resolvido ✅
+</footer>
+
+<script>
+  function toggle(bar) {
+    const panel = bar.nextElementSibling;
+    panel.classList.toggle('open');
+  }
+  // Abrir todos por padrão
+  document.querySelectorAll('.ct-panel').forEach(p => p.classList.add('open'));
+</script>
+</body>
+</html>
