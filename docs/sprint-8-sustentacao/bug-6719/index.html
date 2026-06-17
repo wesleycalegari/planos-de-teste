@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBI #6719 — KOVR — Regra 24 horas — Cancelamento de Apólice RCV</title>
+<style>
+:root {
+  --bg-root:#0d1117; --bg-surface:#161b22; --bg-card:#1c2128; --bg-raised:#21262d;
+  --border:#30363d; --text:#e6edf3; --text-muted:#8b949e;
+  --blue:#58a6ff; --blue-dim:#1f6feb; --blue-bg:#0a1628;
+  --green:#3fb950; --green-bg:#09200f;
+  --red:#f85149; --red-bg:#200d0d;
+  --orange:#e08456; --orange-bg:#1e0f04;
+  --yellow:#d29922; --yellow-bg:#1f1700;
+  --purple:#a78bfa; --purple-bg:#1a1060;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg-root); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+.topbar { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); border-bottom: 1px solid var(--border); padding: 8px 24px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.topbar-title { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.badge-pbi   { background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(88,166,255,.25); }
+.badge-pass  { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(63,185,80,.5);  }
+.badge-fail  { background: var(--red-bg);    color: var(--red);    border: 1px solid rgba(248,81,73,.3);  }
+.badge-citweb{ background: var(--blue-bg);   color: var(--blue);   border: 1px solid rgba(88,166,255,.2); }
+.badge-kovr  { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(224,132,86,.3); }
+.badge-rcv   { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(167,139,250,.3); }
+.hero { padding: 32px 24px 24px; border-bottom: 1px solid var(--border); }
+.hero h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+.hero-meta { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.metrics-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.metric { background: var(--bg-surface); padding: 14px 16px; text-align: center; }
+.metric-val { font-size: 22px; font-weight: 700; }
+.metric-lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+.content { max-width: 1100px; margin: 0 auto; padding: 24px; }
+.section { margin-bottom: 36px; }
+.section-hd { font-size: 15px; font-weight: 700; color: var(--blue); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 16px; }
+.info-box  { background: var(--blue-bg);   border-left: 3px solid var(--blue-dim); border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; }
+.pass-box  { background: var(--green-bg);  border-left: 3px solid var(--green);    border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; }
+.warn-box  { background: var(--yellow-bg); border-left: 3px solid var(--yellow);   border-radius: 4px; padding: 12px 16px; margin-bottom: 12px; }
+.code-box  { background: #161b22; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: 'Consolas', monospace; font-size: 12px; color: #a5d6ff; white-space: pre-wrap; margin-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+th { background: var(--bg-raised); color: var(--text-muted); text-align: left; padding: 8px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+.pass-row td { background: rgba(63,185,80,.07); }
+.fail-row td { background: rgba(248,81,73,.06); }
+.step-ok  { color: #3fb950; font-weight: 700; }
+.step-fail{ color: #f85149; font-weight: 700; }
+
+/* CT accordion */
+.ct-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+.ct-bar { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; }
+.ct-bar:hover { background: var(--bg-raised); }
+.ct-id { font-weight: 700; font-size: 13px; color: var(--blue); min-width: 120px; }
+.ct-title { flex: 1; font-size: 13px; }
+.ct-status { font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 12px; }
+.status-pass { background: var(--green-bg); color: var(--green); border: 1px solid rgba(63,185,80,.4); }
+.status-fail { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(248,81,73,.3); }
+.ct-arrow { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+.ct-panel { display: none; padding: 16px; border-top: 1px solid var(--border); }
+.ct-panel.open { display: block; }
+.ct-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; margin-bottom: 16px; font-size: 12px; }
+.ct-meta-item { display: flex; gap: 6px; }
+.ct-meta-label { color: var(--text-muted); min-width: 110px; }
+.result-banner { border-radius: 8px; padding: 12px 16px; font-size: 14px; font-weight: 700; margin: 12px 0; display: flex; align-items: center; gap: 10px; }
+.result-pass { background: var(--green-bg); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+.result-fail { background: var(--red-bg);   color: var(--red);   border: 1px solid rgba(248,81,73,.3); }
+
+/* evidências */
+.ev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.ev-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.ev-card img { width: 100%; display: block; cursor: zoom-in; }
+.ev-cap { padding: 8px 12px; font-size: 12px; color: var(--text-muted); }
+.ev-label { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-bottom: 4px; }
+.ev-ok   { background: var(--green-bg); color: #3fb950; }
+.ev-fail { background: var(--red-bg);   color: #f85149; }
+.ev-info { background: var(--blue-bg);  color: #58a6ff; }
+
+/* lightbox */
+.lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
+.lb.open { display:flex; }
+.lb img { max-width:92vw; max-height:92vh; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" onclick="closeLb()"><img id="lb-img" src=""></div>
+
+<div class="topbar">
+  <span class="badge badge-pbi">PBI</span>
+  <span class="badge badge-citweb">CITWEB</span>
+  <span class="badge badge-kovr">KOVR</span>
+  <span class="badge badge-rcv">RCV — Ramo 59</span>
+  <span class="topbar-title">#6719 — Relatório Análise de Produção — Regra 24 horas</span>
+  <span style="margin-left:auto" class="badge badge-pass">✓ PASS — 3/3 cenários</span>
+</div>
+
+<div class="hero">
+  <div style="margin-bottom:10px">
+    <span class="badge badge-pbi">PBI #6719</span>
+    &nbsp;
+    <span class="badge badge-pass">✓ PASS — Fix validado</span>
+  </div>
+  <h1>KOVR — Regra 24 horas: cancelamento de apólice RCV no último dia do mês</h1>
+  <p style="color:var(--text-muted); margin-top:8px; font-size:13px">
+    Quando há fatura mensal fechada para a competência do mês de cancelamento e a data de
+    cancelamento corresponde ao <strong>último dia do mês</strong>, o sistema deve <strong>liberar</strong>
+    o cancelamento (regra das 24 horas / SLA de Análise de Produção). Datas anteriores ao último dia
+    continuam sendo bloqueadas pelo comportamento existente.
+  </p>
+  <div class="hero-meta">
+    QA: Wesley Moreira &nbsp;·&nbsp; Data execução: 17/06/2026 &nbsp;·&nbsp; Seguradora: KOVR HML &nbsp;·&nbsp;
+    Módulo: CITWEB Nacional — Dados da Apólice RCV &nbsp;·&nbsp; Build: V 1.0.260602.1734
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="metric-val">3</div><div class="metric-lbl">Cenários</div></div>
+  <div class="metric"><div class="metric-val" style="color:#3fb950">3</div><div class="metric-lbl">PASS</div></div>
+  <div class="metric"><div class="metric-val" style="color:#f85149">0</div><div class="metric-lbl">FAIL</div></div>
+  <div class="metric"><div class="metric-val" style="color:#3fb950">✓</div><div class="metric-lbl">Fix validado</div></div>
+  <div class="metric"><div class="metric-val" style="color:#3fb950">✓</div><div class="metric-lbl">Regressão OK</div></div>
+</div>
+
+<div class="content">
+
+  <!-- CONTEXTO -->
+  <div class="section">
+    <div class="section-hd">1. Contexto e Regra de Negócio</div>
+    <div class="info-box">
+      <strong>Problema anterior:</strong> Ao cancelar uma apólice com data de cancelamento
+      dentro de um mês que possuía fatura mensal fechada (emitida), o sistema bloqueava o
+      cancelamento independentemente de qual dia do mês era. Isso impedia o cancelamento
+      legítimo no último dia do mês ("regra das 24 horas" do SLA de Análise de Produção).
+    </div>
+    <div class="pass-box">
+      <strong>Comportamento corrigido (PBI #6719):</strong>
+      <ul style="margin-top:8px; padding-left:20px; line-height:2">
+        <li><strong>Cancelamento no último dia do mês + fatura fechada na mesma competência → LIBERA</strong></li>
+        <li>Cancelamento em dia que NÃO é o último do mês + fatura fechada → continua BLOQUEANDO</li>
+        <li>Cancelamento sem fatura fechada para a competência → LIBERA (sem alteração)</li>
+      </ul>
+    </div>
+    <div class="warn-box">
+      <strong>Escopo:</strong> Esta alteração se aplica a todos os ramos do módulo Nacional
+      (RCTR-C, RCTA-C, RCTF-C, RCA-C, RCV, Transporte Nacional). Validação executada no ramo
+      <strong>RCV (59)</strong> — KOVR HML.
+    </div>
+    <div class="warn-box">
+      <strong>Status da PR:</strong> Build HML V 1.0.260602.1734 — PR Main #7293 estava como
+      "To Do" no Azure DevOps. Fix validado no build atual; se os testes reprovarem em outro
+      ambiente, acionar o dev para verificar o merge da PR.
+    </div>
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section">
+    <div class="section-hd">2. Massa de Dados</div>
+    <table>
+      <tr>
+        <th>CT</th><th>Apólice</th><th>Segurado</th><th>Filial</th><th>Ramo</th>
+        <th>Vigência</th><th>Fatura Fechada</th><th>Data Cancelamento Testada</th>
+      </tr>
+      <tr class="pass-row">
+        <td>CT-001</td>
+        <td><strong>0000000029259</strong></td>
+        <td>TRAN SIMULACAO</td>
+        <td>0001 SÃO PAULO</td>
+        <td>59 / RCV</td>
+        <td>01/01/2026 – 01/01/2027</td>
+        <td>Fatura nº 20 — ref. 05/2026 (emitida 08/06/2026)</td>
+        <td>30/05/2026</td>
+      </tr>
+      <tr class="pass-row">
+        <td>CT-002</td>
+        <td><strong>0000000029259</strong></td>
+        <td>TRAN SIMULACAO</td>
+        <td>0001 SÃO PAULO</td>
+        <td>59 / RCV</td>
+        <td>01/01/2026 – 01/01/2027</td>
+        <td>Fatura nº 20 — ref. 05/2026 (emitida 08/06/2026)</td>
+        <td>31/05/2026 (último dia)</td>
+      </tr>
+      <tr class="pass-row">
+        <td>CT-003</td>
+        <td><strong>0000000201059</strong></td>
+        <td>TRAN SIMULACAO</td>
+        <td>0001 SÃO PAULO</td>
+        <td>59 / RCV</td>
+        <td>01/01/2026 – 01/01/2027</td>
+        <td>Sem fatura de junho/2026 fechada</td>
+        <td>30/06/2026</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CENÁRIOS -->
+  <div class="section">
+    <div class="section-hd">3. Cenários de Teste</div>
+
+    <!-- CT-001 -->
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggleCt(this)">
+        <span class="ct-id">CT-6719-001</span>
+        <span class="ct-title">Cancelamento antes do último dia do mês com fatura fechada → deve BLOQUEAR</span>
+        <span class="ct-status status-pass">PASS</span>
+        <span class="ct-arrow">▼</span>
+      </div>
+      <div class="ct-panel open">
+        <div class="ct-meta">
+          <div class="ct-meta-item"><span class="ct-meta-label">Apólice:</span><span>0000000029259 — TRAN SIMULACAO</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Fatura fechada:</span><span>Nº 20 — Referência 05/2026</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Data cancelamento:</span><span>30/05/2026 (NÃO é último dia)</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Resultado esperado:</span><span>Sistema bloqueia — comportamento existente</span></div>
+        </div>
+
+        <table>
+          <tr><th>#</th><th>Passo</th><th>Resultado Esperado</th><th>Resultado Obtido</th></tr>
+          <tr class="pass-row">
+            <td>1</td>
+            <td>Logar em KOVR HML com VOIDR-NS / NS-VO1DR</td>
+            <td>Acesso ao módulo Nacional</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>2</td>
+            <td>Cadastros → Apólice → RCV</td>
+            <td>Formulário Dados da Apólice - RCV</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>3</td>
+            <td>Buscar apólice <strong>29259</strong> pela lupa</td>
+            <td>Apólice carregada, vigência 01/01/2026–01/01/2027, sem cancelamento</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>4</td>
+            <td>Preencher campo <em>Cancelamento</em> com <strong>30/05/2026</strong></td>
+            <td>Data preenchida no campo</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>5</td>
+            <td>Clicar em <strong>Atualizar</strong></td>
+            <td>Sistema exibe mensagem de bloqueio informando que há fatura fechada na mesma competência</td>
+            <td><span class="step-ok">✓ BLOQUEOU conforme esperado</span></td>
+          </tr>
+        </table>
+
+        <div class="result-banner result-pass">
+          ✓ PASS — Sistema bloqueou: "Atualização NÃO foi efetuada — Cancelar a Fatura Mensal 20 para o subgrupo 1 pois possui a mesma competência da data de cancelamento."
+        </div>
+
+        <div class="ev-grid">
+          <div class="ev-card">
+            <img src="evidencias/EV-001-pre-apolice-29259.png" onclick="openLb(this)" alt="Apólice 29259 ativa">
+            <div class="ev-cap"><span class="ev-label ev-info">PRÉ</span> Apólice 29259 carregada — ativa, sem cancelamento</div>
+          </div>
+          <div class="ev-card">
+            <img src="evidencias/EV-003-ct001-bloqueio-30-05-2026.png" onclick="openLb(this)" alt="Bloqueio CT-001">
+            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Mensagem de bloqueio visível — cancelamento em 30/05/2026 com fatura 05/2026 fechada</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-002 -->
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggleCt(this)">
+        <span class="ct-id">CT-6719-002</span>
+        <span class="ct-title">Cancelamento no último dia do mês com fatura fechada → deve LIBERAR (fix)</span>
+        <span class="ct-status status-pass">PASS</span>
+        <span class="ct-arrow">▼</span>
+      </div>
+      <div class="ct-panel open">
+        <div class="ct-meta">
+          <div class="ct-meta-item"><span class="ct-meta-label">Apólice:</span><span>0000000029259 — TRAN SIMULACAO</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Fatura fechada:</span><span>Nº 20 — Referência 05/2026</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Data cancelamento:</span><span>31/05/2026 (último dia de maio)</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Resultado esperado:</span><span>Sistema libera — comportamento corrigido pelo fix</span></div>
+        </div>
+
+        <table>
+          <tr><th>#</th><th>Passo</th><th>Resultado Esperado</th><th>Resultado Obtido</th></tr>
+          <tr class="pass-row">
+            <td>1–3</td>
+            <td>Login + navegação + apólice 29259 (mesmo fluxo CT-001)</td>
+            <td>Apólice carregada, vigente, sem cancelamento</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>4</td>
+            <td>Preencher campo <em>Cancelamento</em> com <strong>31/05/2026</strong></td>
+            <td>Data preenchida no campo</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>5</td>
+            <td>Clicar em <strong>Atualizar</strong></td>
+            <td>Sistema aceita e exibe mensagem de sucesso; campo Cancelamento fica salvo com 31/05/2026</td>
+            <td><span class="step-ok">✓ LIBEROU — "Atualização dos dados efetuada com sucesso"</span></td>
+          </tr>
+        </table>
+
+        <div class="result-banner result-pass">
+          ✓ PASS — Fix validado: cancelamento em 31/05/2026 (último dia do mês) com fatura 05/2026 fechada → LIBERADO. Campo salvo com sucesso.
+        </div>
+
+        <div class="ev-grid">
+          <div class="ev-card">
+            <img src="evidencias/EV-002-pre-cancelamento-vazio.png" onclick="openLb(this)" alt="Campo cancelamento vazio">
+            <div class="ev-cap"><span class="ev-label ev-info">PRÉ</span> Campo Cancelamento vazio — apólice ativa antes do teste</div>
+          </div>
+          <div class="ev-card">
+            <img src="evidencias/EV-004-ct002-cancelamento-31-05-salvo.png" onclick="openLb(this)" alt="Cancelamento 31/05/2026 salvo">
+            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Campo Cancelamento salvo com 31/05/2026 — fix liberou corretamente</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-003 -->
+    <div class="ct-block">
+      <div class="ct-bar" onclick="toggleCt(this)">
+        <span class="ct-id">CT-6719-003</span>
+        <span class="ct-title">Cancelamento sem fatura fechada na competência → deve LIBERAR (regressão)</span>
+        <span class="ct-status status-pass">PASS</span>
+        <span class="ct-arrow">▼</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-meta">
+          <div class="ct-meta-item"><span class="ct-meta-label">Apólice:</span><span>0000000201059 — TRAN SIMULACAO</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Fatura de junho:</span><span>Não há fatura fechada para 06/2026</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Data cancelamento:</span><span>30/06/2026 (último dia de junho)</span></div>
+          <div class="ct-meta-item"><span class="ct-meta-label">Resultado esperado:</span><span>Sistema libera normalmente (regra 24h não se aplica)</span></div>
+        </div>
+
+        <table>
+          <tr><th>#</th><th>Passo</th><th>Resultado Esperado</th><th>Resultado Obtido</th></tr>
+          <tr class="pass-row">
+            <td>1–3</td>
+            <td>Login + navegação + apólice 201059 (vigência 01/01/2026–01/01/2027, ativa)</td>
+            <td>Apólice carregada, sem cancelamento</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>4</td>
+            <td>Preencher campo <em>Cancelamento</em> com <strong>30/06/2026</strong></td>
+            <td>Data preenchida</td>
+            <td><span class="step-ok">✓ OK</span></td>
+          </tr>
+          <tr class="pass-row">
+            <td>5</td>
+            <td>Clicar em <strong>Atualizar</strong></td>
+            <td>Sistema libera — nenhuma fatura de junho fechada para esta apólice</td>
+            <td><span class="step-ok">✓ LIBEROU — "Atualização dos dados efetuada com sucesso"</span></td>
+          </tr>
+        </table>
+
+        <div class="result-banner result-pass">
+          ✓ PASS — Regressão OK: sem fatura de junho fechada, sistema libera normalmente. Fix não alterou o comportamento padrão.
+        </div>
+
+        <div class="ev-grid" style="grid-template-columns: 1fr;">
+          <div class="ev-card">
+            <img src="evidencias/EV-005-ct003-sem-fatura-libera-30-06.png" onclick="openLb(this)" alt="CT-003 cancelamento 30/06 salvo">
+            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Apólice 201059 — campo Cancelamento salvo com 30/06/2026 (sem fatura de junho fechada)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section cenários -->
+
+  <!-- CONCLUSÃO -->
+  <div class="section">
+    <div class="section-hd">4. Conclusão</div>
+    <div class="pass-box">
+      <strong>✓ Fix validado — 3 de 3 cenários PASS</strong>
+      <ul style="margin-top:8px; padding-left:20px; line-height:2">
+        <li><strong>CT-001</strong>: Bloqueio mantido para cancelamento antes do último dia com fatura fechada — regressão OK</li>
+        <li><strong>CT-002</strong>: Fix liberando cancelamento no último dia do mês com fatura fechada — novo comportamento correto</li>
+        <li><strong>CT-003</strong>: Cancelamento sem fatura na competência continua sendo liberado — sem impacto lateral</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <strong>Mensagem de bloqueio confirmada (comportamento existente mantido):</strong><br>
+      <code>"Atualização NÃO foi efetuada — Cancelar a Fatura Mensal [N] para o subgrupo [N] pois possui a mesma competência da data de cancelamento."</code>
+    </div>
+    <div class="info-box">
+      <strong>Observação:</strong> Validação executada no ramo RCV (59). Conforme instrução do usuário,
+      o fix se aplica a todos os ramos (RCTR-C, RCTA-C, RCTF-C, RCA-C, Transporte Nacional).
+      Recomenda-se regressivo nos demais ramos se houver massa disponível.
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+function toggleCt(bar) {
+  const panel = bar.nextElementSibling;
+  const arrow = bar.querySelector('.ct-arrow');
+  const isOpen = panel.classList.toggle('open');
+  arrow.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+function openLb(img) { document.getElementById('lb-img').src = img.src; document.getElementById('lb').classList.add('open'); }
+function closeLb() { document.getElementById('lb').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
+</script>
+</body>
+</html>
