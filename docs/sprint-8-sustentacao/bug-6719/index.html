@@ -128,7 +128,7 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
 
   <!-- CONTEXTO -->
   <div class="section">
-    <div class="section-hd">1. Contexto e Regra de Negócio</div>
+    <div class="section-hd">1. Identificação e Contexto</div>
     <div class="info-box">
       <strong>Problema anterior:</strong> Ao cancelar uma apólice com data de cancelamento
       dentro de um mês que possuía fatura mensal fechada (emitida), o sistema bloqueava o
@@ -155,9 +155,44 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
     </div>
   </div>
 
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-hd">2. Pré-Requisitos</div>
+    <table>
+      <tr><th>Item</th><th>Detalhe</th></tr>
+      <tr>
+        <td><strong>Ambiente</strong></td>
+        <td>KOVR HML — <code>https://kovr-hml-faturamento.nsseg.com.br/login/</code></td>
+      </tr>
+      <tr>
+        <td><strong>Credencial</strong></td>
+        <td>Usuário: <code>VOIDR-NS</code> / Senha: <code>NS-VO1DR</code> — único perfil com acesso ao módulo Nacional RCV no KOVR HML</td>
+      </tr>
+      <tr>
+        <td><strong>Build HML</strong></td>
+        <td>V 1.0.260602.1734 (02/06/2026) — fix da regra 24h incluso neste build</td>
+      </tr>
+      <tr>
+        <td><strong>Apólice CT-001/002</strong></td>
+        <td>0000000029259 — TRAN SIMULACAO — Filial 0001 — Ramo 59 — Vigência 01/01/2026–01/01/2027 — Fatura nº 20 (ref. 05/2026) fechada em 08/06/2026</td>
+      </tr>
+      <tr>
+        <td><strong>Apólice CT-003</strong></td>
+        <td>0000000201059 — TRAN SIMULACAO — Filial 0001 — Ramo 59 — Vigência 01/01/2026–01/01/2027 — Sem fatura de 06/2026 fechada</td>
+      </tr>
+      <tr>
+        <td><strong>Dependências</strong></td>
+        <td>Nenhuma integração externa — teste exclusivamente via UI CITWEB (módulo Dados da Apólice RCV)</td>
+      </tr>
+    </table>
+    <div class="warn-box" style="margin-top:8px">
+      <strong>Atenção:</strong> As apólices usadas nos testes serão alteradas (campo Cancelamento preenchido e depois limpo). Confirmar que estão sem cancelamento antes de iniciar cada CT. Após o teste, reverter o campo para manter a massa disponível para próximas execuções.
+    </div>
+  </div>
+
   <!-- MASSA DE DADOS -->
   <div class="section">
-    <div class="section-hd">2. Massa de Dados</div>
+    <div class="section-hd">4. Massa de Dados</div>
     <table>
       <tr>
         <th>CT</th><th>Apólice</th><th>Segurado</th><th>Filial</th><th>Ramo</th>
@@ -198,13 +233,15 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
 
   <!-- CENÁRIOS -->
   <div class="section">
-    <div class="section-hd">3. Cenários de Teste</div>
+    <div class="section-hd">4. Cenários de Teste</div>
 
     <!-- CT-001 -->
     <div class="ct-block">
       <div class="ct-bar" onclick="toggleCt(this)">
         <span class="ct-id">CT-6719-001</span>
         <span class="ct-title">Cancelamento antes do último dia do mês com fatura fechada → deve BLOQUEAR</span>
+        <span class="badge" style="background:#200d0d;color:#f85149;border:1px solid rgba(248,81,73,.3);font-size:10px">P1 · BLOQUEANTE</span>
+        <span class="badge" style="background:#1a1060;color:#a78bfa;border:1px solid rgba(167,139,250,.3);font-size:10px">Negativo · Regressão</span>
         <span class="ct-status status-pass">PASS</span>
         <span class="ct-arrow">▼</span>
       </div>
@@ -256,12 +293,16 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
 
         <div class="ev-grid">
           <div class="ev-card">
-            <img src="evidencias/EV-001-pre-apolice-29259.png" onclick="openLb(this)" alt="Apólice 29259 ativa">
-            <div class="ev-cap"><span class="ev-label ev-info">PRÉ</span> Apólice 29259 carregada — ativa, sem cancelamento</div>
+            <img src="evidencias/ev-pre-apolice-29259-cancelamento-vazio.png" onclick="openLb(this)" alt="Apólice 29259 ativa, campo cancelamento vazio">
+            <div class="ev-cap"><span class="ev-label ev-info">EV1 · PRÉ</span> Apólice 29259 carregada — ativa, campo Cancelamento vazio antes do teste</div>
           </div>
           <div class="ev-card">
-            <img src="evidencias/EV-003-ct001-bloqueio-30-05-2026.png" onclick="openLb(this)" alt="Bloqueio CT-001">
-            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Mensagem de bloqueio visível — cancelamento em 30/05/2026 com fatura 05/2026 fechada</div>
+            <img src="evidencias/ev-ct001-campo-cancelamento-30-05-preenchido.png" onclick="openLb(this)" alt="Campo cancelamento com 30/05/2026">
+            <div class="ev-cap"><span class="ev-label ev-info">EV2 · DADO INVÁLIDO</span> Campo Cancelamento preenchido com 30/05/2026 (não é último dia do mês) — antes de clicar Atualizar</div>
+          </div>
+          <div class="ev-card">
+            <img src="evidencias/ev-ct001-bloqueio-30-05-mensagem.png" onclick="openLb(this)" alt="Mensagem de bloqueio CT-001">
+            <div class="ev-cap"><span class="ev-label ev-ok">EV3 · BLOQUEIO</span> "Atualização NÃO foi efetuada — Cancelar a Fatura Mensal 20 para o subgrupo 1 pois possui a mesma competência da data de cancelamento."</div>
           </div>
         </div>
       </div>
@@ -272,6 +313,8 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
       <div class="ct-bar" onclick="toggleCt(this)">
         <span class="ct-id">CT-6719-002</span>
         <span class="ct-title">Cancelamento no último dia do mês com fatura fechada → deve LIBERAR (fix)</span>
+        <span class="badge" style="background:#200d0d;color:#f85149;border:1px solid rgba(248,81,73,.3);font-size:10px">P1 · BLOQUEANTE</span>
+        <span class="badge" style="background:#09200f;color:#3fb950;border:1px solid rgba(63,185,80,.3);font-size:10px">Positivo · Fix validado</span>
         <span class="ct-status status-pass">PASS</span>
         <span class="ct-arrow">▼</span>
       </div>
@@ -311,12 +354,12 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
 
         <div class="ev-grid">
           <div class="ev-card">
-            <img src="evidencias/EV-002-pre-cancelamento-vazio.png" onclick="openLb(this)" alt="Campo cancelamento vazio">
-            <div class="ev-cap"><span class="ev-label ev-info">PRÉ</span> Campo Cancelamento vazio — apólice ativa antes do teste</div>
+            <img src="evidencias/ev-ct002-campo-cancelamento-31-05-preenchido.png" onclick="openLb(this)" alt="Campo cancelamento 31/05/2026 preenchido">
+            <div class="ev-cap"><span class="ev-label ev-info">EV1 · DADO VÁLIDO</span> Campo Cancelamento preenchido com 31/05/2026 (último dia do mês) — antes de clicar Atualizar</div>
           </div>
           <div class="ev-card">
-            <img src="evidencias/EV-004-ct002-cancelamento-31-05-salvo.png" onclick="openLb(this)" alt="Cancelamento 31/05/2026 salvo">
-            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Campo Cancelamento salvo com 31/05/2026 — fix liberou corretamente</div>
+            <img src="evidencias/ev-ct002-mensagem-sucesso-31-05.png" onclick="openLb(this)" alt="Mensagem de sucesso CT-002">
+            <div class="ev-cap"><span class="ev-label ev-ok">EV2 · SUCESSO</span> "Atualização dos dados efetuada com sucesso" — fix liberou cancelamento em 31/05/2026 com fatura 05/2026 fechada</div>
           </div>
         </div>
       </div>
@@ -327,6 +370,8 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
       <div class="ct-bar" onclick="toggleCt(this)">
         <span class="ct-id">CT-6719-003</span>
         <span class="ct-title">Cancelamento sem fatura fechada na competência → deve LIBERAR (regressão)</span>
+        <span class="badge" style="background:#1e0f04;color:#e08456;border:1px solid rgba(224,132,86,.3);font-size:10px">P2 · IMPORTANTE</span>
+        <span class="badge" style="background:#09200f;color:#3fb950;border:1px solid rgba(63,185,80,.3);font-size:10px">Positivo · Regressão</span>
         <span class="ct-status status-pass">PASS</span>
         <span class="ct-arrow">▼</span>
       </div>
@@ -364,10 +409,18 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
           ✓ PASS — Regressão OK: sem fatura de junho fechada, sistema libera normalmente. Fix não alterou o comportamento padrão.
         </div>
 
-        <div class="ev-grid" style="grid-template-columns: 1fr;">
+        <div class="ev-grid">
           <div class="ev-card">
-            <img src="evidencias/EV-005-ct003-sem-fatura-libera-30-06.png" onclick="openLb(this)" alt="CT-003 cancelamento 30/06 salvo">
-            <div class="ev-cap"><span class="ev-label ev-ok">PASS</span> Apólice 201059 — campo Cancelamento salvo com 30/06/2026 (sem fatura de junho fechada)</div>
+            <img src="evidencias/ev-ct003-pre-apolice-201059-cancelamento-vazio.png" onclick="openLb(this)" alt="Apólice 201059 campo cancelamento vazio">
+            <div class="ev-cap"><span class="ev-label ev-info">EV1 · PRÉ</span> Apólice 201059 — campo Cancelamento vazio, sem fatura de 06/2026 fechada</div>
+          </div>
+          <div class="ev-card">
+            <img src="evidencias/ev-ct003-campo-cancelamento-30-06-preenchido.png" onclick="openLb(this)" alt="Campo cancelamento 30/06/2026 preenchido">
+            <div class="ev-cap"><span class="ev-label ev-info">EV2 · DADO</span> Campo Cancelamento preenchido com 30/06/2026 — antes de clicar Atualizar</div>
+          </div>
+          <div class="ev-card">
+            <img src="evidencias/ev-ct003-mensagem-sucesso-30-06.png" onclick="openLb(this)" alt="Mensagem de sucesso CT-003">
+            <div class="ev-cap"><span class="ev-label ev-ok">EV3 · SUCESSO</span> "Atualização dos dados efetuada com sucesso" — sem fatura de junho, sistema libera normalmente (regressão OK)</div>
           </div>
         </div>
       </div>
@@ -375,9 +428,67 @@ td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
 
   </div><!-- /section cenários -->
 
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-hd">5. Matriz de Rastreabilidade</div>
+    <table>
+      <tr>
+        <th>Critério de Aceite</th>
+        <th>CT que cobre</th>
+        <th>Resultado</th>
+      </tr>
+      <tr class="pass-row">
+        <td>Cancelamento no último dia do mês com fatura mensal fechada na mesma competência deve ser <strong>LIBERADO</strong></td>
+        <td>CT-6719-002</td>
+        <td><span class="step-ok">✓ PASS</span></td>
+      </tr>
+      <tr class="pass-row">
+        <td>Cancelamento em dia que NÃO é o último do mês com fatura fechada deve continuar sendo <strong>BLOQUEADO</strong> (sem regressão)</td>
+        <td>CT-6719-001</td>
+        <td><span class="step-ok">✓ PASS</span></td>
+      </tr>
+      <tr class="pass-row">
+        <td>Cancelamento sem fatura fechada na competência deve continuar sendo <strong>LIBERADO</strong> (sem impacto lateral)</td>
+        <td>CT-6719-003</td>
+        <td><span class="step-ok">✓ PASS</span></td>
+      </tr>
+    </table>
+    <div class="info-box">
+      <strong>Cobertura:</strong> 3/3 critérios de aceite cobertos (100%) · 3/3 CTs executados · Pass rate: 100%
+    </div>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <div class="section-hd">6. Riscos</div>
+    <table>
+      <tr>
+        <th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th>
+      </tr>
+      <tr>
+        <td>Fix não mergeado para outros ambientes — PR Main #7293 estava como "To Do"</td>
+        <td><span style="color:#e08456;font-weight:700">Médio</span></td>
+        <td><span style="color:#f85149;font-weight:700">Alto</span></td>
+        <td>Se testes reprovarem em STG/PRD, acionar dev para confirmar merge da PR antes de nova validação</td>
+      </tr>
+      <tr>
+        <td>Escopo de ramos não validado: fix aplica-se a todos os ramos (RCTR-C, RCTA-C, RCTF-C, RCA-C, Transporte Nacional), mas validação foi executada somente no RCV (ramo 59)</td>
+        <td><span style="color:#e08456;font-weight:700">Médio</span></td>
+        <td><span style="color:#e08456;font-weight:700">Médio</span></td>
+        <td>Regressivo nos demais ramos quando massa disponível. Risco assumido — escopo acordado com o time</td>
+      </tr>
+      <tr>
+        <td>Massa de dados alterada durante os testes (campo Cancelamento preenchido) pode impactar outros testes que usem as mesmas apólices</td>
+        <td><span style="color:#3fb950;font-weight:700">Baixo</span></td>
+        <td><span style="color:#e08456;font-weight:700">Médio</span></td>
+        <td>Reverter campo Cancelamento após cada CT. Documentado na seção Pré-Requisitos</td>
+      </tr>
+    </table>
+  </div>
+
   <!-- CONCLUSÃO -->
   <div class="section">
-    <div class="section-hd">4. Conclusão</div>
+    <div class="section-hd">7. Conclusão</div>
     <div class="pass-box">
       <strong>✓ Fix validado — 3 de 3 cenários PASS</strong>
       <ul style="margin-top:8px; padding-left:20px; line-height:2">
