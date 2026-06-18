@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — PBI 7221 — Conversor Importação DUIMP (EZZE)</title>
+<style>
+:root {
+  --bg: #0f1114;
+  --surface: #1a1d23;
+  --surface-2: #22262e;
+  --border: #343a46;
+  --text: #e6e8eb;
+  --muted: #9aa3ad;
+  --accent: #3b9eff;
+  --accent-dim: #1e4d7a;
+  --ok: #3fb950;
+  --ok-bg: rgba(63, 185, 80, 0.18);
+  --fail: #f85149;
+  --fail-bg: rgba(248, 81, 73, 0.18);
+  --pend: #8b949e;
+  --pend-bg: rgba(139, 148, 158, 0.2);
+  --block: #d29922;
+  --block-bg: rgba(210, 153, 34, 0.22);
+  --na: #6e7681;
+  --na-bg: rgba(110, 118, 129, 0.25);
+  --warn-bg: rgba(210, 153, 34, 0.12);
+  --info-bg: rgba(59, 158, 255, 0.1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; color: var(--text); background: var(--bg); line-height: 1.5; }
+a { color: var(--accent); }
+header {
+  background: linear-gradient(135deg, #0a2744 0%, #152238 50%, var(--bg) 100%);
+  color: #fff; padding: 24px 32px;
+  display: flex; align-items: center; gap: 20px;
+  border-bottom: 1px solid var(--border);
+}
+header .badge { background: var(--accent); color: #0a1628; font-weight: 700; font-size: 16px; border-radius: 8px; padding: 8px 16px; white-space: nowrap; }
+header h1 { font-size: 20px; font-weight: 600; line-height: 1.3; }
+header p { font-size: 13px; opacity: .9; margin-top: 4px; color: #c9d1d9; }
+.container { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+.dash { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.dash-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; text-align: center; }
+.dash-card .num { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.dash-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-top: 4px; }
+.dash-card.total .num { color: var(--accent); }
+.dash-card.aprovado .num { color: var(--ok); }
+.dash-card.reprovado .num { color: var(--fail); }
+.dash-card.pendente .num { color: var(--pend); }
+.dash-card.bloqueado .num { color: var(--block); }
+.dash-wide { grid-column: 1 / -1; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.dash-wide h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+.progress-bar { height: 10px; background: var(--surface-2); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+.progress-bar .fill { height: 100%; border-radius: 6px; transition: width .6s; }
+.progress-bar .fill.ok { background: var(--ok); }
+.progress-bar .fill.fail { background: var(--fail); }
+.info-box { background: var(--info-bg); border: 1px solid var(--accent-dim); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 13px; }
+.info-box table { width: 100%; border-collapse: collapse; }
+.info-box td { padding: 4px 8px; }
+.info-box td:first-child { color: var(--muted); white-space: nowrap; width: 180px; }
+.warn-box { background: var(--warn-bg); border: 1px solid var(--block); border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--block); }
+.section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 12px; font-weight: 600; }
+.ct-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; overflow: hidden; }
+.ct-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; cursor: pointer; user-select: none; }
+.ct-head:hover { background: var(--surface-2); }
+.ct-id { font-family: monospace; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.ct-title { flex: 1; font-weight: 500; font-size: 14px; }
+.ct-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.ct-badge.pend { background: var(--pend-bg); color: var(--pend); }
+.ct-badge.ok { background: var(--ok-bg); color: var(--ok); }
+.ct-badge.fail { background: var(--fail-bg); color: var(--fail); }
+.ct-badge.block { background: var(--block-bg); color: var(--block); }
+.ct-badge.p1 { background: rgba(248,81,73,.15); color: #f85149; }
+.ct-badge.p2 { background: rgba(210,153,34,.15); color: #d29922; }
+.ct-badge.p3 { background: rgba(139,148,158,.15); color: #8b949e; }
+.ct-toggle { color: var(--muted); font-size: 11px; transition: transform .2s; }
+.ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+.ct-body { display: none; padding: 0 18px 18px; border-top: 1px solid var(--border); }
+.ct-block.expanded .ct-body { display: block; }
+.ct-body h4 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 6px; }
+.ct-body ol { padding-left: 20px; }
+.ct-body ol li { margin-bottom: 4px; font-size: 13px; }
+.ct-body ul { padding-left: 20px; }
+.ct-body ul li { margin-bottom: 3px; font-size: 13px; }
+.ct-result-ok { background: var(--ok-bg); border: 1px solid var(--ok); border-radius: 6px; padding: 8px 12px; margin-top: 14px; font-size: 13px; color: var(--ok); }
+.ct-result-pend { background: var(--pend-bg); border: 1px solid var(--pend); border-radius: 6px; padding: 8px 12px; margin-top: 14px; font-size: 13px; color: var(--pend); }
+.ev-section { margin-top: 14px; }
+.ev-img { max-width: 100%; border-radius: 6px; border: 1px solid var(--border); margin-top: 8px; display: block; }
+.ev-caption { font-size: 11px; color: var(--muted); margin-top: 4px; }
+code { font-family: monospace; font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 3px; color: #e3b341; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">PBI-7221</div>
+  <div>
+    <h1>[EXT] Conversor Importação — DUIMP</h1>
+    <p>Sprint 8 Sustentação · EZZE HML · Autor: Wesley Moreira · 17/06/2026</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Dashboard -->
+  <div class="dash">
+    <div class="dash-card total"><div class="num" id="n-total">7</div><div class="lbl">Total CTs</div></div>
+    <div class="dash-card aprovado"><div class="num" id="n-aprov">7</div><div class="lbl">Aprovados</div></div>
+    <div class="dash-card pendente"><div class="num" id="n-pend">0</div><div class="lbl">Pendentes</div></div>
+    <div class="dash-card reprovado"><div class="num" id="n-repr">0</div><div class="lbl">Reprovados</div></div>
+    <div class="dash-card bloqueado"><div class="num" id="n-blok">0</div><div class="lbl">Bloqueados</div></div>
+    <div class="dash-wide">
+      <h2>Progresso da execução</h2>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)">
+        <span>7/7 CTs executados · André Madeira (11/06 · V 1.0.260610.1637) + Wesley Moreira (18/06 · V 1.0.260615.1205)</span>
+        <span id="pct">100%</span>
+      </div>
+      <div class="progress-bar" style="margin-top:8px">
+        <div class="fill ok" id="bar-ok" style="width:100%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info do PBI -->
+  <div class="info-box">
+    <table>
+      <tr><td>Card</td><td><strong>PBI-7221</strong> — [EXT]CONVERSOR IMPORTAÇÃO</td></tr>
+      <tr><td>Seguradora</td><td>EZZE · Ambiente HML</td></tr>
+      <tr><td>URL EZZE HML</td><td><code>https://ezze-hml-faturamento.nsseg.com.br/login/</code></td></tr>
+      <tr><td>Credenciais</td><td><code>ROT_AUTO</code> / <code>T7Jjm6xF</code></td></tr>
+      <tr><td>Versão testada</td><td>V 1.0.260610.1637 (André, 11/06) · Reteste: versão atual HML</td></tr>
+      <tr><td>Apólice massa</td><td>Apólice <strong>2</strong> · Subgrupo <strong>1</strong> · Segurado DELLAMED S.A.</td></tr>
+      <tr><td>Layout conversor</td><td><strong>LAYOUT_PAULO</strong> · Layout ID: <code>CIT-AVB-IMP</code></td></tr>
+      <tr><td>Arquivo massa</td><td><code>massa-duimp-layout-paulo.txt</code> · 2 DIs · formato: pos 33-40 DI numérico + pos 44-58 DUIMP</td></tr>
+      <tr><td>DIs testados</td><td><code>02970326</code> → DUIMP <code>26BR00002970326</code> | <code>03166970</code> → DUIMP <code>26BR00003166970</code></td></tr>
+      <tr><td>Sprint</td><td>Sprint_8_Sustentacao · CITWEB\Sustentacao CITWEB</td></tr>
+    </table>
+  </div>
+
+  <div class="warn-box">
+    ⚠️ <strong>Pré-condição de reteste:</strong> Averbações definitivas duplicadas (<code>u_avb_dfv 2026000002</code> e <code>2026000003</code>) removidas de <code>tb_mov_avb_int_cit</code> em 17/06/2026 (banco <code>smt-hom-citweb-ezze</code>). Provisória <code>20260001</code> mantida em <code>tb_avb_prv_cit</code>. CTs 001–003 bloqueados anteriormente por DI duplicada — retestáveis após limpeza.
+  </div>
+
+  <!-- CTs de Reteste -->
+  <div class="section-title">Reteste aprovado — Wesley Moreira · 18/06/2026 · V 1.0.260615.1205</div>
+
+  <!-- CT-001 -->
+  <div class="ct-block" id="ct-001">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-001</span>
+      <span class="ct-title">Processar arquivo com DUIMP — sucesso sem erro genérico</span>
+      <span class="ct-badge p1">P1</span>
+      <span class="ct-badge ok" id="badge-001">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Contexto</h4>
+      <p style="font-size:13px">Reteste do CA principal: arquivo com DUIMP em formato correto (DI numérico nas pos. 33–40 + DUIMP completo nas pos. 44–58) deve ser convertido e processado sem erro genérico. A falha original (DI já cadastrada) foi devida a execução anterior de PAULO em 08/06 — registros deletados em 17/06.</p>
+
+      <h4>Pré-condições</h4>
+      <ul>
+        <li>EZZE HML acessível: <code>https://ezze-hml-faturamento.nsseg.com.br/login/</code></li>
+        <li>Login com <code>ROT_AUTO</code> / <code>T7Jjm6xF</code></li>
+        <li>Arquivo <code>massa-duimp-layout-paulo.txt</code> disponível localmente (2 linhas: DI 02970326 + 03166970)</li>
+        <li>Averbações definitivas duplicadas removidas do banco ✓ (17/06/2026)</li>
+      </ul>
+
+      <h4>Dados de entrada</h4>
+      <ul>
+        <li>Arquivo: <code>massa-duimp-layout-paulo.txt</code></li>
+        <li>Layout: <strong>LAYOUT_PAULO</strong></li>
+        <li>DI 1: <code>02970326</code> · DUIMP: <code>26BR00002970326</code></li>
+        <li>DI 2: <code>03166970</code> · DUIMP: <code>26BR00003166970</code></li>
+      </ul>
+
+      <h4>Passos</h4>
+      <ol>
+        <li>Login no EZZE HML com <code>ROT_AUTO / T7Jjm6xF</code> → confirmar menu superior visível</li>
+        <li>Menu superior: <strong>Internacional</strong> → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>Importação</strong></li>
+        <li>Campo Apólice: <code>2</code> · Subgrupo: <code>1</code> (ou conforme tela)</li>
+        <li>Selecionar arquivo: <code>massa-duimp-layout-paulo.txt</code> via botão Upload/Procurar</li>
+        <li>Selecionar Layout: <strong>LAYOUT_PAULO</strong></li>
+        <li>Clicar em <strong>Converter</strong> → aguardar resultado</li>
+        <li><strong>[EV1]</strong> Screenshot: resultado da Converter — verificar "X total / Y incluídas / 0 erros"</li>
+        <li>Menu: <strong>Conversor de Arquivos</strong> → <strong>Processa Averbações</strong> → <strong>Importação</strong></li>
+        <li>Selecionar Layout: <strong>LAYOUT_PAULO</strong> → clicar <strong>Processar</strong></li>
+        <li><strong>[EV2]</strong> Screenshot: resultado do Processar — verificar "averbações incluídas &gt; 0"</li>
+        <li><strong>[EV3]</strong> Verificar que mensagem NÃO é "Ocorreu um erro inesperado!" e NÃO é "DI já cadastrada"</li>
+      </ol>
+
+      <h4>Resultado esperado</h4>
+      <ul>
+        <li>Converter: 2 total / 2 incluídas / 0 erros</li>
+        <li>Processar: averbações incluídas ≥ 1, sem erro genérico, sem "DI já cadastrada"</li>
+        <li>Mensagem de sucesso específica exibida pelo sistema</li>
+      </ul>
+
+      <div class="ct-result-ok" id="ev-001">✓ APROVADO — Wesley Moreira · 18/06/2026 · V 1.0.260615.1205<br>Converter: 2 total / 2 incluídas / 0 erros · Processar: 2 averbações incluídas / 0 erros<br>Averbações criadas: <code>2026000002</code> e <code>2026000003</code> · sem erro genérico · sem "DI já cadastrada"</div>
+      <div class="ev-section">
+        <h4>Evidências</h4>
+        <a href="evidencias/CT-CNV-IMP-001/EV1-converter-sucesso.png" target="_blank"><img class="ev-img" src="evidencias/CT-CNV-IMP-001/EV1-converter-sucesso.png" alt="EV1 — Converter 2/2 sucesso"></a>
+        <p class="ev-caption">EV1 — Converter: 2 total / 2 incluídas / 0 erros · LAYOUT_PAULO · 18/06/2026</p>
+        <a href="evidencias/CT-CNV-IMP-001/EV2-processar-sucesso.png" target="_blank"><img class="ev-img" src="evidencias/CT-CNV-IMP-001/EV2-processar-sucesso.png" alt="EV2 — Processar sucesso"></a>
+        <p class="ev-caption">EV2 — Processar: "Processamento do arquivo concluído com sucesso!" · 2 averbações incluídas · 0 erros</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-002 -->
+  <div class="ct-block" id="ct-002">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-002</span>
+      <span class="ct-title">Validar armazenamento do DUIMP completo após processamento</span>
+      <span class="ct-badge p1">P1</span>
+      <span class="ct-badge ok" id="badge-002">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Contexto</h4>
+      <p style="font-size:13px">Após CT-001 aprovado, verificar que o campo DUIMP (<code>t_obs</code>) foi armazenado em formato completo na averbação criada. O CA exige que "26BR00002970326" apareça integralmente, não truncado. Bloqueado anteriormente por cascata de CT-001.</p>
+
+      <h4>Pré-condições</h4>
+      <ul>
+        <li>CT-CNV-IMP-001 aprovado (averbação processada com DUIMP 26BR00002970326)</li>
+        <li>Usuário logado como <code>ROT_AUTO</code></li>
+      </ul>
+
+      <h4>Passos</h4>
+      <ol>
+        <li>Após CT-001 aprovado, anotar o número da averbação definitiva criada</li>
+        <li>Consultar a averbação: <strong>Internacional</strong> → <strong>Averbação</strong> → <strong>Importação</strong> → <strong>Definitiva</strong></li>
+        <li>Pesquisar pela apólice <code>2</code> / subgrupo <code>1</code></li>
+        <li><strong>[EV1]</strong> Screenshot: localizar averbação criada no CT-001 na lista/grid</li>
+        <li>Abrir a averbação → localizar campo Observações / DUIMP</li>
+        <li><strong>[EV2]</strong> Screenshot: campo DUIMP / Observações com valor completo visível (<code>26BR00002970326</code>)</li>
+        <li>Verificar via banco: <code>SELECT t_obs, u_di FROM tb_mov_avb_int_cit WHERE u_apo_pnc=2 AND c_org_prd=1 ORDER BY u_avb_dfv DESC</code></li>
+      </ol>
+
+      <h4>Resultado esperado</h4>
+      <ul>
+        <li>Campo Observações / DUIMP exibe: <code>26BR00002970326</code> (15 chars, formato completo)</li>
+        <li><code>u_di</code> contém: <code>02970326</code></li>
+        <li><code>t_obs</code> contém: <code>26BR00002970326</code> (não truncado)</li>
+      </ul>
+
+      <div class="ct-result-ok" id="ev-002">✓ APROVADO — Wesley Moreira · 18/06/2026 · V 1.0.260615.1205<br>Confirmado via banco: <code>t_obs = 26BR00002970326</code> (averbação 2026000002) e <code>t_obs = 26BR00003166970</code> (averbação 2026000003)<br>Campo <code>u_di</code>: <code>02970326</code> e <code>03166970</code> — DUIMPs armazenados sem truncamento</div>
+      <div class="ev-section">
+        <h4>Evidências</h4>
+        <a href="evidencias/CT-CNV-IMP-002/EV1-duimp-incluida.png" target="_blank"><img class="ev-img" src="evidencias/CT-CNV-IMP-002/EV1-duimp-incluida.png" alt="EV1 — Processar com DUIMPs incluídos"></a>
+        <p class="ev-caption">EV1 — Processar mostrando averbações 2026000002 e 2026000003 incluídas com DUIMPs da massa · Confirmado via DB: <code>SELECT t_obs, u_di FROM tb_mov_avb_int_cit WHERE u_avb_dfv IN (2026000002, 2026000003)</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-003 -->
+  <div class="ct-block" id="ct-003">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-003</span>
+      <span class="ct-title">Cenário real do bug — DUIMPs do card processados com sucesso</span>
+      <span class="ct-badge p1">P1</span>
+      <span class="ct-badge ok" id="badge-003">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Contexto</h4>
+      <p style="font-size:13px">Valida o cenário exato descrito no card: DUIMPs 26BR00002970326 e 26BR00003166970 sendo processados com sucesso. Na execução anterior (André, 11/06), a conversão passou (2/2) mas o Processar falhou por DI duplicada. Após remoção dos registros duplicados, ambos os DUIMPs devem ser processados com averbações incluídas.</p>
+
+      <h4>Pré-condições</h4>
+      <ul>
+        <li>Banco limpo: DIs 02970326 e 03166970 não existem em <code>tb_mov_avb_int_cit</code> ✓ (verificado 17/06)</li>
+        <li>Arquivo <code>massa-duimp-layout-paulo.txt</code> com ambos os DUIMPs</li>
+        <li>Apólice 2 / subgrupo 1 / segurado DELLAMED S.A.</li>
+      </ul>
+
+      <h4>Passos</h4>
+      <ol>
+        <li>Login <code>ROT_AUTO</code> → EZZE HML</li>
+        <li><strong>Internacional</strong> → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>Importação</strong></li>
+        <li>Upload: <code>massa-duimp-layout-paulo.txt</code> (2 linhas: DI 02970326 + 03166970)</li>
+        <li>Layout: <strong>LAYOUT_PAULO</strong> → <strong>Converter</strong></li>
+        <li><strong>[EV1]</strong> Screenshot: "2 total / 2 incluídas / 0 erros" na conversão</li>
+        <li><strong>Processa Averbações</strong> → <strong>Importação</strong> → <strong>LAYOUT_PAULO</strong> → <strong>Processar</strong></li>
+        <li><strong>[EV2]</strong> Screenshot: resultado Processar — "incluídas = 2 / erros = 0"</li>
+        <li><strong>[EV3]</strong> Screenshot: averbações listadas na tela (grid com ambas as DIs)</li>
+      </ol>
+
+      <h4>Resultado esperado</h4>
+      <ul>
+        <li>Conversão: 2 total / 2 incluídas / 0 erros</li>
+        <li>Processar: 2 incluídas / 0 erros</li>
+        <li>Ambos os DUIMPs (26BR00002970326 e 26BR00003166970) constam na listagem de averbações</li>
+        <li>Sem mensagem "Ocorreu um erro inesperado!" em nenhuma etapa</li>
+      </ul>
+
+      <div class="ct-result-ok" id="ev-003">✓ APROVADO — Wesley Moreira · 18/06/2026 · V 1.0.260615.1205<br>DUIMP 26BR00002970326 → averbação 2026000002 · DUIMP 26BR00003166970 → averbação 2026000003<br>Processar: 2 incluídas / 0 erros · Sem "Ocorreu um erro inesperado!" em nenhuma etapa</div>
+      <div class="ev-section">
+        <h4>Evidências</h4>
+        <a href="evidencias/CT-CNV-IMP-003/EV1-ambas-processadas.png" target="_blank"><img class="ev-img" src="evidencias/CT-CNV-IMP-003/EV1-ambas-processadas.png" alt="EV1 — Ambas DUIMPs processadas"></a>
+        <p class="ev-caption">EV1 — Processar: "Processamento concluído com sucesso!" · Aceitas: averbação 2026000002 (DI 02970326) + 2026000003 (DI 03166970) · 2 incluídas / 0 erros</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTs Aprovados -->
+  <div class="section-title">Aprovados — Execução André Madeira · 11/06/2026 · V 1.0.260610.1637</div>
+
+  <!-- CT-004 -->
+  <div class="ct-block" id="ct-004">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-004</span>
+      <span class="ct-title">Formato correto: DI numérica + DUIMP em Observações — conversão 2/2 sem rejeição</span>
+      <span class="ct-badge p1">P1</span>
+      <span class="ct-badge ok">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Cenário</h4>
+      <p style="font-size:13px">Valida que o formato correto do arquivo (DI numérica nas pos. 33–40 + DUIMP completo em Observações nas pos. 44–58) é aceito pelo Converter sem rejeição de linhas.</p>
+      <h4>Resultado obtido (André, 11/06)</h4>
+      <div class="ct-result-ok">✓ APROVADO — Formato DI numérica + DUIMP em Observações aceito. Conversão: 2/2 incluídas, 0 erros. Confirmado que o formato corrigido elimina a rejeição anterior.</div>
+    </div>
+  </div>
+
+  <!-- CT-005 -->
+  <div class="ct-block" id="ct-005">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-005</span>
+      <span class="ct-title">Mensagens específicas na conversão e no Processar (DI já cadastrada)</span>
+      <span class="ct-badge p2">P2</span>
+      <span class="ct-badge ok">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Cenário</h4>
+      <p style="font-size:13px">Valida que quando a DI já está cadastrada, o sistema exibe mensagem específica ("DI já cadastrada na averbação X") em vez do erro genérico "Ocorreu um erro inesperado!".</p>
+      <h4>Resultado obtido (André, 11/06)</h4>
+      <div class="ct-result-ok">✓ APROVADO — Mensagem específica exibida na conversão (1ª execução) e no Processar (DI já cadastrada na averbação 2026000002/2026000003). Bug de erro genérico não reproduzido com o fix.</div>
+    </div>
+  </div>
+
+  <!-- CT-006 -->
+  <div class="ct-block" id="ct-006">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-006</span>
+      <span class="ct-title">Conversão de DI numérica sem DUIMP em Observações — 1/1 incluída</span>
+      <span class="ct-badge p2">P2</span>
+      <span class="ct-badge ok">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Cenário</h4>
+      <p style="font-size:13px">Valida que o conversor funciona quando o campo Observações (pos. 44–58) está vazio — DI numérica sem DUIMP. O workaround de duas colunas não é mais necessário.</p>
+      <h4>Resultado obtido (André, 11/06)</h4>
+      <div class="ct-result-ok">✓ APROVADO — Conversão: 1/1 incluída, 0 erros. DI numérica sem DUIMP em Observações processada corretamente.</div>
+    </div>
+  </div>
+
+  <!-- CT-007 -->
+  <div class="ct-block" id="ct-007">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-CNV-IMP-007</span>
+      <span class="ct-title">Resultado de Converter DUIMP antes de Processar — contadores corretos</span>
+      <span class="ct-badge p2">P2</span>
+      <span class="ct-badge ok">✓ APROVADO</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <h4>Cenário</h4>
+      <p style="font-size:13px">Valida os contadores exibidos após Converter: "X total / 0 incluídas / 0 erros" (dados aguardando Processar) conforme comportamento esperado do sistema.</p>
+      <h4>Resultado obtido (André, 11/06)</h4>
+      <div class="ct-result-ok">✓ APROVADO — Após conversão DUIMP: 2 total / 0 incluídas (aguardando Processar) / 0 erros. Contadores exibidos corretamente antes da etapa de Processamento.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// toggle já tratado via onclick inline em cada ct-head
+</script>
+</body>
+</html>
