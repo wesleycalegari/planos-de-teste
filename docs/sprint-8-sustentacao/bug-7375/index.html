@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste &mdash; BUG-7375 Erro ao consultar apólices perfil ASSESSORIA (CNPJ Alfa)</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--purple:#bc8cff;--orange:#e3b341}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px}
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px}
+  .topbar-id{font-size:13px;font-weight:700;color:var(--green);background:#0d2a0d;border:1px solid var(--green)44;border-radius:6px;padding:3px 10px}
+  .topbar-title{font-size:14px;color:var(--text)}
+  .topbar-env{margin-left:auto;font-size:11px;color:var(--muted);background:#21262d;border:1px solid var(--border);border-radius:12px;padding:3px 10px}
+  .hero{padding:24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0d1a0d,#161b22)}
+  .hero h1{font-size:22px;font-weight:700;color:var(--green)}
+  .hero-sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .info-cell{background:var(--bg2);padding:12px 16px}
+  .info-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .info-value{font-size:13px;color:var(--text);margin-top:2px;font-weight:600}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+  .metric{background:var(--bg2);padding:14px;text-align:center}
+  .metric-val{font-size:26px;font-weight:700}
+  .metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+  .m-total .metric-val{color:var(--blue)}.m-pass .metric-val{color:var(--green)}.m-fail .metric-val{color:var(--red)}.m-bloq .metric-val{color:var(--purple)}
+  .content{padding:24px;max-width:1000px;margin:0 auto}
+  .section{margin-bottom:24px}
+  .section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .info-box{background:#1a2a3a;border:1px solid #388bfd33;border-radius:6px;padding:10px 14px;font-size:12px;color:#79c0ff;margin-bottom:10px}
+  .pass-box{background:#0d1f0d;border:1px solid #3fb95033;border-radius:6px;padding:10px 14px;font-size:12px;color:#3fb950;margin-bottom:10px}
+  .code-box{background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:10px 14px;font-size:11px;font-family:monospace;color:var(--orange);margin:8px 0}
+  .ct-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+  .ct-head{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-num{font-size:11px;font-weight:700;color:var(--muted);min-width:36px}
+  .ct-title{flex:1;font-size:13px}
+  .ct-perfil{font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid #d2992255;color:var(--orange)}
+  .ct-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;min-width:80px;text-align:center}
+  .badge-pass{background:#1a3a2a;color:var(--green);border:1px solid #2ea04322}
+  .ct-toggle{color:var(--muted);font-size:11px;transition:transform .2s}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:0 16px 16px;border-top:1px solid var(--bg3)}
+  .ct-block.expanded .ct-body{display:block}
+  .steps{margin-top:10px}
+  .step{display:flex;gap:10px;margin-bottom:6px;font-size:12px}
+  .step-n{background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:1px}
+  .step-txt{color:var(--text)}.step-txt b{color:var(--blue)}
+  .result-box{margin-top:12px;background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px}
+  .result-lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .ev-section{margin-top:14px}.ev-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .ev-thumb{cursor:pointer;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg3);transition:border-color .15s}
+  .ev-thumb:hover{border-color:var(--blue)}
+  .ev-thumb img{display:block;height:100px;width:auto;max-width:180px;object-fit:cover}
+  .ev-label{font-size:10px;color:var(--muted);padding:4px 8px;text-align:center;background:var(--bg3)}
+  .lightbox{display:none;position:fixed;inset:0;background:#000a;z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:92vw;max-height:88vh;border-radius:8px;border:1px solid var(--border)}
+  .lightbox-close{color:var(--muted);font-size:12px;cursor:pointer;background:var(--bg2);padding:6px 18px;border-radius:20px;border:1px solid var(--border)}
+  .lightbox-caption{color:var(--muted);font-size:12px}
+  .progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:12px}
+  .progress-fill{height:100%;background:var(--green);border-radius:3px}
+  table.summary{width:100%;border-collapse:collapse;font-size:12px}
+  table.summary th,table.summary td{padding:8px 12px;border:1px solid var(--border);text-align:left}
+  table.summary th{background:var(--bg3);color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+  .req-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:6px 0;border-bottom:1px solid var(--bg3)}
+  .req-method{font-size:10px;font-weight:700;background:#1a2d1a;color:var(--green);border:1px solid #3fb95033;border-radius:4px;padding:2px 7px}
+  .req-url{color:var(--blue);font-family:monospace;font-size:11px;flex:1}
+  .req-status{font-weight:700;color:var(--green)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-id">BUG-7375</div>
+  <div class="topbar-title">Erro ao consultar apólices — ASSESSORIA CNPJ Alfanumérico</div>
+  <div class="topbar-env">AXA ALFA HML &bull; Sprint 8 Sustentação</div>
+</div>
+
+<div class="hero">
+  <h1>[CITNET] Erro ao consultar apólices no perfil ASSESSORIA (AXA) — varchar to numeric</h1>
+  <div class="hero-sub">Reteste executado em 19/06/2026 &bull; Ambiente: AXA ALFA HML &bull; Usuário: ASSESS (ASSESSORIA TESTE 7317)</div>
+  <div class="progress-bar" style="max-width:400px"><div class="progress-fill" style="width:100%"></div></div>
+  <div style="font-size:11px;color:var(--green);margin-top:4px">1 / 1 casos aprovados</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-cell"><div class="info-label">Bug ID</div><div class="info-value">BUG-7375</div></div>
+  <div class="info-cell"><div class="info-label">Relacionado</div><div class="info-value">BUG-7373 (mesma família)</div></div>
+  <div class="info-cell"><div class="info-label">Componente</div><div class="info-value">CITNET AXA ALFA — Apólice/ListarA</div></div>
+  <div class="info-cell"><div class="info-label">Sprint</div><div class="info-value">Sprint 8</div></div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val">1</div><div class="metric-lbl">Total</div></div>
+  <div class="metric m-pass"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-fail"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-bloq"><div class="metric-val">0</div><div class="metric-lbl">Bloqueados</div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Contexto do Bug</div>
+    <div class="info-box">
+      <b>Causa raiz:</b> No repositório <code>ApoliceNacionalRepository.Listar_Axa</code>, os branches else-if
+      comparavam <code>cli.u_cpf_cgc</code> (varchar) e <code>tb_cvd.u_cpf_cgc</code> com os parâmetros
+      <code>c_idt_pes_cli</code> / <code>c_idt_pes_cvd</code> como NUMÉRICOS. O SQL tentava converter a coluna
+      varchar para numeric, quebrando quando o CNPJ do usuário Assessoria era alfanumérico.
+    </div>
+    <div class="code-box">
+      Erro original: Error converting data type varchar to numeric<br>
+      Endpoint: POST /alfa/citnet/Apolice/ListarA<br>
+      Fluxo: selecionar corretor → selecionar segurado → carregar apólices
+    </div>
+    <div class="pass-box">
+      <b>Resultado do reteste:</b> Endpoint <code>Apolice/ListarA</code> retorna HTTP 200 sem erro SQL para o
+      usuário ASSESS (CNPJ alfanumérico). Fix validado.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="ct-block expanded">
+      <div class="ct-head" onclick="toggle(this)">
+        <div class="ct-num">CT01</div>
+        <div class="ct-title">Consultar apólices (Apolice/ListarA) como Assessoria com CNPJ alfanumérico no RCTR-C</div>
+        <div class="ct-perfil">Assessoria</div>
+        <div class="ct-badge badge-pass">✓ PASS</div>
+        <div class="ct-toggle">▶</div>
+      </div>
+      <div class="ct-body">
+        <div class="steps">
+          <div class="step"><div class="step-n">1</div><div class="step-txt">Acessar <b>CITNET AXA ALFA HML</b> com usuário <b>ASSESS / Aig2026@e</b></div></div>
+          <div class="step"><div class="step-n">2</div><div class="step-txt">Navegar para <b>Averbações → Nacional → RCTR-C</b></div></div>
+          <div class="step"><div class="step-n">3</div><div class="step-txt">Selecionar Corretor: <b>100558397 - |NSERT CORRETORA DE SEGUROS LTDA</b></div></div>
+          <div class="step"><div class="step-n">4</div><div class="step-txt">Verificar que o dropdown <b>Segurado</b> é populado via AJAX (<code>ListarApoliceSegurado</code>) sem erro</div></div>
+          <div class="step"><div class="step-n">5</div><div class="step-txt">Selecionar Segurado: <b>12933145000124 - SOL CARGAS TRANSPORTES MULTIMODAL LTDA</b></div></div>
+          <div class="step"><div class="step-n">6</div><div class="step-txt">Verificar que <b>Apolice/ListarA</b> é chamado e retorna HTTP 200 sem erro de conversão varchar→numeric</div></div>
+        </div>
+        <div class="result-box">
+          <div class="result-lbl">Resultado Obtido</div>
+          <div style="color:var(--green);margin-top:4px">
+            ✓ Segurado populado sem erro (ListarApoliceSegurado → 200).<br>
+            ✓ <code>Apolice/ListarA</code> retornou <b>HTTP 200</b> para o usuário ASSESS (CNPJ alfanumérico).<br>
+            ✓ Nenhuma exceção "Error converting data type varchar to numeric".<br>
+            ✓ Confirmado via chamada direta fetch: <code>{"status":200,"ok":true}</code>
+          </div>
+        </div>
+
+        <div class="section" style="margin-top:16px">
+          <div class="section-title">Chamadas de Rede Observadas</div>
+          <div class="req-row">
+            <div class="req-method">POST</div>
+            <div class="req-url">/alfa/citnet/Apolice/ListarApoliceSegurado</div>
+            <div class="req-status">200</div>
+          </div>
+          <div class="req-row">
+            <div class="req-method">POST</div>
+            <div class="req-url">/alfa/citnet/Apolice/ListarA</div>
+            <div class="req-status">200</div>
+          </div>
+        </div>
+
+        <div class="ev-section">
+          <div class="ev-title">Evidências</div>
+          <div class="ev-grid">
+            <div class="ev-thumb" onclick="showImg('evidencias/CT01_listar_apolices/01-formulario-sem-erro-sql.png','Formulário RCTR-C com corretor e segurado selecionados — sem erro SQL')">
+              <img src="evidencias/CT01_listar_apolices/01-formulario-sem-erro-sql.png" alt="Formulário sem erro">
+              <div class="ev-label">01 — Formulário sem erro SQL</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Informações Técnicas</div>
+    <table class="summary">
+      <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Ambiente</td><td>AXA ALFA HML — https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</td></tr>
+        <tr><td>Usuário de teste</td><td>ASSESS — ASSESSORIA TESTE 7317 (CNPJ alfanumérico — família #7317)</td></tr>
+        <tr><td>Corretor testado</td><td>100558397 — |NSERT CORRETORA DE SEGUROS LTDA</td></tr>
+        <tr><td>Segurado testado</td><td>12933145000124 — SOL CARGAS TRANSPORTES MULTIMODAL LTDA</td></tr>
+        <tr><td>Endpoint crítico</td><td>POST /alfa/citnet/Apolice/ListarA → HTTP 200 ✓</td></tr>
+        <tr><td>Data de execução</td><td>19/06/2026</td></tr>
+        <tr><td>Executor</td><td>QA Automatizado — Playwright MCP</td></tr>
+        <tr><td>Veredicto</td><td style="color:var(--green);font-weight:700">APROVADO — fix funcional</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="lightbox" id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-caption" id="lb-cap"></div>
+  <div class="lightbox-close">Fechar</div>
+</div>
+
+<script>
+function toggle(h){h.closest('.ct-block').classList.toggle('expanded')}
+function showImg(s,c){document.getElementById('lb-img').src=s;document.getElementById('lb-cap').textContent=c;document.getElementById('lb').classList.add('open')}
+function closeLb(){document.getElementById('lb').classList.remove('open')}
+</script>
+</body>
+</html>
