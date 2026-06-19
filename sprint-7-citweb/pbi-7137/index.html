@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Testes — PBI 7137 | Relação de Embarques Simplificada RCV</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #1f6feb;
+    --accent2: #388bfd;
+    --green: #2ea043;
+    --green-bg: #0f2d1a;
+    --red: #da3633;
+    --red-bg: #2d0f0f;
+    --yellow: #d29922;
+    --yellow-bg: #2d200f;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* TOP BAR */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  .topbar .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar .sprint { color: var(--text2); font-size: 12px; }
+  .topbar h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar .build { color: var(--text2); font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, #0d1b2e 0%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: 32px 24px; }
+  .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .hero p { color: var(--text2); max-width: 680px; line-height: 1.7; }
+  .hero .tags { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .hero .tag { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  .hero .tag.blue { border-color: var(--accent); color: var(--text3); }
+
+  /* METRICS STRIP */
+  .metrics { display: flex; gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .metric { flex: 1; background: var(--surface); padding: 16px 20px; text-align: center; }
+  .metric .num { font-size: 28px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .num.total { color: var(--text3); }
+  .num.pass { color: var(--green); }
+  .num.fail { color: var(--red); }
+  .num.pend { color: var(--yellow); }
+
+  /* PROGRESS */
+  .progress-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .progress-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+  .progress-pct { font-size: 12px; color: var(--text2); min-width: 40px; text-align: right; }
+
+  /* LAYOUT */
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  /* SECTION */
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* MASSA */
+  .massa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .massa-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .massa-card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .massa-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .massa-row:last-child { border-bottom: none; }
+  .massa-key { color: var(--text2); font-size: 12px; }
+  .massa-val { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+
+  /* CT BLOCK */
+  .ct-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .ct-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .ct-bar:hover { background: var(--surface2); }
+  .ct-id { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; font-weight: 700; color: var(--text3); min-width: 100px; }
+  .ct-title { flex: 1; font-weight: 500; }
+  .ct-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; min-width: 80px; text-align: center; }
+  .status-pend { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .status-pass { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .status-fail { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .ct-chevron { color: var(--text2); font-size: 12px; transition: transform 0.2s; }
+  .ct-block.open .ct-chevron { transform: rotate(90deg); }
+
+  .ct-panel { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .ct-block.open .ct-panel { display: block; }
+
+  .ct-meta { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .ct-meta span { font-size: 12px; color: var(--text2); }
+  .ct-meta strong { color: var(--text); }
+
+  .ct-section { margin-top: 12px; }
+  .ct-section h5 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  .precond { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 10px 12px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  .steps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .steps-table th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .steps-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .steps-table tr:last-child td { border-bottom: none; }
+  .steps-table .num { color: var(--text2); font-size: 12px; font-weight: 700; width: 36px; text-align: center; }
+  .steps-table .acao { line-height: 1.6; }
+  .steps-table .result { color: var(--text3); line-height: 1.6; }
+  code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffa657; }
+
+  .obs-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.7; }
+  .obs-box.result-box { border-color: var(--green); color: var(--text); background: var(--green-bg); }
+  .obs-box.fail-box { border-color: var(--red); color: var(--text); background: var(--red-bg); }
+
+  /* INFO BOXES */
+  .info-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; }
+  .info-box h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+
+  /* FOOTER */
+  .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text2); font-size: 11px; margin-top: 48px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="badge">PBI 7137</div>
+  <span class="sprint">Sprint 7 — CITWEB Nacional</span>
+  <h1>[CITWEB] Relação de Embarques Simplificada RCV</h1>
+  <div class="build">Build V 1.0.260602.1407</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>Plano de Testes — Relação de Embarques Simplificada (RCV)</h2>
+  <p>Validação da nova opção de relatório <strong>"Relação de Embarques Simplificada"</strong> no módulo Nacional CITWEB,
+  disponível nas telas de Prévia e Impressão do Fechamento Mensal para o ramo <strong>RCV</strong>.</p>
+  <div class="tags">
+    <span class="tag blue">CITWEB Nacional</span>
+    <span class="tag blue">Ramo RCV</span>
+    <span class="tag">Fechamento Mensal</span>
+    <span class="tag">Prévia</span>
+    <span class="tag">Impressão</span>
+    <span class="tag">AXA HML</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="num total" id="cnt-total">2</div><div class="lbl">Total de CTs</div></div>
+  <div class="metric"><div class="num pass" id="cnt-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="num fail" id="cnt-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="num pend" id="cnt-pend">2</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <span style="font-size:12px;color:var(--text2)">Progresso</span>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-pct" id="progress-pct">0%</span>
+</div>
+
+<div class="main">
+
+  <!-- CONTEXTO -->
+  <div class="section-title">Contexto</div>
+  <div class="info-box">
+    <h4>O que foi implementado</h4>
+    O PBI 7137 adicionou a opção <strong>"Relação de Embarques Simplificada"</strong> às telas de
+    <strong>Prévia</strong> (<code>/Nacional/RelatorioPrevia</code>) e
+    <strong>Impressão</strong> (<code>/Nacional/RelatorioFechamento</code>) do Fechamento Mensal Nacional
+    para o ramo <strong>RCV</strong> (ramo 59).<br><br>
+    A Prévia lê os movimentos em aberto da tabela <code>tb_mov_avb_rcv_cit</code>.
+    A Impressão lê movimentos fechados (fatura emitida) da tabela <code>tb_cme_avb_rcv_cit</code>.
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section-title">Massa de Dados (AXA HML)</div>
+  <div class="massa-grid">
+    <div class="massa-card">
+      <h4>CT-RES-001 — Prévia (movimento aberto)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">101225</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">RCV (59)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">0001 SAO PAULO</span></div>
+      <div class="massa-row"><span class="massa-key">Mês ref (aberto)</span><span class="massa-val">12/2026</span></div>
+      <div class="massa-row"><span class="massa-key">Qtd averbações</span><span class="massa-val">695</span></div>
+      <div class="massa-row"><span class="massa-key">Origem</span><span class="massa-val">tb_mov_avb_rcv_cit</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>CT-RES-002 — Impressão (fatura emitida)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">20022026</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">RCV (59)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">0001 SAO PAULO</span></div>
+      <div class="massa-row"><span class="massa-key">Mês ref (fechado)</span><span class="massa-val">03/2026</span></div>
+      <div class="massa-row"><span class="massa-key">Qtd averbações</span><span class="massa-val">4.086</span></div>
+      <div class="massa-row"><span class="massa-key">Origem</span><span class="massa-val">tb_cme_avb_rcv_cit</span></div>
+    </div>
+  </div>
+
+  <!-- CTs -->
+  <div class="section-title">Casos de Teste</div>
+
+  <!-- CT-RES-001 -->
+  <div class="ct-block" id="ct-res-001">
+    <div class="ct-bar" onclick="toggleCT('ct-res-001')">
+      <div class="ct-id">CT-RES-001</div>
+      <div class="ct-title">Prévia Nacional — Exportar Relação de Embarques Simplificada (RCV)</div>
+      <div class="ct-status status-pend" id="status-ct-res-001">PENDENTE</div>
+      <div class="ct-chevron">▶</div>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Módulo:</strong> Nacional — Fechamento Mensal &gt; Prévia</span>
+        <span><strong>Tipo:</strong> Funcional</span>
+        <span><strong>Complexidade:</strong> Média</span>
+        <span><strong>Ramo:</strong> RCV</span>
+        <span><strong>Tela:</strong> /Nacional/RelatorioPrevia</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condição</h5>
+        <div class="precond">
+          Usuário autenticado como <code>FRED</code> / <code>DERF</code> no CITWEB AXA HML.<br>
+          Apólice <code>101225</code> (RCV, filial 0001) com movimentos de averbação em aberto no mês de referência <strong>12/2026</strong>
+          (695 registros confirmados em <code>tb_mov_avb_rcv_cit</code>).
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos e Resultados Esperados</h5>
+        <table class="steps-table">
+          <thead>
+            <tr><th class="num">#</th><th style="width:50%">Ação</th><th>Resultado Esperado</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td class="acao">Acessar <code>https://axa-hml-faturamento.nsseg.com.br/Login</code> e efetuar login com <code>FRED</code> / <code>DERF</code></td>
+              <td class="result">Usuário autenticado; tela Login/Menu exibida com os módulos disponíveis</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td class="acao">Clicar no botão <strong>"Nacional"</strong> no menu principal</td>
+              <td class="result">Módulo Nacional aberto; menu com Averbação, Fechamento Mensal, Cadastros, Relatórios</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td class="acao">Clicar em <strong>Fechamento Mensal</strong> e selecionar <strong>Prévia</strong></td>
+              <td class="result">Tela Prévia carregada (<code>/Nacional/RelatorioPrevia</code>) com campos: Filial, Ramo, Apólice, Segurado, Tipo de Relatório</td>
+            </tr>
+            <tr>
+              <td class="num">4</td>
+              <td class="acao">Selecionar <strong>Filial:</strong> <code>0001 SAO PAULO</code></td>
+              <td class="result">Filial selecionada no combobox</td>
+            </tr>
+            <tr>
+              <td class="num">5</td>
+              <td class="acao">Selecionar <strong>Ramo:</strong> <code>RCV</code></td>
+              <td class="result">Ramo RCV selecionado no combobox</td>
+            </tr>
+            <tr>
+              <td class="num">6</td>
+              <td class="acao">Informar <strong>Apólice:</strong> <code>101225</code></td>
+              <td class="result">Campo Segurado preenchido automaticamente ao informar a apólice</td>
+            </tr>
+            <tr>
+              <td class="num">7</td>
+              <td class="acao">Em <strong>"Tipo de Relatório"</strong>, marcar o checkbox <strong>"Relação de Embarques Simplificada"</strong> (<code>id=RelacaoEmbarquesSimplificada</code>)</td>
+              <td class="result">Checkbox marcado com sucesso; opção "Relação de Embarques Simplificada" selecionada</td>
+            </tr>
+            <tr>
+              <td class="num">8</td>
+              <td class="acao">Clicar em <strong>"Exportar"</strong></td>
+              <td class="result">Modal <strong>"Confirma a(s) impressão(ões)?"</strong> é exibido</td>
+            </tr>
+            <tr>
+              <td class="num">9</td>
+              <td class="acao">No modal de confirmação, clicar em <strong>"Sim"</strong></td>
+              <td class="result">PDF da Relação de Embarques Simplificada gerado e disponibilizado para download; documento contém os embarques da apólice 101225 (RCV) do mês de referência</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="obs-ct-res-001">— Pendente de execução —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-RES-002 -->
+  <div class="ct-block" id="ct-res-002">
+    <div class="ct-bar" onclick="toggleCT('ct-res-002')">
+      <div class="ct-id">CT-RES-002</div>
+      <div class="ct-title">Impressão Nacional — Exportar Relação de Embarques Simplificada (RCV)</div>
+      <div class="ct-status status-pend" id="status-ct-res-002">PENDENTE</div>
+      <div class="ct-chevron">▶</div>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Módulo:</strong> Nacional — Fechamento Mensal &gt; Impressão</span>
+        <span><strong>Tipo:</strong> Funcional</span>
+        <span><strong>Complexidade:</strong> Média</span>
+        <span><strong>Ramo:</strong> RCV</span>
+        <span><strong>Tela:</strong> /Nacional/RelatorioFechamento</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condição</h5>
+        <div class="precond">
+          Usuário autenticado como <code>FRED</code> / <code>DERF</code> no CITWEB AXA HML.<br>
+          Apólice <code>20022026</code> (RCV, filial 0001) com fatura mensal emitida no mês de referência <strong>03/2026</strong>
+          (4.086 registros confirmados em <code>tb_cme_avb_rcv_cit</code>).
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos e Resultados Esperados</h5>
+        <table class="steps-table">
+          <thead>
+            <tr><th class="num">#</th><th style="width:50%">Ação</th><th>Resultado Esperado</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="num">1</td>
+              <td class="acao">Acessar <code>https://axa-hml-faturamento.nsseg.com.br/Login</code> e efetuar login com <code>FRED</code> / <code>DERF</code></td>
+              <td class="result">Usuário autenticado; tela Login/Menu exibida</td>
+            </tr>
+            <tr>
+              <td class="num">2</td>
+              <td class="acao">Clicar no botão <strong>"Nacional"</strong> no menu principal</td>
+              <td class="result">Módulo Nacional aberto</td>
+            </tr>
+            <tr>
+              <td class="num">3</td>
+              <td class="acao">Clicar em <strong>Fechamento Mensal</strong> e selecionar <strong>Impressão</strong></td>
+              <td class="result">Tela Impressão carregada (<code>/Nacional/RelatorioFechamento</code>) com critérios: Tipo de Seleção, Filial, Ramo, Apólice, Mês/Ano</td>
+            </tr>
+            <tr>
+              <td class="num">4</td>
+              <td class="acao">Em <strong>"Critérios para Seleção"</strong>, selecionar a opção <strong>"Apólice/Referência"</strong></td>
+              <td class="result">Campos de Apólice e Mês/Ano habilitados para preenchimento</td>
+            </tr>
+            <tr>
+              <td class="num">5</td>
+              <td class="acao">Selecionar <strong>Filial:</strong> <code>0001 SAO PAULO</code> e <strong>Ramo:</strong> <code>RCV</code></td>
+              <td class="result">Filial e Ramo selecionados nos comboboxes</td>
+            </tr>
+            <tr>
+              <td class="num">6</td>
+              <td class="acao">Informar <strong>Apólice:</strong> <code>20022026</code> e <strong>Mês/Ano:</strong> <code>03</code> / <code>2026</code></td>
+              <td class="result">Campos preenchidos com os dados da massa</td>
+            </tr>
+            <tr>
+              <td class="num">7</td>
+              <td class="acao">Clicar em <strong>"Selecionar"</strong></td>
+              <td class="result">Grid carregado exibindo a fatura da apólice 20022026 com referência 03/2026</td>
+            </tr>
+            <tr>
+              <td class="num">8</td>
+              <td class="acao">Na lista exibida, marcar o <strong>checkbox</strong> da fatura da apólice <code>20022026</code></td>
+              <td class="result">Registro selecionado na grade</td>
+            </tr>
+            <tr>
+              <td class="num">9</td>
+              <td class="acao">Em <strong>"Relatórios Comerciais"</strong>, marcar o checkbox <strong>"Relação de Embarques Simplificada"</strong> (<code>id=indComercialRelacaoEmbarquesSimplificada</code>)</td>
+              <td class="result">Checkbox marcado com sucesso; opção "Relação de Embarques Simplificada" selecionada</td>
+            </tr>
+            <tr>
+              <td class="num">10</td>
+              <td class="acao">Clicar em <strong>"Processar"</strong></td>
+              <td class="result">PDF da Relação de Embarques Simplificada gerado e disponibilizado para download; documento contém os embarques da apólice 20022026 (RCV) referência 03/2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="obs-ct-res-002">— Pendente de execução —</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAPEAMENTO TÉCNICO -->
+  <div class="section-title">Mapeamento Técnico</div>
+  <div class="info-box">
+    <h4>Campos identificados — Prévia (<code>/Nacional/RelatorioPrevia</code>)</h4>
+    Ramo: <code>ddlRamo</code> (select) | Apólice: <code>numeroApolice</code> (text) |
+    Segurado: <code>ddlSegurado</code> (select) | Checkbox Simplificada: <code>RelacaoEmbarquesSimplificada</code> |
+    Botão: <code>btnExportar</code> | Modal: "Confirma a(s) impressão(ões)?" → Sim
+  </div>
+  <div class="info-box">
+    <h4>Campos identificados — Impressão (<code>/Nacional/RelatorioFechamento</code>)</h4>
+    Tipo de Seleção: <code>TipoSelecao</code> (radio: Todas / Apólice / Referência / Apólice-Referência / Data Emissão) |
+    Ramo: <code>ddlRamo</code> | Apólice: <code>numeroApolice</code> | Mês/Ano: <code>mes</code> / <code>ano</code> |
+    Checkbox Simplificada: <code>indComercialRelacaoEmbarquesSimplificada</code> |
+    Botões: <code>btnSelecionar</code> (pesquisa) → <code>btnProcessar</code> (gera PDF)
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  PBI 7137 — Sprint 7 — CITWEB Nacional &nbsp;|&nbsp; AXA HML V 1.0.260602.1407 &nbsp;|&nbsp; Gerado em 02/06/2026 &nbsp;|&nbsp; QA: Wesley Moreira
+</div>
+
+<script>
+  function toggleCT(id) {
+    const block = document.getElementById(id);
+    block.classList.toggle('open');
+  }
+
+  function updateCounters() {
+    const statuses = document.querySelectorAll('[id^="status-ct-"]');
+    let pass = 0, fail = 0, pend = 0;
+    statuses.forEach(el => {
+      const t = el.textContent.trim();
+      if (t === 'APROVADO') pass++;
+      else if (t === 'REPROVADO') fail++;
+      else pend++;
+    });
+    const total = pass + fail + pend;
+    document.getElementById('cnt-pass').textContent = pass;
+    document.getElementById('cnt-fail').textContent = fail;
+    document.getElementById('cnt-pend').textContent = pend;
+    const pct = total > 0 ? Math.round(((pass + fail) / total) * 100) : 0;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  // Load state from localStorage
+  document.addEventListener('DOMContentLoaded', () => {
+    const ids = ['ct-res-001', 'ct-res-002'];
+    ids.forEach(id => {
+      const saved = localStorage.getItem('status-' + id);
+      if (saved) {
+        const statusEl = document.getElementById('status-' + id);
+        const obsEl = document.getElementById('obs-' + id);
+        statusEl.textContent = saved.status || statusEl.textContent;
+        statusEl.className = 'ct-status ' + (saved.cssClass || 'status-pend');
+        if (saved.obs) { obsEl.textContent = saved.obs; obsEl.className = 'obs-box ' + (saved.obsClass || ''); }
+      }
+    });
+    updateCounters();
+  });
+</script>
+</body>
+</html>

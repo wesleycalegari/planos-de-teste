@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7387 — Conversor RCTR-C: Erro no processamento após conversão bem-sucedida</title>
+<style>
+  :root {
+    --bg:#0d1117; --bg2:#161b22; --bg3:#1c2128; --bg4:#21262d;
+    --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+    --blue:#58a6ff; --green:#3fb950; --red:#f85149;
+    --orange:#e08456; --yellow:#d29922; --purple:#bc8cff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; font-size:14px; }
+
+  /* TOPBAR */
+  .topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:10px 24px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:100; }
+  .topbar-logo { font-weight:700; color:var(--blue); letter-spacing:1px; font-size:15px; }
+  .topbar-sep { color:var(--border); }
+  .topbar-id { font-size:12px; color:var(--muted); }
+  .tb-badge { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+  .tb-bug    { background:#3a1a1a; color:var(--red); border:1px solid rgba(248,81,73,.3); }
+  .tb-sev    { background:#2d1a0e; color:var(--orange); border:1px solid rgba(224,132,86,.3); margin-left:auto; }
+
+  /* HERO */
+  .hero { background:linear-gradient(135deg,#0d1117 0%,#1a1020 60%,#200d0d 100%); padding:28px 24px 20px; border-bottom:1px solid var(--border); }
+  .hero-tags { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .tag { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+  .tag-bug  { background:#3a1a1a; color:var(--red); border:1px solid rgba(248,81,73,.4); }
+  .tag-id   { background:var(--bg3); color:var(--muted); border:1px solid var(--border); }
+  .tag-fail { background:#3a1a1a; color:var(--red); border:1px solid rgba(248,81,73,.25); }
+  .tag-sev  { background:#2d1a0e; color:var(--orange); border:1px solid rgba(224,132,86,.3); }
+  .hero h1  { font-size:24px; font-weight:700; line-height:1.3; }
+  .hero h1 .hl { color:var(--red); }
+  .hero-sub { color:var(--muted); font-size:12px; margin-top:8px; }
+
+  /* METRICS */
+  .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
+  .metric { background:var(--bg2); padding:14px 12px; text-align:center; }
+  .metric-val { font-size:22px; font-weight:700; line-height:1; }
+  .metric-lbl { font-size:10px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+  .m-red .metric-val  { color:var(--red); }
+  .m-org .metric-val  { color:var(--orange); }
+  .m-grn .metric-val  { color:var(--green); }
+  .m-blu .metric-val  { color:var(--blue); }
+
+  /* CONTENT */
+  .content { max-width:1100px; margin:0 auto; padding:24px; }
+  .section { margin-bottom:28px; }
+  .section-hd { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+
+  /* GRID RESUMO */
+  .resumo-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .res-card { border-radius:8px; padding:16px; }
+  .res-obtido  { background:#200d0d; border:1px solid rgba(248,81,73,.35); }
+  .res-esperado{ background:#09200f; border:1px solid rgba(63,185,80,.35); }
+  .res-card h3  { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .res-obtido h3  { color:var(--red); }
+  .res-esperado h3{ color:var(--green); }
+  .res-card p   { font-size:13px; color:var(--text); line-height:1.5; }
+  .impacto-box { margin-top:12px; background:#1e0f04; border:1px solid rgba(224,132,86,.3); border-radius:8px; padding:14px; }
+  .impacto-box h3{ font-size:12px; font-weight:700; color:var(--orange); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .impacto-box p { font-size:13px; color:var(--text); }
+
+  /* TABELA DADOS */
+  table.dados { width:100%; border-collapse:collapse; font-size:13px; }
+  table.dados th { background:var(--bg3); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:8px 12px; text-align:left; border:1px solid var(--border); }
+  table.dados td { padding:8px 12px; border:1px solid var(--border); vertical-align:top; }
+  table.dados td:first-child { color:var(--muted); font-size:12px; white-space:nowrap; width:200px; }
+  table.dados td code { background:var(--bg3); border-radius:3px; padding:1px 5px; font-family:Consolas,monospace; font-size:12px; color:var(--blue); }
+
+  /* TABELA PASSOS */
+  table.passos { width:100%; border-collapse:collapse; font-size:13px; }
+  table.passos th { background:var(--bg3); color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.5px; padding:8px 12px; text-align:left; border:1px solid var(--border); }
+  table.passos td { padding:8px 12px; border:1px solid var(--border); vertical-align:top; }
+  table.passos .num { width:36px; text-align:center; font-weight:700; color:var(--muted); }
+  table.passos .status { width:90px; text-align:center; font-weight:600; font-size:12px; }
+  table.passos tr.row-ok   td { color:var(--text); }
+  table.passos tr.row-fail td { background:#200d0d; color:var(--red); }
+  table.passos tr.row-fail .status::before { content:'✗ FALHA'; color:var(--red); }
+  table.passos tr.row-ok   .status::before { content:'✓ OK';   color:var(--green); }
+
+  /* STACK TRACE */
+  pre.stack { background:var(--bg3); border:1px solid var(--border); border-radius:6px; padding:14px; font-size:11px; font-family:Consolas,monospace; overflow-x:auto; color:#b08ea2; line-height:1.6; white-space:pre-wrap; word-break:break-all; }
+  pre.stack .err { color:var(--red); font-weight:700; }
+  pre.stack .loc { color:var(--blue); }
+
+  /* CAUSA RAIZ */
+  .causa-box { background:var(--bg2); border:1px solid var(--border); border-left:4px solid var(--orange); border-radius:6px; padding:16px; font-size:13px; }
+  .causa-box h3 { font-size:12px; color:var(--orange); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+  .causa-box ul { padding-left:20px; }
+  .causa-box li { margin-bottom:6px; }
+  .causa-box code { background:var(--bg3); border-radius:3px; padding:1px 5px; font-family:Consolas,monospace; font-size:12px; color:var(--purple); }
+
+  /* CONTRAPROVA */
+  .cprova-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .cprova-card { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .cprova-card h3 { font-size:12px; font-weight:700; margin-bottom:6px; }
+  .cprova-card.ok h3  { color:var(--green); }
+  .cprova-card.err h3 { color:var(--red); }
+  .cprova-card p { font-size:12px; color:var(--muted); }
+
+  /* EVIDÊNCIAS */
+  .ev-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+  .ev-item { background:var(--bg2); border:1px solid var(--border); border-radius:8px; overflow:hidden; cursor:pointer; }
+  .ev-item:hover { border-color:var(--blue); }
+  .ev-thumb img { width:100%; height:auto; display:block; }
+  .ev-caption { padding:8px 12px; font-size:11px; color:var(--muted); }
+  .ev-caption strong { color:var(--text); }
+  .ev-item.fail { border-color:rgba(248,81,73,.4); }
+
+  /* LIGHTBOX */
+  .lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:999; align-items:center; justify-content:center; }
+  .lb.open { display:flex; }
+  .lb img { max-width:92vw; max-height:92vh; border-radius:6px; box-shadow:0 8px 40px #0008; }
+  .lb-close { position:fixed; top:20px; right:24px; font-size:28px; color:#fff; cursor:pointer; background:none; border:none; line-height:1; }
+
+  /* CA */
+  .ca-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .ca-row { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:12px; }
+  .ca-row.violated { border-left:4px solid var(--red); }
+  .ca-row h4 { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .ca-row.violated h4 { color:var(--red); }
+  .ca-row p { font-size:12px; color:var(--muted); }
+  .ca-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:700; margin-bottom:6px; }
+  .ca-badge.v { background:#3a1a1a; color:var(--red); border:1px solid rgba(248,81,73,.3); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-logo">NSTECH QA</span>
+  <span class="topbar-sep">›</span>
+  <span class="topbar-id">Sprint 8 Sustentação · PBI #7283 · DEF-AXA-CONVE-RCTRC-PROC</span>
+  <span class="tb-badge tb-bug">BUG</span>
+  <span class="tb-badge tb-sev">SEV 3 — Médio</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-tags">
+    <span class="tag tag-bug">BUG</span>
+    <span class="tag tag-id">WI#7387</span>
+    <span class="tag tag-fail">REPROVADO</span>
+    <span class="tag tag-sev">SEVERIDADE 3 · Médio</span>
+  </div>
+  <h1>[CITNET] Conversor RCTR-C — <span class="hl">Erro no processamento</span> após conversão bem-sucedida</h1>
+  <div class="hero-sub">PBI #7283 · Homologação CITNET AXA ALFA · Sprint 8 Sustentação · Ambiente: CITNET AXA HML · Identificado em: 14/06/2026</div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric m-red">  <div class="metric-val">1</div>  <div class="metric-lbl">CT Reprovado</div></div>
+  <div class="metric m-org">  <div class="metric-val">3</div>  <div class="metric-lbl">Severidade</div></div>
+  <div class="metric m-grn">  <div class="metric-val">4</div>  <div class="metric-lbl">Evidências</div></div>
+  <div class="metric m-blu">  <div class="metric-val">#7283</div><div class="metric-lbl">PBI Pai</div></div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- 1. RESUMO -->
+  <div class="section">
+    <div class="section-hd">1 · Resumo do Bug</div>
+    <div class="resumo-grid">
+      <div class="res-card res-obtido">
+        <h3>Comportamento Obtido</h3>
+        <p>Ao clicar em <strong>Processar</strong> após a etapa de conversão retornar <em>Qtd Aceitos: 1</em> (sucesso), o sistema exibe a mensagem de erro: <strong>"Erro no processamento dos dados!"</strong> — nenhuma averbação é importada.</p>
+      </div>
+      <div class="res-card res-esperado">
+        <h3>Comportamento Esperado</h3>
+        <p>O arquivo convertido deve ser processado com sucesso: as averbações devem ser importadas na apólice selecionada, sem mensagem de erro.</p>
+      </div>
+    </div>
+    <div class="impacto-box">
+      <h3>Impacto</h3>
+      <p>O fluxo de averbação via Conversor RCTR-C no CITNET AXA ALFA está <strong>bloqueado na etapa final</strong>. A conversão funciona corretamente, mas o processamento falha, impossibilitando a importação das averbações — afetando toda a operação de homologação do ambiente AXA ALFA.</p>
+    </div>
+  </div>
+
+  <!-- 2. CA VIOLADO -->
+  <div class="section">
+    <div class="section-hd">2 · Critério de Aceite Violado</div>
+    <div class="ca-grid">
+      <div class="ca-row violated">
+        <span class="ca-badge v">VIOLADO</span>
+        <h4>Processamento após conversão</h4>
+        <p>Após conversão bem-sucedida (Qtd Aceitos ≥ 1), o clique em <strong>Processar</strong> deve importar as averbações na apólice selecionada sem retornar erro.</p>
+      </div>
+      <div class="ca-row">
+        <span class="ca-badge v">CONTEXTO</span>
+        <h4>Fix anterior (BUG-7290)</h4>
+        <p>O fix do BUG-7290 corrigiu o acesso à tela do Conversor e a etapa de conversão. Porém a etapa de <em>processamento</em> permanece com falha — o bug persiste em outra camada.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. DADOS DO CENÁRIO -->
+  <div class="section">
+    <div class="section-hd">3 · Dados do Cenário</div>
+    <table class="dados">
+      <tr><td>Ambiente</td><td>CITNET AXA HML</td></tr>
+      <tr><td>Sistema</td><td>CITNET</td></tr>
+      <tr><td>Perfil</td><td>INTERNO <code>interno/11</code></td></tr>
+      <tr><td>Filial</td><td>1 — SÃO PAULO</td></tr>
+      <tr><td>Ramo</td><td>54 — RCTR-C</td></tr>
+      <tr><td>Segurado</td><td>SEGURADO ALFA NOVO</td></tr>
+      <tr><td>Apólice</td><td><code>6062026</code></td></tr>
+      <tr><td>Ação</td><td>Importar layout → Converter → Processar</td></tr>
+      <tr><td>Resultado da Conversão</td><td>Qtd Aceitos: 1 (conversão OK)</td></tr>
+      <tr><td>Resultado do Processamento</td><td><strong style="color:var(--red)">Erro no processamento dos dados!</strong></td></tr>
+      <tr><td>Data de identificação</td><td>14/06/2026</td></tr>
+      <tr><td>Sprint</td><td>Sprint 8 Sustentação</td></tr>
+      <tr><td>PBI pai</td><td>#7283 — Homologação CITNET AXA ALFA</td></tr>
+    </table>
+  </div>
+
+  <!-- 4. PASSOS REALIZADOS -->
+  <div class="section">
+    <div class="section-hd">4 · Passos Realizados</div>
+    <table class="passos">
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Ação</th>
+          <th>Resultado</th>
+          <th class="status">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="row-ok">
+          <td class="num">1</td>
+          <td>Login no CITNET AXA HML como <code>interno / 11</code></td>
+          <td>Autenticado com sucesso, home exibida</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="row-ok">
+          <td class="num">2</td>
+          <td>Menu → Conversor → selecionar Filial: 1 — SÃO PAULO, Ramo: 54 RCTR-C, Segurado: SEGURADO ALFA NOVO, Apólice: 6062026</td>
+          <td>Tela do Conversor carregada com os campos preenchidos</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="row-ok">
+          <td class="num">3</td>
+          <td>Selecionar layout CNPJ ALFA e importar arquivo de averbação RCTR-C</td>
+          <td>Arquivo importado com sucesso — layout exibido na tela</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="row-ok">
+          <td class="num">4</td>
+          <td>Clicar em <strong>Converter</strong></td>
+          <td>Conversão bem-sucedida — <strong>Qtd Aceitos: 1</strong> exibido na tela</td>
+          <td class="status"></td>
+        </tr>
+        <tr class="row-fail">
+          <td class="num">5</td>
+          <td>Clicar em <strong>Processar</strong></td>
+          <td>Sistema retorna: <strong>"Erro no processamento dos dados!"</strong> — nenhuma averbação importada</td>
+          <td class="status"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. HIPÓTESE DE CAUSA RAIZ -->
+  <div class="section">
+    <div class="section-hd">5 · Hipótese de Causa Raiz</div>
+    <div class="causa-box">
+      <h3>Onde investigar</h3>
+      <ul>
+        <li>A conversão (passo 4) funciona corretamente — o problema está exclusivamente na camada de <strong>processamento/persistência</strong> do arquivo convertido.</li>
+        <li>O fix do <strong>BUG-7290</strong> atuou na camada de acesso à tela e conversão. A etapa de processamento (<code>Processar</code>) chama um serviço ou controller diferente que não foi coberto pelo fix anterior.</li>
+        <li>Investigar o controller/service responsável pelo botão <strong>Processar</strong> no Conversor RCTR-C — possível incompatibilidade entre o layout <em>CNPJ ALFA</em> e a rotina de importação das averbações.</li>
+        <li>Verificar se existe validação de CNPJ ou campos obrigatórios no processamento que não existia na conversão — dados do arquivo podem passar na conversão mas falhar na persistência.</li>
+        <li>Checar logs do servidor no ambiente AXA HML durante o processamento para identificar a exceção exata que origina a mensagem de erro genérica exibida na UI.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6. CONTRAPROVA -->
+  <div class="section">
+    <div class="section-hd">6 · Contraprova</div>
+    <div class="cprova-grid">
+      <div class="cprova-card ok">
+        <h3>Etapa de Conversão (funciona)</h3>
+        <p>O clique em <strong>Converter</strong> retorna <em>Qtd Aceitos: 1</em> com sucesso — a leitura e transformação do arquivo está correta. O problema não está no arquivo nem no layout.</p>
+      </div>
+      <div class="cprova-card err">
+        <h3>Etapa de Processamento (falha)</h3>
+        <p>O clique em <strong>Processar</strong> retorna <em>"Erro no processamento dos dados!"</em> — a falha está na camada de persistência/importação, posterior à conversão.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. EVIDÊNCIAS -->
+  <div class="section">
+    <div class="section-hd">7 · Evidências</div>
+    <div class="ev-grid">
+      <div class="ev-item" onclick="openLb(this)">
+        <div class="ev-thumb"><img src="evidencias/CT-7290-01-interno-login.png" alt="Login CITNET"></div>
+        <div class="ev-caption"><strong>01 — Login CITNET AXA HML</strong><br>Autenticação como INTERNO (interno/11)</div>
+      </div>
+      <div class="ev-item" onclick="openLb(this)">
+        <div class="ev-thumb"><img src="evidencias/CT-7290-02-conversor-tela-inicial.png" alt="Tela inicial conversor"></div>
+        <div class="ev-caption"><strong>02 — Conversor: Tela Inicial</strong><br>Filial SÃO PAULO, Ramo 54 RCTR-C, Segurado e Apólice selecionados</div>
+      </div>
+      <div class="ev-item" onclick="openLb(this)">
+        <div class="ev-thumb"><img src="evidencias/CT-7290-04-conversor-apos-importar.png" alt="Após importar layout"></div>
+        <div class="ev-caption"><strong>03 — Após importar arquivo</strong><br>Layout CNPJ ALFA importado com sucesso</div>
+      </div>
+      <div class="ev-item" onclick="openLb(this)">
+        <div class="ev-thumb"><img src="evidencias/CT-7290-06-conversao-ok.png" alt="Conversão OK"></div>
+        <div class="ev-caption"><strong>04 — Conversão bem-sucedida</strong><br>Qtd Aceitos: 1 — etapa de conversão OK</div>
+      </div>
+      <div class="ev-item fail" onclick="openLb(this)" style="grid-column:1/-1">
+        <div class="ev-thumb"><img src="evidencias/CT-7290-07-processar-erro.png" alt="Erro processamento"></div>
+        <div class="ev-caption"><strong>05 — FALHA: Erro no processamento dos dados!</strong><br>Mensagem de erro exibida ao clicar em Processar após conversão bem-sucedida — nenhuma averbação importada</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- LIGHTBOX -->
+<div class="lb" id="lb" onclick="closeLb()">
+  <button class="lb-close" onclick="closeLb()">✕</button>
+  <img id="lb-img" src="" alt="">
+</div>
+
+<script>
+  function openLb(card) {
+    var img = card.querySelector('img');
+    document.getElementById('lb-img').src = img.src;
+    document.getElementById('lb').classList.add('open');
+  }
+  function closeLb() { document.getElementById('lb').classList.remove('open'); }
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeLb(); });
+</script>
+</body>
+</html>

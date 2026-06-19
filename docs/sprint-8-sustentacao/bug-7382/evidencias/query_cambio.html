@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  body { background: #0d1117; color: #e6edf3; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; padding: 24px; margin: 0; }
+  h2 { color: #58a6ff; font-size: 15px; margin: 0 0 16px; font-family: -apple-system, sans-serif; }
+  .lbl { color: #8b949e; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; margin-top: 20px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+  th { background: #21262d; color: #8b949e; padding: 6px 12px; border: 1px solid #30363d; font-size: 11px; text-transform: uppercase; letter-spacing:.4px; text-align: left; }
+  td { padding: 6px 12px; border: 1px solid #30363d; }
+  .zero { color: #f85149; font-weight: 700; }
+  .ok   { color: #3fb950; }
+  .warn { color: #e08456; }
+  .sql  { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px 16px; color: #a5d6ff; font-size: 12px; line-height: 1.7; margin-bottom: 4px; white-space: pre; }
+  .kw { color: #ff7b72; }
+  .cmt { color: #8b949e; font-style: italic; }
+  .env-badge { display: inline-block; background: #1f2937; border: 1px solid #374151; border-radius: 4px; padding: 2px 8px; font-size: 11px; color: #9ca3af; margin-bottom: 16px; }
+  .result-empty { background: #200d0d; border: 1px solid rgba(248,81,73,.3); border-radius: 4px; padding: 10px 14px; color: #f85149; font-weight: 700; }
+</style>
+</head>
+<body>
+<h2>BUG #7382 — Evidência: Câmbio zerado em 16/06/2026 (tb_cbi_moe)</h2>
+<div class="env-badge">Banco: smt-hom-citweb-axa &nbsp;|&nbsp; Servidor: smt-hom-citweb.database.windows.net &nbsp;|&nbsp; Consulta: 16/06/2026</div>
+
+<div class="lbl">Query executada</div>
+<div class="sql"><span class="cmt">-- 1. Existe câmbio cadastrado para a data do teste (16/06/2026)?</span>
+<span class="kw">SELECT</span> COUNT(*) <span class="kw">AS</span> total_registros_16jun
+<span class="kw">FROM</span> tb_cbi_moe
+<span class="kw">WHERE</span> d_cbi_moe = <span class="ok">'2026-06-16'</span>;
+
+<span class="cmt">-- 2. Última data com câmbio disponível antes de 16/06/2026</span>
+<span class="kw">SELECT TOP 1</span>
+    d_cbi_moe <span class="kw">AS</span> ultima_data_cambio,
+    c_moe     <span class="kw">AS</span> cod_moeda,
+    v_cbi_moe <span class="kw">AS</span> valor_cambio
+<span class="kw">FROM</span> tb_cbi_moe
+<span class="kw">WHERE</span> d_cbi_moe &lt; <span class="ok">'2026-06-16'</span>
+<span class="kw">ORDER BY</span> d_cbi_moe <span class="kw">DESC</span>;</div>
+
+<div class="lbl">1. Câmbio registrado para 16/06/2026 (data do teste)</div>
+<div class="result-empty">⚠ 0 registros — Nenhum câmbio cadastrado para 16/06/2026 na tabela tb_cbi_moe</div>
+
+<div class="lbl" style="margin-top:16px">2. Última atualização de câmbio disponível</div>
+<table>
+  <tr>
+    <th>ultima_data_cambio</th>
+    <th>cod_moeda</th>
+    <th>valor_cambio</th>
+    <th>Defasagem</th>
+  </tr>
+  <tr>
+    <td class="warn">08/06/2026</td>
+    <td>998</td>
+    <td>766,2709</td>
+    <td class="zero">8 dias sem atualização</td>
+  </tr>
+</table>
+
+<div class="lbl" style="margin-top:16px">Conclusão</div>
+<table>
+  <tr>
+    <th>Ponto</th>
+    <th>Resultado</th>
+  </tr>
+  <tr>
+    <td>Câmbio em 16/06/2026</td>
+    <td class="zero">AUSENTE — 0 registros em tb_cbi_moe para essa data</td>
+  </tr>
+  <tr>
+    <td>Última cotação disponível</td>
+    <td class="warn">08/06/2026 (8 dias de defasagem)</td>
+  </tr>
+  <tr>
+    <td>Comportamento esperado do sistema</td>
+    <td>Bloquear gravação e exibir mensagem: "Câmbio não cadastrado para a data"</td>
+  </tr>
+  <tr>
+    <td>Comportamento real (BUG)</td>
+    <td class="zero">Aceita câmbio 0,00000 e gera protocolo 11 sem validação</td>
+  </tr>
+</table>
+</body>
+</html>
