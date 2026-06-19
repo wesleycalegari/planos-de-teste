@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste &mdash; BUG-7347 Pesquisa averbação provisória não retorna registros</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--yellow:#d29922;--red:#f85149;--purple:#bc8cff;--orange:#e3b341}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:14px}
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:12px}
+  .topbar-id{font-size:13px;font-weight:700;color:var(--green);background:#0d2a0d;border:1px solid var(--green)44;border-radius:6px;padding:3px 10px}
+  .topbar-title{font-size:14px;color:var(--text)}
+  .topbar-env{margin-left:auto;font-size:11px;color:var(--muted);background:#21262d;border:1px solid var(--border);border-radius:12px;padding:3px 10px}
+  .hero{padding:24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,#0d1a0d,#161b22)}
+  .hero h1{font-size:22px;font-weight:700;color:var(--green)}
+  .hero-sub{color:var(--muted);font-size:12px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .info-cell{background:var(--bg2);padding:12px 16px}
+  .info-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  .info-value{font-size:13px;color:var(--text);margin-top:2px;font-weight:600}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+  .metric{background:var(--bg2);padding:14px;text-align:center}
+  .metric-val{font-size:26px;font-weight:700}
+  .metric-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+  .m-total .metric-val{color:var(--blue)}.m-pass .metric-val{color:var(--green)}.m-fail .metric-val{color:var(--red)}.m-bloq .metric-val{color:var(--purple)}
+  .content{padding:24px;max-width:1000px;margin:0 auto}
+  .section{margin-bottom:24px}
+  .section-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+  .info-box{background:#1a2a3a;border:1px solid #388bfd33;border-radius:6px;padding:10px 14px;font-size:12px;color:#79c0ff;margin-bottom:10px}
+  .pass-box{background:#0d1f0d;border:1px solid #3fb95033;border-radius:6px;padding:10px 14px;font-size:12px;color:#3fb950;margin-bottom:10px}
+  .warn-box{background:#2d2010;border:1px solid #d2992233;border-radius:6px;padding:10px 14px;font-size:12px;color:#e3b341;margin-bottom:10px}
+  .fail-box{background:#2d1a1a;border:1px solid #f8514933;border-radius:6px;padding:10px 14px;font-size:12px;color:#f85149;margin-bottom:10px}
+  .ct-block{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden}
+  .ct-head{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-num{font-size:11px;font-weight:700;color:var(--muted);min-width:36px}
+  .ct-title{flex:1;font-size:13px}
+  .ct-perfil{font-size:10px;padding:2px 8px;border-radius:8px;border:1px solid var(--border);color:var(--muted)}
+  .ct-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px;min-width:80px;text-align:center}
+  .badge-pass{background:#1a3a2a;color:var(--green);border:1px solid #2ea04322}
+  .badge-fail{background:#3a1a1a;color:var(--red);border:1px solid #f8514922}
+  .ct-toggle{color:var(--muted);font-size:11px;transition:transform .2s}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:0 16px 16px;border-top:1px solid var(--bg3)}
+  .ct-block.expanded .ct-body{display:block}
+  .steps{margin-top:10px}
+  .step{display:flex;gap:10px;margin-bottom:6px;font-size:12px}
+  .step-n{background:var(--bg3);border:1px solid var(--border);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;margin-top:1px}
+  .step-txt{color:var(--text)}.step-txt b{color:var(--blue)}
+  .result-box{margin-top:12px;background:var(--bg3);border-radius:6px;padding:10px 12px;font-size:12px}
+  .result-lbl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .ev-section{margin-top:14px}.ev-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .ev-thumb{cursor:pointer;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--bg3);transition:border-color .15s}
+  .ev-thumb:hover{border-color:var(--blue)}
+  .ev-thumb img{display:block;height:100px;width:auto;max-width:180px;object-fit:cover}
+  .ev-label{font-size:10px;color:var(--muted);padding:4px 8px;text-align:center;background:var(--bg3)}
+  .lightbox{display:none;position:fixed;inset:0;background:#000a;z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+  .lightbox.open{display:flex}
+  .lightbox img{max-width:92vw;max-height:88vh;border-radius:8px;border:1px solid var(--border)}
+  .lightbox-close{color:var(--muted);font-size:12px;cursor:pointer;background:var(--bg2);padding:6px 18px;border-radius:20px;border:1px solid var(--border)}
+  .lightbox-caption{color:var(--muted);font-size:12px}
+  .progress-bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:8px}
+  .progress-fill{height:100%;background:var(--green);border-radius:3px;transition:width .4s}
+  table.summary{width:100%;border-collapse:collapse;font-size:12px}
+  table.summary th,table.summary td{padding:8px 12px;border:1px solid var(--border);text-align:left}
+  table.summary th{background:var(--bg3);color:var(--muted);font-weight:600;text-transform:uppercase;font-size:10px;letter-spacing:.5px}
+  .tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;margin-right:4px}
+  .tag-bug{background:#2d1a1a;color:var(--red);border:1px solid #f8514933}
+  .tag-prov{background:#1a1a2d;color:var(--blue);border:1px solid #58a6ff33}
+  .footer{padding:20px 24px;border-top:1px solid var(--border);text-align:center;font-size:11px;color:var(--muted)}
+  .footer a{color:var(--purple);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-id">BUG-7347</div>
+  <div class="topbar-title">Pesquisa averbação provisória não retorna registros cadastrados</div>
+  <div class="topbar-env">CITNET AXA ALFA HML &bull; Sprint 8 Sustentação</div>
+</div>
+
+<div class="hero">
+  <h1>&#10003; Reteste Aprovado — BUG-7347</h1>
+  <div class="hero-sub">Pesquisa de averbação provisória — modal "Consulta Averbação" retorna registros corretamente após correção</div>
+</div>
+
+<div class="info-grid">
+  <div class="info-cell"><div class="info-label">Bug</div><div class="info-value">BUG-7347</div></div>
+  <div class="info-cell"><div class="info-label">Data reteste</div><div class="info-value">19/06/2026</div></div>
+  <div class="info-cell"><div class="info-label">Ambiente</div><div class="info-value">AXA ALFA HML</div></div>
+  <div class="info-cell"><div class="info-label">Responsável QA</div><div class="info-value">Wesley Moreira</div></div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val">2</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-pass"><div class="metric-val">2</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-fail"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-bloq"><div class="metric-val">0</div><div class="metric-lbl">Bloqueados</div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Contexto do Bug</div>
+    <div class="info-box">
+      <strong>Problema original:</strong> Ao acessar o cadastro de Averbações Provisórias no CITNET AXA ALFA, ao abrir o modal "Consulta Averbação", selecionar "PROVISÓRIA" e clicar em Pesquisar, a grid retornava vazia mesmo com registros existentes para a apólice/subgrupo selecionados.
+    </div>
+    <div class="pass-box">
+      <strong>Correção aplicada (Allan Rodrigo Bluemond — 19/06/2026):</strong> Fix publicado em HML. A consulta agora retorna corretamente as averbações provisórias cadastradas, exibindo grid paginada com todos os registros disponíveis.
+    </div>
+    <div class="info-box">
+      <strong>Critério de Aceite:</strong> Exibir corretamente as averbações provisórias cadastradas na consulta/pesquisa do modal "Consulta Averbação".
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Massa de Dados</div>
+    <table class="summary">
+      <thead><tr><th>Campo</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Ambiente</td><td>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</td></tr>
+        <tr><td>Usuário</td><td>interno / 11</td></tr>
+        <tr><td>Filial</td><td>1 - SAO PAULO</td></tr>
+        <tr><td>Apólice</td><td>333</td></tr>
+        <tr><td>Subgrupo</td><td>1 - 11324123412412341234</td></tr>
+        <tr><td>Tipo pesquisa</td><td>PROVISÓRIA</td></tr>
+        <tr><td>Averbação selecionada</td><td>20260001</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <!-- CT-001 -->
+    <div class="ct-block expanded">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-num">CT-001</span>
+        <span class="ct-title">Pesquisa por PROVISÓRIA no modal Consulta Averbação deve retornar registros</span>
+        <span class="ct-perfil">Perfil: Interno</span>
+        <span class="ct-badge badge-pass">&#10003; APROVADO</span>
+        <span class="ct-toggle">&#9654;</span>
+      </div>
+      <div class="ct-body">
+        <div class="steps">
+          <div class="step"><span class="step-n">1</span><span class="step-txt">Acessar <b>CITNET AXA ALFA HML</b> e realizar login com usuário <b>interno / 11</b></span></div>
+          <div class="step"><span class="step-n">2</span><span class="step-txt">No menu principal, acessar <b>Averbações → Importação-Provisória (Internacional)</b></span></div>
+          <div class="step"><span class="step-n">3</span><span class="step-txt">Selecionar <b>Filial: 1 - SAO PAULO</b>, <b>Apólice: 333</b>, <b>Subgrupo: 1 - 11324123412412341234</b></span></div>
+          <div class="step"><span class="step-n">4</span><span class="step-txt">Rolar até a seção "Ano / Número Averbação" e clicar no ícone de lupa (<b>btModalProvisoria</b>) para abrir o modal "Consulta Averbação"</span></div>
+          <div class="step"><span class="step-n">5</span><span class="step-txt">No modal, selecionar <b>PROVISÓRIA</b> no campo "Pesquisar por"</span></div>
+          <div class="step"><span class="step-n">6</span><span class="step-txt">Clicar no botão <b>Pesquisar</b></span></div>
+        </div>
+        <div class="result-box">
+          <div class="result-lbl">&#9654; Resultado Esperado</div>
+          Grid com averbações provisórias cadastradas para a apólice/subgrupo selecionados — paginada, com colunas: Averbação, Dt.Recebimento, Dt.Validade, Valor FOB.
+        </div>
+        <div class="result-box" style="border-left:3px solid var(--green);margin-top:8px">
+          <div class="result-lbl" style="color:var(--green)">&#10003; Resultado Obtido</div>
+          Grid exibida com <b>10 registros na página 1/9</b>: averbações 20260001 a 20260010, com datas de recebimento e validade preenchidas. Bug corrigido.
+        </div>
+        <div class="ev-section">
+          <div class="ev-title">Evidências</div>
+          <div class="ev-grid">
+            <div class="ev-thumb" onclick="openLb('evidencias/CT-7347-01-home-citnet-alfa.png','Home CITNET AXA ALFA após login')">
+              <img src="evidencias/CT-7347-01-home-citnet-alfa.png" alt="">
+              <div class="ev-label">01 - Home CITNET ALFA</div>
+            </div>
+            <div class="ev-thumb" onclick="openLb('evidencias/CT-7347-02-menu-importacao-provisoria.png','Tela de Cadastro Averbações Provisórias')">
+              <img src="evidencias/CT-7347-02-menu-importacao-provisoria.png" alt="">
+              <div class="ev-label">02 - Tela Importação Provisória</div>
+            </div>
+            <div class="ev-thumb" onclick="openLb('evidencias/CT-7347-03-modal-aberto.png','Modal Consulta Averbação aberto')">
+              <img src="evidencias/CT-7347-03-modal-aberto.png" alt="">
+              <div class="ev-label">03 - Modal aberto</div>
+            </div>
+            <div class="ev-thumb" onclick="openLb('evidencias/CT-7347-04-pesquisa-resultado.png','Resultado da pesquisa — grid com provisórias (pág 1/9)')">
+              <img src="evidencias/CT-7347-04-pesquisa-resultado.png" alt="">
+              <div class="ev-label">04 - Grid de resultados &#10003;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-002 -->
+    <div class="ct-block expanded">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-num">CT-002</span>
+        <span class="ct-title">Selecionar averbação provisória da grid popula o formulário corretamente</span>
+        <span class="ct-perfil">Perfil: Interno</span>
+        <span class="ct-badge badge-pass">&#10003; APROVADO</span>
+        <span class="ct-toggle">&#9654;</span>
+      </div>
+      <div class="ct-body">
+        <div class="steps">
+          <div class="step"><span class="step-n">1</span><span class="step-txt">Com o modal "Consulta Averbação" exibindo a grid de provisórias (continuação do CT-001)</span></div>
+          <div class="step"><span class="step-n">2</span><span class="step-txt">Clicar no link da averbação <b>20260001</b> na grid</span></div>
+          <div class="step"><span class="step-n">3</span><span class="step-txt">Verificar que o modal fecha e o formulário principal é preenchido com os dados da provisória selecionada</span></div>
+        </div>
+        <div class="result-box">
+          <div class="result-lbl">&#9654; Resultado Esperado</div>
+          Formulário preenchido com: Provisória = CONVENCIONAL, Doc. Provisório = 123, Recebimento = 12/06/2026, Validade = 19/06/2026, Moeda = 220 (DÓLAR NORTE-AMERICANO).
+        </div>
+        <div class="result-box" style="border-left:3px solid var(--green);margin-top:8px">
+          <div class="result-lbl" style="color:var(--green)">&#10003; Resultado Obtido</div>
+          Modal fechado automaticamente. Formulário preenchido corretamente com todos os campos da provisória 20260001: CONVENCIONAL, Doc. 123, Recebimento 12/06/2026, Validade 19/06/2026, Moeda 220 — DÓLAR NORTE-AMERICANO.
+        </div>
+        <div class="ev-section">
+          <div class="ev-title">Evidências</div>
+          <div class="ev-grid">
+            <div class="ev-thumb" onclick="openLb('evidencias/CT-7347-05-form-preenchido.png','Formulário preenchido com dados da provisória 20260001')">
+              <img src="evidencias/CT-7347-05-form-preenchido.png" alt="">
+              <div class="ev-label">05 - Formulário preenchido &#10003;</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">Resumo de Execução</div>
+    <div class="pass-box">
+      <strong>&#10003; Todos os cenários aprovados (2/2 — 100%)</strong><br>
+      O fix de Allan Rodrigo Bluemond (publicado em 19/06/2026) corrigiu a pesquisa de averbações provisórias no modal "Consulta Averbação". A grid agora retorna todos os registros cadastrados para o subgrupo/apólice informados, com paginação funcional (9 páginas para a apólice 333). A seleção de um item da grid preenche o formulário corretamente.
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Tags</div>
+    <span class="tag tag-bug">BUG</span>
+    <span class="tag tag-prov">Averbação Provisória</span>
+    <span class="tag tag-prov">CITNET</span>
+    <span class="tag tag-prov">AXA ALFA</span>
+    <span class="tag tag-prov">Internacional</span>
+  </div>
+
+</div>
+
+<div class="footer">
+  Reteste executado por Wesley Moreira via Playwright MCP &bull;
+  <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-8-sustentacao/bug-7347/">GitHub Pages</a>
+</div>
+
+<div class="lightbox" id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <div class="lightbox-caption" id="lb-cap"></div>
+  <div class="lightbox-close">Fechar</div>
+</div>
+
+<script>
+function toggle(head){head.parentElement.classList.toggle('expanded')}
+function openLb(src,cap){document.getElementById('lb-img').src=src;document.getElementById('lb-cap').textContent=cap;document.getElementById('lb').classList.add('open')}
+function closeLb(){document.getElementById('lb').classList.remove('open')}
+</script>
+</body>
+</html>
