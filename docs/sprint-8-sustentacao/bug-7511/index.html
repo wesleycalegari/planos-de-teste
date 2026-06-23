@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Reteste BUG-7511 / BUG-7519 — Averbação RCV FAIRFAX ALFA</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --green: #2ea043; --green-bg: #0d1f0d; --green-text: #79c57e;
+    --red: #d13438; --red-bg: #2d0a0a; --red-text: #f1707a;
+    --yellow: #d29922; --yellow-bg: #1f1a00; --yellow-text: #e3b341;
+    --blue: #1f6feb; --blue-bg: #0d1f3c; --blue-text: #58a6ff;
+    --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 13px; }
+
+  /* TOPBAR */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px; }
+  .topbar-badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 12px; }
+  .topbar-title { font-weight: 600; font-size: 14px; }
+  .topbar-sub { color: var(--text-muted); font-size: 12px; }
+
+  /* HERO */
+  .hero { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .hero .meta { color: var(--text-muted); font-size: 12px; margin-bottom: 12px; }
+  .fix-box { background: var(--blue-bg); border: 1px solid var(--blue); border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; color: var(--blue-text); margin-bottom: 10px; }
+  .fix-box strong { color: #fff; }
+
+  /* METRICS */
+  .metrics { display: flex; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; min-width: 110px; text-align: center; }
+  .metric-card .num { font-size: 24px; font-weight: 700; }
+  .metric-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .metric-card.green .num { color: var(--green-text); }
+  .metric-card.red .num { color: var(--red-text); }
+  .metric-card.yellow .num { color: var(--yellow-text); }
+  .metric-card.blue .num { color: var(--blue-text); }
+
+  /* PROGRESS */
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 0 24px 16px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; width: 0%;
+    transition: width .5s; }
+
+  /* SECTIONS */
+  .section { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-muted); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+  /* INFO / WARN BOXES */
+  .info-box { background: var(--blue-bg); border-left: 3px solid var(--blue);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-bottom: 8px; }
+  .warn-box { background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-bottom: 8px; color: var(--yellow-text); }
+
+  /* CT BLOCKS */
+  .group-header { background: linear-gradient(135deg, var(--purple), #5b21b6);
+    color: #fff; padding: 8px 14px; border-radius: 6px; font-weight: 700;
+    font-size: 12px; margin-bottom: 8px; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 10px; overflow: hidden; }
+  .ct-head { padding: 12px 14px; cursor: pointer; user-select: none; display: flex;
+    align-items: center; gap: 8px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-weight: 700; font-size: 12px; color: var(--blue-text); }
+  .ct-title { flex: 1; font-weight: 600; font-size: 13px; }
+  .ct-toggle { font-size: 11px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 14px; }
+  .ct-block.expanded .ct-body { display: block; }
+
+  /* BADGES */
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .badge-p1 { background: #5c0505; color: #f1707a; }
+  .badge-p2 { background: #3d2200; color: #e3b341; }
+  .badge-ok { background: var(--green-bg); color: var(--green-text); border: 1px solid var(--green); }
+  .badge-err { background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red); }
+  .badge-pend { background: var(--bg3); color: var(--text-muted); border: 1px solid var(--border); }
+  .badge-bloq { background: var(--yellow-bg); color: var(--yellow-text); border: 1px solid var(--yellow); }
+
+  /* CT TABLE */
+  .ct-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 10px; }
+  .ct-table th { background: var(--bg3); color: var(--text-muted); text-align: left;
+    padding: 5px 10px; font-weight: 600; font-size: 11px; }
+  .ct-table td { padding: 5px 10px; border-top: 1px solid var(--border); vertical-align: top; }
+  .ct-table td:first-child { width: 160px; color: var(--text-muted); }
+
+  /* STEPS */
+  ol.steps { padding-left: 20px; margin: 4px 0; }
+  ol.steps li { margin-bottom: 4px; line-height: 1.5; }
+
+  /* EV */
+  .ev-section { margin-top: 10px; }
+  .ev-placeholder { background: var(--bg3); border: 1px dashed var(--border); border-radius: 4px;
+    padding: 10px 12px; font-size: 11px; color: var(--text-muted); text-align: center; }
+
+  /* RESULT */
+  .result-ok { background: var(--green-bg); border: 1px solid var(--green); border-radius: 4px;
+    padding: 8px 12px; font-size: 12px; color: var(--green-text); margin-top: 8px; }
+  .result-err { background: var(--red-bg); border: 1px solid var(--red); border-radius: 4px;
+    padding: 8px 12px; font-size: 12px; color: var(--red-text); margin-top: 8px; }
+  .result-pend { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 12px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+  code { background: var(--bg3); border: 1px solid var(--border); padding: 1px 5px;
+    border-radius: 3px; font-size: 11px; font-family: monospace; }
+
+  .traceability { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .traceability th { background: var(--bg3); padding: 6px 10px; text-align: left; color: var(--text-muted); }
+  .traceability td { padding: 6px 10px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-badge">RETESTE</span>
+  <span class="topbar-title">BUG-7511 / BUG-7519 — Averbação RCV FAIRFAX ALFA</span>
+  <span class="topbar-sub">Sprint 8 Sustentação · CITNET · PR #1739</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Reteste — Averbação RCV: Erro ao Gravar (v_lmr_dm / v_lmr_dc)</h1>
+  <div class="meta">Autor: Wesley Moreira · Data: 23/06/2026 · Ambiente: CITNET FAIRFAX ALFA HML · Perfil: CORRETOR</div>
+  <div class="fix-box">
+    <strong>Fix aplicado:</strong> PR #1739 — gate de colunas <code>v_lmr_dm</code> e <code>v_lmr_dc</code>
+    pelo indicativo <code>EditarDmDcRamo59</code>. Colunas incluídas no INSERT apenas quando o indicativo estiver ativo,
+    eliminando o <strong>HTTP 500 "Invalid column name"</strong> para averbações RCV ramo 59.<br>
+    <strong>Cards cobertos:</strong> BUG-7511 (Erro ao tentar enviar os dados) e BUG-7519 (HTTP 500 — coluna inválida, duplicata confirmada pela task #7534).
+  </div>
+  <div class="warn-box">
+    ⚠ BUG-7519 é duplicata de BUG-7511 — ambos têm a mesma causa raiz e são cobertos pelo mesmo PR.
+    Este plano de reteste cobre os dois cards simultaneamente.
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric-card blue"><div class="num" id="m-total">3</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card green"><div class="num" id="m-ok">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric-card red"><div class="num" id="m-err">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric-card yellow"><div class="num" id="m-pend">3</div><div class="lbl">Pendentes</div></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+
+<!-- ESCOPO -->
+<div class="section">
+  <div class="section-title">Escopo</div>
+  <div class="info-box">
+    <strong>In scope:</strong> Averbação RCV ramo 59 via perfil CORRETOR no CITNET FAIRFAX ALFA — criação manual e verificação de persistência.<br>
+    <strong>Out of scope:</strong> Outros ramos, perfis Assessoria/Segurado, Conversor de Averbações (coberto pelo BUG-7517), importação em lote.
+  </div>
+
+  <table class="ct-table">
+    <tr><th>Item</th><th>Valor</th></tr>
+    <tr><td>Ambiente</td><td>CITNET FAIRFAX ALFA HML</td></tr>
+    <tr><td>URL base</td><td><code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+    <tr><td>Credenciais</td><td><code>VOIDR-NSTEC</code> / <code>VOIDR2026</code> (perfil CORRETOR)</td></tr>
+    <tr><td>Módulo</td><td>Averbações → RCV</td></tr>
+    <tr><td>Ramo</td><td>59 — RCV (Responsabilidade Civil Veículos)</td></tr>
+    <tr><td>PR do Fix</td><td>#1739 — gate v_lmr_dm/v_lmr_dc por EditarDmDcRamo59</td></tr>
+  </table>
+</div>
+
+<!-- PRÉ-REQUISITOS -->
+<div class="section">
+  <div class="section-title">Pré-requisitos e Massa de Dados</div>
+  <div class="info-box">
+    O perfil CORRETOR no FAIRFAX ALFA possui segurado <strong>SEGURADO ALFA NH.773.Y09/0001-10</strong>
+    com apólice RCV e condição comercial ativa — verificado na sessão anterior (22/06/2026).
+    Os dados de origem/destino abaixo foram os usados no bug original e devem ser reutilizados no reteste.
+  </div>
+  <table class="ct-table">
+    <tr><th>Dado</th><th>Valor</th></tr>
+    <tr><td>Segurado / Apólice</td><td>SEGURADO ALFA NH.773.Y09/0001-10 (seleção automática ao logar)</td></tr>
+    <tr><td>Estado Origem</td><td>AC — ACRE</td></tr>
+    <tr><td>Município Origem</td><td>13 — ACRELANDIA</td></tr>
+    <tr><td>Estado Destino</td><td>SP — SÃO PAULO</td></tr>
+    <tr><td>Município Destino</td><td>34401 — OSASCO</td></tr>
+    <tr><td>Prêmio R$</td><td>22,22</td></tr>
+    <tr><td>Danos Corporais R$</td><td>0,00</td></tr>
+    <tr><td>Danos Materiais R$</td><td>0,00</td></tr>
+  </table>
+</div>
+
+<!-- CTs -->
+<div class="section">
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">GRUPO 1 — Verificação do Fix (PR #1739)</div>
+
+  <!-- CT-001 -->
+  <div class="ct-block" id="ct-001">
+    <div class="ct-head" onclick="toggle('ct-001')">
+      <span class="ct-id">CT-7511-001</span>
+      <span class="ct-title">Happy Path — Gravar averbação RCV com dados válidos deve persistir sem erro HTTP 500</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-ct-001">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="ct-table">
+        <tr><td>Tipo</td><td>Positivo — Happy Path</td></tr>
+        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
+        <tr><td>Pré-condições</td><td>
+          Usuário autenticado como CORRETOR no CITNET FAIRFAX ALFA HML.<br>
+          Segurado SEGURADO ALFA NH.773.Y09/0001-10 disponível com apólice RCV ativa.
+        </td></tr>
+        <tr><td>Dados de entrada</td><td>
+          Origem: AC / Município: 13 (Acrelandia) | Destino: SP / Município: 34401 (Osasco)<br>
+          Prêmio: R$ 22,22 | Danos Corporais: R$ 0,00 | Danos Materiais: R$ 0,00
+        </td></tr>
+      </table>
+      <strong style="font-size:12px;display:block;margin:10px 0 6px;">Passos:</strong>
+      <ol class="steps">
+        <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e fazer login com <code>VOIDR-NSTEC / VOIDR2026</code></li>
+        <li>No menu, clicar em <strong>Averbações</strong></li>
+        <li>Clicar em <strong>RCV</strong></li>
+        <li>Verificar que o segurado <strong>SEGURADO ALFA NH.773.Y09/0001-10</strong> está selecionado</li>
+        <li>Preencher <strong>Estado Origem</strong>: AC — ACRE</li>
+        <li>Preencher <strong>Município Origem</strong>: 13 — ACRELANDIA</li>
+        <li>Preencher <strong>Estado Destino</strong>: SP — SÃO PAULO</li>
+        <li>Preencher <strong>Município Destino</strong>: 34401 — OSASCO</li>
+        <li>Preencher <strong>Prêmio</strong>: <code>22,22</code></li>
+        <li>Preencher <strong>Danos Corporais</strong>: <code>0,00</code> e <strong>Danos Materiais</strong>: <code>0,00</code></li>
+        <li>Capturar screenshot com o formulário preenchido (EV1)</li>
+        <li>Clicar no botão <strong>Gravar</strong></li>
+        <li>Aguardar resposta do sistema</li>
+        <li>Capturar screenshot do resultado (EV2)</li>
+      </ol>
+      <table class="ct-table" style="margin-top:10px">
+        <tr><td>Resultado esperado</td><td style="color:var(--green-text)">
+          Sistema exibe mensagem de sucesso com <strong>número de averbação gerado</strong>.<br>
+          <strong>NÃO deve exibir</strong>: "ATENÇÃO! Erro ao tentar enviar os dados."<br>
+          <strong>NÃO deve retornar</strong>: HTTP 500 / Invalid column name 'v_lmr_dm' ou 'v_lmr_dc'.
+        </td></tr>
+      </table>
+      <div class="ev-section">
+        <div class="ev-placeholder">📷 EV1 — Formulário preenchido (a capturar durante execução)</div>
+        <div class="ev-placeholder" style="margin-top:6px">📷 EV2 — Resultado: mensagem de sucesso ou erro (a capturar)</div>
+      </div>
+      <div class="result-pend" id="result-ct-001">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-002 -->
+  <div class="ct-block" id="ct-002">
+    <div class="ct-head" onclick="toggle('ct-002')">
+      <span class="ct-id">CT-7511-002</span>
+      <span class="ct-title">Contraprova — Reproduzir cenário original do bug: erro "Erro ao tentar enviar os dados" NÃO deve ocorrer</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-ct-002">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="ct-table">
+        <tr><td>Tipo</td><td>Negativo (contraprova do bug original)</td></tr>
+        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
+        <tr><td>Pré-condições</td><td>Mesmas do CT-7511-001. Fix PR #1739 deployado em HML FAIRFAX ALFA.</td></tr>
+        <tr><td>Dados de entrada</td><td>Exatamente os mesmos dados do bug original (AC → SP, Prêmio 22,22, DM=0, DC=0)</td></tr>
+      </table>
+      <strong style="font-size:12px;display:block;margin:10px 0 6px;">Passos:</strong>
+      <ol class="steps">
+        <li>Repetir o fluxo do CT-7511-001 com os dados originais do bug</li>
+        <li>Observar se o modal <strong>"ATENÇÃO! Erro ao tentar enviar os dados."</strong> é exibido</li>
+        <li>Capturar screenshot da resposta (EV3)</li>
+        <li>Verificar no console do browser (F12 → Network) se houve HTTP 500 ou se a requisição retornou 200/201</li>
+        <li>Capturar screenshot do Network tab (EV4)</li>
+      </ol>
+      <table class="ct-table" style="margin-top:10px">
+        <tr><td>Resultado esperado</td><td style="color:var(--green-text)">
+          O modal de erro <strong>NÃO aparece</strong>. A averbação é gravada com sucesso.<br>
+          Network tab confirma: requisição ao endpoint de gravação retornou <strong>200 ou 201</strong>, sem HTTP 500.
+        </td></tr>
+      </table>
+      <div class="ev-section">
+        <div class="ev-placeholder">📷 EV3 — Tela após Gravar (deve mostrar sucesso, não erro)</div>
+        <div class="ev-placeholder" style="margin-top:6px">📷 EV4 — Network tab confirmando ausência de HTTP 500</div>
+      </div>
+      <div class="result-pend" id="result-ct-002">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <div class="group-header" style="margin-top:16px">GRUPO 2 — Regressão</div>
+
+  <!-- CT-003 -->
+  <div class="ct-block" id="ct-003">
+    <div class="ct-head" onclick="toggle('ct-003')">
+      <span class="ct-id">CT-7511-003</span>
+      <span class="ct-title">Regressão — Averbação gravada aparece na consulta com dados corretos</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend" id="badge-ct-003">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="ct-table">
+        <tr><td>Tipo</td><td>Regressão</td></tr>
+        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
+        <tr><td>Pré-condições</td><td>CT-7511-001 executado com sucesso — averbação gravada.</td></tr>
+        <tr><td>Dados de entrada</td><td>Número de averbação gerado no CT-7511-001</td></tr>
+      </table>
+      <strong style="font-size:12px;display:block;margin:10px 0 6px;">Passos:</strong>
+      <ol class="steps">
+        <li>Após gravar a averbação no CT-001, anotar o número gerado</li>
+        <li>No menu, clicar em <strong>Averbações</strong> → <strong>Consulta</strong> (ou equivalente)</li>
+        <li>Buscar pelo número de averbação gerado</li>
+        <li>Verificar que o registro aparece com os dados corretos: Origem AC, Destino SP, Prêmio 22,22</li>
+        <li>Capturar screenshot da consulta com o registro (EV5)</li>
+      </ol>
+      <table class="ct-table" style="margin-top:10px">
+        <tr><td>Resultado esperado</td><td style="color:var(--green-text)">
+          Averbação listada na consulta com status correto.<br>
+          Campos Origem, Destino e Prêmio correspondendo aos dados informados no CT-001.
+        </td></tr>
+      </table>
+      <div class="ev-section">
+        <div class="ev-placeholder">📷 EV5 — Consulta com averbação gerada e dados corretos</div>
+      </div>
+      <div class="result-pend" id="result-ct-003">⏳ Aguardando execução</div>
+    </div>
+  </div>
+</div>
+
+<!-- RASTREABILIDADE -->
+<div class="section">
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table class="traceability">
+    <thead>
+      <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Gravar averbação RCV com dados válidos deve persistir e retornar número gerado</td>
+        <td>CT-7511-001</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Erro "Erro ao tentar enviar os dados" NÃO deve ocorrer com dados válidos</td>
+        <td>CT-7511-002</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Averbação gravada deve ser consultável com dados corretos</td>
+        <td>CT-7511-003</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- RISCOS -->
+<div class="section">
+  <div class="section-title">Riscos</div>
+  <div class="warn-box">
+    <strong>RISCO 1 — Massa HML:</strong> O CITNET FAIRFAX ALFA usa CNPJ alfanumérico (NH.773.Y09/0001-10).
+    Se a apólice vinculada ao CORRETOR não tiver CC ativa para ramo 59, a gravação pode falhar por
+    motivo diferente do bug (sem CC = erro esperado de negócio). Mitigation: verificar se há CC ativa antes de executar.
+  </div>
+  <div class="warn-box" style="margin-top:6px">
+    <strong>RISCO 2 — Deploy:</strong> Task #7533 está Done, porém não foi confirmado via browser o número de versão
+    do build em HML. Verificar rodapé do CITNET FAIRFAX ALFA antes de executar para confirmar que é um build
+    posterior ao PR #1739.
+  </div>
+</div>
+
+<div class="section" style="font-size:11px;color:var(--text-muted)">
+  Plano gerado automaticamente por Claude Code · Sprint 8 Sustentação · 23/06/2026
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('expanded');
+}
+// Contadores dinâmicos (atualizar após execução)
+const EXEC = { total: 3, ok: 0, err: 0, pend: 3 };
+document.getElementById('m-total').textContent = EXEC.total;
+document.getElementById('m-ok').textContent = EXEC.ok;
+document.getElementById('m-err').textContent = EXEC.err;
+document.getElementById('m-pend').textContent = EXEC.pend;
+const pct = EXEC.total > 0 ? Math.round((EXEC.ok / EXEC.total) * 100) : 0;
+document.getElementById('progress').style.width = pct + '%';
+</script>
+</body>
+</html>
