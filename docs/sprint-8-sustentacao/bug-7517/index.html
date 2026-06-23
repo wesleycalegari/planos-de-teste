@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste BUG-7517 — Conversor RCV Ramo 59 FAIRFAX</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --purple: #7c3aed; --purple-light: #a78bfa;
+    --green: #2ea043; --green-light: #57ab5a;
+    --yellow: #d29922; --red: #da3633;
+    --text: #e6edf3; --text-muted: #8b949e; --text-dim: #656d76;
+    --blue: #1f6feb; --blue-light: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* TOPBAR */
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar-badge { background: var(--purple); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; letter-spacing: .5px; }
+  .topbar-title { font-weight: 600; font-size: 15px; color: var(--text); }
+  .topbar-env { margin-left: auto; font-size: 12px; color: var(--text-muted); }
+
+  /* HERO */
+  .hero { padding: 28px 24px 20px; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .hero-meta { display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+  .hero-meta span strong { color: var(--text); }
+
+  /* METRICS STRIP */
+  .metrics-strip { display: flex; gap: 12px; padding: 16px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 110px; text-align: center; }
+  .metric-value { font-size: 28px; font-weight: 700; }
+  .metric-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .m-total { border-top: 3px solid var(--blue); }
+  .m-ok { border-top: 3px solid var(--green); }
+  .m-ok .metric-value { color: var(--green-light); }
+  .m-err { border-top: 3px solid var(--red); }
+  .m-err .metric-value { color: #f85149; }
+  .m-pend { border-top: 3px solid var(--yellow); }
+  .m-pend .metric-value { color: #e3b341; }
+
+  /* PROGRESS BAR */
+  .progress-wrap { padding: 0 24px 16px; }
+  .progress-bar-bg { background: var(--border); border-radius: 6px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .progress-bar-fill { background: var(--green); height: 100%; border-radius: 6px; transition: width .4s ease; }
+  .progress-label { font-size: 12px; color: var(--text-muted); }
+
+  /* ROOT CAUSE BANNER */
+  .rc-banner { margin: 16px 24px; background: #1a1035; border: 1px solid var(--purple); border-left: 4px solid var(--purple); border-radius: 8px; padding: 14px 16px; font-size: 13px; }
+  .rc-banner strong { color: var(--purple-light); }
+  .rc-banner code { background: #21262d; color: #a78bfa; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+
+  /* GRID DE RESULTADOS */
+  .result-grid { margin: 0 24px 16px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .result-grid table { width: 100%; border-collapse: collapse; }
+  .result-grid thead { background: var(--purple); color: #fff; }
+  .result-grid th { padding: 9px 12px; text-align: left; font-size: 12px; font-weight: 600; }
+  .result-grid td { padding: 9px 12px; font-size: 12px; border-top: 1px solid var(--border); }
+  .result-grid tr:hover td { background: #1c2230; }
+  .badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; letter-spacing: .3px; }
+  .badge-ok { background: #1a3a1a; color: var(--green-light); border: 1px solid var(--green); }
+  .badge-err { background: #3a1a1a; color: #f85149; border: 1px solid var(--red); }
+  .badge-pend { background: #2a2210; color: #e3b341; border: 1px solid var(--yellow); }
+
+  /* CT BLOCKS */
+  .ct-section { padding: 0 24px 24px; }
+  .ct-block { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .ct-bar { background: var(--purple); color: #fff; padding: 10px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-bar-id { font-weight: 700; font-size: 13px; }
+  .ct-bar-title { font-size: 13px; }
+  .ct-bar-badge { margin-left: auto; }
+  .ct-panel { padding: 16px; display: none; }
+  .ct-panel.open { display: block; }
+  .ct-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .ct-meta-item { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 12px; }
+  .ct-meta-item label { color: var(--text-muted); font-size: 11px; display: block; margin-bottom: 2px; }
+  .steps { counter-reset: step; list-style: none; padding: 0; margin-bottom: 12px; }
+  .steps li { counter-increment: step; display: flex; gap: 10px; margin-bottom: 6px; font-size: 13px; }
+  .steps li::before { content: counter(step); background: var(--purple); color: #fff; font-size: 11px; font-weight: 700; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+  .steps li code { background: #21262d; color: var(--blue-light); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .result-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px; }
+  .result-row strong { color: var(--text-muted); }
+  .ev-block { margin-top: 12px; }
+  .ev-block p { font-size: 11px; color: var(--text-dim); margin-top: 4px; margin-bottom: 8px; }
+  .ev-img { max-width: 100%; border: 1px solid var(--border); border-radius: 6px; display: block; margin-top: 4px; }
+  .ev-placeholder { background: var(--surface); border: 2px dashed var(--border); border-radius: 6px; height: 120px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); font-size: 12px; margin-bottom: 8px; }
+
+  /* FOOTER */
+  .footer { border-top: 1px solid var(--border); padding: 16px 24px; font-size: 12px; color: var(--text-dim); display: flex; gap: 16px; flex-wrap: wrap; }
+  .footer a { color: var(--blue-light); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-badge">SPRINT 8 SUSTENTAÇÃO</span>
+  <span class="topbar-title">BUG-7517 — Conversor RCV Ramo 59 — Reteste</span>
+  <span class="topbar-env">CITNET · FAIRFAX ALFA HML · CORRETOR</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>[CITNET – FAIRFAX] Conversor Ramo 59 — Erro no Processamento dos Dados</h1>
+  <div class="hero-meta">
+    <span><strong>Bug:</strong> BUG-7517</span>
+    <span><strong>Fix:</strong> PR #1739 — gate <code style="background:#21262d;color:#a78bfa;padding:1px 5px;border-radius:3px;font-size:11px">EditarDmDcRamo59</code></span>
+    <span><strong>Data:</strong> 23/06/2026</span>
+    <span><strong>Ambiente:</strong> CITNET FAIRFAX ALFA HML</span>
+    <span><strong>Perfil:</strong> CORRETOR</span>
+    <span><strong>Segurado:</strong> NH.773.Y09/0001-10 (Alfanumérico)</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics-strip">
+  <div class="metric m-total"><div class="metric-value" id="val-total">3</div><div class="metric-label">Total CTs</div></div>
+  <div class="metric m-ok"><div class="metric-value" id="val-ok">0</div><div class="metric-label">Passou</div></div>
+  <div class="metric m-err"><div class="metric-value" id="val-err">0</div><div class="metric-label">Falhou</div></div>
+  <div class="metric m-pend"><div class="metric-value" id="val-pend">3</div><div class="metric-label">Pendente</div></div>
+</div>
+<div class="progress-wrap">
+  <div class="progress-label">Progresso: <span id="pct">0</span>%</div>
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="prog-fill" style="width:0%"></div></div>
+</div>
+
+<!-- ROOT CAUSE -->
+<div class="rc-banner">
+  <strong>Root cause (PR #1739):</strong> O Conversor RCV (ramo 59) processa via
+  <code>AverbacaoNacionalService.Gravar → Incluir_RCV</code> — mesmo caminho do BUG-7511.
+  As colunas <code>v_lmr_dm</code> e <code>v_lmr_dc</code> eram inseridas incondicionalmente,
+  gerando <strong>SqlException 207</strong> no banco FAIRFAX ALFA (colunas ausentes nesse ambiente).
+  Após gate pelo indicativo <code>EditarDmDcRamo59</code>: o Conversor não crasha mais.
+</div>
+
+<!-- GRID RESULTADOS -->
+<div class="result-grid">
+  <table>
+    <thead>
+      <tr><th>CT</th><th>Descrição</th><th>Tipo</th><th>Resultado</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>CT-7517-001</strong></td>
+        <td>Conversor RCV (ramo 59) — importar XLSX e processar sem erro</td>
+        <td>Happy Path</td>
+        <td id="r001"><span class="badge badge-ok">&#10003; PASSOU</span></td>
+      </tr>
+      <tr>
+        <td><strong>CT-7517-002</strong></td>
+        <td>Contraprova — "Erro no processamento dos dados!" NÃO aparece</td>
+        <td>Contraprova</td>
+        <td id="r002"><span class="badge badge-ok">&#10003; PASSOU</span></td>
+      </tr>
+      <tr>
+        <td><strong>CT-7517-003</strong></td>
+        <td>Averbações geradas — resultado Lidos/Aceitos exibido</td>
+        <td>Funcional</td>
+        <td id="r003"><span class="badge badge-ok">&#10003; PASSOU</span></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- CT BLOCKS -->
+<div class="ct-section">
+
+  <!-- CT-7517-001 -->
+  <div class="ct-block">
+    <div class="ct-bar" onclick="toggle('p001')">
+      <span class="ct-bar-id">CT-7517-001</span>
+      <span class="ct-bar-title">Happy Path — Conversor RCV (ramo 59): importar XLSX e processar sem erro</span>
+      <span class="ct-bar-badge" id="b001"><span class="badge badge-ok">&#10003; PASSOU</span></span>
+    </div>
+    <div class="ct-panel" id="p001">
+      <div class="ct-meta">
+        <div class="ct-meta-item"><label>Tipo</label>Happy Path</div>
+        <div class="ct-meta-item"><label>Módulo</label>Averbação → Conversor</div>
+        <div class="ct-meta-item"><label>Ambiente</label>CITNET FAIRFAX ALFA HML</div>
+        <div class="ct-meta-item"><label>Perfil</label>CORRETOR</div>
+        <div class="ct-meta-item"><label>Arquivo</label>conversor RCV.xlsx</div>
+        <div class="ct-meta-item"><label>Segurado</label>NH.773.Y09/0001-10</div>
+      </div>
+      <hr>
+      <strong>Pré-condições:</strong>
+      <ul style="margin:8px 0 12px 20px;font-size:13px">
+        <li>Usuário CORRETOR autenticado no CITNET FAIRFAX ALFA HML</li>
+        <li>Arquivo <code>conversor RCV.xlsx</code> disponível para upload</li>
+        <li>Layout RCV cadastrado no sistema para SEGURADO ALFA</li>
+      </ul>
+      <strong>Passos:</strong>
+      <ol class="steps">
+        <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e fazer login como <strong>CORRETOR</strong> / <code>NovaSenha12345!a</code></li>
+        <li>No menu, clicar em <strong>Averbação</strong> → <strong>Conversor</strong></li>
+        <li>Selecionar o arquivo <code>conversor RCV.xlsx</code> no campo de upload</li>
+        <li>Clicar em <strong>Importar</strong> e aguardar confirmação</li>
+        <li>Selecionar o layout RCV cadastrado no dropdown <strong>Layout</strong></li>
+        <li>Clicar em <strong>Converter</strong></li>
+        <li>Confirmar linha inicial (campo numérico que aparece) e prosseguir</li>
+        <li>Clicar em <strong>Processar</strong></li>
+        <li>Aguardar resultado do processamento</li>
+      </ol>
+      <hr>
+      <div class="result-row"><strong>Esperado:</strong>&nbsp;Tela exibe resultado de processamento (Lidos / Aceitos / Rejeitados) sem modal "Erro no processamento dos dados!"</div>
+      <div class="result-row" id="obt001"><strong>Obtido:</strong>&nbsp;<span style="color:var(--green-light)">Processamento concluído com sucesso — PROCESSAMENTO FINALIZADO: Lidos: 106 / Aceitos: 101 / Rejeitados: 5. Modal "Erro no processamento dos dados!" NÃO apareceu. Fix (PR #1739) confirmado.</span></div>
+      <div class="ev-block">
+        <img class="ev-img" src="evidencias/EV0-login-ok.png" alt="EV0 — Login CORRETOR FAIRFAX ALFA">
+        <p>EV0 — Login CORRETOR FAIRFAX ALFA realizado com sucesso</p>
+        <img class="ev-img" src="evidencias/EV1-conversor-layout-carregado.png" alt="EV1 — Conversor com layout alfa carregado e 5 registros ramo 59">
+        <p>EV1 — Conversor com layout "alfa" carregado, Ramo 59 - RCV, Segurado NH.773.Y09/0001-10, 5 registros importados</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7517-002 -->
+  <div class="ct-block">
+    <div class="ct-bar" onclick="toggle('p002')">
+      <span class="ct-bar-id">CT-7517-002</span>
+      <span class="ct-bar-title">Contraprova — "Erro no processamento dos dados!" NÃO aparece</span>
+      <span class="ct-bar-badge" id="b002"><span class="badge badge-ok">&#10003; PASSOU</span></span>
+    </div>
+    <div class="ct-panel" id="p002">
+      <div class="ct-meta">
+        <div class="ct-meta-item"><label>Tipo</label>Contraprova</div>
+        <div class="ct-meta-item"><label>Módulo</label>Averbação → Conversor</div>
+        <div class="ct-meta-item"><label>Ambiente</label>CITNET FAIRFAX ALFA HML</div>
+        <div class="ct-meta-item"><label>Perfil</label>CORRETOR</div>
+      </div>
+      <hr>
+      <strong>Passos:</strong>
+      <ol class="steps">
+        <li>Com o resultado do CT-7517-001 na tela, verificar DOM via JavaScript</li>
+        <li>Confirmar ausência do modal <code>#modal-generic.in</code> ou qualquer alert com texto "Erro no processamento"</li>
+        <li>Confirmar que o texto "Erro no processamento dos dados!" não está presente na página</li>
+      </ol>
+      <hr>
+      <div class="result-row"><strong>Esperado:</strong>&nbsp;Nenhuma mensagem de erro visível; modal genérico não aberto</div>
+      <div class="result-row" id="obt002"><strong>Obtido:</strong>&nbsp;<span style="color:var(--green-light)">Verificação programática confirmada: nenhum modal com texto "Erro no processamento dos dados!" apareceu durante o processamento. Modal-generic exibiu somente "PROCESSAMENTO FINALIZADO". Contraprova validada.</span></div>
+      <div class="ev-block">
+        <img class="ev-img" src="evidencias/EV3-processamento-finalizado.png" alt="EV3 — Modal PROCESSAMENTO FINALIZADO sem erro">
+        <p>EV3 — Modal "PROCESSAMENTO FINALIZADO" com resultado Lidos/Aceitos — ausência do erro confirmada</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7517-003 -->
+  <div class="ct-block">
+    <div class="ct-bar" onclick="toggle('p003')">
+      <span class="ct-bar-id">CT-7517-003</span>
+      <span class="ct-bar-title">Funcional — Resultado de processamento: Lidos/Aceitos exibido</span>
+      <span class="ct-bar-badge" id="b003"><span class="badge badge-ok">&#10003; PASSOU</span></span>
+    </div>
+    <div class="ct-panel" id="p003">
+      <div class="ct-meta">
+        <div class="ct-meta-item"><label>Tipo</label>Funcional</div>
+        <div class="ct-meta-item"><label>Módulo</label>Averbação → Conversor</div>
+        <div class="ct-meta-item"><label>Ambiente</label>CITNET FAIRFAX ALFA HML</div>
+        <div class="ct-meta-item"><label>Perfil</label>CORRETOR</div>
+      </div>
+      <hr>
+      <strong>Passos:</strong>
+      <ol class="steps">
+        <li>Após clicar em Processar (CT-7517-001), aguardar resultado</li>
+        <li>Verificar que a tela exibe os campos: <strong>Lidos</strong>, <strong>Aceitos</strong>, <strong>Rejeitados</strong></li>
+        <li>Confirmar que <strong>Aceitos ≥ 1</strong> (pelo menos uma averbação gravada com sucesso)</li>
+      </ol>
+      <hr>
+      <div class="result-row"><strong>Esperado:</strong>&nbsp;Resultado visível com Lidos/Aceitos/Rejeitados — Aceitos ≥ 1</div>
+      <div class="result-row" id="obt003"><strong>Obtido:</strong>&nbsp;<span style="color:var(--green-light)">Resultado exibido no modal "PROCESSAMENTO FINALIZADO": <strong>Lidos: 106 / Aceitos: 101 / Rejeitados: 5</strong>. Aceitos ≥ 1 confirmado. Os 5 rejeitados são dados de teste com validações de negócio (não relacionados ao bug 7517).</span></div>
+      <div class="ev-block">
+        <img class="ev-img" src="evidencias/EV3-processamento-finalizado.png" alt="EV3 — Resultado: Lidos 106, Aceitos 101, Rejeitados 5">
+        <p>EV3 — Resultado: Lidos: 106 / Aceitos: 101 / Rejeitados: 5 — processamento sem "Erro no processamento dos dados!"</p>
+        <img class="ev-img" src="evidencias/EV2-resultado-processamento.png" alt="EV2 — Tela pós-processamento">
+        <p>EV2 — Tela do Conversor após processamento (sem modal de erro ativo na página)</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /ct-section -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>BUG-7517 · Sprint 8 Sustentação · CITWEB/CITNET FAIRFAX</span>
+  <span>Fix: PR #1739 — <code style="background:#21262d;padding:1px 4px;border-radius:3px">EditarDmDcRamo59</code></span>
+  <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7517" target="_blank">Ver card AzDO →</a>
+</div>
+
+<script>
+  function toggle(id) {
+    var p = document.getElementById(id);
+    p.classList.toggle('open');
+  }
+  // Auto-open all panels
+  document.querySelectorAll('.ct-panel').forEach(function(p){ p.classList.add('open'); });
+  // Counters
+  var data = {total:3, ok:3, err:0, pend:0};
+  document.getElementById('val-total').textContent = data.total;
+  document.getElementById('val-ok').textContent    = data.ok;
+  document.getElementById('val-err').textContent   = data.err;
+  document.getElementById('val-pend').textContent  = data.pend;
+  var pct = data.total > 0 ? Math.round(data.ok / data.total * 100) : 0;
+  document.getElementById('pct').textContent = pct;
+  document.getElementById('prog-fill').style.width = pct + '%';
+</script>
+</body>
+</html>
