@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Reteste BUG-7514 / BUG-7518 — Aprovação Prévia CITNET FAIRFAX ALFA</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #c9d1d9; --text-muted: #8b949e;
+    --green: #2ea043; --green-bg: #0d1f0d; --green-text: #79c57e;
+    --red: #d13438; --red-bg: #2d0a0a; --red-text: #f1707a;
+    --yellow: #d29922; --yellow-bg: #1f1a00; --yellow-text: #e3b341;
+    --blue: #1f6feb; --blue-bg: #0d1f3c; --blue-text: #58a6ff;
+    --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 13px; }
+
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px;
+    display: flex; align-items: center; gap: 12px; }
+  .topbar-badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700;
+    padding: 2px 8px; border-radius: 12px; }
+  .topbar-title { font-weight: 600; font-size: 14px; }
+  .topbar-sub { color: var(--text-muted); font-size: 12px; }
+
+  .hero { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+  .hero h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .hero .meta { color: var(--text-muted); font-size: 12px; margin-bottom: 12px; }
+  .fix-box { background: var(--blue-bg); border: 1px solid var(--blue); border-radius: 6px;
+    padding: 10px 14px; font-size: 12px; color: var(--blue-text); margin-bottom: 10px; }
+  .fix-box strong { color: #fff; }
+
+  .metrics { display: flex; gap: 12px; padding: 14px 24px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; min-width: 110px; text-align: center; }
+  .metric-card .num { font-size: 24px; font-weight: 700; }
+  .metric-card .lbl { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .metric-card.green .num { color: var(--green-text); }
+  .metric-card.red .num { color: var(--red-text); }
+  .metric-card.yellow .num { color: var(--yellow-text); }
+  .metric-card.blue .num { color: var(--blue-text); }
+
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; margin: 0 24px 16px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width .5s; }
+
+  .section { padding: 16px 24px; border-bottom: 1px solid var(--border); }
+  .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    color: var(--text-muted); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+
+  .info-box { background: var(--blue-bg); border-left: 3px solid var(--blue);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-bottom: 8px; }
+  .warn-box { background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; margin-bottom: 8px; color: var(--yellow-text); }
+
+  .group-header { background: linear-gradient(135deg, var(--purple), #5b21b6);
+    color: #fff; padding: 8px 14px; border-radius: 6px; font-weight: 700;
+    font-size: 12px; margin-bottom: 8px; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+    margin-bottom: 10px; overflow: hidden; }
+  .ct-head { padding: 12px 14px; cursor: pointer; user-select: none; display: flex;
+    align-items: center; gap: 8px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-weight: 700; font-size: 12px; color: var(--blue-text); }
+  .ct-title { flex: 1; font-weight: 600; font-size: 13px; }
+  .ct-toggle { font-size: 11px; color: var(--text-muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 14px; }
+  .ct-block.expanded .ct-body { display: block; }
+
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+  .badge-pend { background: var(--yellow-bg); color: var(--yellow-text); border: 1px solid var(--yellow); }
+  .badge-ok   { background: var(--green-bg);  color: var(--green-text);  border: 1px solid var(--green); }
+  .badge-err  { background: var(--red-bg);    color: var(--red-text);    border: 1px solid var(--red); }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12px; }
+  th { background: var(--bg3); color: var(--text-muted); font-weight: 700; padding: 6px 10px; text-align: left; }
+  td { padding: 6px 10px; border-top: 1px solid var(--border); vertical-align: top; }
+  tr:hover td { background: var(--bg3); }
+
+  .steps ol { padding-left: 20px; }
+  .steps li { margin-bottom: 6px; line-height: 1.5; }
+  .steps code { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px;
+    padding: 1px 5px; font-family: monospace; font-size: 11px; }
+
+  .result-pend { background: var(--yellow-bg); border-left: 3px solid var(--yellow);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; color: var(--yellow-text); margin-top: 10px; }
+  .result-ok   { background: var(--green-bg);  border-left: 3px solid var(--green);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; color: var(--green-text);  margin-top: 10px; }
+  .result-err  { background: var(--red-bg);    border-left: 3px solid var(--red);
+    border-radius: 4px; padding: 8px 12px; font-size: 12px; color: var(--red-text);    margin-top: 10px; }
+
+  .ev-img-wrap { margin-top: 10px; }
+  .ev-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; font-weight: 600; }
+  .ev-img-wrap img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; display: block; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-badge">BUG</span>
+  <span class="topbar-badge" style="background:var(--purple)">7514</span>
+  <span class="topbar-badge" style="background:var(--purple)">7518</span>
+  <span class="topbar-title">Reteste — Aprovação Prévia CITNET FAIRFAX ALFA</span>
+  <span class="topbar-sub">Sprint 8 Sustentação &nbsp;|&nbsp; CNPJ Alfanumérico</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>[CITNET - FAIRFAX] Faturamento — Aprovação Prévia</h1>
+  <div class="meta">AzDO: BUG-7514 / BUG-7518 &nbsp;|&nbsp; Ambiente: CITNET FAIRFAX ALFA HML &nbsp;|&nbsp; Data execução: 23/06/2026</div>
+  <div class="fix-box">
+    <strong>Fix BUG-7514:</strong> PR #1738 — <code>fix/7514-erro-ao-realizar-aprovacao-previa</code> → <code>feature/cnpj_alfanumerico</code><br>
+    <strong>Root cause:</strong> Campo Competência com máscara formatava "06 / 2026" (com espaços). O valor era enviado sem encoding para a URL da chamada a <code>ObterResumoFechamentoNac</code>, causando HTTP 500 e exibição do modal de erro.<br>
+    <strong>Fix BUG-7518:</strong> Branch <code>bug/7518_datatables-buttons-nao-carrega</code> — extensão DataTables Buttons não carregava corretamente na grid de averbações. Ambos mergeados em <code>feature/cnpj_alfanumerico</code>, Release-43.
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics" id="metrics">
+  <div class="metric-card blue"><div class="num" id="m-total">4</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card green"><div class="num" id="m-ok">4</div><div class="lbl">Passou</div></div>
+  <div class="metric-card red"><div class="num" id="m-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric-card yellow"><div class="num" id="m-pend">0</div><div class="lbl">Pendente</div></div>
+</div>
+<div class="progress-bar"><div class="progress-fill" id="progress" style="width:100%"></div></div>
+
+<!-- ESCOPO -->
+<div class="section">
+  <div class="section-title">Escopo e Ambiente</div>
+  <div class="info-box">
+    <strong>Sistema:</strong> CITNET FAIRFAX ALFA HML<br>
+    <strong>URL base:</strong> <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code><br>
+    <strong>Módulo:</strong> Faturamento → Aprovação (Autorização Prévia)<br>
+    <strong>Perfil testado:</strong> CORRETOR<br>
+    <strong>Credenciais:</strong> <code>CORRETOR</code> / <code>[senha HML — ver cofre]</code><br>
+    <strong>Release:</strong> Release-43 (commit 2165297b / b3e049a9)
+  </div>
+  <div class="warn-box">
+    <strong>Nota:</strong> A tela de Aprovação Prévia carrega automaticamente o segurado e a competência ao abrir. Os CTs validam que esse carregamento ocorre sem o modal de erro "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!".
+  </div>
+</div>
+
+<!-- CTs -->
+<div class="section">
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">Grupo 1 — Aprovação Prévia — Carregamento sem erro (BUG-7514)</div>
+
+  <!-- CT-7514-001 -->
+  <div class="ct-block expanded" id="ct1">
+    <div class="ct-head" onclick="toggle('ct1')">
+      <span class="ct-id">CT-7514-001</span>
+      <span class="ct-title">Happy Path — Aprovação Prévia carrega sem modal de erro</span>
+      <span class="badge badge-ok" id="badge-ct1">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Usuário <code>CORRETOR</code> com acesso ao módulo Faturamento → Aprovação</td></tr>
+        <tr><td>Perfil</td><td>CORRETOR</td></tr>
+        <tr><td>Ambiente</td><td>CITNET FAIRFAX ALFA HML</td></tr>
+        <tr><td>Critério de aceite</td><td>A tela de Autorização Prévia deve carregar completamente sem exibir o modal "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!". O resumo de faturamento deve ser exibido corretamente.</td></tr>
+      </table>
+
+      <div class="steps">
+        <br><strong>Passos:</strong>
+        <ol>
+          <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+          <li>Na tela de login, preencher <strong>Usuário:</strong> <code>CORRETOR</code> e <strong>Senha:</strong> <code>[senha HML — ver cofre]</code></li>
+          <li>Clicar em <strong>Entrar</strong> e aguardar o carregamento da home do CITNET</li>
+          <li>No menu superior, clicar em <strong>Faturamento</strong></li>
+          <li>No submenu, clicar em <strong>Aprovação</strong></li>
+          <li>Aguardar o carregamento completo da tela de Autorização Prévia</li>
+          <li>Observar que a tela exibe o segurado e a competência carregados automaticamente</li>
+          <li><strong>Verificar:</strong> O resumo de faturamento é exibido sem erros (sem modal "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!")</li>
+          <li>Capturar screenshot mostrando a tela carregada com o resumo de faturamento visível</li>
+        </ol>
+      </div>
+
+      <div class="result-ok" id="result-ct1">
+        <strong>PASSOU</strong> — Tela "Autorização de Prévia para Faturamento" carregou completamente sem o modal de erro. Segurado ALFA NH.773.Y09/0001-10 pré-selecionado. Verificação programática: <code>modalVisivel: false</code>, <code>erroNoTexto: false</code>.
+      </div>
+
+      <div class="ev-img-wrap" id="ev-ct1">
+        <div class="ev-label">EV0 — Login CORRETOR FAIRFAX ALFA realizado com sucesso</div>
+        <img src="evidencias/EV0-login-ok.png" alt="EV0 login ok">
+        <br>
+        <div class="ev-label">EV1 — Tela Aprovação Prévia carregada SEM modal de erro</div>
+        <img src="evidencias/EV1-sem-modal-erro.png" alt="EV1 sem modal de erro">
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7514-002 -->
+  <div class="ct-block expanded" id="ct2">
+    <div class="ct-head" onclick="toggle('ct2')">
+      <span class="ct-id">CT-7514-002</span>
+      <span class="ct-title">Contraprova — Modal de erro NÃO deve ser exibido</span>
+      <span class="badge badge-ok" id="badge-ct2">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Tela de Autorização Prévia aberta (continuação do CT-7514-001)</td></tr>
+        <tr><td>Tipo</td><td>Contraprova — verifica que o comportamento bugado não ocorre mais</td></tr>
+        <tr><td>Critério de aceite</td><td>O modal "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!" NÃO deve aparecer em nenhum momento do carregamento da tela</td></tr>
+      </table>
+
+      <div class="steps">
+        <br><strong>Passos:</strong>
+        <ol>
+          <li>Com a tela de Autorização Prévia aberta (do CT anterior), verificar o estado da página</li>
+          <li>Confirmar que nenhum modal de erro está visível na tela</li>
+          <li>Navegar para fora e retornar à tela (Faturamento → Aprovação novamente)</li>
+          <li>Aguardar o recarregamento completo</li>
+          <li><strong>Verificar:</strong> O modal "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!" NÃO aparece</li>
+          <li>Confirmar que a chamada a <code>ObterResumoFechamentoNac</code> retorna sem HTTP 500 (verificar console/rede do browser ou ausência de modal de erro)</li>
+          <li>Capturar screenshot da tela carregada sem modal de erro</li>
+        </ol>
+      </div>
+
+      <div class="result-ok" id="result-ct2">
+        <strong>PASSOU</strong> — Modal "ATENÇÃO! Erro na Exibição do Resumo de Faturamento!" NÃO foi exibido. Avaliação via <code>document.querySelector('.modal.in')</code> retornou <code>null</code>. Texto de erro ausente no DOM da página.
+      </div>
+
+      <div class="ev-img-wrap" id="ev-ct2">
+        <div class="ev-label">EV1 — Tela carregada sem nenhum modal de erro visível (contraprova)</div>
+        <img src="evidencias/EV1-sem-modal-erro.png" alt="EV1 contraprova sem modal">
+      </div>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo 2 — DataTables Buttons (BUG-7518)</div>
+
+  <!-- CT-7514-003 -->
+  <div class="ct-block expanded" id="ct3">
+    <div class="ct-head" onclick="toggle('ct3')">
+      <span class="ct-id">CT-7514-003</span>
+      <span class="ct-title">Regressão — Botões DataTables carregam na grid de aprovação</span>
+      <span class="badge badge-ok" id="badge-ct3">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Tela de Autorização Prévia aberta com grid de averbações visível</td></tr>
+        <tr><td>Bug relacionado</td><td>BUG-7518 — Botões do DataTables não carregavam na grid</td></tr>
+        <tr><td>Critério de aceite</td><td>Os botões da extensão DataTables (ex: Copiar, Excel, PDF, Imprimir, Pesquisar) devem ser exibidos e funcionais na grid de averbações da Aprovação Prévia</td></tr>
+      </table>
+
+      <div class="steps">
+        <br><strong>Passos:</strong>
+        <ol>
+          <li>Com a tela de Autorização Prévia carregada e a grid de averbações visível</li>
+          <li>Verificar que os botões de exportação/ação do DataTables estão visíveis acima ou abaixo da grid (botões como Copiar, Excel, PDF, Imprimir, ou toolbar de ações)</li>
+          <li>Se necessário, realizar uma consulta (selecionar Filial e Competência → clicar Consultar) para carregar a grid</li>
+          <li><strong>Verificar:</strong> Os botões da toolbar do DataTables são exibidos corretamente, sem estarem ausentes ou fora do lugar</li>
+          <li>Capturar screenshot da grid com os botões do DataTables visíveis e a mensagem de sucesso/resultado da consulta</li>
+        </ol>
+      </div>
+
+      <div class="result-ok" id="result-ct3">
+        <strong>PASSOU</strong> — Botões "Excel" e "PDF" do DataTables visíveis e renderizados corretamente acima da grid. Grid retornou 5 registros (ramos 21, 32, 38, 56, 59) para Segurado ALFA NH.773.Y09/0001-10 / Competência 04/2026.
+      </div>
+
+      <div class="ev-img-wrap" id="ev-ct3">
+        <div class="ev-label">EV2 — Grid com botões DataTables (Excel/PDF) visíveis e 5 registros carregados</div>
+        <img src="evidencias/EV2-grid-datatables-ok.png" alt="EV2 grid datatables">
+        <br>
+        <div class="ev-label">EV2b — Grid completa com botão Aprovar por linha</div>
+        <img src="evidencias/EV2b-grid-aprovar-botao.png" alt="EV2b grid aprovar">
+      </div>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo 3 — Aprovação da Prévia</div>
+
+  <!-- CT-7514-004 -->
+  <div class="ct-block expanded" id="ct4">
+    <div class="ct-head" onclick="toggle('ct4')">
+      <span class="ct-id">CT-7514-004</span>
+      <span class="ct-title">Realizar aprovação da prévia com sucesso</span>
+      <span class="badge badge-ok" id="badge-ct4">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Tela de Autorização Prévia carregada sem erros, grid de averbações com pelo menos um registro disponível para aprovação</td></tr>
+        <tr><td>Perfil</td><td>CORRETOR</td></tr>
+        <tr><td>Critério de aceite</td><td>Ao clicar no botão de aprovação/autorização da prévia, o sistema deve processar e exibir mensagem de sucesso (ex: "Aprovado com sucesso", "Autorização realizada" ou similar). Nenhum erro deve ocorrer.</td></tr>
+      </table>
+
+      <div class="steps">
+        <br><strong>Passos:</strong>
+        <ol>
+          <li>Com a tela de Autorização Prévia carregada (do CT-7514-001), verificar que há averbações listadas na grid</li>
+          <li>Se a grid estiver vazia, selecionar Filial e Competência disponíveis e clicar em <strong>Consultar</strong></li>
+          <li>Localizar um registro na grid disponível para aprovação</li>
+          <li>Clicar no botão <strong>Aprovar</strong> (ou ação equivalente) para o registro selecionado</li>
+          <li>Se exibido modal de confirmação, clicar em <strong>Sim</strong> / <strong>Confirmar</strong></li>
+          <li><strong>Verificar:</strong> O sistema exibe mensagem de sucesso (toast, alert ou modal) confirmando a aprovação</li>
+          <li>Capturar screenshot com a mensagem de sucesso visível no viewport</li>
+        </ol>
+      </div>
+
+      <div class="result-ok" id="result-ct4">
+        <strong>PASSOU</strong> — Clicando em Aprovar na linha ramo 21 (Apólice 22062026), o modal "Resumo da Fatura" abriu corretamente com Prêmio Total R$ 111,22. Após preencher Vencimento 30/06/2026 e clicar Processar, o sistema exibiu: <strong>"Aprovação do Faturamento efetuada com sucesso!"</strong>. Situação da linha atualizada para "Aprovada com sucesso".
+      </div>
+
+      <div class="ev-img-wrap" id="ev-ct4">
+        <div class="ev-label">EV3 — Modal "Resumo da Fatura" aberto corretamente (sem HTTP 500)</div>
+        <img src="evidencias/EV3-modal-resumo-fatura.png" alt="EV3 modal resumo fatura">
+        <br>
+        <div class="ev-label">EV4 — Mensagem "Aprovação do Faturamento efetuada com sucesso!" visível no viewport</div>
+        <img src="evidencias/EV4-aprovacao-sucesso.png" alt="EV4 aprovacao sucesso">
+      </div>
+    </div>
+  </div>
+
+</div><!-- /section CTs -->
+
+<script>
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('expanded');
+}
+</script>
+</body>
+</html>
