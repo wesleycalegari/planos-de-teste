@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7522 — CITNET MITSUI — Autorização de Faturamento</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:var(--purple);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}.val-ok{color:var(--green)}.val-err{color:var(--red)}.val-pend{color:var(--orange)}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:var(--green);transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .group-header{background:var(--purple);color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .subgroup-header{background:#2d1f5e;color:var(--purple-light);padding:7px 14px;font-size:12px;font-weight:600;border-left:3px solid var(--purple);margin:12px 0 6px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-p1{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-p2{background:#2d1a00;color:#d29922;border:1px solid #5a3d00;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-ok{background:#0d3321;color:#3fb950;border:1px solid #1a5c35;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-pend{background:#21262d;color:#8b949e;border:1px solid #444c56;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  ol{padding-left:18px}
+  ol li{margin:3px 0;color:var(--text)}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#57ab5a}
+  .result-row.pend{background:#1a1a1a;border-left:3px solid var(--muted);color:var(--muted)}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px}
+  .ev-caption{font-size:11px;color:var(--muted);margin:3px 0 8px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · MITSUI ALFA</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7522 — Autorização de Faturamento: NullReferenceException pelo menu sem ?tipo</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plano de Reteste</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - Mitsui ] Autorização de Faturamento — tela quebra (NullReferenceException) ao abrir pelo menu, sem o parâmetro tipo</div>
+  <div class="hero-meta">
+    <span><strong>Fix</strong> PR #1744 — default <code>tipo=N</code> quando menu abre sem ?tipo</span>
+    <span><strong>Ambiente</strong> MITSUI ALFA HML (build 1649 / Release-4)</span>
+    <span><strong>Perfis</strong> CORRETOR + INTERNO</span>
+    <span><strong>Módulo</strong> Faturamento → Autorização</span>
+    <span><strong>Autor</strong> Wesley Moreira · 23/06/2026</span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total" id="m-total">4</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val val-ok" id="m-ok">0</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err" id="m-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend" id="m-pend">4</div><div class="lbl">Pendente</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Root cause (PR #1744):</strong> Ao navegar pelo menu do CITNET para "Autorização de Faturamento", a URL não recebia o parâmetro <code>?tipo=</code>. O controller não tratava a ausência do parâmetro, causando <strong>NullReferenceException</strong> e HTTP 500 na tela.</p>
+    <p style="margin-top:6px"><strong>Fix:</strong> Quando <code>tipo</code> está ausente ou nulo, o controller aplica <code>tipo=N</code> por padrão, carregando a tela "Autorização de Faturamento — Averbações Mensais — Nacional".</p>
+  </div>
+
+  <div class="info-box" style="border-color:var(--purple)">
+    <h3 style="color:var(--purple-light)">Pré-requisitos de Execução</h3>
+    <table>
+      <tr><th>Item</th><th>Valor</th></tr>
+      <tr><td>URL Base</td><td><code>https://mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+      <tr><td>Credencial CORRETOR</td><td><code>CORRETOR</code> / <code>NovaSenha12345!a</code></td></tr>
+      <tr><td>Credencial INTERNO</td><td><code>INTERNO</code> / <code>11</code></td></tr>
+      <tr><td>Navegação</td><td>Sempre pelo menu — nunca URL direta com ?tipo= (pois isso não reproduz o bug)</td></tr>
+      <tr><td>Build</td><td>1649 / Release-4 (validado por Fabiano em 23/06/2026)</td></tr>
+    </table>
+  </div>
+
+  <div class="info-box" style="border-color:var(--orange);background:#1a1500">
+    <h3 style="color:var(--orange)">⚠️ Atenção — Reprodução do Bug</h3>
+    <p>O bug ocorre especificamente ao abrir a tela <strong>pelo menu</strong> (sem parâmetro <code>?tipo=</code> na URL). Acessar diretamente via URL com <code>?tipo=N</code> não reproduz o cenário original. Todos os CTs devem navegar obrigatoriamente pelo clique no menu.</p>
+  </div>
+
+  <!-- GROUP -->
+  <div class="group-header">Autorização de Faturamento — MITSUI ALFA HML (4 CTs)</div>
+
+  <!-- SUBGROUP CORRETOR -->
+  <div class="subgroup-header">Perfil: CORRETOR</div>
+
+  <!-- CT-7522-001 -->
+  <div class="ct-block" id="ct001">
+    <div class="ct-head" onclick="toggle('ct001')">
+      <span class="ct-id">CT-7522-001</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Happy Path</span>
+      <span class="badge-profile">CORRETOR</span>
+      <span class="ct-title">Autorização de Faturamento abre pelo menu sem NullReferenceException</span>
+      <span class="badge-pend" id="s001">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>Ambiente MITSUI ALFA HML acessível. Credencial CORRETOR/NovaSenha12345!a válida.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Navegar para <code>https://mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+        <li>Fazer login com <strong>CORRETOR</strong> / <strong>NovaSenha12345!a</strong></li>
+        <li>Confirmar tela inicial carregada (menu superior visível)</li>
+        <li>No menu, localizar <strong>Faturamento</strong> e identificar o item <strong>Autorização</strong> (ou nome equivalente)</li>
+        <li>Clicar no item de menu <strong>sem</strong> usar URL direta</li>
+        <li>Aguardar carregamento da tela</li>
+        <li>Verificar: tela carregou sem HTTP 500 / NullReferenceException</li>
+        <li>Capturar screenshot da tela carregada</li>
+        <li>Verificar via JS: <code>document.querySelector('.alert-danger, #lblErro')?.innerText</code></li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Tela de Autorização de Faturamento carrega completamente. Nenhum erro HTTP 500 ou NullReferenceException visível.</p>
+
+      <div class="result-row pend" id="r001">⏳ Pendente de execução</div>
+      <div class="ev-section" id="ev001" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- CT-7522-002 -->
+  <div class="ct-block" id="ct002">
+    <div class="ct-head" onclick="toggle('ct002')">
+      <span class="ct-id">CT-7522-002</span>
+      <span class="badge-p2">P2</span>
+      <span class="badge-type">Funcional</span>
+      <span class="badge-profile">CORRETOR</span>
+      <span class="ct-title">Tela exibida é "Averbações Mensais — Nacional" (tipo=N por default)</span>
+      <span class="badge-pend" id="s002">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7522-001 executado com sucesso (tela de Autorização aberta pelo menu).</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Com a tela de Autorização de Faturamento aberta (via menu, CORRETOR)</li>
+        <li>Verificar o título/cabeçalho da tela exibida</li>
+        <li>Confirmar que a tela é <strong>"Autorização de Faturamento — Averbações Mensais — Nacional"</strong> (ou equivalente com tipo=N)</li>
+        <li>Capturar screenshot mostrando o título/cabeçalho legível</li>
+        <li>Verificar via JS: <code>document.querySelector('h2, h3, .page-title, #titulo')?.innerText</code></li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Tela exibe título referente a "Averbações Mensais" ou "Nacional" — confirmando que <code>tipo=N</code> foi aplicado por default. Não exibe erro.</p>
+
+      <div class="result-row pend" id="r002">⏳ Pendente de execução</div>
+      <div class="ev-section" id="ev002" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- SUBGROUP INTERNO -->
+  <div class="subgroup-header">Perfil: INTERNO</div>
+
+  <!-- CT-7522-003 -->
+  <div class="ct-block" id="ct003">
+    <div class="ct-head" onclick="toggle('ct003')">
+      <span class="ct-id">CT-7522-003</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Happy Path</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Autorização de Faturamento abre pelo menu sem NullReferenceException</span>
+      <span class="badge-pend" id="s003">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>Ambiente MITSUI ALFA HML acessível. Credencial INTERNO / 11 válida.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Navegar para <code>https://mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+        <li>Fazer login com <strong>INTERNO</strong> / <strong>11</strong></li>
+        <li>Confirmar tela inicial carregada (menu superior visível)</li>
+        <li>No menu, localizar <strong>Faturamento</strong> e clicar no item <strong>Autorização</strong></li>
+        <li>Aguardar carregamento da tela</li>
+        <li>Verificar: tela carregou sem HTTP 500 / NullReferenceException</li>
+        <li>Capturar screenshot da tela carregada</li>
+        <li>Verificar via JS: <code>document.querySelector('.alert-danger, #lblErro')?.innerText</code></li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Tela de Autorização de Faturamento carrega completamente sem erros. Fix confirmado para o perfil que Fabiano usou na validação de dev.</p>
+
+      <div class="result-row pend" id="r003">⏳ Pendente de execução</div>
+      <div class="ev-section" id="ev003" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- CT-7522-004 -->
+  <div class="ct-block" id="ct004">
+    <div class="ct-head" onclick="toggle('ct004')">
+      <span class="ct-id">CT-7522-004</span>
+      <span class="badge-p2">P2</span>
+      <span class="badge-type">Funcional</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Tela exibida é "Averbações Mensais — Nacional" (tipo=N por default)</span>
+      <span class="badge-pend" id="s004">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7522-003 executado com sucesso (tela de Autorização aberta pelo menu com INTERNO).</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Com a tela de Autorização de Faturamento aberta (via menu, INTERNO)</li>
+        <li>Verificar o título/cabeçalho da tela exibida</li>
+        <li>Confirmar que a tela é <strong>"Autorização de Faturamento — Averbações Mensais — Nacional"</strong></li>
+        <li>Capturar screenshot mostrando o título/cabeçalho legível</li>
+        <li>Verificar via JS: <code>document.querySelector('h2, h3, .page-title, #titulo')?.innerText</code></li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Tela exibe título referente a "Averbações Mensais" ou "Nacional" — confirmando <code>tipo=N</code> por default.</p>
+
+      <div class="result-row pend" id="r004">⏳ Pendente de execução</div>
+      <div class="ev-section" id="ev004" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- MATRIZ -->
+  <div style="margin-top:24px">
+    <div class="group-header" style="border-radius:6px">Matriz de Rastreabilidade</div>
+    <table style="margin-top:8px">
+      <tr><th>Critério de Aceite</th><th>CTs</th></tr>
+      <tr><td>Tela abre pelo menu sem NullReferenceException/HTTP 500 (CORRETOR)</td><td>CT-7522-001</td></tr>
+      <tr><td>Tela exibe tipo=N (Averbações Mensais — Nacional) por default (CORRETOR)</td><td>CT-7522-002</td></tr>
+      <tr><td>Tela abre pelo menu sem NullReferenceException/HTTP 500 (INTERNO)</td><td>CT-7522-003</td></tr>
+      <tr><td>Tela exibe tipo=N (Averbações Mensais — Nacional) por default (INTERNO)</td><td>CT-7522-004</td></tr>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+var data = {total:4,ok:0,err:0,pend:4};
+function toggle(id){document.getElementById(id).classList.toggle('expanded')}
+function upd(){
+  document.getElementById('m-ok').textContent=data.ok;
+  document.getElementById('m-err').textContent=data.err;
+  document.getElementById('m-pend').textContent=data.pend;
+  var pct=data.total>0?Math.round(data.ok/data.total*100):0;
+  document.getElementById('progress').style.width=pct+'%';
+}
+upd();
+</script>
+</body>
+</html>
