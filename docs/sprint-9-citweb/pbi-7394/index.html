@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-7394 — Coluna Corretor no grid Interface</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #1c2128;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+    --blue: #58a6ff; --blue-dim: #1f6feb; --blue-bg: #0a1628;
+    --green: #3fb950; --green-bg: #061a0e;
+    --red: #f85149; --red-bg: #1a0505;
+    --yellow: #d29922; --yellow-bg: #1a1200;
+    --orange: #e3963e;
+    --p1-color: #f85149; --p1-bg: rgba(248,81,73,.12); --p1-border: rgba(248,81,73,.35);
+    --p2-color: #e3963e; --p2-bg: rgba(227,150,62,.12); --p2-border: rgba(227,150,62,.35);
+    --p3-color: #8b949e; --p3-bg: rgba(139,148,158,.10); --p3-border: rgba(139,148,158,.30);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-logo { font-size: 13px; font-weight: 700; color: var(--blue); border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 4px; }
+  .topbar-title { color: var(--text-muted); font-size: 13px; }
+  .topbar-tags { display: flex; gap: 6px; margin-left: auto; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-pbi   { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-dim); }
+  .badge-core  { background: #0d2040; color: #79b8ff; border: 1px solid #1f4068; }
+  .badge-func  { background: #0a2a1a; color: #3fb950; border: 1px solid #1a5c2e; }
+  .badge-p1    { background: var(--p1-bg); color: var(--p1-color); border: 1px solid var(--p1-border); }
+  .badge-p2    { background: var(--p2-bg); color: var(--p2-color); border: 1px solid var(--p2-border); }
+  .badge-p3    { background: var(--p3-bg); color: var(--p3-color); border: 1px solid var(--p3-border); }
+  .badge-pend  { background: #1a1200; color: var(--yellow); border: 1px solid #5a4000; }
+  .badge-pass  { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c2e; }
+  .badge-fail  { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-nstech { background: #0a1a2a; color: #58a6ff; border: 1px solid #1f4068; }
+  .badge-fairfax { background: #1a0a2a; color: #bc8cff; border: 1px solid #4a2a6a; }
+
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #161b22 100%); border-bottom: 2px solid var(--blue-dim); padding: 24px 24px 18px; }
+  .hero-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .hero .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 36px; flex-wrap: wrap; align-items: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .pb-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .progress-bar .pb-track { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar .pb-fill { background: var(--blue); border-radius: 4px; height: 6px; width: 0%; transition: width .4s; }
+
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+  .info-box  { background: var(--blue-bg); border: 1px solid var(--blue-dim); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .warn-box  { background: var(--yellow-bg); border: 1px solid #5a4000; border-left: 4px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .pass-box  { background: var(--green-bg); border: 1px solid #1a5c2e; border-left: 4px solid var(--green); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 7px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1117; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+
+  .group-hd { background: var(--blue-dim); color: #fff; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; display: flex; align-items: center; gap: 10px; }
+  .group-hd.eq-group  { background: #1a3a1a; }
+  .group-hd.regr-group { background: #2d1a55; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block:not(:last-child) { border-radius: 0; }
+  .ct-block.p1 { border-left: 3px solid var(--p1-color); }
+  .ct-block.p2 { border-left: 3px solid var(--p2-color); }
+  .ct-block.p3 { border-left: 3px solid var(--p3-color); }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .ct-title { flex: 1; font-weight: 600; color: var(--text); font-size: 13px; }
+  .ct-toggle { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 5px; font-size: 13px; }
+  .ct-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .ct-result strong { color: var(--text); }
+
+  .ev-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ev-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .ev-item img { width: 100%; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+  .ev-item .ev-cap { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .matriz td:first-child { font-family: monospace; font-size: 12px; color: var(--blue); }
+  .cov-ok   { color: var(--green); font-weight: 700; }
+  .cov-pend { color: var(--yellow); font-weight: 700; }
+
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:94vw; max-height:88vh; border-radius:6px; border:1px solid var(--border); }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:94vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:14px; right:18px; font-size:28px; color:#c9d1d9; cursor:pointer; background:none; border:none; line-height:1; }
+
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div id="lb"><button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">✕</button><img id="lb-img" src=""><div class="lb-cap" id="lb-cap"></div></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — PBI-7394 — Coluna Corretor no grid do módulo Interface</span>
+  <div class="topbar-tags">
+    <span class="badge badge-pbi">PBI-7394</span>
+    <span class="badge badge-core">CORE</span>
+    <span class="badge badge-func">INTERFACE</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-pbi">PBI-7394</span>
+    <span class="badge badge-nstech">NSTECH HML</span>
+    <span class="badge badge-fairfax">FAIRFAX HML</span>
+    <span class="badge badge-func">MÓDULO INTERFACE</span>
+  </div>
+  <h1>Inclusão de coluna Corretor no grid do módulo Interface — Emissão de Fatura Mensal</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITWEB — Módulo Interface (Emissão de Fatura Mensal)</span>
+    <span><strong>Ramos:</strong> Todos (Nacional e Internacional)</span>
+    <span><strong>Sprint:</strong> 9 — CITWEB</span>
+    <span><strong>Dev:</strong> Diego Almeida</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 24/06/2026</span>
+  </div>
+</div>
+
+<!-- METRICS STRIP -->
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)" id="total-cts">5</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">4</div><div class="lbl">P1 — Bloqueante</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2 — Importante</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="ct-aprovados">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="ct-pendentes">5</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- 1. DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="info-box">
+      <strong>Funcionalidade implementada:</strong> inclusão da coluna <strong>Corretor</strong> no grid de consulta do módulo <strong>Interface &gt; Emissão de Fatura Mensal</strong>. A coluna deve exibir o nome da corretora vinculada ao cadastro da apólice e estar posicionada entre as colunas <strong>Data Vencto</strong> e <strong>Segurado / Pagador</strong>.<br><br>
+      <strong>Motivação:</strong> solicitação da seguradora Fairfax para facilitar a consulta interna. Implementação replicada para todas as seguradoras (CORE).<br><br>
+      <strong>Referência Movidesk:</strong> <code>#268409</code>
+    </div>
+    <div class="info-box">
+      <strong>Estrutura do grid confirmada in loco (24/06/2026):</strong><br>
+      <code>checkbox | Resumo | Detalhe | Filial | Ramo | Apólice | Sub | Fechamento | <strong>Data Vencto | Corretor | Segurado / Pagador</strong> | Valor Segurado | Prêmio Líquido | Juros | Custo | IOF | Prêmio Total | Qtde Avb | Resultado Interface Fatura</code>
+    </div>
+  </div>
+
+  <!-- 2. ESCOPO -->
+  <div class="section">
+    <div class="section-title">2. Escopo</div>
+    <table>
+      <tr><th>In Scope</th><th>Out of Scope</th></tr>
+      <tr>
+        <td>
+          Presença e posicionamento da coluna Corretor no grid<br>
+          Correção dos dados exibidos (nome da corretora da apólice)<br>
+          Verificação em ramos Nacionais (RCTR-C) e Internacionais (IMPORTAÇÃO/EXPORTAÇÃO)<br>
+          Equalização: NSTECH e FAIRFAX<br>
+          Regressão: funcionalidade de Selecionar e grid
+        </td>
+        <td>
+          Demais seguradoras além de NSTECH e FAIRFAX (validação por amostragem)<br>
+          Processamento de faturas (botão Processar — não alterado)<br>
+          Módulo Interface WI / Siscomex (módulo distinto)<br>
+          CITNET
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 3. PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-title">3. Pré-requisitos e Massa de Dados</div>
+
+    <div class="info-box">
+      <strong>Navegação para o módulo Interface:</strong><br>
+      1. Fazer login no CITWEB<br>
+      2. Na tela inicial (menu de módulos), rolar até o final e clicar no botão <strong>Interface</strong> (ícone foguete — <em>não confundir com "Interface WI / Siscomex"</em>)<br>
+      3. O módulo abre em <strong>nova aba</strong> automaticamente<br>
+      4. Na nova aba, clicar em <strong>Emissão de Fatura Mensal</strong> no menu superior<br>
+      5. Preencher <strong>Ramo</strong> e <strong>Referência</strong> (formato <code>MM/YYYY</code>) → clicar <strong>Selecionar</strong>
+    </div>
+
+    <table>
+      <tr><th>Seguradora</th><th>URL Login</th><th>Usuário</th><th>Senha</th><th>Build HML</th></tr>
+      <tr>
+        <td><span class="badge badge-nstech">NSTECH</span></td>
+        <td><code>https://nstech-hml-faturamento.nsseg.com.br/login/</code></td>
+        <td><code>FRED</code></td>
+        <td><code>T7JJM6XF</code></td>
+        <td><code>V 1.0.260624.1112</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-fairfax">FAIRFAX</span></td>
+        <td><code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code></td>
+        <td><code>ROT_AUTO</code></td>
+        <td><code>T7Jjm6xF</code></td>
+        <td><code>V 1.0.260623.1352</code></td>
+      </tr>
+    </table>
+
+    <br>
+    <table>
+      <tr><th>Seguradora</th><th>Ramo</th><th>Referência</th><th>Tipo Seleção</th><th>Corretor esperado</th><th>Apólice exemplo</th></tr>
+      <tr>
+        <td><span class="badge badge-nstech">NSTECH</span></td>
+        <td>RCTR-C (54)</td>
+        <td>06/2026</td>
+        <td>Não Transferidas</td>
+        <td>CORRETOR TESTE TREINAMENTO</td>
+        <td><code>0000000000010</code></td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-fairfax">FAIRFAX</span></td>
+        <td>GERAL (0)</td>
+        <td>04/2026</td>
+        <td>Ambas</td>
+        <td>AON HOLDING CORRETORES DE SEGUROS LTDA - RS</td>
+        <td><code>0000019062026</code></td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="warn-box">
+      <strong>⚠️ Referência — formato obrigatório:</strong> o campo Referência aceita somente o formato <code>MM/YYYY</code> (ex: <code>06/2026</code>). O FAIRFAX rejeita formatos sem a barra com a mensagem "Digite uma data válida!".
+    </div>
+  </div>
+
+  <!-- 4. CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <!-- GRUPO A: NSTECH -->
+    <div class="group-hd">
+      📋 Grupo A — Coluna Corretor: NSTECH (HML)
+    </div>
+
+    <!-- CT-ITF-001 -->
+    <div class="ct-block p1" id="CT-ITF-001">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-ITF-001</span>
+        <span class="ct-title">Coluna Corretor presente e posicionada entre Data Vencto e Segurado/Pagador — NSTECH</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend" id="badge-CT-ITF-001">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px; font-size:13px;">
+            <li>Ambiente: NSTECH HML — <code>https://nstech-hml-faturamento.nsseg.com.br/login/</code></li>
+            <li>Usuário: <code>FRED</code> / <code>T7JJM6XF</code></li>
+            <li>Massa: Ramo RCTR-C, Referência 06/2026 — grid retorna registros com dados populados</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>https://nstech-hml-faturamento.nsseg.com.br/login/</code> e autenticar com <code>FRED</code> / <code>T7JJM6XF</code></li>
+            <li>Na tela inicial, rolar até o final e clicar no botão <strong>Interface</strong> (ícone foguete)</li>
+            <li>Na nova aba aberta, clicar em <strong>Emissão de Fatura Mensal</strong> no menu superior</li>
+            <li>Em "Selecionar por": selecionar <strong>Ramo = RCTR-C</strong></li>
+            <li>Preencher <strong>Referência = 06/2026</strong></li>
+            <li>Clicar no botão <strong>Selecionar</strong></li>
+            <li>Aguardar o grid carregar com registros</li>
+            <li>Observar os cabeçalhos das colunas do grid</li>
+            <li>Identificar a posição da coluna <strong>Corretor</strong> em relação a <strong>Data Vencto</strong> e <strong>Segurado / Pagador</strong></li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            <strong>✅</strong> A coluna <strong>Corretor</strong> está presente no grid.<br>
+            <strong>✅</strong> A coluna <strong>Corretor</strong> aparece imediatamente após <strong>Data Vencto</strong> e imediatamente antes de <strong>Segurado / Pagador</strong>.<br>
+            Sequência confirmada: <code>... | Data Vencto | Corretor | Segurado / Pagador | ...</code>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CT-ITF-001"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-ITF-002 -->
+    <div class="ct-block p1" id="CT-ITF-002">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-ITF-002</span>
+        <span class="ct-title">Coluna Corretor exibe o nome correto da corretora vinculada à apólice — NSTECH</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend" id="badge-CT-ITF-002">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px; font-size:13px;">
+            <li>Ambiente: NSTECH HML</li>
+            <li>Grid carregado conforme CT-ITF-001 (Ramo RCTR-C, Referência 06/2026)</li>
+            <li>Apólice de referência: <code>0000000000010</code> (Sub <code>001</code>) — corretor esperado: <strong>CORRETOR TESTE TREINAMENTO</strong></li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Com o grid carregado (continuação do CT-ITF-001), localizar a linha da apólice <code>0000000000010</code>, Sub <code>001</code></li>
+            <li>Verificar o valor exibido na coluna <strong>Corretor</strong> para esta linha</li>
+            <li>Para cruzar com o cadastro: abrir nova aba, navegar em <strong>Nacional → Cadastros → Apólice → RCTR-C</strong>, informar apólice <code>0000000000010</code> e verificar o campo Corretor no cadastro</li>
+            <li>Comparar o nome exibido no grid com o nome do corretor cadastrado na apólice</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            <strong>✅</strong> A coluna <strong>Corretor</strong> na linha da apólice <code>0000000000010</code> exibe <strong>CORRETOR TESTE TREINAMENTO</strong>.<br>
+            <strong>✅</strong> O nome exibido corresponde ao corretor vinculado no cadastro da apólice.<br>
+            <strong>✅</strong> Nenhuma célula da coluna Corretor está em branco para apólices com corretor cadastrado.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CT-ITF-002"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-ITF-003 -->
+    <div class="ct-block p2" id="CT-ITF-003">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-ITF-003</span>
+        <span class="ct-title">Coluna Corretor presente em ramo Internacional — NSTECH</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend" id="badge-CT-ITF-003">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px; font-size:13px;">
+            <li>Ambiente: NSTECH HML — sessão já autenticada</li>
+            <li>Módulo Interface &gt; Emissão de Fatura Mensal aberto</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Com o módulo Interface aberto, selecionar <strong>Ramo = IMPORTAÇÃO/EXPORTAÇÃO</strong></li>
+            <li>Selecionar <strong>Tipo de Seleção = Ambas</strong></li>
+            <li>Preencher <strong>Referência = 04/2026</strong> (ou qualquer período com dados)</li>
+            <li>Clicar <strong>Selecionar</strong></li>
+            <li>Verificar os cabeçalhos das colunas no grid retornado</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            <strong>✅</strong> O grid de ramos Internacionais (IMPORTAÇÃO/EXPORTAÇÃO) também exibe a coluna <strong>Corretor</strong> entre <strong>Data Vencto</strong> e <strong>Segurado / Pagador</strong>.<br>
+            <em>Nota: caso não haja dados para este ramo/período, tentar outro período ou ramo Internacional (ex: RCTR-VI, Ref 06/2026). Registrar o ramo e referência utilizados nas evidências.</em>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CT-ITF-003"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO B: FAIRFAX -->
+    <div class="group-hd eq-group">
+      🟢 Grupo B — Equalização: FAIRFAX (HML) — CA 3
+    </div>
+
+    <!-- CT-ITF-004 -->
+    <div class="ct-block p1" id="CT-ITF-004">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-ITF-004</span>
+        <span class="ct-title">Coluna Corretor presente e posicionada corretamente — FAIRFAX (equalização)</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend" id="badge-CT-ITF-004">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px; font-size:13px;">
+            <li>Ambiente: FAIRFAX HML — <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code></li>
+            <li>Usuário: <code>ROT_AUTO</code> / <code>T7Jjm6xF</code></li>
+            <li>Massa: Ramo GERAL, Tipo Seleção = Ambas, Referência <code>04/2026</code> — retorna registros com corretor populado</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code> e autenticar com <code>ROT_AUTO</code> / <code>T7Jjm6xF</code></li>
+            <li>Na tela inicial, clicar no botão <strong>Interface</strong> (ícone foguete) — abre nova aba</li>
+            <li>Na nova aba, clicar em <strong>Emissão de Fatura Mensal</strong></li>
+            <li>Selecionar <strong>Tipo de Seleção = Ambas</strong></li>
+            <li>Selecionar <strong>Ramo = GERAL</strong></li>
+            <li>Preencher <strong>Referência = 04/2026</strong></li>
+            <li>Clicar <strong>Selecionar</strong></li>
+            <li>Verificar cabeçalhos e posição da coluna Corretor</li>
+            <li>Verificar que pelo menos uma linha exibe o nome da corretora na coluna Corretor</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            <strong>✅</strong> Coluna <strong>Corretor</strong> presente no grid da FAIRFAX.<br>
+            <strong>✅</strong> Posição: entre <strong>Data Vencto</strong> e <strong>Segurado / Pagador</strong>.<br>
+            <strong>✅</strong> Apólice <code>0000019062026</code> (Ramo RCV) exibe corretor <strong>AON HOLDING CORRETORES DE SEGUROS LTDA - RS</strong>.<br>
+            <strong>✅</strong> Confirma replicação da funcionalidade para a seguradora FAIRFAX (CA 3).
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CT-ITF-004"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO C: REGRESSÃO -->
+    <div class="group-hd regr-group">
+      🔄 Grupo C — Regressão
+    </div>
+
+    <!-- CT-ITF-005 -->
+    <div class="ct-block p1" id="CT-ITF-005">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-ITF-005</span>
+        <span class="ct-title">Funcionalidade de Selecionar e grid operam normalmente — sem regressão</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend" id="badge-CT-ITF-005">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px; font-size:13px;">
+            <li>Ambiente: NSTECH HML — sessão autenticada</li>
+            <li>Módulo Interface &gt; Emissão de Fatura Mensal acessível</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar o módulo Interface &gt; Emissão de Fatura Mensal (NSTECH)</li>
+            <li>Selecionar <strong>Tipo de Seleção = Não Transferidas</strong>, <strong>Critérios = Geral</strong></li>
+            <li>Selecionar <strong>Ramo = RCTR-C</strong> e informar <strong>Referência = 06/2026</strong></li>
+            <li>Clicar <strong>Selecionar</strong> — verificar que o grid carrega sem erros</li>
+            <li>Verificar que todas as outras colunas (Filial, Ramo, Apólice, Sub, Fechamento, Data Vencto, Segurado/Pagador, Valor Segurado, Prêmio Líquido, IOF, Prêmio Total, Qtde Avb, Resultado Interface Fatura) continuam presentes e com dados corretos</li>
+            <li>Selecionar um registro do grid com o checkbox</li>
+            <li>Verificar que o checkbox pode ser marcado normalmente (sem quebra de layout)</li>
+            <li>Clicar no ícone <strong>Detalhe</strong> de qualquer registro e verificar que abre corretamente</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            <strong>✅</strong> Grid carrega normalmente, sem erro de JavaScript ou layout quebrado.<br>
+            <strong>✅</strong> Todas as 19 colunas estão presentes e visíveis (incluindo a nova coluna Corretor).<br>
+            <strong>✅</strong> Checkbox de seleção funciona corretamente.<br>
+            <strong>✅</strong> Botão Detalhe abre o registro sem erro.<br>
+            <strong>✅</strong> Nenhuma coluna existente foi removida ou deslocada incorretamente.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CT-ITF-005"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 5. MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-title">5. Matriz de Rastreabilidade</div>
+    <table class="matriz">
+      <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+      <tr>
+        <td>CA1 — Coluna Corretor entre Data Vencto e Segurado/Pagador</td>
+        <td>CT-ITF-001, CT-ITF-004</td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>CA2 — Coluna exibe nome da corretora vinculada ao cadastro da apólice</td>
+        <td>CT-ITF-002, CT-ITF-004</td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>CA3 — Replicado para todas as seguradoras (NSTECH + FAIRFAX)</td>
+        <td>CT-ITF-001, CT-ITF-003, CT-ITF-004</td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Regressão — grid e demais colunas sem impacto</td>
+        <td>CT-ITF-005</td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 6. MÉTRICAS -->
+  <div class="section">
+    <div class="section-title">6. Métricas</div>
+    <table>
+      <tr><th>Prioridade</th><th>Qtde</th><th>%</th></tr>
+      <tr><td>P1 — Bloqueante</td><td>4</td><td>80%</td></tr>
+      <tr><td>P2 — Importante</td><td>1</td><td>20%</td></tr>
+      <tr><td><strong>Total</strong></td><td><strong>5</strong></td><td><strong>100%</strong></td></tr>
+    </table>
+    <br>
+    <table>
+      <tr><th>Critérios de Aceite cobertos</th><th>CTs criados</th><th>Cobertura</th></tr>
+      <tr><td>4 / 4</td><td>5</td><td class="cov-ok">100%</td></tr>
+    </table>
+  </div>
+
+  <!-- 7. RISCOS -->
+  <div class="section">
+    <div class="section-title">7. Riscos</div>
+    <table>
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr>
+        <td>FAIRFAX sem dados no período para alguns ramos</td>
+        <td>Alta</td>
+        <td>Baixo</td>
+        <td>Usar Ramo = GERAL e Tipo Seleção = Ambas para maximizar resultados; ajustar período se necessário</td>
+      </tr>
+      <tr>
+        <td>Outras seguradoras além de NSTECH e FAIRFAX sem o fix</td>
+        <td>Média</td>
+        <td>Médio</td>
+        <td>Validação por amostragem — NSTECH + FAIRFAX são representativas; demais serão equalizadas em builds subsequentes</td>
+      </tr>
+      <tr>
+        <td>Quebra de layout em monitores com resolução menor (scroll horizontal)</td>
+        <td>Baixa</td>
+        <td>Baixo</td>
+        <td>Verificar scroll horizontal na tabela durante CT-ITF-005</td>
+      </tr>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  Plano de Teste — PBI-7394 | Sprint 9 CITWEB | QA: Wesley Moreira | 24/06/2026
+</footer>
+
+<script>
+function toggle(head) {
+  head.closest('.ct-block').classList.toggle('expanded');
+}
+</script>
+</body>
+</html>
