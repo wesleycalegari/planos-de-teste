@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7545 — CITNET STARR — Aprovação de Prévia</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:var(--purple);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}
+  .val-ok{color:var(--green)}
+  .val-err{color:var(--red)}
+  .val-pend{color:var(--orange)}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:var(--green);transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .warn-box{background:#1a1500;border:1px solid var(--orange);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px}
+  .group-header{background:var(--purple);color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .subgroup-header{background:#2d1f5e;color:var(--purple-light);padding:7px 14px;font-size:12px;font-weight:600;border-left:3px solid var(--purple);margin:12px 0 6px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-p1{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-p2{background:#2d1a00;color:#d29922;border:1px solid #5a3d00;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-ok{background:#0d3321;color:#3fb950;border:1px solid #1a5c35;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-pend{background:#21262d;color:#8b949e;border:1px solid #444c56;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  ol{padding-left:18px}
+  ol li{margin:3px 0;color:var(--text)}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#57ab5a}
+  .result-row.pend{background:#1a1a1a;border-left:3px solid var(--muted);color:var(--muted)}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px}
+  .ev-caption{font-size:11px;color:var(--muted);margin:3px 0 8px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · STARR ALFA</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7545 — Aprovação de Prévia: HTTP 500 (ObterResumoFechamentoNac) FormatException</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plano de Reteste</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - STARR ] Aprovação de Prévia — Resumo da Fatura retorna HTTP 500 (FormatException)</div>
+  <div class="hero-meta">
+    <span><strong>Fix</strong> PR #1743 — decodeURIComponent na Competência + DataTables Buttons</span>
+    <span><strong>Ambiente</strong> STARR ALFA HML</span>
+    <span><strong>Perfis</strong> INTERNO</span>
+    <span><strong>Ramos</strong> Todos</span>
+    <span><strong>Autor</strong> Wesley Moreira · 24/06/2026</span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total">3</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val val-ok">3</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend">0</div><div class="lbl">Bloqueado</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Root cause (PR #1743):</strong> A tela de Aprovação de Prévia passava a competência para <code>ObterResumoFechamentoNac</code> sem <code>decodeURIComponent</code> — o valor chegava com espaços codificados (%20) causando <strong>FormatException</strong> e HTTP 500 ao abrir o modal "Resumo da Fatura".</p>
+    <p style="margin-top:6px"><strong>Mesma causa raiz:</strong> BUG-7518 (FAIRFAX), BUG-7521 (MITSUI), BUG-7539 (EZZE) — todos corrigidos pelo mesmo PR #1743.</p>
+  </div>
+
+  <div class="info-box" style="border-color:var(--orange)">
+    <h3 style="color:var(--orange)">Nota Técnica — Workaround de Execução</h3>
+    <p>O ambiente STARR ALFA apresentou interferência de modal <code>#modal-generic.modal.fade.in</code> bloqueando pointer events após a primeira consulta. O reteste foi executado via JavaScript (<code>element.click()</code>, native value setter para inputs com máscara). Este comportamento não é parte do bug em questão — os resultados refletem o comportamento real do endpoint <code>ObterResumoFechamentoNac</code>.</p>
+  </div>
+
+  <div class="info-box" style="border-color:var(--purple)">
+    <h3 style="color:var(--purple-light)">Pré-requisitos de Execução</h3>
+    <table>
+      <tr><th>Item</th><th>Valor</th></tr>
+      <tr><td>URL Base</td><td><code>https://starr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+      <tr><td>Credencial INTERNO</td><td><code>interno</code> / <code>11</code> — sem selecionar filial</td></tr>
+      <tr><td>Massa</td><td>Segurado com fatura no período — 9 registros "Aguardando Aprovação" encontrados para Filial HML-2, Competência 06/2026</td></tr>
+      <tr><td>Filial usada</td><td>NSTECH FILIAL HML-2 (c_org_prd=2)</td></tr>
+      <tr><td>Competência</td><td>06/2026</td></tr>
+    </table>
+  </div>
+
+  <div class="group-header">Aprovação de Prévia — STARR ALFA HML (3 CTs)</div>
+
+  <div class="subgroup-header">Perfil: INTERNO</div>
+
+  <!-- CT-7545-001 -->
+  <div class="ct-block expanded" id="ct001">
+    <div class="ct-head" onclick="toggle('ct001')">
+      <span class="ct-id">CT-7545-001</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Happy Path</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Login INTERNO e tela de Aprovação de Prévia carregam sem erro</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>Ambiente STARR ALFA HML acessível. Credencial <code>interno</code> / <code>11</code> válida. Sem filial pré-selecionada.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Navegar para <code>https://starr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+        <li>Fazer login com <strong>interno</strong> / <strong>11</strong> — sem selecionar filial</li>
+        <li>Confirmar tela Home carregada</li>
+        <li>No menu, clicar em <strong>Averbações</strong> → <strong>Aut.Faturamento</strong></li>
+        <li>Aguardar tela "Autorização de Prévia para Faturamento"</li>
+        <li>Selecionar <strong>Filial: NSTECH FILIAL HML-2</strong></li>
+        <li>Preencher <strong>Competência: 06/2026</strong></li>
+        <li>Clicar em <strong>Consultar</strong></li>
+        <li>Verificar grid com registros "Aguardando Aprovação"</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Login realizado com sucesso. Tela de Aprovação de Prévia carrega sem modal de erro HTTP 500. Grid exibe registros disponíveis para aprovação.</p>
+
+      <div class="result-row ok">✅ PASSOU — Login interno/11 realizado. Home carregada. Tela Aut.Faturamento acessada. Grid exibiu 9 registros "Aguardando Aprovação" para Filial HML-2 Competência 06/2026.</div>
+      <div class="ev-section">
+        <img src="evidencias/7545-EV0-login-interno.png" alt="EV0 — Login INTERNO realizado com sucesso">
+        <p class="ev-caption">EV0 — Login interno/11 realizado com sucesso na tela Home STARR ALFA</p>
+        <img src="evidencias/7545-EV1-grid-aguardando-aprovacao.png" alt="EV1 — Grid com 9 registros Aguardando Aprovação">
+        <p class="ev-caption">EV1 — Grid de Aprovação de Prévia com 9 registros "Aguardando Aprovação" (Competência 06/2026, Filial HML-2)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7545-002 -->
+  <div class="ct-block expanded" id="ct002">
+    <div class="ct-head" onclick="toggle('ct002')">
+      <span class="ct-id">CT-7545-002</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Funcional</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Modal "Resumo da Fatura" abre sem HTTP 500 / FormatException</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7545-001 executado — grid com pelo menos 1 registro "Aguardando Aprovação" visível.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Na grid da Aprovação de Prévia, clicar em <strong>Aprovar</strong> no primeiro registro</li>
+        <li>Aguardar modal "Resumo da Fatura" abrir</li>
+        <li>Verificar que o modal carregou <strong>sem</strong> HTTP 500 / mensagem de erro</li>
+        <li>Verificar que campos Qtde e valores do Prêmio Total estão preenchidos</li>
+        <li>Capturar screenshot do modal</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Modal "Resumo da Fatura" abre com <code>tituloModal: "Resumo da Fatura"</code> e <code>erroModalAtivo: false</code>. Campos de Qtde e Prêmio Total preenchidos. Sem HTTP 500.</p>
+
+      <div class="result-row ok">✅ PASSOU — Modal "Resumo da Fatura" abriu sem HTTP 500. JS retornou <code>&#123;modalAtivo: true, tituloModal: "Resumo da Fatura", erroModalAtivo: false&#125;</code>. Bug corrigido. (Qtde=0 para este registro específico, mas endpoint respondeu corretamente sem FormatException.)</div>
+      <div class="ev-section">
+        <img src="evidencias/7545-EV2-modal-resumo-sem-erro.png" alt="EV2 — Modal Resumo da Fatura sem erro">
+        <p class="ev-caption">EV2 — Modal "Resumo da Fatura" aberto sem HTTP 500 / FormatException (bug corrigido pelo PR #1743)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7545-003 -->
+  <div class="ct-block expanded" id="ct003">
+    <div class="ct-head" onclick="toggle('ct003')">
+      <span class="ct-id">CT-7545-003</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Funcional</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Processar aprovação conclui com sucesso</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7545-002 executado — modal "Resumo da Fatura" aberto sem erro.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Com o modal "Resumo da Fatura" aberto, preencher <strong>Vencimento</strong> com data futura (ex: <strong>30/06/2026</strong>)</li>
+        <li>Clicar em <strong>Processar</strong></li>
+        <li>Aguardar conclusão do processamento</li>
+        <li>Verificar mensagem de sucesso exibida</li>
+        <li>Capturar screenshot da mensagem de sucesso</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Após Processar: modal de confirmação "Aprovação do Faturamento efetuada com sucesso!" exibido. Sem modal de erro HTTP 500.</p>
+
+      <div class="result-row ok">✅ PASSOU — Processamento concluído com sucesso. Modal <code>#modal-generic</code> exibiu: <strong>"Aprovação do Faturamento efetuada com sucesso!"</strong>. JS confirmou <code>&#123;modalAtivo: false, erroAtivo: false&#125;</code> após fechar. Fluxo completo funcionando após PR #1743.</div>
+      <div class="ev-section">
+        <img src="evidencias/7545-EV3-aprovacao-sucesso.png" alt="EV3 — Aprovação do Faturamento efetuada com sucesso">
+        <p class="ev-caption">EV3 — Modal "Aprovação do Faturamento efetuada com sucesso!" — reteste aprovado STARR ALFA</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(id){
+  const b=document.getElementById(id);
+  b.classList.toggle('expanded');
+}
+</script>
+</body>
+</html>
