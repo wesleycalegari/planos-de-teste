@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7523 — CITNET MITSUI — Conversor RCTR-C</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:var(--purple);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}
+  .val-ok{color:var(--green)}
+  .val-err{color:var(--red)}
+  .val-pend{color:var(--orange)}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:var(--green);transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .warn-box{background:#1a1500;border:1px solid var(--orange);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--orange)}
+  .group-header{background:var(--purple);color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-ok{background:#0d3321;color:#3fb950;border:1px solid #1a5c35;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-pend{background:#21262d;color:#8b949e;border:1px solid #444c56;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  ol{padding-left:18px}
+  ol li{margin:3px 0;color:var(--text)}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#57ab5a}
+  .result-row.pend{background:#1a1a1a;border-left:3px solid var(--muted);color:var(--muted)}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px;cursor:pointer}
+  .ev-caption{font-size:11px;color:var(--muted);margin:3px 0 8px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  a{color:var(--blue)}
+  /* Lightbox */
+  #lb{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+  #lb.active{display:flex}
+  #lb img{max-width:92vw;max-height:90vh;border:2px solid var(--border);border-radius:6px;box-shadow:0 0 40px rgba(0,0,0,.6)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · MITSUI ALFA</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7523 — Conversor RCTR-C: "Erro no processamento dos dados!"</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plano de Reteste</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - MITSUI ALFA ] Conversor RCTR-C — Processar retorna "Erro no processamento dos dados!"</div>
+  <div class="hero-meta">
+    <span>Ambiente: <strong>MITSUI ALFA HML</strong></span>
+    <span>Perfil: <strong>INTERNO</strong></span>
+    <span>Data: <strong>24/06/2026</strong></span>
+    <span>Executado por: <strong>Wesley Moreira</strong></span>
+    <span>Card: <strong><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7523" target="_blank">BUG-7523</a></strong></span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total">3</div><div class="lbl">Total</div></div>
+  <div class="metric"><div class="val val-ok">3</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend">0</div><div class="lbl">Bloqueado</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Causa raiz:</strong> O método <code>ConversorController.Processar</code> continha um bloco condicional executado exclusivamente para o perfil SEGURADO. Ao processar um arquivo convertido, o trecho acessava uma estrutura que, em determinadas configurações do banco (<code>Ind_tb_cvd_u_cpf_cgc</code> ativo), lançava exceção não tratada, resultando na mensagem genérica "Erro no processamento dos dados!" exibida ao usuário.</p>
+    <p style="margin-top:6px"><strong>Perfil afetado original:</strong> SEGURADO — INTERNO não reproduzia o bug (fluxo condicional não era percorrido).</p>
+    <p style="margin-top:6px"><strong>Fix aplicado:</strong> Correção no <code>ConversorController.Processar</code> para tratar adequadamente o bloco condicional em ambos os perfis.</p>
+  </div>
+
+  <div class="warn-box">
+    ⚠ <strong>Nota sobre perfil de teste:</strong> o bug original afeta apenas o perfil <strong>SEGURADO</strong>. Este reteste foi executado com o perfil <strong>INTERNO</strong> por indisponibilidade temporária de credencial SEGURADO em HML. O fluxo completo (Importar → Converter → Processar) foi executado até o resultado final sem erros.
+  </div>
+
+  <div class="group-header">Grupo 1 — Conversor RCTR-C · Perfil INTERNO</div>
+
+  <!-- CT-7523-001 -->
+  <div class="ct-block expanded" id="ct001">
+    <div class="ct-head" onclick="toggle('ct001')">
+      <span class="ct-id">CT-7523-001</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="badge-type">Reteste</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Login e navegação ao Conversor de Layout</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Acesso ao CITNET MITSUI ALFA HML com credencial INTERNO/11</td></tr>
+        <tr><td>Ambiente</td><td>https://mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</td></tr>
+        <tr><td>Dado de entrada</td><td>Usuário: INTERNO | Senha: 11</td></tr>
+        <tr><td>Critério de aceite</td><td>Menu superior exibido; opção Conversor acessível</td></tr>
+      </table>
+      <div class="steps-label">Passos executados</div>
+      <ol>
+        <li>Acessar <code>https://mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+        <li>Preencher Usuário: <strong>INTERNO</strong> e Senha: <strong>11</strong></li>
+        <li>Clicar em Entrar</li>
+        <li>Verificar exibição do menu superior com opção Conversor</li>
+        <li>Clicar em Conversor para acessar o Conversor de Layout</li>
+      </ol>
+      <div class="result-row ok">✓ PASSOU — Login realizado com sucesso; menu com Conversor visível; tela "Conversor de Layout - CitNet" carregada. · 24/06/2026</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <img src="evidencias/7523-EV0-login-interno.png" alt="EV0 — Login INTERNO" onclick="openLb(this)">
+        <div class="ev-caption">EV0 — Tela de login CITNET MITSUI ALFA HML com credencial INTERNO</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7523-002 -->
+  <div class="ct-block expanded" id="ct002">
+    <div class="ct-head" onclick="toggle('ct002')">
+      <span class="ct-id">CT-7523-002</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="badge-type">Reteste</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Importar arquivo RCTR-C e Converter com layout mapeado</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Usuário logado como INTERNO; tela Conversor de Layout aberta</td></tr>
+        <tr><td>Dados de entrada</td><td>Filial: MATRIZ-1 | Ramo: 54 - RCTR-C | Segurado: 0209 SEGURADO | Arquivo: rctrc_test.xlsx | Layout: TESTE_VOIDR</td></tr>
+        <tr><td>Critério de aceite</td><td>Preview do arquivo exibido após Importar; tabela de mapeamento exibida após Converter sem erros</td></tr>
+      </table>
+      <div class="steps-label">Passos executados</div>
+      <ol>
+        <li>Selecionar Filial: <strong>MATRIZ - 1</strong></li>
+        <li>Selecionar Ramo: <strong>54 - RCTR-C</strong></li>
+        <li>Selecionar Segurado: <strong>0209 SEGURADO</strong></li>
+        <li>Selecionar arquivo <strong>rctrc_test.xlsx</strong> via botão "Escolher arquivo"</li>
+        <li>Clicar em <strong>Importar</strong> — aguardar preview dos dados</li>
+        <li>Selecionar Layout: <strong>TESTE_VOIDR</strong></li>
+        <li>Clicar em <strong>Converter</strong> — informar linha inicial 1 e confirmar</li>
+        <li>Verificar exibição da tabela de mapeamento de campos</li>
+      </ol>
+      <div class="result-row ok">✓ PASSOU — Preview exibido com 1 linha de dados (Ramo 54, Apólice 6062026, Placa ABC1234, VlrRCTRC 10000,00). Layout TESTE_VOIDR selecionado e tabela de mapeamento renderizada. Nenhum erro exibido. · 24/06/2026</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <img src="evidencias/7523-EV1-layout-selecionado.png" alt="EV1 — Layout TESTE_VOIDR selecionado" onclick="openLb(this)">
+        <div class="ev-caption">EV1 — Conversor com arquivo rctrc_test.xlsx importado e layout TESTE_VOIDR selecionado; preview exibindo 1 linha de dados</div>
+        <img src="evidencias/7523-EV2-converter-ok.png" alt="EV2 — Tabela de mapeamento após Converter" onclick="openLb(this)">
+        <div class="ev-caption">EV2 — Tabela de mapeamento do layout TESTE_VOIDR renderizada sem erros; botões Processar e Resumo Conversão habilitados</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7523-003 -->
+  <div class="ct-block expanded" id="ct003">
+    <div class="ct-head" onclick="toggle('ct003')">
+      <span class="ct-id">CT-7523-003</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="badge-type">Reteste — ponto do bug</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Processar arquivo convertido — ausência de "Erro no processamento dos dados!"</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Arquivo importado, layout TESTE_VOIDR selecionado, Converter executado</td></tr>
+        <tr><td>Critério de aceite</td><td>Modal "CONVERSÃO FINALIZADA" exibido com contagens (Lidos / Aceitos / Rejeitados); mensagem de erro "Erro no processamento dos dados!" <strong>NÃO</strong> aparece</td></tr>
+        <tr><td>Bug original</td><td>Antes do fix: modal exibia "Erro no processamento dos dados!" ao clicar Processar com perfil SEGURADO</td></tr>
+      </table>
+      <div class="steps-label">Passos executados</div>
+      <ol>
+        <li>Com layout convertido exibido, clicar em <strong>Processar</strong></li>
+        <li>Aguardar processamento das linhas</li>
+        <li>Verificar resultado: modal "CONVERSÃO FINALIZADA" ou mensagem de erro</li>
+        <li>Confirmar que "Erro no processamento dos dados!" <strong>não</strong> foi exibido</li>
+      </ol>
+      <div class="result-row ok">✓ PASSOU — Modal "CONVERSÃO FINALIZADA: Qtd Lidos: 2 | Qtd Aceitos: 0 | Qtd Rejeitados: 2" exibido corretamente. Rejeição das linhas é comportamento esperado (dado de teste sem apólice válida no sistema). Mensagem "Erro no processamento dos dados!" <strong>não apareceu</strong>. Fix confirmado com perfil INTERNO. · 24/06/2026</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <img src="evidencias/7523-EV3-processar-interno-resultado.png" alt="EV3 — Modal CONVERSÃO FINALIZADA" onclick="openLb(this)">
+        <div class="ev-caption">EV3 — Modal "CONVERSÃO FINALIZADA: Qtd Lidos: 2 | Qtd Aceitos: 0 | Qtd Rejeitados: 2". Nenhuma mensagem de "Erro no processamento dos dados!" exibida</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lb" onclick="closeLb()"><img id="lb-img" src="" alt=""></div>
+
+<script>
+function toggle(id){
+  const b=document.getElementById(id);
+  b.classList.toggle('expanded');
+}
+function openLb(img){
+  document.getElementById('lb-img').src=img.src;
+  document.getElementById('lb').classList.add('active');
+}
+function closeLb(){
+  document.getElementById('lb').classList.remove('active');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+</script>
+</body>
+</html>
