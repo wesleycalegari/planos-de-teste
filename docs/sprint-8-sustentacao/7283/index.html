@@ -223,8 +223,16 @@ tr.product-split td:first-child { padding-left: 1.5rem; font-weight: 500; color:
   white-space: nowrap;
 }
 .badge-rn.empty { background: transparent; color: #484f58; border-color: transparent; }
-.pill[data-rn="ONLY"].active { background: rgba(210,153,34,.2); border-color: #d29922; color: #e3b341; }
+.pill[data-rn="ONLY"].active { background: rgba(210,153,34,.2); border-color: #d29922; color: #e3b341; box-shadow: 0 0 12px rgba(210,153,34,.15); }
 .pill[data-rn="EXCLUDE"].active { background: rgba(139,148,158,.15); border-color: #8b949e; color: #c9d1d9; }
+.rn-type-chips { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .55rem; }
+.chip-rn-type { font-size: .76rem; padding: .4rem .75rem; }
+.chip-rn-type.active { border-color: #d29922; color: #e3b341; background: rgba(210,153,34,.12); }
+.chip-rn-type:not(.active) { opacity: .45; }
+.list-filter-hint {
+  font-size: .78rem; color: #d29922; margin: -.35rem 0 .65rem; min-height: 1.1rem;
+}
+.panel.list-filtered { border-color: rgba(210,153,34,.45); box-shadow: 0 0 0 1px rgba(210,153,34,.2); }
 .rn-banner {
   margin-top: .85rem; padding: .65rem .85rem; border-radius: 8px;
   background: rgba(210,153,34,.08); border: 1px solid rgba(210,153,34,.25);
@@ -277,13 +285,14 @@ a:hover { text-decoration: underline; color: #79c0ff; }
           <button type="button" class="pill active" data-status="new">A iniciar</button>
         </div>
       </div>
-      <div class="filter-group">
+      <div class="filter-group wide">
         <div class="filter-label">RN desconhecida <span id="rn-count-hint" style="font-weight:400;text-transform:none"></span></div>
         <div class="pills" id="rn-pills">
-          <button type="button" class="pill active" data-rn="ALL">Todos</button>
-          <button type="button" class="pill" data-rn="ONLY">Somente RN</button>
-          <button type="button" class="pill" data-rn="EXCLUDE">Excluir RN</button>
+          <button type="button" class="pill active" data-rn="ALL">Lista completa</button>
+          <button type="button" class="pill" data-rn="ONLY">Só RN</button>
+          <button type="button" class="pill" data-rn="EXCLUDE">Sem RN</button>
         </div>
+        <div class="insurer-chips rn-type-chips" id="rn-type-chips"></div>
       </div>
     </div>
     <div class="rn-banner" id="rn-banner"></div>
@@ -329,9 +338,10 @@ a:hover { text-decoration: underline; color: #79c0ff; }
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="list-panel">
     <h3>Lista de bugs <span id="list-count" style="font-weight:normal;color:var(--muted)"></span></h3>
-    <p class="panel-sub">Filtro <strong>RN desconhecida</strong> afeta só esta lista — KPIs e matriz mantêm contagem por status original.</p>
+    <p class="list-filter-hint" id="list-filter-hint"></p>
+    <p class="panel-sub">Filtros RN afetam <strong>só esta lista</strong> — KPIs e matriz mantêm contagem por status.</p>
     <div style="overflow-x:auto">
       <table id="bug-table">
         <thead>
@@ -359,11 +369,22 @@ const BUGS = [{"id": 7281, "title": "Erro ao enviar dados averbação RCTRC", "s
 const GROUPS = [{"key": "done", "label": "Done"}, {"key": "homolog", "label": "Pronto p/ homolog."}, {"key": "dev", "label": "Em desenvolvimento"}, {"key": "new", "label": "A iniciar"}];
 const GROUP_LABEL = { done: "Done", homolog: "Pronto p/ homolog.", dev: "Em desenvolvimento", new: "A iniciar" };
 
+const RN_TYPE_LABELS = {
+  rn_confirmada: "RN confirmada",
+  falso_positivo: "Falso positivo",
+  nao_reproduzido: "Não reproduzido",
+  dado_config: "Dado/config",
+  gap_deploy: "Gap deploy",
+};
+
 let filterProduct = "ALL";
 let filterInsurers = new Set();
 let filterGroups = new Set(["done","homolog","dev","new"]);
-let filterRn = "ALL"; // ALL | ONLY | EXCLUDE — só afeta lista
-let matrixCellFilter = null; // { insurer, group, product? }
+let filterRn = "ALL";
+let filterRnTypes = new Set();
+let matrixCellFilter = null;
+
+const RN_TYPE_KEYS = Object.keys(RN_TYPE_LABELS);
 
 document.getElementById("epic-title").textContent = META.epic_title;
 document.getElementById("epic-state").textContent = META.epic_state;
@@ -375,6 +396,79 @@ document.getElementById("rn-count-hint").textContent = META.rn_total
 document.getElementById("rn-banner").textContent = META.rn_total
   ? `${META.rn_total} bug(s) abertos por desconhecimento de regra de negócio (identificados nos comentários ADO). Esse filtro não altera KPIs nem matriz.`
   : "Nenhum bug classificado como RN desconhecida nesta exportação.";
+function initRnTypeChips() {
+  RN_TYPE_KEYS.forEach(key => filterRnTypes.add(key));
+  const box = document.getElementById("rn-type-chips");
+  RN_TYPE_KEYS.forEach(key => {
+    const n = BUGS.filter(b => b.rn_class === key).length;
+    if (!n) return;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "chip chip-rn-type active";
+    btn.dataset.rnType = key;
+    btn.innerHTML = `${RN_TYPE_LABELS[key]}<span class="chip-count">${n}</span>`;
+    btn.addEventListener("click", () => {
+      btn.classList.toggle("active");
+      if (btn.classList.contains("active")) filterRnTypes.add(key);
+      else filterRnTypes.delete(key);
+      matrixCellFilter = null;
+      renderList();
+    });
+    box.appendChild(btn);
+  });
+}
+
+function rnTypeFilterActive() {
+  return filterRnTypes.size > 0 && filterRnTypes.size < RN_TYPE_KEYS.filter(k => BUGS.some(b => b.rn_class === k)).length;
+}
+
+function isRnBug(b) {
+  return b.rn_flag === true;
+}
+
+function matchListRn(b) {
+  const isRn = isRnBug(b);
+  if (filterRn === "ONLY" && !isRn) return false;
+  if (filterRn === "EXCLUDE" && isRn) return false;
+  if (rnTypeFilterActive()) {
+    if (!isRn) return filterRn !== "ONLY";
+    return filterRnTypes.has(b.rn_class);
+  }
+  return true;
+}
+
+function rnFilterLabel() {
+  const parts = [];
+  if (filterRn === "ONLY") parts.push("Só RN");
+  if (filterRn === "EXCLUDE") parts.push("Sem RN");
+  if (rnTypeFilterActive()) {
+    parts.push([...filterRnTypes].map(k => RN_TYPE_LABELS[k]).join(", "));
+  }
+  return parts.join(" · ");
+}
+
+function updateListFilterHint(items) {
+  const hint = document.getElementById("list-filter-hint");
+  const panel = document.getElementById("list-panel");
+  const label = rnFilterLabel();
+  panel.classList.toggle("list-filtered", !!label || !!matrixCellFilter);
+  if (!label && !matrixCellFilter) {
+    hint.textContent = "";
+    return;
+  }
+  let text = label ? `Filtro ativo na lista: ${label}` : "";
+  if (matrixCellFilter) {
+    text += (text ? " · " : "") + `Matriz: ${matrixCellFilter.insurer} / ${GROUP_LABEL[matrixCellFilter.group] || matrixCellFilter.group}`;
+  }
+  if (filterRn === "ONLY" && !items.length) {
+    const rnVisible = BUGS.filter(b => isRnBug(b) && matchFilters(b, { list: true, skipRn: true })).length;
+    const rnAll = BUGS.filter(isRnBug).length;
+    if (rnVisible === 0 && rnAll > 0) {
+      text += `. Os ${rnAll} bugs RN estão em Done — reative o filtro de status Done.`;
+    }
+  }
+  hint.textContent = text;
+}
 
 function allInsurers() {
   return [...new Set(BUGS.map(b => b.insurer))].sort();
@@ -417,7 +511,7 @@ document.getElementById("sel-all-ins").onclick = () => setAllInsurers(true);
 document.getElementById("sel-none-ins").onclick = () => setAllInsurers(false);
 
 document.getElementById("product-pills").addEventListener("click", e => {
-  const btn = e.target.closest(".pill");
+  const btn = e.target.closest(".pill[data-product]");
   if (!btn) return;
   document.querySelectorAll("#product-pills .pill").forEach(p => p.classList.remove("active"));
   btn.classList.add("active");
@@ -433,6 +527,7 @@ document.getElementById("status-pills").addEventListener("click", e => {
   filterGroups = new Set(
     [...document.querySelectorAll("#status-pills .pill.active")].map(p => p.dataset.status)
   );
+  matrixCellFilter = null;
   render();
 });
 
@@ -442,21 +537,17 @@ document.getElementById("rn-pills").addEventListener("click", e => {
   document.querySelectorAll("#rn-pills .pill").forEach(p => p.classList.remove("active"));
   btn.classList.add("active");
   filterRn = btn.dataset.rn;
+  matrixCellFilter = null;
   renderList();
+  document.getElementById("list-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 });
-
-function matchRn(b) {
-  if (filterRn === "ONLY") return !!b.rn_flag;
-  if (filterRn === "EXCLUDE") return !b.rn_flag;
-  return true;
-}
 
 function matchFilters(b, opts = {}) {
   const useMatrix = opts.matrix && matrixCellFilter;
   if (filterProduct !== "ALL" && b.product !== filterProduct) return false;
   if (!filterInsurers.has(b.insurer)) return false;
   if (!filterGroups.has(b.group)) return false;
-  if (opts.list && !matchRn(b)) return false;
+  if (opts.list && !opts.skipRn && !matchListRn(b)) return false;
   if (useMatrix) {
     if (b.insurer !== matrixCellFilter.insurer) return false;
     if (b.group !== matrixCellFilter.group) return false;
@@ -596,24 +687,29 @@ function renderProductSplit() {
 
 function renderList() {
   const items = filtered({ matrix: true, list: true }).sort((a,b) => a.id - b.id);
-  document.getElementById("list-count").textContent = `(${items.length} exibidos)`;
+  const suffix = rnFilterLabel() ? ` · ${rnFilterLabel()}` : "";
+  document.getElementById("list-count").textContent = `(${items.length} exibidos${suffix})`;
+  updateListFilterHint(items);
   const body = document.getElementById("bug-body");
   if (!items.length) {
     body.innerHTML = '<tr><td colspan="7" class="empty">Nenhum bug com os filtros atuais.</td></tr>';
     return;
   }
-  body.innerHTML = items.map(b => `
+  body.innerHTML = items.map(b => {
+    const ev = (b.rn_note || (b.rn_evidence && b.rn_evidence.snippet) || "");
+    return `
     <tr>
       <td><a href="${b.url}" target="_blank">#${b.id}</a></td>
       <td><span class="badge-prod ${b.product}">${b.product}</span></td>
       <td>${b.insurer}</td>
       <td><span class="badge-st ${b.group}">${GROUP_LABEL[b.group] || b.bucket}</span></td>
-      <td>${b.rn_flag
-        ? `<span class="badge-rn" title="${esc(b.rn_note || b.rn_evidence?.snippet || '')}">${esc(b.rn_label || 'RN')}</span>`
+      <td>${isRnBug(b)
+        ? `<span class="badge-rn" title="${esc(ev)}">${esc(b.rn_label || 'RN')}</span>`
         : '<span class="badge-rn empty">—</span>'}</td>
       <td>${esc(b.title)}</td>
       <td>${esc(b.assignee)}</td>
-    </tr>`).join("");
+    </tr>`;
+  }).join("");
 }
 
 function esc(s) {
@@ -627,6 +723,7 @@ function render() {
 }
 
 initInsurerChips();
+initRnTypeChips();
 renderProductSplit();
 render();
 </script>
