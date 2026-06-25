@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-7367 — Taxa Única RCV em todas as seguradoras</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #1c2128;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+    --blue: #58a6ff; --blue-dim: #1f6feb; --blue-bg: #0a1628;
+    --green: #3fb950; --green-bg: #061a0e;
+    --red: #f85149; --red-bg: #1a0505;
+    --yellow: #d29922; --yellow-bg: #1a1200;
+    --orange: #e3963e;
+    --p1-color: #f85149; --p1-bg: rgba(248,81,73,.12); --p1-border: rgba(248,81,73,.35);
+    --p2-color: #e3963e; --p2-bg: rgba(227,150,62,.12); --p2-border: rgba(227,150,62,.35);
+    --p3-color: #8b949e; --p3-bg: rgba(139,148,158,.10); --p3-border: rgba(139,148,158,.30);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-logo { font-size: 13px; font-weight: 700; color: var(--blue); border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 4px; }
+  .topbar-title { color: var(--text-muted); font-size: 13px; }
+  .topbar-tags { display: flex; gap: 6px; margin-left: auto; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-pbi    { background: var(--blue-bg); color: var(--blue); border: 1px solid var(--blue-dim); }
+  .badge-core   { background: #0d2040; color: #79b8ff; border: 1px solid #1f4068; }
+  .badge-rcv    { background: #0d2a0d; color: #56d364; border: 1px solid #1a5c1a; }
+  .badge-p1     { background: var(--p1-bg); color: var(--p1-color); border: 1px solid var(--p1-border); }
+  .badge-p2     { background: var(--p2-bg); color: var(--p2-color); border: 1px solid var(--p2-border); }
+  .badge-p3     { background: var(--p3-bg); color: var(--p3-color); border: 1px solid var(--p3-border); }
+  .badge-pend   { background: #1a1200; color: var(--yellow); border: 1px solid #5a4000; }
+  .badge-pass   { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c2e; }
+  .badge-fail   { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-skip   { background: #1a1a0a; color: #c9a000; border: 1px solid #5a4800; }
+  .badge-axa    { background: #0a1228; color: #6db3f2; border: 1px solid #1f4a8a; }
+  .badge-hdi    { background: #0a2018; color: #4fd080; border: 1px solid #1a5c38; }
+  .badge-aig    { background: #1a0e00; color: #f0a848; border: 1px solid #7a4800; }
+  .badge-fairfax{ background: #1a0a2a; color: #bc8cff; border: 1px solid #4a2a6a; }
+  .badge-citnet { background: #1a1228; color: #c9a8f0; border: 1px solid #4a3a6a; }
+  .badge-txunica{ background: #0a2828; color: #4fe0d8; border: 1px solid #1a5858; }
+
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #161b22 100%); border-bottom: 2px solid var(--blue-dim); padding: 24px 24px 18px; }
+  .hero-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .hero .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 36px; flex-wrap: wrap; align-items: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .pb-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .progress-bar .pb-track { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar .pb-fill { background: var(--blue); border-radius: 4px; height: 6px; width: 0%; transition: width .4s; }
+
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+  .info-box  { background: var(--blue-bg); border: 1px solid var(--blue-dim); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .warn-box  { background: var(--yellow-bg); border: 1px solid #5a4000; border-left: 4px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .pass-box  { background: var(--green-bg); border: 1px solid #1a5c2e; border-left: 4px solid var(--green); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 7px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1117; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+
+  .group-hd { background: var(--blue-dim); color: #fff; padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; display: flex; align-items: center; gap: 10px; }
+  .group-hd.grp-citnet  { background: #2d1a55; }
+  .group-hd.grp-conv    { background: #1a3040; }
+  .group-hd.grp-relat   { background: #1a2a10; }
+  .group-hd.grp-regr    { background: #2a1a00; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block:not(:last-child) { border-radius: 0; }
+  .ct-block.p1 { border-left: 3px solid var(--p1-color); }
+  .ct-block.p2 { border-left: 3px solid var(--p2-color); }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .ct-title { flex: 1; font-weight: 600; color: var(--text); font-size: 13px; }
+  .ct-toggle { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 5px; font-size: 13px; }
+  .ct-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .ct-result strong { color: var(--text); }
+
+  .ev-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ev-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+  .ev-item img { width: 100%; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+  .ev-item .ev-cap { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .matriz td:first-child { font-family: monospace; font-size: 12px; color: var(--blue); }
+  .cov-ok   { color: var(--green); font-weight: 700; }
+  .cov-pend { color: var(--yellow); font-weight: 700; }
+
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:94vw; max-height:88vh; border-radius:6px; border:1px solid var(--border); }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:94vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:14px; right:18px; font-size:28px; color:#c9d1d9; cursor:pointer; background:none; border:none; line-height:1; }
+
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div id="lb">
+  <button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">✕</button>
+  <img id="lb-img" src="">
+  <div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — PBI-7367 — Taxa Única RCV em todas as seguradoras</span>
+  <div class="topbar-tags">
+    <span class="badge badge-pbi">PBI-7367</span>
+    <span class="badge badge-rcv">RCV</span>
+    <span class="badge badge-txunica">TAXA ÚNICA</span>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-pbi">PBI-7367</span>
+    <span class="badge badge-axa">AXA HML</span>
+    <span class="badge badge-hdi">HDI-YELUM HML</span>
+    <span class="badge badge-aig">AIG HML</span>
+    <span class="badge badge-fairfax">FAIRFAX HML</span>
+    <span class="badge badge-txunica">TXUNICA</span>
+    <span class="badge badge-rcv">RAMO 59</span>
+  </div>
+  <h1>Subir Taxa Única em todas as seguradoras CITWEB — RCV Ramo 59</h1>
+  <div class="meta">
+    <span><strong>Sistemas:</strong> CITWEB Nacional + CITNET</span>
+    <span><strong>Ramo:</strong> 59 — RCV</span>
+    <span><strong>Sprint:</strong> 9 — CITWEB</span>
+    <span><strong>Dev:</strong> José Ribeiro Carvalho</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 25/06/2026</span>
+  </div>
+</div>
+
+<!-- METRICS STRIP -->
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)" id="total-cts">12</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">7</div><div class="lbl">P1 — Bloqueante</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">5</div><div class="lbl">P2 — Importante</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="ct-aprovados">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="ct-pendentes">12</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- 1. DESCRIÇÃO -->
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="info-box">
+      <strong>Contexto:</strong> Na Sprint 7 foi desenvolvida a condição comercial <strong>Taxa Única (TXUNICA)</strong> para RCV Ramo 59,
+      disponibilizada inicialmente apenas para KOVR, MITSUI e NSTECH. Nesta Sprint 9 a implementação foi
+      estendida a <strong>AXA, HDI-YELUM, AIG e FAIRFAX</strong> (deploy confirmado via Task 7500 — Done).
+      Este plano valida que a funcionalidade está corretamente operante nessas novas seguradoras
+      em todos os canais de entrada de embarque.
+    </div>
+    <div class="info-box">
+      <strong>Regra de negócio — Taxa Única (TXUNICA):</strong>
+      <ul style="margin-top:8px;padding-left:20px;">
+        <li>Uma única taxa de precificação, <strong>independente da UF de origem ou destino</strong></li>
+        <li>Taxa aplicada sobre o <strong>IS da apólice = DM (Danos Materiais) + DC (Danos Corporais)</strong></li>
+        <li>Configuração realizada <strong>por apólice</strong> — permite valores diferenciados entre segurados</li>
+        <li>Sem tabela de percurso associada</li>
+        <li>Deve refletir em <strong>todos os canais</strong>: Digitação (CITWEB), Conversor (CITWEB), Averbação manual (CITNET), Conversor (CITNET), Integração</li>
+      </ul>
+    </div>
+    <div class="warn-box">
+      <strong>Seguradoras com prioridade de teste:</strong> <span class="badge badge-axa">AXA</span> e <span class="badge badge-hdi">HDI-YELUM</span> são prioritárias conforme Task 7574.
+      AIG e FAIRFAX devem ser validadas se deploy confirmado. KOVR, MITSUI e NSTECH cobertos por regressão.
+    </div>
+  </div>
+
+  <!-- 2. ESCOPO -->
+  <div class="section">
+    <div class="section-title">2. Escopo</div>
+    <table>
+      <tr><th style="width:50%">In Scope</th><th>Out of Scope</th></tr>
+      <tr>
+        <td>
+          Cadastro CC TXUNICA no CITWEB (AXA e HDI-YELUM)<br>
+          Bloqueio de cadastro em período conflitante<br>
+          Averbação manual via CITWEB com apólice TXUNICA<br>
+          Averbação manual via CITNET com apólice TXUNICA<br>
+          Conversor CITNET com arquivo usando apólice TXUNICA<br>
+          Relatório Relação de Embarques — coluna Taxa<br>
+          Regressão: demais CCs do RCV (TPP, PRFX) continuam funcionando
+        </td>
+        <td>
+          Canal Integração (API/WS) — complexidade técnica; cobertura via averbação manual<br>
+          Conversor CITWEB — menu a validar in loco<br>
+          AIG e FAIRFAX — depende de confirmação de deploy<br>
+          Ramos distintos de 59 (RCV)<br>
+          CITNET ALFA (ambiente alfa)<br>
+          Testes de carga ou performance
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 3. PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-title">3. Pré-requisitos</div>
+
+    <div class="info-box" style="margin-bottom:10px">
+      <strong>Credenciais e URLs de acesso:</strong>
+      <table style="margin-top:10px">
+        <tr><th>Sistema</th><th>Seguradora</th><th>URL</th><th>Usuário</th><th>Senha</th></tr>
+        <tr><td>CITWEB</td><td>AXA HML</td><td><code>https://axa-hml-faturamento.nsseg.com.br/Login/</code></td><td><code>FRED</code></td><td><code>DERF</code></td></tr>
+        <tr><td>CITNET</td><td>AXA HML</td><td><code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code></td><td><code>interno</code></td><td><code>11</code></td></tr>
+        <tr><td>CITWEB</td><td>HDI-YELUM HML</td><td><code>https://hdi-yelum-hml-faturamento.nsseg.com.br/Login/</code></td><td><code>FRED</code></td><td><code>DERF</code></td></tr>
+        <tr><td>CITNET</td><td>HDI-YELUM HML</td><td><code>https://hdi-yelum-hml-faturamento.nsseg.com.br/citnet/</code></td><td><code>interno</code></td><td><code>11</code></td></tr>
+      </table>
+      <div style="margin-top:8px;font-size:12px;color:var(--yellow)">⚠️ = a confirmar via Playwright MCP antes de executar</div>
+    </div>
+
+    <div class="info-box">
+      <strong>Massa de dados:</strong>
+      <ul style="margin-top:8px;padding-left:20px;">
+        <li><strong>AXA HML:</strong> Apólice RCV filial 1 — buscar via Nacional → Relação de Apólices → Ramo 59.
+          CC TXUNICA será cadastrada em CT-TXU-001 como pré-condição dos demais CTs de averbação.</li>
+        <li><strong>HDI-YELUM HML:</strong> Apólice RCV disponível — buscar via Relação de Apólices → Ramo 59.
+          CC TXUNICA será cadastrada em CT-TXU-002.</li>
+        <li><strong>Regressão AXA:</strong> Apólice RCV AXA com CC TPP ativa (apólice 2, filial 1 — tem CC TPP confirmado).</li>
+        <li><strong>Regressão MITSUI:</strong> Apólice <code>1590000016</code> MITSUI HML com CC PRFX ativa.</li>
+      </ul>
+    </div>
+
+    <div class="warn-box">
+      <strong>Regra D+1:</strong> CC cadastrada em DD/MM/AAAA só aceita averbações a partir de DD+1/MM/AAAA.
+      Ao cadastrar CC TXUNICA em CT-TXU-001/002, usar data de vigência De = ontem ou considerar data retroativa se o sistema permitir.
+    </div>
+  </div>
+
+  <!-- 4. CASOS DE TESTE -->
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <!-- GRUPO 1: CADASTRO CC -->
+    <div class="group-hd">
+      <span>Grupo 1</span>
+      <span style="font-weight:400">Cadastro de Condição Comercial Taxa Única — CITWEB</span>
+    </div>
+
+    <!-- CT-TXU-001 -->
+    <div class="ct-block p1" id="ct-txu-001">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-001</span>
+        <span class="ct-title">Cadastrar CC TXUNICA em apólice RCV — AXA HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-pend" id="badge-txu001">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Sistema: CITWEB AXA HML — <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Usuário: <code>FRED</code> | Senha: <code>DERF</code></li>
+            <li>Apólice RCV disponível na filial 1 — buscar via Relação de Apólices (Ramo 59)</li>
+            <li>CC TXUNICA ainda não cadastrada nessa apólice para o período de vigência de teste</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Dados de entrada</div>
+          <table>
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>Subgrupo</td><td>001 (primeiro disponível)</td></tr>
+            <tr><td>Tipo de Condição</td><td>TXUNICA — Taxa Única</td></tr>
+            <tr><td>Taxa (%)</td><td><code>0,001500</code></td></tr>
+            <tr><td>Data Vigência De</td><td>Data de ontem (para evitar restrição D+1)</td></tr>
+            <tr><td>Data Vigência Até</td><td>Data de ontem + 365 dias</td></tr>
+          </table>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code> e autenticar com <code>FRED / DERF</code></li>
+            <li>Confirmar que a tela inicial do CITWEB carregou (menu superior visível)</li>
+            <li>Clicar em <strong>Nacional</strong> no menu superior</li>
+            <li>Na tela Dados da Apólice RCV: preencher filial <strong>1</strong> e buscar apólice RCV ativa — capturar número da apólice</li>
+            <li>Clicar em <strong>Pesquisar</strong> e selecionar a apólice retornada</li>
+            <li>Com apólice carregada, clicar no botão <strong>Condições Comerciais</strong></li>
+            <li>Na tela CC: clicar em <strong>Novo</strong></li>
+            <li>Selecionar <strong>Subgrupo</strong>: 001</li>
+            <li>No dropdown <strong>Tipo de Condição</strong>: selecionar <code>TXUNICA — Taxa Única</code></li>
+            <li>Aguardar postback — verificar que o campo <strong>Taxa (%)</strong> apareceu</li>
+            <li>Preencher <strong>Taxa (%)</strong> com <code>0,001500</code></li>
+            <li>Preencher <strong>Data Vigência De</strong>: ontem (DD/MM/AAAA)</li>
+            <li>Preencher <strong>Data Vigência Até</strong>: ontem + 365 dias (DD/MM/AAAA)</li>
+            <li>Clicar em <strong>Salvar</strong></li>
+            <li>Aguardar resposta do sistema</li>
+            <li>Capturar screenshot da mensagem de resultado</li>
+            <li>Verificar que a CC TXUNICA aparece na lista/grid com tipo <strong>TAXA ÚNICA</strong> e taxa <strong>0,001500</strong></li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            CC do tipo <strong>TAXA ÚNICA</strong> cadastrada com sucesso na apólice. Mensagem de confirmação visível.
+            Grid/lista exibe a nova CC com Tipo = "TAXA ÚNICA", Taxa = 0,001500 e período de vigência informado.
+            Anotar o número da apólice para uso nos CTs de averbação.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu001">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-002 -->
+    <div class="ct-block p1" id="ct-txu-002">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-002</span>
+        <span class="ct-title">Cadastrar CC TXUNICA em apólice RCV — HDI-YELUM HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-hdi">HDI-YELUM</span>
+        <span class="badge badge-pend" id="badge-txu002">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Sistema: CITWEB HDI-YELUM HML — <code>https://hdi-yelum-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Credenciais: <code>FRED / DERF</code></li>
+            <li>Apólice RCV disponível filial 1 — buscar via Relação de Apólices (Ramo 59)</li>
+            <li>CC TXUNICA não cadastrada nessa apólice para o período de teste</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Dados de entrada</div>
+          <table>
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>Subgrupo</td><td>001 (primeiro disponível)</td></tr>
+            <tr><td>Tipo de Condição</td><td>TXUNICA — Taxa Única</td></tr>
+            <tr><td>Taxa (%)</td><td><code>0,002000</code></td></tr>
+            <tr><td>Data Vigência De</td><td>Ontem (DD/MM/AAAA)</td></tr>
+            <tr><td>Data Vigência Até</td><td>Ontem + 365 dias</td></tr>
+          </table>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar URL de login do HDI-YELUM HML — confirmar acesso antes de prosseguir</li>
+            <li>Autenticar com credenciais confirmadas</li>
+            <li>Clicar em <strong>Nacional</strong> no menu superior</li>
+            <li>Buscar apólice RCV ativa (filial 1, ramo 59) — capturar número</li>
+            <li>Com apólice carregada, clicar em <strong>Condições Comerciais</strong></li>
+            <li>Clicar em <strong>Novo</strong></li>
+            <li>Selecionar Subgrupo 001</li>
+            <li>Selecionar Tipo de Condição: <code>TXUNICA — Taxa Única</code></li>
+            <li>Aguardar postback e preencher Taxa (%): <code>0,002000</code></li>
+            <li>Preencher datas de vigência</li>
+            <li>Clicar em <strong>Salvar</strong></li>
+            <li>Verificar mensagem de confirmação e presença da CC na lista com tipo TAXA ÚNICA</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            CC TAXA ÚNICA cadastrada com sucesso no HDI-YELUM. Confirma que o deploy da TXUNICA está funcional
+            nessa seguradora. Anotar número da apólice para CTs seguintes.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu002">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-003 -->
+    <div class="ct-block p1" id="ct-txu-003">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-003</span>
+        <span class="ct-title">Bloquear cadastro de CC TXUNICA com período conflitante</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge" style="background:#1a0a2a;color:#d0a0ff;border:1px solid #5a3a8a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px">NEGATIVO</span>
+        <span class="badge badge-pend" id="badge-txu003">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Apólice AXA HML com CC TXUNICA já cadastrada (resultado de CT-TXU-001)</li>
+            <li>Período de vigência da CC existente: ontem até ontem+365</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB AXA com <code>FRED / DERF</code></li>
+            <li>Carregar a mesma apólice usada em CT-TXU-001</li>
+            <li>Clicar em <strong>Condições Comerciais</strong></li>
+            <li>Clicar em <strong>Novo</strong></li>
+            <li>Selecionar o mesmo Subgrupo 001</li>
+            <li>Selecionar Tipo de Condição: <code>TXUNICA</code></li>
+            <li>Preencher Taxa: <code>0,003000</code></li>
+            <li>Preencher período que <strong>se sobreponha</strong> ao já existente (ex: mesmo intervalo de datas)</li>
+            <li>Clicar em <strong>Salvar</strong></li>
+            <li>Capturar mensagem exibida pelo sistema</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Sistema <strong>bloqueia</strong> o cadastro com mensagem de período conflitante ou unicidade.
+            A CC duplicada <strong>não é criada</strong>. Mensagem de bloqueio legível no screenshot.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu003">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 2: AVERBAÇÃO MANUAL CITWEB -->
+    <div class="group-hd" style="margin-top:28px">
+      <span>Grupo 2</span>
+      <span style="font-weight:400">Averbação Manual — CITWEB (Digitação)</span>
+    </div>
+
+    <!-- CT-TXU-004 -->
+    <div class="ct-block p1" id="ct-txu-004">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-004</span>
+        <span class="ct-title">Averbação manual CITWEB com CC TXUNICA — AXA HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-pend" id="badge-txu004">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>CT-TXU-001 aprovado — apólice AXA com CC TXUNICA (taxa 0,001500) ativa</li>
+            <li>Data de averbação dentro da vigência da CC (D+1 ou posterior)</li>
+            <li>Apólice com Origem Averbação permitindo digitação (CITWEB)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Dados de entrada</div>
+          <table>
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>DM (Danos Materiais)</td><td><code>100.000,00</code></td></tr>
+            <tr><td>DC (Danos Corporais)</td><td><code>50.000,00</code></td></tr>
+            <tr><td>IS Total</td><td><code>150.000,00</code> (DM + DC)</td></tr>
+            <tr><td>Prêmio esperado</td><td><code>R$ 225,00</code> (150.000 × 0,0015)</td></tr>
+            <tr><td>UF Origem → Destino</td><td>SP → RJ (percurso qualquer — não interfere em TXUNICA)</td></tr>
+            <tr><td>Placa</td><td><code>ABC1D23</code></td></tr>
+          </table>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB AXA com <code>FRED / DERF</code></li>
+            <li>Navegar pelo menu para <strong>Averbação manual RCV</strong> <span style="color:var(--yellow)">⚠️ validar caminho de menu via MCP</span></li>
+            <li>Selecionar a apólice com CC TXUNICA (resultado de CT-TXU-001)</li>
+            <li>Selecionar subgrupo 001</li>
+            <li>Preencher <strong>DM</strong>: <code>100.000,00</code></li>
+            <li>Preencher <strong>DC</strong>: <code>50.000,00</code></li>
+            <li>Preencher UF Origem: SP, Município Origem (dispara cálculo)</li>
+            <li>Preencher UF Destino: RJ, Município Destino</li>
+            <li>Preencher Placa: <code>ABC1D23</code></li>
+            <li>Verificar que o campo Prêmio foi calculado automaticamente</li>
+            <li>Extrair valor do prêmio via <code>browser_evaluate</code></li>
+            <li>Comparar com esperado: R$ 225,00 (150.000 × 0,0015)</li>
+            <li>Clicar em <strong>Gravar / Confirmar</strong></li>
+            <li>Capturar número de averbação gerado</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação gravada com sucesso. Prêmio calculado = <strong>R$ 225,00</strong> (IS × taxa única),
+            independente do percurso informado. Número de averbação gerado e visível.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu004">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-005 -->
+    <div class="ct-block p1" id="ct-txu-005">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-005</span>
+        <span class="ct-title">Averbação manual CITWEB com CC TXUNICA — HDI-YELUM HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-hdi">HDI-YELUM</span>
+        <span class="badge badge-pend" id="badge-txu005">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>CT-TXU-002 aprovado — apólice HDI-YELUM com CC TXUNICA (taxa 0,002000) ativa</li>
+            <li>Acesso CITWEB HDI-YELUM confirmado</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Dados de entrada</div>
+          <table>
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>DM</td><td><code>80.000,00</code></td></tr>
+            <tr><td>DC</td><td><code>20.000,00</code></td></tr>
+            <tr><td>IS Total</td><td><code>100.000,00</code></td></tr>
+            <tr><td>Prêmio esperado</td><td><code>R$ 200,00</code> (100.000 × 0,002)</td></tr>
+          </table>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB HDI-YELUM HML com credenciais confirmadas</li>
+            <li>Navegar para averbação manual RCV</li>
+            <li>Selecionar apólice com CC TXUNICA (CT-TXU-002)</li>
+            <li>Preencher DM: <code>80.000,00</code> e DC: <code>20.000,00</code></li>
+            <li>Preencher percurso (qualquer — não interfere no cálculo TXUNICA)</li>
+            <li>Verificar prêmio calculado = R$ 200,00</li>
+            <li>Gravar e capturar evidências</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação gravada. Prêmio = <strong>R$ 200,00</strong>. Confirma TXUNICA funcionando no HDI-YELUM via CITWEB.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu005">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 3: AVERBAÇÃO MANUAL CITNET -->
+    <div class="group-hd grp-citnet" style="margin-top:28px">
+      <span>Grupo 3</span>
+      <span style="font-weight:400">Averbação Manual — CITNET</span>
+    </div>
+
+    <!-- CT-TXU-006 -->
+    <div class="ct-block p1" id="ct-txu-006">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-006</span>
+        <span class="ct-title">Averbação manual CITNET com CC TXUNICA — AXA HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-citnet">CITNET</span>
+        <span class="badge badge-pend" id="badge-txu006">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>CT-TXU-001 aprovado — apólice AXA com CC TXUNICA ativa (taxa 0,001500)</li>
+            <li>Apólice com <strong>Origem da Averbação = CITNET</strong> — verificar campo na apólice</li>
+            <li>Sistema: CITNET AXA — <code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code></li>
+            <li>Usuário: <code>interno</code> | Senha: <code>11</code></li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Dados de entrada</div>
+          <table>
+            <tr><th>Campo</th><th>Valor</th></tr>
+            <tr><td>Apólice</td><td>Número da apólice de CT-TXU-001</td></tr>
+            <tr><td>DM</td><td><code>100.000,00</code></td></tr>
+            <tr><td>DC</td><td><code>50.000,00</code></td></tr>
+            <tr><td>Prêmio esperado</td><td><code>R$ 225,00</code></td></tr>
+            <tr><td>Meio de Transporte</td><td>X (Rodoviário)</td></tr>
+            <tr><td>Placa</td><td><code>DEF1G23</code></td></tr>
+            <tr><td>UF Origem → Destino</td><td>SP → MG (qualquer percurso)</td></tr>
+          </table>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code></li>
+            <li>Autenticar com <code>interno / 11</code></li>
+            <li>Confirmar que a tela inicial do CITNET carregou</li>
+            <li>Clicar em <strong>Averbação</strong> no menu</li>
+            <li>Clicar em <strong>RCV</strong></li>
+            <li>Selecionar/preencher a <strong>Apólice</strong> (número de CT-TXU-001)</li>
+            <li>Aguardar carregamento do subgrupo (selecionar 001 se necessário)</li>
+            <li>Preencher <strong>Meio de Transporte</strong>: X (Rodoviário)</li>
+            <li>Preencher <strong>Placa</strong>: <code>DEF1G23</code></li>
+            <li>Preencher <strong>UF Origem</strong>: SP → carregar município</li>
+            <li>Preencher <strong>Cód. Município Origem</strong> (dispara <code>CalcularPremio()</code>)</li>
+            <li>Preencher <strong>UF Destino</strong>: MG → município destino</li>
+            <li>Preencher <strong>DM</strong>: <code>100.000,00</code> e <strong>DC</strong>: <code>50.000,00</code></li>
+            <li>Verificar que campo <strong>Prêmio</strong> foi calculado automaticamente</li>
+            <li>Extrair valor via <code>browser_evaluate</code> e comparar com esperado: R$ 225,00</li>
+            <li>Clicar em <strong>Gravar</strong></li>
+            <li>Capturar número de averbação gerado e screenshot de confirmação</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação gravada via CITNET. Prêmio = <strong>R$ 225,00</strong> (IS 150.000 × taxa 0,0015).
+            Confirma que o canal CITNET Averbação Manual também utiliza corretamente a CC TXUNICA.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu006">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-007 -->
+    <div class="ct-block p1" id="ct-txu-007">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-007</span>
+        <span class="ct-title">Averbação manual CITNET com CC TXUNICA — HDI-YELUM HML</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-hdi">HDI-YELUM</span>
+        <span class="badge badge-citnet">CITNET</span>
+        <span class="badge badge-pend" id="badge-txu007">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>CT-TXU-002 aprovado — apólice HDI-YELUM com CC TXUNICA ativa</li>
+            <li>URL CITNET HDI-YELUM: <code>https://hdi-yelum-hml-faturamento.nsseg.com.br/citnet/</code></li>
+            <li>Usuário: <code>interno</code> | Senha: <code>11</code></li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITNET HDI-YELUM com credenciais confirmadas</li>
+            <li>Navegar: Averbação → RCV</li>
+            <li>Selecionar apólice de CT-TXU-002</li>
+            <li>Preencher dados de embarque (DM: 80.000, DC: 20.000, percurso qualquer)</li>
+            <li>Verificar prêmio calculado = R$ 200,00 (IS 100.000 × 0,002)</li>
+            <li>Gravar e capturar evidências</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação gravada via CITNET HDI-YELUM. Prêmio = <strong>R$ 200,00</strong>.
+            Confirma canal CITNET funcionando com TXUNICA no HDI-YELUM.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu007">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 4: CONVERSOR -->
+    <div class="group-hd grp-conv" style="margin-top:28px">
+      <span>Grupo 4</span>
+      <span style="font-weight:400">Conversor — CITNET</span>
+    </div>
+
+    <!-- CT-TXU-008 -->
+    <div class="ct-block p2" id="ct-txu-008">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-008</span>
+        <span class="ct-title">Conversor CITNET com arquivo — apólice TXUNICA — AXA HML</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-citnet">CITNET</span>
+        <span class="badge badge-pend" id="badge-txu008">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Apólice AXA com CC TXUNICA ativa (CT-TXU-001)</li>
+            <li>Arquivo CSV no formato RCV com registros referenciando essa apólice</li>
+            <li>Layout de conversor RCV configurado no CITNET AXA</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Formato do arquivo CSV</div>
+          <div class="info-box" style="font-family:monospace;font-size:12px;white-space:pre">
+[apólice];[endosso];[tipo];[CTE];[UF_ori];[cod_mun_ori];[UF_dst];[cod_mun_dst];[dia];[mes];[ano];[placa]
+[numero-apolice-txunica];1;C;CTE001TEST;SP;50308;RJ;4557;25;06;2026;ABC1D23
+[numero-apolice-txunica];1;C;CTE002TEST;SP;50308;RS;8801;25;06;2026;DEF2E34
+          </div>
+          <div style="font-size:12px;color:var(--yellow);margin-top:6px">⚠️ Adaptar campos conforme layout real do CITNET AXA — verificar via MCP antes de executar</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITNET AXA (<code>interno / 11</code>)</li>
+            <li>Navegar: <strong>Averbação → Converte Arquivo → RCV</strong></li>
+            <li>Clicar no campo de arquivo (<code>#arq</code>) e selecionar o CSV preparado</li>
+            <li>Clicar em <strong>IMPORTAR</strong> — aguardar botão ficar disabled</li>
+            <li>Selecionar layout RCV no dropdown (<code>cmbLayout</code>)</li>
+            <li>Clicar em <strong>CONVERTER</strong></li>
+            <li>Confirmar linha inicial (dialog) — informar 1</li>
+            <li>Aguardar tabela de resultado aparecer</li>
+            <li>Verificar que registros foram convertidos sem erros</li>
+            <li>Clicar em <strong>PROCESSAR</strong></li>
+            <li>Verificar averbações gravadas com prêmio calculado pela taxa única</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Arquivo processado com sucesso. Averbações geradas com prêmio calculado via taxa única (TXUNICA),
+            não por tabela de percurso. Prêmio deve ser idêntico para percursos SP→RJ e SP→RS (independente do destino).
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu008">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-009 -->
+    <div class="ct-block p2" id="ct-txu-009">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-009</span>
+        <span class="ct-title">Conversor CITWEB com arquivo — apólice TXUNICA — AXA HML</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-pend" id="badge-txu009">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Apólice AXA com CC TXUNICA ativa (CT-TXU-001)</li>
+            <li>Menu Conversor disponível no CITWEB AXA — <span style="color:var(--yellow)">⚠️ validar caminho de menu via MCP</span></li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB AXA com <code>FRED / DERF</code></li>
+            <li>Localizar e acessar o módulo <strong>Conversor</strong> no menu CITWEB <span style="color:var(--yellow)">⚠️ identificar caminho via MCP</span></li>
+            <li>Selecionar layout RCV e importar arquivo CSV com apólice TXUNICA</li>
+            <li>Converter e processar</li>
+            <li>Verificar que averbações foram gravadas com prêmio baseado em taxa única</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Conversor CITWEB processa averbações com prêmio calculado via TXUNICA.
+            Resultado idêntico ao Conversor CITNET para a mesma apólice.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu009">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 5: RELATÓRIO -->
+    <div class="group-hd grp-relat" style="margin-top:28px">
+      <span>Grupo 5</span>
+      <span style="font-weight:400">Relatório — Relação de Embarques</span>
+    </div>
+
+    <!-- CT-TXU-010 -->
+    <div class="ct-block p2" id="ct-txu-010">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-010</span>
+        <span class="ct-title">Relação de Embarques — coluna Taxa retorna valor TXUNICA — AXA HML</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge badge-pend" id="badge-txu010">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Averbação com CC TXUNICA existente na apólice AXA (resultado de CT-TXU-004 ou CT-TXU-006)</li>
+            <li>Relatório Relação de Embarques disponível no CITWEB AXA</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB AXA com <code>FRED / DERF</code></li>
+            <li>Navegar para <strong>Relatórios → Relação de Embarques</strong> <span style="color:var(--yellow)">⚠️ confirmar menu via MCP</span></li>
+            <li>Filtrar por: apólice usada nos CTs anteriores / filial 1 / período do dia de hoje</li>
+            <li>Clicar em Pesquisar / Gerar relatório</li>
+            <li>Localizar a coluna <strong>Taxa</strong> nos resultados</li>
+            <li>Verificar que a coluna exibe o valor <code>0,001500</code> (ou equivalente configurado)</li>
+            <li>Capturar screenshot com a coluna Taxa visível e legível</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Relatório Relação de Embarques exibe a coluna <strong>Taxa</strong> com valor <code>0,001500</code>
+            (taxa configurada na CC TXUNICA) para as averbações da apólice filtrada.
+            Valor deve ser idêntico ao cadastrado na CC — não calculado por percurso.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu010">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 6: REGRESSÃO -->
+    <div class="group-hd grp-regr" style="margin-top:28px">
+      <span>Grupo 6</span>
+      <span style="font-weight:400">Regressão — Demais CCs do RCV devem permanecer funcionando</span>
+    </div>
+
+    <!-- CT-TXU-011 -->
+    <div class="ct-block p2" id="ct-txu-011">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-011</span>
+        <span class="ct-title">Regressão — CC TPP (Taxa por Percurso) ainda funciona — AXA HML</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-axa">AXA</span>
+        <span class="badge" style="background:#1a1a2a;color:#79b8ff;border:1px solid #2a2a5a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px">REGRESSÃO</span>
+        <span class="badge badge-pend" id="badge-txu011">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Apólice RCV AXA HML com CC <strong>TPP (Taxa por Percurso)</strong> ativa — apólice 2, filial 1 tem CC TPP confirmada</li>
+            <li>Tabela de percurso cadastrada na CC (UF origem → destino com taxa específica)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB AXA com <code>FRED / DERF</code></li>
+            <li>Carregar apólice 2, filial 1 (CC TPP ativa)</li>
+            <li>Iniciar averbação manual RCV</li>
+            <li>Preencher UF Origem e Destino com percurso que consta na tabela TPP</li>
+            <li>Verificar que o prêmio foi calculado conforme a tabela de percurso (≠ taxa única)</li>
+            <li>Comparar com a taxa da tabela TPP cadastrada</li>
+            <li>Gravar e confirmar averbação</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação com CC TPP gravada. Prêmio calculado <strong>por percurso</strong> (conforme tabela TPP),
+            não pela taxa única. A subida da TXUNICA não interferiu no comportamento da CC TPP.
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu011">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-TXU-012 -->
+    <div class="ct-block p2" id="ct-txu-012">
+      <div class="ct-head" onclick="toggle(this)">
+        <span class="ct-id">CT-TXU-012</span>
+        <span class="ct-title">Regressão — CC PRFX (Prêmio Fixo) ainda funciona — MITSUI HML</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="badge" style="background:#0a1a0a;color:#56d364;border:1px solid #1a5a1a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px">MITSUI</span>
+        <span class="badge" style="background:#1a1a2a;color:#79b8ff;border:1px solid #2a2a5a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px">REGRESSÃO</span>
+        <span class="badge badge-pend" id="badge-txu012">PENDENTE</span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:20px;font-size:13px;">
+            <li>Sistema: CITWEB MITSUI HML — <code>https://mitsui-hml-faturamento.nsseg.com.br/Login/</code></li>
+            <li>Usuário: <code>ROT_AUTO</code> | Senha: <code>T7Jjm6xF</code></li>
+            <li>Apólice <code>1590000016</code> MITSUI HML com CC PRFX ativa (confirmada)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITWEB MITSUI HML</li>
+            <li>Carregar apólice <code>1590000016</code> filial 1</li>
+            <li>Verificar que CC PRFX está ativa na apólice</li>
+            <li>Iniciar averbação manual RCV com essa apólice</li>
+            <li>Preencher dados de embarque (DM, DC, percurso qualquer)</li>
+            <li>Verificar que o prêmio = valor fixo configurado na CC PRFX (independente do IS ou percurso)</li>
+            <li>Gravar e confirmar</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ct-result">
+            Averbação gravada com prêmio = <strong>valor fixo da CC PRFX</strong>.
+            A subida da TXUNICA na Sprint 9 não interferiu no comportamento da CC PRFX no MITSUI.
+            Confirma estabilidade das CCs existentes (seguradoras da Sprint 7).
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-txu012">
+            <div style="color:var(--text-muted);font-size:12px;font-style:italic">Aguardando execução…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end section casos de teste -->
+
+  <!-- 5. MATRIZ DE RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-title">5. Matriz de Rastreabilidade</div>
+    <table class="matriz">
+      <tr>
+        <th>Critério de Aceite / Canal</th>
+        <th>CT(s)</th>
+        <th>Prioridade</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td>Opção TXUNICA disponível no dropdown CC — AXA</td>
+        <td>CT-TXU-001</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Opção TXUNICA disponível no dropdown CC — HDI-YELUM</td>
+        <td>CT-TXU-002</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Bloqueio de CC TXUNICA com período conflitante</td>
+        <td>CT-TXU-003</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Averbação manual CITWEB — prêmio calculado por taxa única (AXA)</td>
+        <td>CT-TXU-004</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Averbação manual CITWEB — prêmio calculado por taxa única (HDI-YELUM)</td>
+        <td>CT-TXU-005</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Canal CITNET — averbação manual com TXUNICA (AXA)</td>
+        <td>CT-TXU-006</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Canal CITNET — averbação manual com TXUNICA (HDI-YELUM)</td>
+        <td>CT-TXU-007</td>
+        <td><span class="badge badge-p1">P1</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Canal Conversor CITNET — processamento com apólice TXUNICA</td>
+        <td>CT-TXU-008</td>
+        <td><span class="badge badge-p2">P2</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Canal Conversor CITWEB — processamento com apólice TXUNICA</td>
+        <td>CT-TXU-009</td>
+        <td><span class="badge badge-p2">P2</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Relatório Relação de Embarques — coluna Taxa correta</td>
+        <td>CT-TXU-010</td>
+        <td><span class="badge badge-p2">P2</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Regressão — CC TPP não foi impactada</td>
+        <td>CT-TXU-011</td>
+        <td><span class="badge badge-p2">P2</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+      <tr>
+        <td>Regressão — CC PRFX não foi impactada</td>
+        <td>CT-TXU-012</td>
+        <td><span class="badge badge-p2">P2</span></td>
+        <td class="cov-pend">PENDENTE</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 6. RISCOS -->
+  <div class="section">
+    <div class="section-title">6. Riscos</div>
+    <table>
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr>
+        <td>Credenciais ou URL do HDI-YELUM não acessíveis</td>
+        <td>Média</td>
+        <td>Alto — bloqueia CTs 002, 005, 007</td>
+        <td>Verificar via MCP antes de executar; obter credenciais com o time</td>
+      </tr>
+      <tr>
+        <td>Deploy da TXUNICA não chegou ao HDI-YELUM / AIG / FAIRFAX</td>
+        <td>Baixa</td>
+        <td>Alto — CT-TXU-002 e demais HDI falham</td>
+        <td>Validar em CT-TXU-002 se TXUNICA aparece no dropdown; se não, reportar ao dev</td>
+      </tr>
+      <tr>
+        <td>Restrição D+1 impede averbação imediata após cadastrar CC</td>
+        <td>Alta</td>
+        <td>Médio — bloqueia CTs 004, 005, 006, 007</td>
+        <td>Usar data de vigência De = ontem ao cadastrar CC em CTs 001 e 002</td>
+      </tr>
+      <tr>
+        <td>Apólice AXA não permite origem CITNET na averbação</td>
+        <td>Média</td>
+        <td>Médio — bloqueia CT-TXU-006</td>
+        <td>Verificar campo Origem da Averbação na apólice; usar apólice diferente se necessário</td>
+      </tr>
+      <tr>
+        <td>Caminho de menu Conversor CITWEB não mapeado</td>
+        <td>Alta</td>
+        <td>Baixo — CT-TXU-009 pode ser pulado</td>
+        <td>Validar via browser_snapshot antes de executar; mover para P3 se não localizado</td>
+      </tr>
+    </table>
+  </div>
+
+</div><!-- end content -->
+
+<footer>
+  Plano de Teste — PBI-7367 — Sprint 9 CITWEB · Gerado em 25/06/2026 · QA: Wesley Moreira
+</footer>
+
+<!-- LIGHTBOX JS + ACCORDION -->
+<script>
+function openLb(src, cap) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-cap').textContent = cap || '';
+  document.getElementById('lb').classList.add('open');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('lb').classList.remove('open');
+});
+
+function toggle(head) {
+  head.closest('.ct-block').classList.toggle('expanded');
+}
+
+// clique em imagens do ev-grid abre lightbox
+document.querySelectorAll('.ev-grid img').forEach(img => {
+  img.style.cursor = 'pointer';
+  img.addEventListener('click', () => openLb(img.src, img.alt));
+});
+</script>
+</body>
+</html>
