@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7541 — CITNET EZZE — Conversor CNPJ Alfanumérico</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:#b91c1c;padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}
+  .val-ok{color:var(--green)}
+  .val-err{color:var(--red)}
+  .val-pend{color:#d2a8ff}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:#a371f7;transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .bloq-box{background:#1a1240;border:1px solid #6e40c9;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#d2a8ff}
+  .err-box{background:var(--red-bg);border:1px solid #6e1212;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#f85149}
+  .group-header{background:#7c3aed;color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-bloq{background:#1a1240;color:#d2a8ff;border:1px solid #6e40c9;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.bloq{background:#1a1240;border-left:3px solid #a371f7;color:#d2a8ff}
+  .result-row.err{background:var(--red-bg);border-left:3px solid var(--red);color:#f85149}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  a{color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · EZZE ALFA</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7541 — Conversor RCTR-C: CNPJ Alfanumérico aceito indevidamente</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Reteste — 25/06/2026</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - EZZE ALFA ] Conversor RCTR-C — Sistema aceita CNPJ com valor alfanumérico (ex: ABC1234)</div>
+  <div class="hero-meta">
+    <span>Ambiente: <strong>EZZE ALFA HML</strong></span>
+    <span>Tag Voidr: <strong>LIVE</strong></span>
+    <span>Data reteste: <strong>25/06/2026</strong></span>
+    <span>Executado por: <strong>Voidr (automático)</strong></span>
+    <span>Card: <strong><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7541" target="_blank">BUG-7541</a></strong></span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total">2</div><div class="lbl">Total</div></div>
+  <div class="metric"><div class="val val-ok">0</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend">2</div><div class="lbl">Bloqueado</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Descrição:</strong> O Conversor RCTR-C aceita indevidamente valores alfanuméricos no campo CNPJ (ex.: <code>ABC1234</code>). O sistema deveria rejeitar CNPJs em formato inválido antes do processamento, exibindo mensagem de validação adequada.</p>
+    <p style="margin-top:6px"><strong>Ambiente afetado:</strong> CITNET EZZE ALFA HML (<code>hml-ezze-alfa</code>)</p>
+    <p style="margin-top:6px"><strong>Fix aplicado:</strong> PR <code>#1751</code> — mergeado em 24/06/2026 18:18 UTC no branch <code>feature/cnpj_alfanumerico</code></p>
+  </div>
+
+  <div class="bloq-box">
+    ⊘ <strong>RETESTE BLOQUEADO — Deploy não realizado</strong><br>
+    Execução Voidr <code>EXEC-001718</code> em 25/06/2026 resultou em <strong>PREFLIGHT_FAILED</strong>.<br>
+    <strong>Causa primária (PREFLIGHT_FAILED):</strong> Test cases CONVE-02 e CONVE-04 estão marcados como tag <code>LIVE</code> no ambiente EZZE, o que exige um script compilado no storage do Voidr runner. O artifact estava ausente ou expirado, causando falha antes de qualquer execução de passo.<br>
+    <strong>Causa raiz (negócio):</strong> Fix do PR <code>#1751</code> (24/06/2026) ainda não implantado no ALFA EZZE — pipeline <code>azure-pipelines-release.yml</code> com <code>trigger: none</code>; deploy manual necessário.
+  </div>
+
+  <div class="group-header">Grupo 1 — Conversor RCTR-C · CNPJ Alfanumérico · EZZE ALFA</div>
+
+  <!-- CONVE-02 -->
+  <div class="ct-block expanded" id="ctCONVE02">
+    <div class="ct-head" onclick="toggle('ctCONVE02')">
+      <span class="ct-id">CONVE-02</span>
+      <span class="badge-bloq">BLOQUEADO</span>
+      <span class="badge-type">Reteste Automático</span>
+      <span class="badge-profile">VOIDR · LIVE</span>
+      <span class="ct-title">Conversor RCTR-C — arquivo com CNPJ alfanumérico: fluxo Importar → Converter → Processar</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Plano Voidr</td><td>CITNET- Core · App: CITNET - NsTech</td></tr>
+        <tr><td>Execução</td><td><code>EXEC-001718</code> — 25/06/2026 — Status: <code>PREFLIGHT_FAILED</code></td></tr>
+        <tr><td>Ambiente</td><td>EZZE ALFA HML (<code>hml-ezze-alfa</code>)</td></tr>
+        <tr><td>Tag</td><td><code>LIVE</code> — requer script compilado no storage</td></tr>
+        <tr><td>Critério de aceite</td><td>Sistema deve rejeitar CNPJ alfanumérico com mensagem clara, sem erro genérico</td></tr>
+      </table>
+      <div class="steps-label">Resultado da execução</div>
+      <div class="result-row err">✗ PREFLIGHT_FAILED — Runner não conseguiu inicializar o ambiente de execução. Script compilado (tag LIVE) não encontrado no storage. Nenhum passo do teste foi executado. Execução ID: EXEC-001718 · 25/06/2026</div>
+      <div class="result-row bloq">⊘ BLOQUEADO (negócio) — Mesmo que o runner iniciasse, o ambiente ALFA EZZE ainda executa build anterior ao fix do PR #1751. Deploy manual necessário antes do próximo reteste.</div>
+      <div class="ev-section">
+        <div class="section-label">Observação</div>
+        <p style="color:var(--muted);font-size:12px">Nenhum screenshot disponível — PREFLIGHT_FAILED ocorre antes de qualquer interação com o browser. Evidências serão coletadas na próxima rodada de reteste após deploy do fix.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONVE-04 -->
+  <div class="ct-block expanded" id="ctCONVE04">
+    <div class="ct-head" onclick="toggle('ctCONVE04')">
+      <span class="ct-id">CONVE-04</span>
+      <span class="badge-bloq">BLOQUEADO</span>
+      <span class="badge-type">Reteste Automático</span>
+      <span class="badge-profile">VOIDR · LIVE</span>
+      <span class="ct-title">Conversor RCTR-C — validação de CNPJ alfanumérico: campo deve rejeitar formato inválido</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Plano Voidr</td><td>CITNET- Core · App: CITNET - NsTech</td></tr>
+        <tr><td>Execução</td><td><code>EXEC-001718</code> — 25/06/2026 — Status: <code>PREFLIGHT_FAILED</code></td></tr>
+        <tr><td>Ambiente</td><td>EZZE ALFA HML (<code>hml-ezze-alfa</code>)</td></tr>
+        <tr><td>Tag</td><td><code>LIVE</code> — requer script compilado no storage</td></tr>
+        <tr><td>Critério de aceite</td><td>Campo CNPJ deve validar e rejeitar valor alfanumérico antes do processamento</td></tr>
+      </table>
+      <div class="steps-label">Resultado da execução</div>
+      <div class="result-row err">✗ PREFLIGHT_FAILED — Mesma causa do CONVE-02. Runner falhou na inicialização antes de executar qualquer passo. Execução ID: EXEC-001718 · 25/06/2026</div>
+      <div class="result-row bloq">⊘ BLOQUEADO (negócio) — Ambiente ALFA EZZE aguarda deploy do PR #1751.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggle(id){
+  const b=document.getElementById(id);
+  b.classList.toggle('expanded');
+}
+</script>
+</body>
+</html>
