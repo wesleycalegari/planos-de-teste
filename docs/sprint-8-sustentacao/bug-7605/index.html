@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7605 — CITNET HDI Global — Bloqueio de Usuário</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:var(--purple);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}
+  .val-ok{color:var(--green)}
+  .val-err{color:var(--red)}
+  .val-pend{color:var(--orange)}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:var(--orange);transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .warn-box{background:#1a1500;border:1px solid var(--orange);border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--orange)}
+  .group-header{background:var(--purple);color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-ok{background:#0d3321;color:#3fb950;border:1px solid #1a5c35;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-pend{background:#21262d;color:#8b949e;border:1px solid #444c56;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-bloq{background:#1a1240;color:#d2a8ff;border:1px solid #6e40c9;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-p1{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-p2{background:#1f1200;color:#d29922;border:1px solid #6e4800;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  ol{padding-left:18px}
+  ol li{margin:3px 0;color:var(--text)}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#57ab5a}
+  .result-row.err{background:var(--red-bg);border-left:3px solid var(--red);color:#f85149}
+  .result-row.bloq{background:#1a1240;border-left:3px solid #a371f7;color:#d2a8ff}
+  .result-row.pend{background:#1a1a1a;border-left:3px solid var(--muted);color:var(--muted)}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px;cursor:pointer}
+  .ev-caption{font-size:11px;color:var(--muted);margin:3px 0 8px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  a{color:var(--blue)}
+  #lb{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+  #lb.active{display:flex}
+  #lb img{max-width:92vw;max-height:90vh;border:2px solid var(--border);border-radius:6px;box-shadow:0 0 40px rgba(0,0,0,.6)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · HDI GLOBAL</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7605 — Bloqueio de usuário por múltiplas tentativas de login</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plano de Reteste</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - HDI Global ] Bloqueio global de usuário devido a tabela <code>tb_tnt_alt_pwd</code> inexistente no banco</div>
+  <div class="hero-meta">
+    <span>Ambiente: <strong>HDI GLOBAL HML</strong></span>
+    <span>Perfil: <strong>INTERNO / SUPORTE</strong></span>
+    <span>Data: <strong>27/06/2026</strong></span>
+    <span>Executado por: <strong>Wesley Moreira</strong></span>
+    <span>Card: <strong><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7605" target="_blank">BUG-7605</a></strong></span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total" id="exec-total">3</div><div class="lbl">Total</div></div>
+  <div class="metric"><div class="val val-ok" id="exec-aprovados">0</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err" id="exec-reprovados">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend" id="exec-pendentes">3</div><div class="lbl">Pendente</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" id="exec-bar" style="width:0%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Causa raiz:</strong> A tabela <code>tb_tnt_alt_pwd</code> não existia no banco de dados do cliente HDI Global. O <code>HomeController.cs</code> executava <code>SELECT COUNT(1) FROM tb_tnt_alt_pwd WHERE c_org_prd=@c_org_prd AND c_usu=@c_usu AND d_usu_alt>=@d_ref</code> sem verificar se a tabela existia, lançando exceção não tratada que resultava em bloqueio global do sistema — qualquer acesso à tela de login falhava.</p>
+    <p style="margin-top:6px"><strong>Fix aplicado:</strong> Adição do indicador <code>Ind_Existe_tb_tnt_alt_pwd</code> em <code>HomeController.cs</code>. O sistema agora verifica a existência da tabela antes de executar a query. Se a tabela não existir, o fluxo de bloqueio por tentativas é ignorado e o login prossegue normalmente. Também corrigidos <code>FormAutentica.cshtml</code> e <code>FormSenha.cshtml</code> para layout centralizado.</p>
+    <p style="margin-top:6px"><strong>Commits:</strong> <code>f63e8de8 b2fe1c1e 8c5c5945 569b29b4 ebac38b5 37303e78</code> | PR 1760</p>
+  </div>
+
+  <div class="info-box">
+    <h3>Ambiente de Execução</h3>
+    <table>
+      <tr><th>Campo</th><th>Valor</th></tr>
+      <tr><td>URL CITNET</td><td><code>https://hdiglobal-hml-faturamento.nsseg.com.br/citnet/</code></td></tr>
+      <tr><td>Credencial de teste</td><td>SUPORTE (confirmado por Ivan em 26/06/2026)</td></tr>
+      <tr><td>Validado por dev</td><td>Ivan Jesus — 26/06/2026 (HML + local)</td></tr>
+    </table>
+  </div>
+
+  <div class="warn-box">
+    ⚠ <strong>Servidor HDI Global HML offline em 27/06/2026 09h (HTTP 522).</strong> CTs aguardando disponibilidade do servidor. Retorno esperado em horário comercial.
+  </div>
+
+  <div class="group-header">Grupo 1 — Login e Acesso · Perfil SUPORTE</div>
+
+  <!-- CT-7605-001 -->
+  <div class="ct-block" id="ct001">
+    <div class="ct-head" onclick="toggle('ct001')">
+      <span class="ct-id">CT-7605-001</span>
+      <span class="badge-pend">PENDENTE</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Reteste — ponto do bug</span>
+      <span class="badge-profile">SUPORTE</span>
+      <span class="ct-title">Login com credencial válida — tela carrega sem bloqueio global</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Servidor HDI Global HML disponível (HTTP 200)</td></tr>
+        <tr><td>Ambiente</td><td><code>https://hdiglobal-hml-faturamento.nsseg.com.br/citnet/</code></td></tr>
+        <tr><td>Dado de entrada</td><td>Usuário: <strong>SUPORTE</strong> | Senha: (credencial HML HDI Global)</td></tr>
+        <tr><td>Bug original</td><td>Tela de login retornava erro HTTP 500 / bloqueio global imediatamente ao acessar, sem permitir autenticação</td></tr>
+        <tr><td>Critério de aceite</td><td>Tela de login renderiza corretamente (HTTP 200); formulário de usuário/senha visível e funcional; após autenticar, Home exibida com menu completo</td></tr>
+      </table>
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Acessar <code>https://hdiglobal-hml-faturamento.nsseg.com.br/citnet/</code></li>
+        <li>Verificar que a tela de login renderiza sem erro (HTTP 200, formulário visível)</li>
+        <li>Preencher Usuário: <strong>SUPORTE</strong> e Senha correspondente</li>
+        <li>Clicar em Entrar</li>
+        <li>Verificar que a Home é carregada com menu completo — sem mensagem de bloqueio</li>
+        <li>Capturar screenshot da Home logada</li>
+      </ol>
+      <div class="result-row pend">⏳ PENDENTE — aguardando servidor HDI Global HML</div>
+    </div>
+  </div>
+
+  <!-- CT-7605-002 -->
+  <div class="ct-block" id="ct002">
+    <div class="ct-head" onclick="toggle('ct002')">
+      <span class="ct-id">CT-7605-002</span>
+      <span class="badge-pend">PENDENTE</span>
+      <span class="badge-p2">P2</span>
+      <span class="badge-type">Reteste negativo</span>
+      <span class="badge-profile">SUPORTE</span>
+      <span class="ct-title">Login com credencial inválida — mensagem correta, sem bloqueio global</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Servidor disponível; usuário SUPORTE existe no sistema</td></tr>
+        <tr><td>Dado de entrada</td><td>Usuário: <strong>SUPORTE</strong> | Senha: <strong>senha_errada</strong></td></tr>
+        <tr><td>Critério de aceite</td><td>Mensagem de erro específica exibida ("Verifique usuário/senha" ou similar); sistema NÃO bloqueia todos os usuários globalmente; nova tentativa de login ainda é possível</td></tr>
+      </table>
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Na tela de login, preencher Usuário: <strong>SUPORTE</strong> e Senha: <strong>senha_errada</strong></li>
+        <li>Clicar em Entrar</li>
+        <li>Verificar que mensagem de erro é exibida (ex: "Verifique usuário e senha")</li>
+        <li>Via <code>browser_evaluate</code>: extrair texto exato da mensagem</li>
+        <li>Tentar acessar novamente — confirmar que login ainda é possível (sistema não travou)</li>
+        <li>Capturar screenshot da mensagem de erro</li>
+      </ol>
+      <div class="result-row pend">⏳ PENDENTE — aguardando servidor HDI Global HML</div>
+    </div>
+  </div>
+
+  <!-- CT-7605-003 -->
+  <div class="ct-block" id="ct003">
+    <div class="ct-head" onclick="toggle('ct003')">
+      <span class="ct-id">CT-7605-003</span>
+      <span class="badge-pend">PENDENTE</span>
+      <span class="badge-p2">P2</span>
+      <span class="badge-type">Regressão</span>
+      <span class="badge-profile">SUPORTE</span>
+      <span class="ct-title">Regressão — módulo Averbações RCV acessível após login</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table>
+        <tr><th width="140">Campo</th><th>Valor</th></tr>
+        <tr><td>Pré-condição</td><td>Usuário logado com credencial válida (CT-7605-001 PASSOU)</td></tr>
+        <tr><td>Critério de aceite</td><td>Menu de Averbações exibido; tela de Averbações RCV carrega sem HTTP 500 ou NullReferenceException</td></tr>
+      </table>
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Com usuário SUPORTE logado, localizar menu de Averbações</li>
+        <li>Clicar em <strong>Averbações</strong> → <strong>Nacional</strong> → <strong>Averbação RCV</strong></li>
+        <li>Verificar que a tela "Cadastro de Averbações RCV" carrega sem erro</li>
+        <li>Capturar screenshot da tela de Averbações RCV</li>
+      </ol>
+      <div class="result-row pend">⏳ PENDENTE — aguardando servidor HDI Global HML</div>
+    </div>
+  </div>
+
+</div>
+
+<div id="lb" onclick="closeLb()"><img id="lb-img" src="" alt=""></div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('expanded');
+}
+function openLb(img) {
+  document.getElementById('lb-img').src = img.src;
+  document.getElementById('lb').classList.add('active');
+}
+function closeLb() {
+  document.getElementById('lb').classList.remove('active');
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeLb(); });
+</script>
+</body>
+</html>
