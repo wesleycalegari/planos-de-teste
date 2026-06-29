@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PBI-7499 — Relatório SLA Todas as Seguradoras · Sprint 9 CITWEB</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--text-muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#a371f7;--orange:#d18616;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+  .topbar{background:#0078d4;padding:10px 24px;display:flex;align-items:center;gap:12px}
+  .topbar h1{color:#fff;font-size:16px;font-weight:600}
+  .topbar .sprint{background:rgba(255,255,255,.2);color:#fff;padding:2px 10px;border-radius:12px;font-size:12px}
+  .hero{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid var(--border);padding:24px}
+  .hero-title{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:6px}
+  .hero-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+  .meta-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--text-muted)}
+  .meta-chip span{color:var(--text)}
+  .metrics-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;gap:24px;flex-wrap:wrap;align-items:center}
+  .metric{text-align:center}
+  .metric-val{font-size:26px;font-weight:700;line-height:1}
+  .metric-lbl{font-size:11px;color:var(--text-muted);margin-top:2px}
+  .metric.ok .metric-val{color:var(--green)}
+  .metric.err .metric-val{color:var(--red)}
+  .metric.pend .metric-val{color:var(--yellow)}
+  .metric.tot .metric-val{color:var(--blue)}
+  .progress-bar{flex:1;display:flex;align-items:center;gap:8px;min-width:200px}
+  .bar-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--green);transition:width .3s}
+  .content{padding:24px;max-width:1100px}
+  .warn-box{background:#1c1800;border:1px solid var(--yellow);border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#e3b341}
+  .warn-box strong{display:block;margin-bottom:4px}
+  .info-box{background:#0d1f2d;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#79c0ff}
+  .info-box strong{display:block;margin-bottom:4px}
+  .section-title{font-size:16px;font-weight:600;color:var(--blue);border-bottom:1px solid var(--border);padding-bottom:8px;margin:20px 0 14px}
+  .group-header{background:#0078d4;color:#fff;padding:10px 16px;border-radius:6px 6px 0 0;font-weight:600;font-size:14px;margin-top:16px}
+  .ct-block{background:var(--bg2);border:1px solid var(--border);border-top:none;margin-bottom:2px}
+  .ct-block:last-of-type{border-radius:0 0 6px 6px;margin-bottom:16px}
+  .ct-head{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--blue);font-size:13px;min-width:90px}
+  .ct-title{flex:1;font-size:13px}
+  .ct-toggle{color:var(--text-muted);font-size:12px;transition:transform .2s;margin-left:auto}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:16px;border-top:1px solid var(--border);font-size:13px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+  .badge-p1{background:#3d0c0c;color:#f85149;border:1px solid #f85149}
+  .badge-p2{background:#2d1a00;color:#d18616;border:1px solid #d18616}
+  .badge-p3{background:#1c1c1c;color:#8b949e;border:1px solid #8b949e}
+  .badge-ok{background:#0d1f0d;color:#3fb950;border:1px solid #3fb950}
+  .badge-err{background:#1f0d0d;color:#f85149;border:1px solid #f85149}
+  .badge-pend{background:#1c1800;color:#d29922;border:1px solid #d29922}
+  .badge-skip{background:#1a1a2e;color:#a371f7;border:1px solid #a371f7}
+  .badge-sla{background:#0d2a1a;color:#3fb950;border:1px solid #3fb950}
+  .badge-melhoria{background:#1a1a2e;color:#a371f7;border:1px solid #a371f7}
+  .step-table{width:100%;border-collapse:collapse;margin:10px 0}
+  .step-table th{background:var(--bg3);padding:6px 10px;text-align:left;font-size:12px;color:var(--text-muted);border:1px solid var(--border)}
+  .step-table td{padding:6px 10px;border:1px solid var(--border);font-size:12px;vertical-align:top}
+  .step-table tr:nth-child(even) td{background:#0a0f16}
+  .result-box{border-radius:4px;padding:8px 12px;margin-top:10px;font-size:12px}
+  .result-ok{background:#0d1f0d;border:1px solid #3fb950;color:#79c57e}
+  .result-err{background:#1f0d0d;border:1px solid #f85149;color:#f1707a}
+  .result-pend{background:#1c1800;border:1px solid #d29922;color:#e3b341}
+  .ct-ev{margin-top:10px}
+  .ct-ev img{max-width:100%;border-radius:4px;margin-top:6px;cursor:pointer}
+  table.meta-table{width:100%;border-collapse:collapse;margin:10px 0}
+  table.meta-table td{padding:6px 10px;border:1px solid var(--border);font-size:12px}
+  table.meta-table td:first-child{width:180px;background:var(--bg3);color:var(--text-muted);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Plano de Teste — PBI-7499</h1>
+  <span class="sprint">Sprint 9 CITWEB</span>
+  <span class="sprint">CITWEB · SLA · Melhoria</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">[CITWEB] Liberar relatório de SLA para todas as seguradoras</div>
+  <div style="color:var(--text-muted);font-size:13px;margin-top:4px">Ativar o relatório de SLA (Nacional e Internacional) no módulo Gestão do CITWEB para todas as seguradoras. O código já existe — rollout via indicativos de banco e permissões por seguradora.</div>
+  <div class="hero-meta">
+    <div class="meta-chip">Card <span>PBI-7499</span></div>
+    <div class="meta-chip">Sprint <span>Sprint 9 CITWEB</span></div>
+    <div class="meta-chip">Autor <span>Wesley Moreira</span></div>
+    <div class="meta-chip">Criado <span>28/06/2026</span></div>
+    <div class="meta-chip">Módulo <span>Gestão → Relatórios → SLA</span></div>
+    <div class="meta-chip">Piloto <span>FAIRFAX (ADO-6298)</span></div>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric tot"><div class="metric-val" id="exec-total">6</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric ok"><div class="metric-val" id="exec-aprovados">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric err"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric pend"><div class="metric-val" id="exec-pendentes">6</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+    <span style="font-size:12px;color:var(--text-muted)">0%</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="warn-box">
+    <strong>⚠ Servidor indisponível — 28/06/2026 (domingo)</strong>
+    Todos os ambientes HML CITWEB (AXA, FAIRFAX, KOVR, HDI, NSTECH etc.) estão offline (HTTP 522) durante o fim de semana.
+    CTs aguardando retorno dos servidores na segunda-feira 29/06/2026 às 08h.
+  </div>
+
+  <div class="section-title">1. Identificação</div>
+  <table class="meta-table">
+    <tr><td>Card</td><td>PBI-7499</td></tr>
+    <tr><td>Sprint</td><td>Sprint 9 CITWEB</td></tr>
+    <tr><td>Tipo</td><td>Product Backlog Item — Melhoria</td></tr>
+    <tr><td>Tags</td><td>citweb; melhoria; SLA</td></tr>
+    <tr><td>Estado</td><td>Pronto para Homologação</td></tr>
+    <tr><td>Referência técnica</td><td>Piloto ADO-6298 (FAIRFAX); scripts em CITWEB_Scripts/02-Projetos/ADO-7499/</td></tr>
+  </table>
+
+  <div class="section-title">2. Descrição e Contexto</div>
+  <div class="info-box">
+    <strong>Contexto técnico</strong>
+    O relatório de SLA já existe no código do CITWEB e estava disponível apenas em seguradoras de referência (ex.: KOVR, FAIRFAX).<br>
+    Este PBI ativa o relatório nas demais seguradoras via <strong>indicativos de banco</strong> e <strong>permissões de perfil</strong>.<br>
+    <strong>Indicativo de menu:</strong> <code>Ind_Existe_tb_jst_atr_mov_cit</code> — quando ativo, exibe o menu Gestão → Relatórios → SLA.<br>
+    <strong>Permissão:</strong> <code>TTFGR131</code> — obrigatória para acessar o relatório.<br>
+    <strong>Indicativo de colunas de prévia:</strong> <code>Ind_Existe_tb_mov_cit_jst_atr</code> — quando ativo, exibe status EM PRÉVIA / PRÉVIA LIBERADA e colunas de data.
+  </div>
+
+  <div class="section-title">3. Critérios de Aceite</div>
+  <ul style="margin-left:20px;font-size:13px;line-height:2">
+    <li>Menu <strong>Gestão → Relatórios → SLA</strong> visível para perfis com permissão <code>TTFGR131</code> (indicativo <code>Ind_Existe_tb_jst_atr_mov_cit</code> ativo)</li>
+    <li>Relatório Básico gera Excel para ramo <strong>Nacional</strong>, <strong>Internacional</strong> e <strong>Geral</strong> (período válido, até 6 meses)</li>
+    <li>Status <strong>EM PRÉVIA</strong> e <strong>PRÉVIA LIBERADA PARA O CORRETOR</strong> exibidos quando aplicável (com <code>Ind_Existe_tb_mov_cit_jst_atr</code> ativo)</li>
+    <li>Colunas <code>d_inc_emi_prv</code> / <code>d_alt_emi_prv</code> preenchidas em cenário automático e manual de liberação</li>
+  </ul>
+
+  <div class="section-title">4. Pré-requisitos</div>
+  <ul style="margin-left:20px;font-size:13px;line-height:2">
+    <li>Seguradora HML com indicativo <code>Ind_Existe_tb_jst_atr_mov_cit = 1</code> ativo no banco</li>
+    <li>Usuário com permissão <code>TTFGR131</code> configurada</li>
+    <li>Apólice com movimentos de faturamento para período de teste</li>
+    <li>Referência de testes: FAIRFAX HML (piloto confirmado via ADO-6298)</li>
+  </ul>
+
+  <div class="section-title">5. Casos de Teste</div>
+
+  <div class="group-header">Grupo SLA-ACC — Acesso e Visibilidade do Menu</div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-001</span>
+      <span class="ct-title">Menu Gestão → Relatórios → SLA visível para perfil autorizado</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Positivo — visibilidade de menu</td></tr>
+        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
+        <tr><td>Ambiente</td><td>HML FAIRFAX (ou seguradora com indicativo ativo)</td></tr>
+        <tr><td>Pré-condição</td><td>Indicativo <code>Ind_Existe_tb_jst_atr_mov_cit = 1</code> ativo; usuário com permissão TTFGR131</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Logar no CITWEB HML com usuário que possui permissão TTFGR131</td><td>Tela inicial com menu superior exibido</td></tr>
+          <tr><td>2</td><td>Clicar em <strong>Gestão</strong> no menu superior</td><td>Submenu de Gestão expandido</td></tr>
+          <tr><td>3</td><td>Verificar presença de <strong>Relatórios</strong> no submenu</td><td>Item "Relatórios" visível</td></tr>
+          <tr><td>4</td><td>Passar o mouse sobre <strong>Relatórios</strong></td><td>Submenu de Relatórios expandido com opção <strong>SLA</strong> visível</td></tr>
+          <tr><td>5</td><td>Capturar screenshot com menu Gestão → Relatórios → SLA expandido e visível</td><td>Screenshot mostra caminho completo de navegação até SLA</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06). Aguardando segunda-feira 29/06.</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="group-header" style="margin-top:16px">Grupo SLA-REL — Geração de Relatório Excel</div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-002</span>
+      <span class="ct-title">Gerar relatório SLA Básico — ramo Nacional (Excel)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Positivo — geração de Excel</td></tr>
+        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
+        <tr><td>Pré-condição</td><td>Menu SLA acessível (CT-SLA-001 aprovado); período com movimentos Nacionais</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Navegar para Gestão → Relatórios → SLA</td><td>Tela do Relatório SLA carregada com campos de filtro</td></tr>
+          <tr><td>2</td><td>Selecionar tipo <strong>Nacional</strong></td><td>Campo de ramo/tipo preenchido com Nacional</td></tr>
+          <tr><td>3</td><td>Preencher período de data (até 6 meses retroativos, ex.: 01/01/2026 a 30/06/2026)</td><td>Campos de data preenchidos</td></tr>
+          <tr><td>4</td><td>Clicar em <strong>Gerar Excel</strong> (ou equivalente)</td><td>Download do arquivo Excel iniciado OU arquivo gerado na tela</td></tr>
+          <tr><td>5</td><td>Verificar que o arquivo Excel foi gerado com dados do período</td><td>Arquivo Excel abre sem erro e contém linhas de dados</td></tr>
+          <tr><td>6</td><td>Capturar screenshot da tela após gerar + evidência do Excel aberto</td><td>Relatório gerado com dados reais</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-003</span>
+      <span class="ct-title">Gerar relatório SLA Básico — ramo Internacional (Excel)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Positivo — geração de Excel Internacional</td></tr>
+        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
+        <tr><td>Pré-condição</td><td>Menu SLA acessível; período com movimentos Internacionais</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Na tela de Relatório SLA, selecionar tipo <strong>Internacional</strong></td><td>Tipo Internacional selecionado nos filtros</td></tr>
+          <tr><td>2</td><td>Preencher período válido (até 6 meses retroativos)</td><td>Campos de data preenchidos</td></tr>
+          <tr><td>3</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Download do arquivo Excel iniciado</td></tr>
+          <tr><td>4</td><td>Verificar que o arquivo Excel contém dados do período Internacional</td><td>Arquivo abre com dados de averbações/movimentos internacionais</td></tr>
+          <tr><td>5</td><td>Capturar screenshot da tela + Excel gerado</td><td>Evidência de relatório Internacional gerado</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-004</span>
+      <span class="ct-title">Gerar relatório SLA Básico — Geral (Excel)</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Positivo — geração de Excel Geral</td></tr>
+        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
+        <tr><td>Pré-condição</td><td>Menu SLA acessível</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Na tela de Relatório SLA, selecionar tipo <strong>Geral</strong></td><td>Tipo Geral selecionado</td></tr>
+          <tr><td>2</td><td>Preencher período válido</td><td>Campos de data preenchidos</td></tr>
+          <tr><td>3</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Download iniciado</td></tr>
+          <tr><td>4</td><td>Verificar que arquivo contém dados consolidados (Nacional + Internacional)</td><td>Arquivo com dados gerais do período</td></tr>
+          <tr><td>5</td><td>Capturar screenshot</td><td>Evidência de relatório Geral gerado</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="group-header" style="margin-top:16px">Grupo SLA-STS — Status de Prévia no Relatório</div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-005</span>
+      <span class="ct-title">Status EM PRÉVIA exibido no relatório quando aplicável</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Positivo — coluna de status de prévia</td></tr>
+        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
+        <tr><td>Pré-condição</td><td>Indicativo <code>Ind_Existe_tb_mov_cit_jst_atr</code> ativo; apólice com movimento em prévia</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Gerar relatório SLA com período que contenha apólice com prévia em andamento</td><td>Relatório gerado com dados do período</td></tr>
+          <tr><td>2</td><td>No relatório gerado, localizar apólice com prévia ativa</td><td>Linha da apólice visível no relatório</td></tr>
+          <tr><td>3</td><td>Verificar que a coluna de status exibe <strong>EM PRÉVIA</strong> para essa apólice</td><td>Status "EM PRÉVIA" visível na linha correspondente</td></tr>
+          <tr><td>4</td><td>Verificar que as colunas <code>d_inc_emi_prv</code> e <code>d_alt_emi_prv</code> estão preenchidas</td><td>Datas de inclusão e alteração de prévia presentes</td></tr>
+          <tr><td>5</td><td>Capturar screenshot do relatório com status e datas de prévia visíveis</td><td>Evidência de coluna de status funcionando</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head">
+      <span class="ct-id">CT-SLA-006</span>
+      <span class="ct-title">Período inválido — mais de 6 meses bloqueado pelo sistema</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <table class="meta-table">
+        <tr><td>Tipo</td><td>Negativo — validação de período máximo</td></tr>
+        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
+        <tr><td>Pré-condição</td><td>Menu SLA acessível</td></tr>
+      </table>
+      <table class="step-table" style="margin-top:12px">
+        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Na tela de Relatório SLA, preencher período com mais de 6 meses (ex.: 01/01/2025 a 30/06/2026)</td><td>Campos preenchidos com período inválido visível</td></tr>
+          <tr><td>2</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Sistema exibe mensagem de bloqueio indicando que o período máximo é 6 meses</td></tr>
+          <tr><td>3</td><td>Capturar screenshot com mensagem de erro visível</td><td>Mensagem de validação legível: texto exato capturado</td></tr>
+          <tr><td>4</td><td>Verificar que nenhum arquivo foi gerado</td><td>Download não iniciado — arquivo não gerado</td></tr>
+        </tbody>
+      </table>
+      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
+      <div class="ct-ev"></div>
+    </div>
+  </div>
+
+  <div class="section-title">6. Matriz de Rastreabilidade</div>
+  <table class="step-table">
+    <thead><tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr></thead>
+    <tbody>
+      <tr><td>Menu Gestão → Relatórios → SLA visível (ind. ativo + permissão TTFGR131)</td><td>CT-SLA-001</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Relatório Básico Nacional gera Excel (período válido ≤ 6 meses)</td><td>CT-SLA-002</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Relatório Básico Internacional gera Excel</td><td>CT-SLA-003</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Relatório Básico Geral gera Excel</td><td>CT-SLA-004</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Status EM PRÉVIA exibido + colunas d_inc_emi_prv / d_alt_emi_prv</td><td>CT-SLA-005</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Período &gt; 6 meses bloqueado</td><td>CT-SLA-006</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="section-title">7. Riscos</div>
+  <table class="step-table">
+    <thead><tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+    <tbody>
+      <tr><td>Indicativo não ativo em HML de alguma seguradora</td><td>Alta</td><td>Alto</td><td>Verificar configuração de banco antes de iniciar; usar FAIRFAX como referência validada</td></tr>
+      <tr><td>Permissão TTFGR131 não configurada no usuário de teste</td><td>Média</td><td>Alto</td><td>Confirmar com DBA ou admin do HML antes do teste</td></tr>
+      <tr><td>Apólice sem movimentos no período → relatório vazio (falso negativo)</td><td>Média</td><td>Médio</td><td>Usar período retroativo com movimento confirmado no banco</td></tr>
+      <tr><td>Deploy do pacote #6298 (tipo SLA Homologação) ainda não em HML</td><td>Média</td><td>Médio</td><td>Verificar task 7596 "Validar em HML" e confirmar com dev</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+function openLb(src){
+  var o=document.createElement('div');
+  o.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out';
+  var i=document.createElement('img');i.src=src;
+  i.style.cssText='max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,.8)';
+  o.appendChild(i);o.onclick=()=>o.remove();document.body.appendChild(o);
+}
+document.querySelectorAll('.ct-ev img').forEach(i=>{i.onclick=()=>openLb(i.src);});
+</script>
+</body>
+</html>
