@@ -1,371 +1,654 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PBI-7499 — Relatório SLA Todas as Seguradoras · Sprint 9 CITWEB</title>
+<title>Plano de Teste — PBI-7499</title>
 <style>
-  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--text-muted:#8b949e;--blue:#58a6ff;--green:#3fb950;--red:#f85149;--yellow:#d29922;--purple:#a371f7;--orange:#d18616;}
+  :root{
+    --bg:#0f1114;--surface:#1a1d23;--surface-2:#22262e;--border:#343a46;
+    --text:#c9d1d9;--text-muted:#8b949e;--text-dim:#6e7681;
+    --accent:#3b9eff;--ok:#3fb950;--fail:#f85149;--block:#d29922;--pend:#8b949e;
+    --warn-bg:rgba(210,153,34,.12);--info-bg:rgba(59,158,255,.1);
+    --p1:#f85149;--p2:#d29922;--p3:#8b949e;
+  }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
-  .topbar{background:#0078d4;padding:10px 24px;display:flex;align-items:center;gap:12px}
-  .topbar h1{color:#fff;font-size:16px;font-weight:600}
-  .topbar .sprint{background:rgba(255,255,255,.2);color:#fff;padding:2px 10px;border-radius:12px;font-size:12px}
-  .hero{background:linear-gradient(135deg,#0d1117 0%,#161b22 100%);border-bottom:1px solid var(--border);padding:24px}
-  .hero-title{font-size:20px;font-weight:700;color:var(--blue);margin-bottom:6px}
-  .hero-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
-  .meta-chip{background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--text-muted)}
-  .meta-chip span{color:var(--text)}
-  .metrics-strip{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;gap:24px;flex-wrap:wrap;align-items:center}
-  .metric{text-align:center}
-  .metric-val{font-size:26px;font-weight:700;line-height:1}
-  .metric-lbl{font-size:11px;color:var(--text-muted);margin-top:2px}
-  .metric.ok .metric-val{color:var(--green)}
-  .metric.err .metric-val{color:var(--red)}
-  .metric.pend .metric-val{color:var(--yellow)}
-  .metric.tot .metric-val{color:var(--blue)}
-  .progress-bar{flex:1;display:flex;align-items:center;gap:8px;min-width:200px}
-  .bar-track{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
-  .bar-fill{height:100%;background:var(--green);transition:width .3s}
-  .content{padding:24px;max-width:1100px}
-  .warn-box{background:#1c1800;border:1px solid var(--yellow);border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#e3b341}
-  .warn-box strong{display:block;margin-bottom:4px}
-  .info-box{background:#0d1f2d;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:20px;font-size:13px;color:#79c0ff}
-  .info-box strong{display:block;margin-bottom:4px}
-  .section-title{font-size:16px;font-weight:600;color:var(--blue);border-bottom:1px solid var(--border);padding-bottom:8px;margin:20px 0 14px}
-  .group-header{background:#0078d4;color:#fff;padding:10px 16px;border-radius:6px 6px 0 0;font-weight:600;font-size:14px;margin-top:16px}
-  .ct-block{background:var(--bg2);border:1px solid var(--border);border-top:none;margin-bottom:2px}
-  .ct-block:last-of-type{border-radius:0 0 6px 6px;margin-bottom:16px}
-  .ct-head{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:10px;user-select:none}
-  .ct-head:hover{background:var(--bg3)}
-  .ct-id{font-weight:700;color:var(--blue);font-size:13px;min-width:90px}
-  .ct-title{flex:1;font-size:13px}
-  .ct-toggle{color:var(--text-muted);font-size:12px;transition:transform .2s;margin-left:auto}
-  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
-  .ct-body{display:none;padding:16px;border-top:1px solid var(--border);font-size:13px}
-  .ct-block.expanded .ct-body{display:block}
-  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
-  .badge-p1{background:#3d0c0c;color:#f85149;border:1px solid #f85149}
-  .badge-p2{background:#2d1a00;color:#d18616;border:1px solid #d18616}
-  .badge-p3{background:#1c1c1c;color:#8b949e;border:1px solid #8b949e}
-  .badge-ok{background:#0d1f0d;color:#3fb950;border:1px solid #3fb950}
-  .badge-err{background:#1f0d0d;color:#f85149;border:1px solid #f85149}
-  .badge-pend{background:#1c1800;color:#d29922;border:1px solid #d29922}
-  .badge-skip{background:#1a1a2e;color:#a371f7;border:1px solid #a371f7}
-  .badge-sla{background:#0d2a1a;color:#3fb950;border:1px solid #3fb950}
-  .badge-melhoria{background:#1a1a2e;color:#a371f7;border:1px solid #a371f7}
-  .step-table{width:100%;border-collapse:collapse;margin:10px 0}
-  .step-table th{background:var(--bg3);padding:6px 10px;text-align:left;font-size:12px;color:var(--text-muted);border:1px solid var(--border)}
-  .step-table td{padding:6px 10px;border:1px solid var(--border);font-size:12px;vertical-align:top}
-  .step-table tr:nth-child(even) td{background:#0a0f16}
-  .result-box{border-radius:4px;padding:8px 12px;margin-top:10px;font-size:12px}
-  .result-ok{background:#0d1f0d;border:1px solid #3fb950;color:#79c57e}
-  .result-err{background:#1f0d0d;border:1px solid #f85149;color:#f1707a}
-  .result-pend{background:#1c1800;border:1px solid #d29922;color:#e3b341}
-  .ct-ev{margin-top:10px}
-  .ct-ev img{max-width:100%;border-radius:4px;margin-top:6px;cursor:pointer}
-  table.meta-table{width:100%;border-collapse:collapse;margin:10px 0}
-  table.meta-table td{padding:6px 10px;border:1px solid var(--border);font-size:12px}
-  table.meta-table td:first-child{width:180px;background:var(--bg3);color:var(--text-muted);font-weight:600}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+  header{background:linear-gradient(135deg,#0a2744 0%,#152238 50%,var(--bg) 100%);padding:32px 24px 28px;border-bottom:1px solid var(--border)}
+  .pbi-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+  header h1{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+  header p{color:var(--text-muted);font-size:13px}
+
+  .dash{display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;min-width:100px;text-align:center}
+  .dash-card .val{font-size:26px;font-weight:700;line-height:1}
+  .dash-card .lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .dash-wide{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;flex:1;min-width:220px}
+  .dash-wide .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .pb-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;background:var(--ok);border-radius:4px;transition:width .4s}
+  .pb-pct{font-size:13px;color:var(--ok);font-weight:600;margin-top:6px}
+
+  .section{margin:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .section-header{padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface-2);font-weight:600;font-size:13px;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px}
+  .section-body{padding:16px}
+
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .info-item label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .info-item span{font-size:13px;color:var(--text)}
+
+  .warn-box{background:var(--warn-bg);border-left:3px solid var(--block);border-radius:4px;padding:10px 14px;color:#e8c07d;font-size:13px;margin-bottom:10px}
+  .info-box{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;color:#a9d3ff;font-size:13px;margin-bottom:10px}
+
+  .matriz{width:100%;border-collapse:collapse;font-size:13px}
+  .matriz th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .matriz td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .matriz tr:last-child td{border-bottom:none}
+  .cov-ok{color:var(--ok);font-weight:600}
+  .cov-pend{color:var(--pend)}
+
+  .group-header{background:linear-gradient(90deg,#0a2744,#152238);border-left:4px solid var(--accent);padding:10px 16px;font-weight:700;font-size:13px;color:#e6edf3;letter-spacing:.5px;margin-bottom:2px;border-radius:4px}
+
+  .ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-left:4px solid var(--pend);user-select:none;transition:background .15s}
+  .ct-bar:hover{background:var(--surface-2)}
+  [data-status="aprovado"]  .ct-bar{border-left-color:var(--ok)}
+  [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
+  [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
+  [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+  [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
+  .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
+  .ct-bar-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .ct-id{font-size:11px;font-weight:700;color:var(--accent);font-family:monospace;white-space:nowrap}
+  .ct-prio{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .p1{background:rgba(248,81,73,.2);color:var(--p1)}
+  .p2{background:rgba(210,153,34,.2);color:var(--p2)}
+  .p3{background:rgba(139,148,158,.2);color:var(--p3)}
+  .ct-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-status-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+  .chip-pend{background:rgba(139,148,158,.15);color:var(--pend)}
+  .chip-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .chip-fail{background:rgba(248,81,73,.15);color:var(--fail)}
+  .chip-block{background:rgba(210,153,34,.15);color:var(--block)}
+
+  .ct-panel{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2)}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ct-field label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .ct-field p,.ct-field ol,.ct-field ul{font-size:13px;color:var(--text)}
+  .ct-field ol,.ct-field ul{padding-left:18px}
+  .ct-field li{margin-bottom:3px}
+  .ct-field.full{grid-column:1/-1}
+  .ct-field code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .result-ok{background:rgba(63,185,80,.1);border-left:3px solid var(--ok);border-radius:4px;padding:8px 12px;color:#79c57e;font-size:13px}
+  .result-fail{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:8px 12px;color:#f85149;font-size:13px}
+
+  .ev-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .ev-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+  .ev-pendente{background:rgba(139,148,158,.15);color:var(--pend)}
+  .ev-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .ev-item img{width:100%;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+  .ev-item img:hover{opacity:.85}
+  .ev-item .ev-cap{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+  #lb.open{display:flex}
+  #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
+  #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px}
+
+  #resultado-execucao{margin:16px 24px;padding:14px 18px;border-radius:8px;font-size:13px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-muted)}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <h1>Plano de Teste — PBI-7499</h1>
-  <span class="sprint">Sprint 9 CITWEB</span>
-  <span class="sprint">CITWEB · SLA · Melhoria</span>
-</div>
+<header>
+  <div class="pbi-badge">PBI-7499 · Sprint 9</div>
+  <h1>Liberar Relatório de SLA para Todas as Seguradoras</h1>
+  <p>Módulo: Gestão → Relatórios → SLA &nbsp;|&nbsp; Sistema: CITWEB Nacional/Internacional &nbsp;|&nbsp; Ramos: Todos &nbsp;|&nbsp; Autor: Wesley Moreira &nbsp;|&nbsp; Data: 29/06/2026</p>
+</header>
 
-<div class="hero">
-  <div class="hero-title">[CITWEB] Liberar relatório de SLA para todas as seguradoras</div>
-  <div style="color:var(--text-muted);font-size:13px;margin-top:4px">Ativar o relatório de SLA (Nacional e Internacional) no módulo Gestão do CITWEB para todas as seguradoras. O código já existe — rollout via indicativos de banco e permissões por seguradora.</div>
-  <div class="hero-meta">
-    <div class="meta-chip">Card <span>PBI-7499</span></div>
-    <div class="meta-chip">Sprint <span>Sprint 9 CITWEB</span></div>
-    <div class="meta-chip">Autor <span>Wesley Moreira</span></div>
-    <div class="meta-chip">Criado <span>28/06/2026</span></div>
-    <div class="meta-chip">Módulo <span>Gestão → Relatórios → SLA</span></div>
-    <div class="meta-chip">Piloto <span>FAIRFAX (ADO-6298)</span></div>
+<div class="dash">
+  <div class="dash-card">
+    <div class="val" id="ct-total">7</div>
+    <div class="lbl">Total CTs</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-aprovados" style="color:var(--ok)">0</div>
+    <div class="lbl">Aprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-reprovados" style="color:var(--fail)">0</div>
+    <div class="lbl">Reprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-bloqueados" style="color:var(--block)">0</div>
+    <div class="lbl">Bloqueados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-pendentes" style="color:var(--pend)">7</div>
+    <div class="lbl">Pendentes</div>
+  </div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso de Execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-pct" id="pb-pct">0% completo</div>
   </div>
 </div>
 
-<div class="metrics-strip">
-  <div class="metric tot"><div class="metric-val" id="exec-total">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric ok"><div class="metric-val" id="exec-aprovados">0</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric err"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric pend"><div class="metric-val" id="exec-pendentes">6</div><div class="metric-lbl">Pendentes</div></div>
-  <div class="progress-bar">
-    <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
-    <span style="font-size:12px;color:var(--text-muted)">0%</span>
+<!-- ══════════════════ IDENTIFICAÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Identificação</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Card</label><span>PBI-7499</span></div>
+      <div class="info-item"><label>Sprint</label><span>Sprint 9 Citweb</span></div>
+      <div class="info-item"><label>Módulo</label><span>Gestão → Relatórios → SLA</span></div>
+      <div class="info-item"><label>Sistema</label><span>CITWEB</span></div>
+      <div class="info-item"><label>Ramos</label><span>Nacional / Internacional / Geral</span></div>
+      <div class="info-item"><label>Seguradoras testadas</label><span>AXA, KOVR, MITSUI + FAIRFAX (regressão)</span></div>
+      <div class="info-item"><label>Task de desenvolvimento</label><span>WI#7501 [Done]</span></div>
+      <div class="info-item"><label>Task QA</label><span>WI#7596 [To Do]</span></div>
+    </div>
   </div>
 </div>
 
-<div class="content">
-
-  <div class="warn-box">
-    <strong>⚠ Servidor indisponível — 28/06/2026 (domingo)</strong>
-    Todos os ambientes HML CITWEB (AXA, FAIRFAX, KOVR, HDI, NSTECH etc.) estão offline (HTTP 522) durante o fim de semana.
-    CTs aguardando retorno dos servidores na segunda-feira 29/06/2026 às 08h.
-  </div>
-
-  <div class="section-title">1. Identificação</div>
-  <table class="meta-table">
-    <tr><td>Card</td><td>PBI-7499</td></tr>
-    <tr><td>Sprint</td><td>Sprint 9 CITWEB</td></tr>
-    <tr><td>Tipo</td><td>Product Backlog Item — Melhoria</td></tr>
-    <tr><td>Tags</td><td>citweb; melhoria; SLA</td></tr>
-    <tr><td>Estado</td><td>Pronto para Homologação</td></tr>
-    <tr><td>Referência técnica</td><td>Piloto ADO-6298 (FAIRFAX); scripts em CITWEB_Scripts/02-Projetos/ADO-7499/</td></tr>
-  </table>
-
-  <div class="section-title">2. Descrição e Contexto</div>
-  <div class="info-box">
-    <strong>Contexto técnico</strong>
-    O relatório de SLA já existe no código do CITWEB e estava disponível apenas em seguradoras de referência (ex.: KOVR, FAIRFAX).<br>
-    Este PBI ativa o relatório nas demais seguradoras via <strong>indicativos de banco</strong> e <strong>permissões de perfil</strong>.<br>
-    <strong>Indicativo de menu:</strong> <code>Ind_Existe_tb_jst_atr_mov_cit</code> — quando ativo, exibe o menu Gestão → Relatórios → SLA.<br>
-    <strong>Permissão:</strong> <code>TTFGR131</code> — obrigatória para acessar o relatório.<br>
-    <strong>Indicativo de colunas de prévia:</strong> <code>Ind_Existe_tb_mov_cit_jst_atr</code> — quando ativo, exibe status EM PRÉVIA / PRÉVIA LIBERADA e colunas de data.
-  </div>
-
-  <div class="section-title">3. Critérios de Aceite</div>
-  <ul style="margin-left:20px;font-size:13px;line-height:2">
-    <li>Menu <strong>Gestão → Relatórios → SLA</strong> visível para perfis com permissão <code>TTFGR131</code> (indicativo <code>Ind_Existe_tb_jst_atr_mov_cit</code> ativo)</li>
-    <li>Relatório Básico gera Excel para ramo <strong>Nacional</strong>, <strong>Internacional</strong> e <strong>Geral</strong> (período válido, até 6 meses)</li>
-    <li>Status <strong>EM PRÉVIA</strong> e <strong>PRÉVIA LIBERADA PARA O CORRETOR</strong> exibidos quando aplicável (com <code>Ind_Existe_tb_mov_cit_jst_atr</code> ativo)</li>
-    <li>Colunas <code>d_inc_emi_prv</code> / <code>d_alt_emi_prv</code> preenchidas em cenário automático e manual de liberação</li>
-  </ul>
-
-  <div class="section-title">4. Pré-requisitos</div>
-  <ul style="margin-left:20px;font-size:13px;line-height:2">
-    <li>Seguradora HML com indicativo <code>Ind_Existe_tb_jst_atr_mov_cit = 1</code> ativo no banco</li>
-    <li>Usuário com permissão <code>TTFGR131</code> configurada</li>
-    <li>Apólice com movimentos de faturamento para período de teste</li>
-    <li>Referência de testes: FAIRFAX HML (piloto confirmado via ADO-6298)</li>
-  </ul>
-
-  <div class="section-title">5. Casos de Teste</div>
-
-  <div class="group-header">Grupo SLA-ACC — Acesso e Visibilidade do Menu</div>
-
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-001</span>
-      <span class="ct-title">Menu Gestão → Relatórios → SLA visível para perfil autorizado</span>
-      <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
-    </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Positivo — visibilidade de menu</td></tr>
-        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
-        <tr><td>Ambiente</td><td>HML FAIRFAX (ou seguradora com indicativo ativo)</td></tr>
-        <tr><td>Pré-condição</td><td>Indicativo <code>Ind_Existe_tb_jst_atr_mov_cit = 1</code> ativo; usuário com permissão TTFGR131</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Logar no CITWEB HML com usuário que possui permissão TTFGR131</td><td>Tela inicial com menu superior exibido</td></tr>
-          <tr><td>2</td><td>Clicar em <strong>Gestão</strong> no menu superior</td><td>Submenu de Gestão expandido</td></tr>
-          <tr><td>3</td><td>Verificar presença de <strong>Relatórios</strong> no submenu</td><td>Item "Relatórios" visível</td></tr>
-          <tr><td>4</td><td>Passar o mouse sobre <strong>Relatórios</strong></td><td>Submenu de Relatórios expandido com opção <strong>SLA</strong> visível</td></tr>
-          <tr><td>5</td><td>Capturar screenshot com menu Gestão → Relatórios → SLA expandido e visível</td><td>Screenshot mostra caminho completo de navegação até SLA</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06). Aguardando segunda-feira 29/06.</div>
-      <div class="ct-ev"></div>
+<!-- ══════════════════ DESCRIÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Descrição</div>
+  <div class="section-body">
+    <p style="margin-bottom:10px">O relatório de SLA (acompanhamento de prazos de faturamento, status de prévia e emissão) estava disponível apenas para FAIRFAX (PBI-6298). Esta entrega ativa o mesmo recurso para <strong>todas as seguradoras presentes no CITWEB</strong>.</p>
+    <p style="margin-bottom:10px">O escopo técnico envolveu: ativação do indicativo <code>Ind_Existe_tb_jst_atr_mov_cit</code> por seguradora, liberação de permissão <code>TTFGR131</code> e inclusão de colunas de data de prévia nas tabelas de referência.</p>
+    <div class="info-box">
+      <strong>Contexto de negócio:</strong> Gestores e operadores precisam acompanhar os prazos de faturamento (SLA) de forma consolidada. Sem o relatório, o controle era manual — agora é automatizado e disponível para todos os ambientes.
     </div>
   </div>
+</div>
 
-  <div class="group-header" style="margin-top:16px">Grupo SLA-REL — Geração de Relatório Excel</div>
-
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-002</span>
-      <span class="ct-title">Gerar relatório SLA Básico — ramo Nacional (Excel)</span>
-      <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
-    </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Positivo — geração de Excel</td></tr>
-        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
-        <tr><td>Pré-condição</td><td>Menu SLA acessível (CT-SLA-001 aprovado); período com movimentos Nacionais</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Navegar para Gestão → Relatórios → SLA</td><td>Tela do Relatório SLA carregada com campos de filtro</td></tr>
-          <tr><td>2</td><td>Selecionar tipo <strong>Nacional</strong></td><td>Campo de ramo/tipo preenchido com Nacional</td></tr>
-          <tr><td>3</td><td>Preencher período de data (até 6 meses retroativos, ex.: 01/01/2026 a 30/06/2026)</td><td>Campos de data preenchidos</td></tr>
-          <tr><td>4</td><td>Clicar em <strong>Gerar Excel</strong> (ou equivalente)</td><td>Download do arquivo Excel iniciado OU arquivo gerado na tela</td></tr>
-          <tr><td>5</td><td>Verificar que o arquivo Excel foi gerado com dados do período</td><td>Arquivo Excel abre sem erro e contém linhas de dados</td></tr>
-          <tr><td>6</td><td>Capturar screenshot da tela após gerar + evidência do Excel aberto</td><td>Relatório gerado com dados reais</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
-      <div class="ct-ev"></div>
-    </div>
+<!-- ══════════════════ ESCOPO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Escopo</div>
+  <div class="section-body">
+    <p style="margin-bottom:8px;font-weight:600;color:var(--ok)">✓ In Scope</p>
+    <ul style="padding-left:18px;font-size:13px;margin-bottom:14px">
+      <li>Visibilidade do menu Gestão → Relatórios → SLA em seguradoras antes sem acesso (AXA, KOVR, MITSUI)</li>
+      <li>Geração de relatório SLA Básico (Nacional, Internacional, Geral) — saída Excel</li>
+      <li>Tipo SLA Homologação — filtros e exportação Excel</li>
+      <li>Exibição de status EM PRÉVIA e PRÉVIA LIBERADA PARA O CORRETOR quando aplicável</li>
+      <li>Regressão: FAIRFAX SLA continua funcionando após o rollout</li>
+    </ul>
+    <p style="margin-bottom:8px;font-weight:600;color:var(--fail)">✗ Out of Scope</p>
+    <ul style="padding-left:18px;font-size:13px">
+      <li>Validação de ambiente de produção (PRD) — apenas HML</li>
+      <li>AIG, ZURICH, EZZE, HDI-YELUM — cobertura reduzida por tempo; AXA/KOVR/MITSUI como representativas</li>
+      <li>Impressão PDF do relatório SLA (coberto pela FAIRFAX em PBI-6298)</li>
+      <li>Rollout em PRD — fora do escopo de QA HML</li>
+    </ul>
   </div>
+</div>
 
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-003</span>
-      <span class="ct-title">Gerar relatório SLA Básico — ramo Internacional (Excel)</span>
-      <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
+<!-- ══════════════════ PRÉ-REQUISITOS ══════════════════ -->
+<div class="section">
+  <div class="section-header">Pré-Requisitos</div>
+  <div class="section-body">
+    <div class="warn-box" style="margin-bottom:12px">
+      <strong>⚠ Ambientes necessários:</strong> CITWEB HML de cada seguradora. Os relatórios SLA exigem que existam faturas/prévias processadas no ambiente — verificar antes de executar o CT de geração de Excel.
     </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Positivo — geração de Excel Internacional</td></tr>
-        <tr><td>Prioridade</td><td>P1 — Bloqueante</td></tr>
-        <tr><td>Pré-condição</td><td>Menu SLA acessível; período com movimentos Internacionais</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Na tela de Relatório SLA, selecionar tipo <strong>Internacional</strong></td><td>Tipo Internacional selecionado nos filtros</td></tr>
-          <tr><td>2</td><td>Preencher período válido (até 6 meses retroativos)</td><td>Campos de data preenchidos</td></tr>
-          <tr><td>3</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Download do arquivo Excel iniciado</td></tr>
-          <tr><td>4</td><td>Verificar que o arquivo Excel contém dados do período Internacional</td><td>Arquivo abre com dados de averbações/movimentos internacionais</td></tr>
-          <tr><td>5</td><td>Capturar screenshot da tela + Excel gerado</td><td>Evidência de relatório Internacional gerado</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
-      <div class="ct-ev"></div>
-    </div>
+    <table class="matriz">
+      <thead><tr><th>Ambiente</th><th>URL</th><th>Credenciais</th><th>Indicativo esperado</th></tr></thead>
+      <tbody>
+        <tr><td>CITWEB AXA HML</td><td><code>axa-hml-faturamento.nsseg.com.br</code></td><td><code>ROT_AUTO / T7Jjm6xF</code></td><td><code>Ind_Existe_tb_jst_atr_mov_cit = 1</code></td></tr>
+        <tr><td>CITWEB KOVR HML</td><td><code>kovr-hml-faturamento.nsseg.com.br</code></td><td><code>ROT_AUTO / T7Jjm6xF</code></td><td><code>Ind_Existe_tb_jst_atr_mov_cit = 1</code></td></tr>
+        <tr><td>CITWEB MITSUI HML</td><td><code>mitsui-hml-faturamento.nsseg.com.br</code></td><td><code>ROT_AUTO / T7Jjm6xF</code></td><td><code>Ind_Existe_tb_jst_atr_mov_cit = 1</code></td></tr>
+        <tr><td>CITWEB FAIRFAX HML</td><td><code>fairfax-hml-faturamento.nsseg.com.br</code></td><td><code>ROT_AUTO / T7Jjm6xF</code></td><td>Já habilitado desde PBI-6298</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-004</span>
-      <span class="ct-title">Gerar relatório SLA Básico — Geral (Excel)</span>
-      <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
+<!-- ══════════════════ CASOS DE TESTE ══════════════════ -->
+<div class="section">
+  <div class="section-header">Casos de Teste</div>
+  <div class="section-body">
+
+    <!-- ── GRUPO 1: Acesso ao Menu SLA ── -->
+    <div class="group-header" style="margin-bottom:8px">GRUPO 1 — Acesso ao Menu SLA por Seguradora</div>
+
+    <!-- CT-SLA-001 -->
+    <div class="ct-block" data-ct="CT-SLA-001" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-001</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Menu Gestão → Relatórios → SLA visível e acessível — CITWEB AXA HML</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-001">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Verificação de acesso</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>Ambiente: <strong>CITWEB AXA HML</strong> — <code>axa-hml-faturamento.nsseg.com.br</code></li>
+              <li>Credenciais: <code>ROT_AUTO / T7Jjm6xF</code> (perfil com permissão <code>TTFGR131</code>)</li>
+              <li>Indicativo <code>Ind_Existe_tb_jst_atr_mov_cit</code> deve estar ativo no banco AXA HML</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Acessar <code>axa-hml-faturamento.nsseg.com.br</code> e fazer login com <code>ROT_AUTO / T7Jjm6xF</code></li>
+              <li>No menu superior, clicar em <strong>Gestão</strong></li>
+              <li>No submenu, localizar e clicar em <strong>Relatórios</strong></li>
+              <li>Verificar presença da opção <strong>SLA</strong> no submenu de Relatórios</li>
+              <li>Clicar em <strong>SLA</strong></li>
+              <li>Confirmar que a tela do relatório SLA carrega sem erro</li>
+              <li>Capturar screenshot da tela carregada com o menu SLA visível</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">A opção SLA está visível no menu Gestão → Relatórios do CITWEB AXA HML. A tela do relatório carrega corretamente, exibindo os filtros e opções de geração.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
     </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Positivo — geração de Excel Geral</td></tr>
-        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
-        <tr><td>Pré-condição</td><td>Menu SLA acessível</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Na tela de Relatório SLA, selecionar tipo <strong>Geral</strong></td><td>Tipo Geral selecionado</td></tr>
-          <tr><td>2</td><td>Preencher período válido</td><td>Campos de data preenchidos</td></tr>
-          <tr><td>3</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Download iniciado</td></tr>
-          <tr><td>4</td><td>Verificar que arquivo contém dados consolidados (Nacional + Internacional)</td><td>Arquivo com dados gerais do período</td></tr>
-          <tr><td>5</td><td>Capturar screenshot</td><td>Evidência de relatório Geral gerado</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
-      <div class="ct-ev"></div>
+
+    <!-- CT-SLA-002 -->
+    <div class="ct-block" data-ct="CT-SLA-002" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-002</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Menu Gestão → Relatórios → SLA visível e acessível — CITWEB KOVR HML</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-002">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Verificação de acesso</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>Ambiente: <strong>CITWEB KOVR HML</strong> — <code>kovr-hml-faturamento.nsseg.com.br</code></li>
+              <li>Credenciais: <code>ROT_AUTO / T7Jjm6xF</code></li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Acessar <code>kovr-hml-faturamento.nsseg.com.br</code> e fazer login com <code>ROT_AUTO / T7Jjm6xF</code></li>
+              <li>No menu superior, clicar em <strong>Gestão</strong></li>
+              <li>Localizar e clicar em <strong>Relatórios → SLA</strong></li>
+              <li>Confirmar que a tela SLA carrega sem erro</li>
+              <li>Capturar screenshot do menu SLA visível e da tela carregada</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">Menu SLA visível e tela carregada corretamente no CITWEB KOVR HML.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
     </div>
+
+    <!-- CT-SLA-003 -->
+    <div class="ct-block" data-ct="CT-SLA-003" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-003</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Menu Gestão → Relatórios → SLA visível e acessível — CITWEB MITSUI HML</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-003">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Verificação de acesso</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>Ambiente: <strong>CITWEB MITSUI HML</strong> — <code>mitsui-hml-faturamento.nsseg.com.br</code></li>
+              <li>Credenciais: <code>ROT_AUTO / T7Jjm6xF</code></li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Acessar <code>mitsui-hml-faturamento.nsseg.com.br</code> e fazer login com <code>ROT_AUTO / T7Jjm6xF</code></li>
+              <li>No menu superior, clicar em <strong>Gestão</strong></li>
+              <li>Localizar e clicar em <strong>Relatórios → SLA</strong></li>
+              <li>Confirmar que a tela SLA carrega sem erro</li>
+              <li>Capturar screenshot do menu SLA visível e da tela carregada</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">Menu SLA visível e tela carregada corretamente no CITWEB MITSUI HML.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRUPO 2: Geração de Relatório SLA ── -->
+    <div class="group-header" style="margin:10px 0 8px">GRUPO 2 — Geração de Relatório SLA (AXA HML)</div>
+
+    <!-- CT-SLA-004 -->
+    <div class="ct-block" data-ct="CT-SLA-004" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-004</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Gerar relatório SLA Básico tipo Nacional em Excel — AXA HML (período válido)</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-004">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Geração de arquivo</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>CT-SLA-001 aprovado: tela SLA acessível no AXA HML</li>
+              <li>Existir ao menos uma fatura ou prévia processada no AXA HML para o período informado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Dados de Entrada</label>
+            <ul>
+              <li><strong>Tipo de Relatório:</strong> Básico</li>
+              <li><strong>Tipo:</strong> Nacional</li>
+              <li><strong>Período De:</strong> <code>01/01/2026</code> | <strong>Até:</strong> <code>30/06/2026</code> (até 6 meses)</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Na tela SLA (Gestão → Relatórios → SLA) do AXA HML</li>
+              <li>Selecionar <strong>Tipo de Relatório = Básico</strong></li>
+              <li>Selecionar <strong>Tipo = Nacional</strong></li>
+              <li>Informar período: De <code>01/01/2026</code> Até <code>30/06/2026</code></li>
+              <li>Clicar em <strong>Exportar</strong> (ou botão de geração)</li>
+              <li>Aguardar processamento e download do arquivo Excel</li>
+              <li>Verificar que o arquivo foi gerado e baixado com sucesso</li>
+              <li>Capturar screenshot do resultado (mensagem de sucesso ou arquivo no downloads)</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">Arquivo Excel do Relatório SLA Básico Nacional gerado e baixado com sucesso. Sem mensagem de erro.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-SLA-005 -->
+    <div class="ct-block" data-ct="CT-SLA-005" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-005</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Gerar relatório SLA Básico tipo Internacional em Excel — AXA HML</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-005">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Geração de arquivo</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>CT-SLA-001 aprovado</li>
+              <li>Existir fatura ou prévia internacional processada no AXA HML para o período</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Dados de Entrada</label>
+            <ul>
+              <li><strong>Tipo de Relatório:</strong> Básico</li>
+              <li><strong>Tipo:</strong> Internacional</li>
+              <li><strong>Período:</strong> <code>01/01/2026</code> a <code>30/06/2026</code></li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Na tela SLA do AXA HML, selecionar <strong>Tipo de Relatório = Básico</strong></li>
+              <li>Selecionar <strong>Tipo = Internacional</strong></li>
+              <li>Informar período e clicar em <strong>Exportar</strong></li>
+              <li>Verificar geração e download do arquivo Excel</li>
+              <li>Capturar screenshot do resultado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">Arquivo Excel do Relatório SLA Básico Internacional gerado e baixado com sucesso.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-SLA-006 -->
+    <div class="ct-block" data-ct="CT-SLA-006" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-006</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">Gerar relatório SLA tipo Homologação com filtros disponíveis — AXA HML</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-006">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — Verificação de funcionalidade</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>CT-SLA-001 aprovado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Na tela SLA do AXA HML, verificar existência do tipo <strong>Homologação</strong> nos filtros de tipo de relatório</li>
+              <li>Selecionar <strong>Tipo de Relatório = Homologação</strong></li>
+              <li>Verificar que os filtros específicos do tipo Homologação estão disponíveis</li>
+              <li>Preencher filtros com período válido</li>
+              <li>Clicar em <strong>Exportar</strong></li>
+              <li>Verificar geração do Excel (ou resultado esperado para o tipo Homologação)</li>
+              <li>Capturar screenshots dos filtros e do resultado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">Tipo SLA Homologação disponível na tela com seus filtros específicos. Relatório gerado com sucesso (arquivo Excel ou feedback visual de processamento).</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GRUPO 3: Regressão ── -->
+    <div class="group-header" style="margin:10px 0 8px">GRUPO 3 — Regressão</div>
+
+    <!-- CT-SLA-007 -->
+    <div class="ct-block" data-ct="CT-SLA-007" data-status="bloqueado" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-SLA-007</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">Regressão — FAIRFAX SLA continua funcionando após rollout para todas as seguradoras</span>
+        </div>
+        <span class="ct-status-chip chip-block" id="chip-CT-SLA-007">BLOQUEADO</span>
+      </div>
+      <div class="ct-panel" hidden>
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Regressão</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ol>
+              <li>Ambiente: <strong>CITWEB FAIRFAX HML</strong> — <code>fairfax-hml-faturamento.nsseg.com.br</code></li>
+              <li>Credenciais: <code>ROT_AUTO / T7Jjm6xF</code></li>
+              <li>FAIRFAX tinha SLA habilitado desde PBI-6298 — verificar que continua funcionando</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Acessar <code>fairfax-hml-faturamento.nsseg.com.br</code> e fazer login com <code>ROT_AUTO / T7Jjm6xF</code></li>
+              <li>Clicar em <strong>Gestão → Relatórios → SLA</strong></li>
+              <li>Confirmar que a tela carrega normalmente</li>
+              <li>Gerar um relatório SLA Básico Nacional com período <code>01/01/2026</code> a <code>30/06/2026</code></li>
+              <li>Verificar que o arquivo Excel é gerado com sucesso</li>
+              <li>Capturar screenshot</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado Esperado</label>
+            <div class="result-ok">FAIRFAX SLA continua funcionando normalmente. Menu visível, tela carrega, Excel gerado. Nenhuma regressão introduzida pelo rollout para outras seguradoras.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Evidência pendente</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section-body -->
+</div><!-- /section CTs -->
+
+<!-- ══════════════════ MATRIZ DE RASTREABILIDADE ══════════════════ -->
+<div class="section">
+  <div class="section-header">Matriz de Rastreabilidade</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead>
+        <tr><th>Critério de Aceite (PBI-7499)</th><th>CT(s)</th><th>Resultado</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Menu Gestão → SLA visível para perfis autorizados (Ind_Existe_tb_jst_atr_mov_cit ativo)</td><td>CT-SLA-001, CT-SLA-002, CT-SLA-003</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>Relatório Básico gera Excel — Nacional (período válido, até 6 meses)</td><td>CT-SLA-004</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>Relatório Básico gera Excel — Internacional</td><td>CT-SLA-005</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>Tipo SLA Homologação disponível com filtros e exportação</td><td>CT-SLA-006</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>Regressão: FAIRFAX SLA não foi impactado pelo rollout</td><td>CT-SLA-007</td><td class="cov-pend">PENDENTE</td></tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <div class="group-header" style="margin-top:16px">Grupo SLA-STS — Status de Prévia no Relatório</div>
-
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-005</span>
-      <span class="ct-title">Status EM PRÉVIA exibido no relatório quando aplicável</span>
-      <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
-    </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Positivo — coluna de status de prévia</td></tr>
-        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
-        <tr><td>Pré-condição</td><td>Indicativo <code>Ind_Existe_tb_mov_cit_jst_atr</code> ativo; apólice com movimento em prévia</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Gerar relatório SLA com período que contenha apólice com prévia em andamento</td><td>Relatório gerado com dados do período</td></tr>
-          <tr><td>2</td><td>No relatório gerado, localizar apólice com prévia ativa</td><td>Linha da apólice visível no relatório</td></tr>
-          <tr><td>3</td><td>Verificar que a coluna de status exibe <strong>EM PRÉVIA</strong> para essa apólice</td><td>Status "EM PRÉVIA" visível na linha correspondente</td></tr>
-          <tr><td>4</td><td>Verificar que as colunas <code>d_inc_emi_prv</code> e <code>d_alt_emi_prv</code> estão preenchidas</td><td>Datas de inclusão e alteração de prévia presentes</td></tr>
-          <tr><td>5</td><td>Capturar screenshot do relatório com status e datas de prévia visíveis</td><td>Evidência de coluna de status funcionando</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
-      <div class="ct-ev"></div>
-    </div>
+<!-- ══════════════════ RISCOS ══════════════════ -->
+<div class="section">
+  <div class="section-header">Riscos</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead><tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Não existir fatura/prévia processada em AXA/KOVR/MITSUI HML para o período de relatório</td>
+          <td>Média</td>
+          <td>Alto — CT-SLA-004/005 retorna vazio sem erro, difícil distinguir de bug</td>
+          <td>Verificar existência de faturas antes de executar; usar período amplo (01/01/2026 a 30/06/2026)</td>
+        </tr>
+        <tr>
+          <td>Indicativo não ativo em alguma seguradora (rollout incompleto)</td>
+          <td>Baixa</td>
+          <td>Alto — menu SLA não aparece, CT falha</td>
+          <td>Reportar ao time dev com seguradora específica e solicitar ativação</td>
+        </tr>
+        <tr>
+          <td>Permissão TTFGR131 não associada ao perfil ROT_AUTO em todas as seguradoras</td>
+          <td>Baixa</td>
+          <td>Médio — acesso negado mesmo com indicativo ativo</td>
+          <td>Testar com usuário admin alternativo se ROT_AUTO não tiver acesso</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
+</div>
 
-  <div class="ct-block">
-    <div class="ct-head">
-      <span class="ct-id">CT-SLA-006</span>
-      <span class="ct-title">Período inválido — mais de 6 meses bloqueado pelo sistema</span>
-      <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pend">PENDENTE</span>
-      <span class="ct-toggle">▶</span>
-    </div>
-    <div class="ct-body">
-      <table class="meta-table">
-        <tr><td>Tipo</td><td>Negativo — validação de período máximo</td></tr>
-        <tr><td>Prioridade</td><td>P2 — Importante</td></tr>
-        <tr><td>Pré-condição</td><td>Menu SLA acessível</td></tr>
-      </table>
-      <table class="step-table" style="margin-top:12px">
-        <thead><tr><th>#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
-        <tbody>
-          <tr><td>1</td><td>Na tela de Relatório SLA, preencher período com mais de 6 meses (ex.: 01/01/2025 a 30/06/2026)</td><td>Campos preenchidos com período inválido visível</td></tr>
-          <tr><td>2</td><td>Clicar em <strong>Gerar Excel</strong></td><td>Sistema exibe mensagem de bloqueio indicando que o período máximo é 6 meses</td></tr>
-          <tr><td>3</td><td>Capturar screenshot com mensagem de erro visível</td><td>Mensagem de validação legível: texto exato capturado</td></tr>
-          <tr><td>4</td><td>Verificar que nenhum arquivo foi gerado</td><td>Download não iniciado — arquivo não gerado</td></tr>
-        </tbody>
-      </table>
-      <div class="result-box result-pend">⏳ PENDENTE — servidor HML offline (domingo 28/06).</div>
-      <div class="ct-ev"></div>
-    </div>
-  </div>
+<!-- ══════════════════ RESULTADO FINAL ══════════════════ -->
+<div id="resultado-execucao">
+  Execução não iniciada.
+</div>
 
-  <div class="section-title">6. Matriz de Rastreabilidade</div>
-  <table class="step-table">
-    <thead><tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr></thead>
-    <tbody>
-      <tr><td>Menu Gestão → Relatórios → SLA visível (ind. ativo + permissão TTFGR131)</td><td>CT-SLA-001</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-      <tr><td>Relatório Básico Nacional gera Excel (período válido ≤ 6 meses)</td><td>CT-SLA-002</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-      <tr><td>Relatório Básico Internacional gera Excel</td><td>CT-SLA-003</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-      <tr><td>Relatório Básico Geral gera Excel</td><td>CT-SLA-004</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-      <tr><td>Status EM PRÉVIA exibido + colunas d_inc_emi_prv / d_alt_emi_prv</td><td>CT-SLA-005</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-      <tr><td>Período &gt; 6 meses bloqueado</td><td>CT-SLA-006</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
-    </tbody>
-  </table>
-
-  <div class="section-title">7. Riscos</div>
-  <table class="step-table">
-    <thead><tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr></thead>
-    <tbody>
-      <tr><td>Indicativo não ativo em HML de alguma seguradora</td><td>Alta</td><td>Alto</td><td>Verificar configuração de banco antes de iniciar; usar FAIRFAX como referência validada</td></tr>
-      <tr><td>Permissão TTFGR131 não configurada no usuário de teste</td><td>Média</td><td>Alto</td><td>Confirmar com DBA ou admin do HML antes do teste</td></tr>
-      <tr><td>Apólice sem movimentos no período → relatório vazio (falso negativo)</td><td>Média</td><td>Médio</td><td>Usar período retroativo com movimento confirmado no banco</td></tr>
-      <tr><td>Deploy do pacote #6298 (tipo SLA Homologação) ainda não em HML</td><td>Média</td><td>Médio</td><td>Verificar task 7596 "Validar em HML" e confirmar com dev</td></tr>
-    </tbody>
-  </table>
-
+<!-- ══════════════════ LIGHTBOX ══════════════════ -->
+<div id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <div id="lb-cap"></div>
 </div>
 
 <script>
-document.querySelectorAll('.ct-head').forEach(h=>{
-  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
-});
-function openLb(src){
-  var o=document.createElement('div');
-  o.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:zoom-out';
-  var i=document.createElement('img');i.src=src;
-  i.style.cssText='max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,.8)';
-  o.appendChild(i);o.onclick=()=>o.remove();document.body.appendChild(o);
+function toggleCT(bar) {
+  const block = bar.closest('.ct-block');
+  const panel = block.querySelector('.ct-panel');
+  const expanded = block.dataset.expanded === 'true';
+  block.dataset.expanded = expanded ? 'false' : 'true';
+  panel.hidden = expanded;
 }
-document.querySelectorAll('.ct-ev img').forEach(i=>{i.onclick=()=>openLb(i.src);});
+
+function openLb(img) {
+  document.getElementById('lb-img').src = img.src;
+  document.getElementById('lb-cap').textContent = img.alt;
+  document.getElementById('lb').classList.add('open');
+}
+function closeLb() { document.getElementById('lb').classList.remove('open'); }
+
+function canonicalStatus(s) {
+  s = (s || '').toLowerCase().trim();
+  if (s === 'aprovado' || s === 'passou' || s === 'passed') return 'aprovado';
+  if (s === 'reprovado' || s === 'falhou' || s === 'failed') return 'reprovado';
+  if (s === 'bloqueado' || s === 'blocked') return 'bloqueado';
+  return 'pendente';
+}
+
+function updateDash() {
+  const counts = {aprovado:0, reprovado:0, bloqueado:0, pendente:0};
+  document.querySelectorAll('.ct-block').forEach(b => {
+    counts[canonicalStatus(b.dataset.status)]++;
+  });
+  const total = Object.values(counts).reduce((a,b) => a+b, 0);
+  const done = counts.aprovado + counts.reprovado + counts.bloqueado;
+  document.getElementById('ct-total').textContent = total;
+  document.getElementById('ct-aprovados').textContent = counts.aprovado;
+  document.getElementById('ct-reprovados').textContent = counts.reprovado;
+  document.getElementById('ct-bloqueados').textContent = counts.bloqueado;
+  document.getElementById('ct-pendentes').textContent = counts.pendente;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('pb-fill').style.width = pct + '%';
+  document.getElementById('pb-pct').textContent = pct + '% completo';
+
+  const res = document.getElementById('resultado-execucao');
+  if (counts.reprovado > 0) {
+    res.style.color = 'var(--fail)';
+    res.textContent = '⚠ Execução com ' + counts.reprovado + ' CT(s) reprovado(s) — verificar bugs antes de homologar.';
+  } else if (counts.pendente === 0 && done === total) {
+    res.style.color = 'var(--ok)';
+    res.textContent = '✓ Todos os ' + total + ' casos de teste aprovados — pronto para homologação.';
+  } else {
+    res.style.color = 'var(--text-muted)';
+    res.textContent = 'Execução em andamento — ' + done + '/' + total + ' concluídos (' + counts.aprovado + ' aprovados).';
+  }
+}
+
+updateDash();
 </script>
 </body>
 </html>
