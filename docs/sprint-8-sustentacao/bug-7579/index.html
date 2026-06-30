@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG-7579 — CITNET ZURICH — Aprovação de Prévia Internacional</title>
+<style>
+  :root{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--muted:#8b949e;--purple:#7c3aed;--purple-light:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#f85149;--red-bg:#1f0d0d;--orange:#d29922;--orange-bg:#1f1a0d;--blue:#388bfd}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.6}
+  .topbar{background:var(--purple);padding:10px 20px;display:flex;align-items:center;gap:12px}
+  .topbar .badge{background:rgba(255,255,255,.18);border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;color:#fff}
+  .topbar h1{font-size:15px;font-weight:700;color:#fff;flex:1}
+  .hero{background:var(--bg2);border-bottom:1px solid var(--border);padding:16px 20px}
+  .hero-meta{display:flex;gap:24px;flex-wrap:wrap;margin-top:8px}
+  .hero-meta span{font-size:12px;color:var(--muted)}
+  .hero-meta strong{color:var(--text)}
+  .metrics{display:flex;gap:0;border-bottom:1px solid var(--border)}
+  .metric{flex:1;padding:14px 20px;border-right:1px solid var(--border);text-align:center}
+  .metric:last-child{border-right:none}
+  .metric .val{font-size:26px;font-weight:700}
+  .metric .lbl{font-size:11px;color:var(--muted);margin-top:2px}
+  .val-total{color:var(--purple-light)}
+  .val-ok{color:var(--green)}
+  .val-err{color:var(--red)}
+  .val-pend{color:var(--orange)}
+  .progress-bar-wrap{height:4px;background:var(--bg3)}
+  .progress-bar{height:4px;background:var(--green);transition:width .4s}
+  .content{padding:20px;max-width:1000px}
+  .info-box{background:#0c1929;border:1px solid var(--blue);border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px}
+  .info-box h3{color:var(--blue);margin-bottom:6px;font-size:13px}
+  .group-header{background:var(--purple);color:#fff;padding:10px 14px;border-radius:6px 6px 0 0;font-weight:700;font-size:13px;margin-top:20px}
+  .subgroup-header{background:#2d1f5e;color:var(--purple-light);padding:7px 14px;font-size:12px;font-weight:600;border-left:3px solid var(--purple);margin:12px 0 6px}
+  .ct-block{border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;background:var(--bg2)}
+  .ct-head{padding:10px 14px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;background:var(--bg2)}
+  .ct-head:hover{background:var(--bg3)}
+  .ct-id{font-weight:700;color:var(--purple-light);font-size:12px;min-width:110px}
+  .ct-title{flex:1;font-size:12px;color:var(--text)}
+  .ct-toggle{font-size:10px;color:var(--muted);transition:transform .2s;margin-left:4px}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;padding:12px 14px;border-top:1px solid var(--border);font-size:12px}
+  .ct-block.expanded .ct-body{display:block}
+  .badge-p1{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-p2{background:#2d1a00;color:#d29922;border:1px solid #5a3d00;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-ok{background:#0d3321;color:#3fb950;border:1px solid #1a5c35;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-err{background:#3d0000;color:#f85149;border:1px solid #6e1212;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-pend{background:#21262d;color:#8b949e;border:1px solid #444c56;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  .badge-type{background:#1c2128;color:#a78bfa;border:1px solid #3730a3;border-radius:4px;padding:1px 7px;font-size:10px}
+  .badge-profile{background:#0c1929;color:#388bfd;border:1px solid #1c3a5e;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
+  th{background:var(--bg3);color:var(--muted);padding:6px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .steps-label{color:var(--muted);font-size:11px;font-weight:600;margin:8px 0 4px;text-transform:uppercase;letter-spacing:.5px}
+  ol{padding-left:18px}
+  ol li{margin:3px 0;color:var(--text)}
+  .result-row{margin-top:10px;padding:8px 12px;border-radius:4px;font-size:12px}
+  .result-row.ok{background:var(--green-bg);border-left:3px solid var(--green);color:#57ab5a}
+  .result-row.pend{background:#1a1a1a;border-left:3px solid var(--muted);color:var(--muted)}
+  .ev-section{margin-top:12px;padding:10px;background:var(--bg3);border-radius:4px}
+  .ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px;cursor:pointer}
+  .ev-caption{font-size:11px;color:var(--muted);margin:3px 0 8px}
+  code{background:var(--bg3);border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11px;font-family:Consolas,monospace;color:var(--purple-light)}
+  .section-label{color:var(--muted);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin:10px 0 4px}
+  a{color:var(--blue)}
+  /* Lightbox */
+  #lb{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+  #lb.active{display:flex}
+  #lb img{max-width:92vw;max-height:90vh;border:2px solid var(--border);border-radius:6px;box-shadow:0 0 40px rgba(0,0,0,.6)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <span class="badge">Sprint 8 Sustentação</span>
+    <span class="badge" style="background:rgba(255,255,255,.12);margin-left:4px">CITNET · ZURICH ALFA</span>
+  </div>
+  <h1 style="margin-left:8px">BUG-7579 — Aprovação de Prévia Internacional: HTTP 500 FormatException (EfetuarFechamentoInt)</h1>
+</div>
+
+<div class="hero">
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Plano de Reteste</div>
+  <div style="font-size:14px;font-weight:600">[ CITNET - ZURICH ] Aprovação de Prévia — Processar retorna HTTP 500 (FormatException) nos ramos Internacionais</div>
+  <div class="hero-meta">
+    <span><strong>Fix</strong> mesmo cluster do PR #1743 — normalização da competência antes do POST</span>
+    <span><strong>Ambiente</strong> ZURICH ALFA HML</span>
+    <span><strong>Perfil</strong> INTERNO</span>
+    <span><strong>Ramos</strong> 22 (Importação/Exportação) e 32 (RCT-VI)</span>
+    <span><strong>Autor</strong> Wesley Moreira · 30/06/2026</span>
+    <span><strong>Card</strong> <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7579" target="_blank">BUG-7579</a></span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="val val-total">3</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val val-ok">3</div><div class="lbl">Passou</div></div>
+  <div class="metric"><div class="val val-err">0</div><div class="lbl">Falhou</div></div>
+  <div class="metric"><div class="val val-pend">0</div><div class="lbl">Pendente</div></div>
+</div>
+<div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+
+<div class="content">
+
+  <div class="info-box">
+    <h3>Contexto do Bug</h3>
+    <p><strong>Causa raiz:</strong> A competência é enviada com encoding duplo para <code>EfetuarFechamentoInt</code> — o valor chega como <code>06%2B%2F%2B2026</code> (= <code>06+/+2026</code> re-encodado) em vez de <code>06/2026</code>. O backend não tolera o parse e lança <code>System.FormatException</code> → HTTP 500.</p>
+    <p style="margin-top:6px"><strong>Diferença do cluster nacional:</strong> para ramos internacionais, <code>ObterResumoFechamentoInt</code> tolera o encoding duplo (Resumo da Fatura abre sem erro), mas <code>EfetuarFechamentoInt</code> não tolera — o erro manifesta-se ao clicar <strong>Processar</strong>, exibindo modal <em>"Erro na Aprovação de Faturamento!"</em>.</p>
+    <p style="margin-top:6px"><strong>Escopo:</strong> afeta <strong>apenas ramos internacionais</strong> (22 Importação/Exportação e 32 RCT-VI). Aprovação de ramos nacionais/RCV não é afetada.</p>
+    <p style="margin-top:6px"><strong>Cluster:</strong> mesma causa raiz de BUG-7518 (FAIRFAX), BUG-7521 (MITSUI), BUG-7539 (EZZE), BUG-7545 (STARR) — todos retestados e aprovados. BUG-7579 é a manifestação ZURICH do mesmo defeito.</p>
+    <p style="margin-top:6px"><strong>Rastreabilidade Voidr:</strong> <code>DEF-ZURICH-APROV-FECHAMENTO-500-FORMATEXCEPTION</code> · EXEC-001713</p>
+  </div>
+
+  <div class="info-box" style="border-color:var(--purple)">
+    <h3 style="color:var(--purple-light)">Pré-requisitos de Execução</h3>
+    <table>
+      <tr><th>Item</th><th>Valor</th></tr>
+      <tr><td>URL Base</td><td><code>https://zurich-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+      <tr><td>Credencial INTERNO</td><td><code>interno</code> / <code>11</code> — sem selecionar filial no login</td></tr>
+      <tr><td>Massa</td><td>Filial <strong>CARGO MGA LTDA - 100</strong> · Segurado <strong>CARGO MGA TESTE</strong> · Ramo 32 Apólice 1 / Ramo 22 — descobertos via Faturamento → Aprovação de Prévias → Aprovação</td></tr>
+      <tr><td>Competência</td><td>06/2026</td></tr>
+      <tr><td>Vencimento (Processar)</td><td>Data futura — ex: <strong>30/07/2026</strong></td></tr>
+    </table>
+  </div>
+
+  <div style="background:var(--green-bg);border:1px solid #1a5c35;border-radius:6px;padding:12px 16px;margin-bottom:16px;font-size:12px">
+    <strong style="color:#3fb950">✔ RETESTE CONCLUÍDO — 30/06/2026 — 3/3 PASSOU</strong>
+    <p style="margin-top:6px;color:#57ab5a">Ambiente: <code>zurich-hml-faturamento.nsseg.com.br/alfa/citnet/</code> · Filial CARGO MGA LTDA (100) · Competência 06/2026 · Ramo 32 (apólice 1).<br>
+    <code>EfetuarFechamentoInt</code> retornou <strong>HTTP 200</strong> — sem FormatException. Mensagem "Aprovação do Faturamento efetuada com sucesso!" exibida.<br>
+    <em>Nota:</em> o double-encoding <code>06%2B%2F%2B2026</code> ainda aparece no onclick do botão HTML, mas a função <code>AbrirResumoFechamento</code> agora decodifica corretamente antes de enviar — campo hidden <code>mesAnoRef</code> contém <code>06+/+2026</code> (correto).</p>
+  </div>
+
+  <div class="group-header">Aprovação de Prévia Internacional — ZURICH ALFA HML (3 CTs)</div>
+
+  <div class="subgroup-header">Perfil: INTERNO · Ramos: 22 / 32</div>
+
+  <!-- CT-7579-001 -->
+  <div class="ct-block" id="ct001">
+    <div class="ct-head" onclick="toggle('ct001')">
+      <span class="ct-id">CT-7579-001</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Happy Path</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Login INTERNO e grid de Aprovação de Prévia Internacional carregam sem erro</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>Ambiente ZURICH ALFA HML acessível. Credencial <code>interno</code> / <code>11</code> válida.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Navegar para <code>https://zurich-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+        <li>Fazer login com <strong>interno</strong> / <strong>11</strong> — sem selecionar filial</li>
+        <li>Confirmar Home carregada</li>
+        <li>Menu <strong>Faturamento</strong> → <strong>Aprovação de Prévias</strong> → <strong>Aprovação</strong></li>
+        <li>Selecionar <strong>Filial: CARGO MGA LTDA - 100</strong></li>
+        <li>Preencher <strong>Competência: 06/2026</strong></li>
+        <li>Clicar em <strong>Consultar</strong></li>
+        <li>Verificar grid com registros ramos 22 e 32 "Aguardando Aprovação"</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Login realizado. Grid exibe 32 registros incluindo ramos 22 e 32 com status "Aguardando Aprovação".</p>
+
+      <div class="result-row ok">✔ PASSOU — Login OK · Grid retornou 32 linhas com ramos 22 e 32 "Aguardando Aprovação" · <code>ConsultarPreviaLiberar</code> HTTP 200</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <p class="ev-caption">EV1 — Login INTERNO realizado com sucesso (Home carregada)</p>
+        <img src="evidencias/7579-EV1-login-zurich-alfa.png" alt="EV1 Login" onclick="openLb(this)">
+        <p class="ev-caption">EV2 — Grid com ramos 22 e 32 "Aguardando Aprovação"</p>
+        <img src="evidencias/7579-EV2-grid-ramo22-32-alfa.png" alt="EV2 Grid" onclick="openLb(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7579-002 -->
+  <div class="ct-block" id="ct002">
+    <div class="ct-head" onclick="toggle('ct002')">
+      <span class="ct-id">CT-7579-002</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Funcional</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Modal "Resumo da Fatura" abre sem HTTP 500 (ObterResumoFechamentoInt)</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7579-001 executado — grid com ao menos 1 registro internacional "Aguardando Aprovação" visível.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Na grid, identificar linha com ramo <strong>22</strong> (Importação/Exportação) ou <strong>32</strong> (RCT-VI)</li>
+        <li>Clicar em <strong>Aprovar</strong> na linha selecionada</li>
+        <li>Aguardar modal "Resumo da Fatura" abrir</li>
+        <li>Verificar que o modal carregou <strong>sem</strong> HTTP 500 / mensagem de erro</li>
+        <li>Verificar que campos de Qtde e Prêmio Total estão preenchidos</li>
+        <li>Capturar screenshot do modal</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p>Modal "Resumo da Fatura" abre normalmente — <code>ObterResumoFechamentoInt</code> retorna 200. Campos de Qtde e Prêmio Total preenchidos. Sem HTTP 500 ou modal de erro. <em>(Nota: para ZURICH, o Resumo já abria antes do fix — este CT confirma que não houve regressão.)</em></p>
+
+      <div class="result-row ok">✔ PASSOU — Modal Resumo abre com dados (Prêmio Total US$ 500,00 · 2 averbações) · <code>ObterResumoFechamentoInt</code> HTTP 200 · sem erro</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <p class="ev-caption">EV3 — Modal Resumo da Fatura aberto com valores preenchidos (Ramo 32 · CARGO MGA LTDA)</p>
+        <img src="evidencias/7579-EV3-modal-resumo-fatura.png" alt="EV3 Modal Resumo" onclick="openLb(this)">
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-7579-003 -->
+  <div class="ct-block" id="ct003">
+    <div class="ct-head" onclick="toggle('ct003')">
+      <span class="ct-id">CT-7579-003</span>
+      <span class="badge-p1">P1</span>
+      <span class="badge-type">Ponto do bug</span>
+      <span class="badge-profile">INTERNO</span>
+      <span class="ct-title">Processar aprovação Internacional conclui sem HTTP 500 / FormatException (EfetuarFechamentoInt)</span>
+      <span class="badge-ok">PASSOU</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="section-label">Pré-condições</div>
+      <p>CT-7579-002 executado — modal "Resumo da Fatura" aberto sem erro.</p>
+
+      <div class="steps-label">Passos</div>
+      <ol>
+        <li>Com o modal "Resumo da Fatura" aberto, preencher campo <strong>Vencimento</strong> com data futura (ex: <strong>30/07/2026</strong>)</li>
+        <li>Clicar em <strong>Processar</strong> (botão <code>#btAprovar</code>)</li>
+        <li>Aguardar conclusão do processamento</li>
+        <li>Verificar que <strong>não</strong> aparece modal "Erro na Aprovação de Faturamento!"</li>
+        <li>Verificar mensagem de sucesso exibida</li>
+        <li>Capturar screenshot da mensagem de sucesso</li>
+      </ol>
+
+      <div class="steps-label">Resultado Esperado</div>
+      <p><code>POST /FechamentoFatura/EfetuarFechamentoInt</code> retorna 200. Modal de confirmação "Aprovação do Faturamento efetuada com sucesso!" exibido. Modal "Erro na Aprovação de Faturamento!" <strong>não aparece</strong>. Bug corrigido.</p>
+
+      <div class="result-row ok">✔ PASSOU — <code>EfetuarFechamentoInt</code> HTTP 200 · Modal "Aprovação do Faturamento efetuada com sucesso!" exibido · sem FormatException · BUG CORRIGIDO</div>
+      <div class="ev-section">
+        <div class="section-label">Evidências</div>
+        <p class="ev-caption">EV4 — Modal Resumo com Vencimento 30/07/2026 preenchido, pronto para Processar</p>
+        <img src="evidencias/7579-EV4-modal-vencimento-preenchido.png" alt="EV4 Vencimento" onclick="openLb(this)">
+        <p class="ev-caption">EV5 — Mensagem "Aprovação do Faturamento efetuada com sucesso!" — EfetuarFechamentoInt HTTP 200</p>
+        <img src="evidencias/7579-EV5-aprovacao-sucesso.png" alt="EV5 Sucesso" onclick="openLb(this)">
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Lightbox -->
+<div id="lb" onclick="closeLb()"><img id="lb-img" src="" alt=""></div>
+
+<script>
+function toggle(id){
+  const b=document.getElementById(id);
+  b.classList.toggle('expanded');
+}
+function openLb(img){
+  document.getElementById('lb-img').src=img.src;
+  document.getElementById('lb').classList.add('active');
+}
+function closeLb(){
+  document.getElementById('lb').classList.remove('active');
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+</script>
+</body>
+</html>
