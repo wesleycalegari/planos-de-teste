@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste BUG-7609 — Certificados RCV: GerarZip HTTP 500 (FAIRFAX ALFA)</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --purple: #7c3aed;
+  --purple-light: #a78bfa;
+  --red: #b91c1c;
+  --red-light: #f87171;
+  --green: #16a34a;
+  --green-light: #4ade80;
+  --yellow: #ca8a04;
+  --yellow-light: #fde047;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; }
+
+/* TOPBAR */
+.topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+.topbar-logo { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.topbar-sep { color: var(--border); }
+.topbar-title { font-size: 13px; color: var(--text); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.badge-sprint { background: #1e3a5f; color: #60a5fa; }
+.badge-bug { background: #3b0a0a; color: var(--red-light); }
+.badge-seg { background: #0f2e1a; color: #4ade80; }
+.badge-pendente { background: #1c1c2e; color: var(--purple-light); }
+.badge-ok { background: #0a2e1a; color: var(--green-light); }
+.badge-erro { background: #2e0a0a; color: var(--red-light); }
+.badge-bloqueado { background: #2e1e0a; color: var(--yellow-light); }
+.badge-p1 { background: #3b0a0a; color: var(--red-light); }
+.badge-p2 { background: #2e1e0a; color: var(--yellow-light); }
+
+/* HERO */
+.hero { background: linear-gradient(135deg, #0d1117 0%, #1a0a2e 100%); border-bottom: 2px solid var(--purple); padding: 28px 24px 20px; }
+.hero-bug-id { font-size: 12px; color: var(--purple-light); font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
+.hero-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px; line-height: 1.3; }
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hero-desc { font-size: 13px; color: var(--text-muted); max-width: 780px; }
+
+/* METRICS STRIP */
+.metrics-strip { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+.metric-card { flex: 1; background: var(--bg2); padding: 14px 20px; }
+.metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.metric-value { font-size: 28px; font-weight: 700; }
+.metric-total { color: var(--text); }
+.metric-ok { color: var(--green-light); }
+.metric-fail { color: var(--red-light); }
+.metric-pend { color: var(--purple-light); }
+.progress-bar-wrap { flex: 2; background: var(--bg2); padding: 14px 20px; display: flex; flex-direction: column; justify-content: center; }
+.progress-bar-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 4px; transition: width 0.5s ease; }
+.progress-pct { font-size: 18px; font-weight: 700; color: var(--text-muted); margin-top: 6px; }
+
+/* CONTENT */
+.content { max-width: 960px; margin: 0 auto; padding: 24px; }
+
+/* SECTION */
+.section { margin-bottom: 28px; }
+.section-title { font-size: 12px; color: var(--purple-light); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+/* INFO / WARN BOXES */
+.info-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: 4px; padding: 12px 14px; font-size: 13px; margin-bottom: 10px; }
+.warn-box { background: #1a1500; border: 1px solid #3d3200; border-left: 3px solid var(--yellow); border-radius: 4px; padding: 12px 14px; font-size: 13px; margin-bottom: 10px; }
+.prereq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prereq-table th { background: var(--bg3); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+.prereq-table td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+.prereq-table tr:nth-child(even) td { background: var(--bg2); }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: #79c0ff; }
+
+/* CT BLOCK */
+.group-header { background: linear-gradient(90deg, #1a0a2e, var(--bg2)); border: 1px solid var(--purple); border-radius: 6px 6px 0 0; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.group-header-title { font-size: 13px; font-weight: 700; color: var(--purple-light); }
+
+.ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 4px; overflow: hidden; }
+.ct-block + .ct-block { border-top: none; border-radius: 0; }
+.ct-block:last-child { border-radius: 0 0 6px 6px; }
+
+.ct-head { padding: 12px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+.ct-head:hover { background: var(--bg3); }
+.ct-id { font-family: 'Cascadia Code', monospace; font-size: 12px; color: var(--purple-light); font-weight: 700; min-width: 110px; }
+.ct-title { flex: 1; font-size: 13px; color: var(--text); }
+.ct-badges { display: flex; gap: 6px; align-items: center; }
+.ct-toggle { color: var(--text-muted); font-size: 11px; transition: transform 0.2s; margin-left: 8px; }
+.ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+.ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+.ct-block.expanded .ct-body { display: block; }
+
+.ct-row { display: grid; grid-template-columns: 150px 1fr; gap: 1px; background: var(--border); margin-bottom: 1px; border-radius: 3px; overflow: hidden; }
+.ct-label { background: var(--bg3); padding: 8px 12px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.ct-val { background: var(--bg2); padding: 8px 12px; font-size: 13px; }
+.ct-val ol, .ct-val ul { padding-left: 18px; }
+.ct-val li { margin-bottom: 4px; }
+
+.result-box { margin-top: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-muted); }
+
+/* EV section */
+.ev-section { margin-top: 12px; }
+.ev-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.ev-item img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.ev-caption { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+/* FOOTER */
+.footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-logo">CITWEB QA</span>
+  <span class="topbar-sep">›</span>
+  <span class="topbar-title">Reteste — BUG-7609</span>
+  <span class="badge badge-sprint">Sprint 8 Sustentação</span>
+  <span class="badge badge-bug">BUG</span>
+  <span class="badge badge-seg">FAIRFAX</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bug-id">BUG-7609 · CITNET FAIRFAX ALFA · Certificados RCV</div>
+  <div class="hero-title">GerarZip HTTP 500 — geração de certificado individual e em lote inoperante</div>
+  <div class="hero-badges">
+    <span class="badge badge-sprint">Sprint 8 Sustentação</span>
+    <span class="badge badge-bug">Reteste</span>
+    <span class="badge badge-seg">FAIRFAX ALFA CITNET</span>
+    <span class="badge" style="background:#1a2e1a;color:#86efac">Ramo 59 — RCV</span>
+  </div>
+  <div class="hero-desc">
+    POST <code>/alfa/citnet/AverbacaoNacional/GerarZip</code> retornava HTTP 500 em toda tentativa de gerar certificado (individual e lote) via Consulta de Averbação.
+    Estado atual: <strong>Pronto para Homologação</strong> — verificar se o fix corrige o comportamento.
+  </div>
+</div>
+
+<!-- METRICS STRIP -->
+<div class="metrics-strip">
+  <div class="metric-card">
+    <div class="metric-label">Total CTs</div>
+    <div class="metric-value metric-total" id="exec-total">3</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Passou</div>
+    <div class="metric-value metric-ok" id="exec-aprovados">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Falhou</div>
+    <div class="metric-value metric-fail" id="exec-reprovados">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Pendente</div>
+    <div class="metric-value metric-pend" id="exec-pendentes">3</div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-label">Progresso da execução</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-pct" id="progress-pct">0%</div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section">
+    <div class="section-title">Identificação</div>
+    <table class="prereq-table">
+      <tr><th style="width:180px">Campo</th><th>Valor</th></tr>
+      <tr><td>Card</td><td>BUG-7609</td></tr>
+      <tr><td>Módulo</td><td>CITNET → Relatório → Consulta de Averbação → Certificados RCV</td></tr>
+      <tr><td>Endpoint afetado</td><td><code>POST /alfa/citnet/AverbacaoNacional/GerarZip</code></td></tr>
+      <tr><td>Sprint</td><td>Sprint 8 Sustentação</td></tr>
+      <tr><td>Seguradora</td><td>FAIRFAX HML ALFA</td></tr>
+      <tr><td>Sistema</td><td>CITNET (/alfa/citnet/)</td></tr>
+      <tr><td>Ramo</td><td>59 — RCV (Responsabilidade Civil do Veículo)</td></tr>
+      <tr><td>Autor</td><td>Wesley Moreira — QA NStech</td></tr>
+      <tr><td>Data</td><td>30/06/2026</td></tr>
+    </table>
+  </div>
+
+  <!-- CONTEXTO DO BUG -->
+  <div class="section">
+    <div class="section-title">Contexto do Bug</div>
+    <div class="info-box">
+      <strong>Causa raiz (hipótese):</strong> Exceção server-side em <code>AverbacaoNacionalController.GerarZip</code>
+      — provável <code>NullReferenceException</code> / <code>IOException</code> no ZIP stream, ou falha de model binding do payload
+      <code>ids[]</code> / <code>mov[...]</code>. O servidor respondia HTTP 500 com <code>Content-Type: text/html</code>
+      (página de erro genérica) em 100% das tentativas, para ambas as modalidades: individual e lote.
+    </div>
+    <div class="info-box">
+      <strong>Comportamento esperado após fix:</strong>
+      <ul style="margin-top:6px;padding-left:18px">
+        <li><strong>Individual:</strong> <code>POST /GerarZip</code> retorna HTTP 200 com <code>Content-Type: application/pdf</code> e
+        <code>Content-Disposition: attachment</code> — browser inicia download do certificado PDF</li>
+        <li><strong>Lote (ZIP):</strong> <code>POST /GerarZip</code> retorna HTTP 200 com <code>Content-Type: application/zip</code>
+        e <code>Content-Disposition: attachment</code> — browser inicia download do ZIP com todos os certificados</li>
+        <li>Rastreabilidade: mesmo root cause do defeito genérico CITNET <code>DEF-CITNET-CERTI-GERARZIP-500</code> (NSTech HML 2026-05-08)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section">
+    <div class="section-title">Pré-requisitos e Massa de Dados</div>
+    <table class="prereq-table" style="margin-bottom:10px">
+      <tr><th style="width:180px">Item</th><th>Valor</th></tr>
+      <tr><td>URL base</td><td><code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+      <tr><td>Usuário</td><td><code>interno</code> / <code>11</code> (perfil INTERNO — padrão ALFA CITNET)</td></tr>
+      <tr><td>Navegação</td><td>Relatório → Consulta de Averbação → tipo N (Nacional) — confirmar caminho via Playwright MCP</td></tr>
+      <tr><td>Filial</td><td>1 — FAIRFAX BRASIL SEG. CORP. S/A</td></tr>
+      <tr><td>Ramo</td><td>59 — RCV</td></tr>
+      <tr><td>Apólice</td><td>333</td></tr>
+      <tr><td>Subgrupo</td><td>1 — GEQUIMICA</td></tr>
+      <tr><td>Competência</td><td>Período que cubra 06/2026 (4 averbações: protocolos 1–4, status "Processado")</td></tr>
+      <tr><td>Averbações disponíveis</td><td>4 movimentos confirmados pelo Voidr (2026-06-26) — protocolos 1, 2, 3, 4</td></tr>
+    </table>
+    <div class="warn-box">
+      ⚠️ <strong>Validar credenciais FAIRFAX ALFA CITNET no início da execução.</strong>
+      O padrão <code>interno/11</code> é usado em ZURICH ALFA e MITSUI ALFA — confirmar se aplica ao FAIRFAX ALFA antes de iniciar CT-7609-001.
+      Se login falhar: reportar e não avançar.
+    </div>
+  </div>
+
+  <!-- CTs -->
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <!-- GRUPO 1 -->
+    <div class="group-header">
+      <span class="group-header-title">Grupo 1 — Reteste: GerarZip (POST /AverbacaoNacional/GerarZip)</span>
+      <span class="badge badge-bug">BUG-7609</span>
+    </div>
+
+    <!-- CT-7609-001 -->
+    <div class="ct-block" id="ct-7609-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-id">CT-7609-001</span>
+        <span class="ct-title">Consultar averbações RCV — grid carregada (filial 1, ramo 59, apólice 333)</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pendente" id="badge-001">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-row"><div class="ct-label">Tipo</div><div class="ct-val">Positivo — pré-condição dos CTs 002 e 003</div></div>
+        <div class="ct-row">
+          <div class="ct-label">Pré-condições</div>
+          <div class="ct-val">
+            <ul>
+              <li>Ambiente FAIRFAX ALFA CITNET acessível: <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+              <li>4 averbações ramo 59, apólice 333, filial 1 em status "Processado" existentes no banco HML</li>
+              <li>Competência de teste: 06/2026 (ou período disponível confirmado)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Passos</div>
+          <div class="ct-val">
+            <ol>
+              <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+              <li>Fazer login com <code>interno</code> / <code>11</code> — confirmar home CITNET carregada</li>
+              <li>Navegar: <strong>Relatório</strong> → <strong>Consulta de Averbação</strong></li>
+              <li>Preencher filtros:<br>
+                &nbsp;&nbsp;— Filial: <em>1 (FAIRFAX BRASIL SEG. CORP. S/A)</em><br>
+                &nbsp;&nbsp;— Ramo: <em>59 — RCV</em><br>
+                &nbsp;&nbsp;— Apólice: <em>333</em><br>
+                &nbsp;&nbsp;— Subgrupo: <em>1 (GEQUIMICA)</em><br>
+                &nbsp;&nbsp;— Período: cobrindo 06/2026
+              </li>
+              <li>Clicar <strong>Consultar</strong></li>
+              <li>Aguardar grid carregar</li>
+            </ol>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Resultado esperado</div>
+          <div class="ct-val" style="color:var(--green-light)">
+            Grid exibida com ao menos 4 averbações de ramo 59 / apólice 333, status "Processado" — checkboxes de seleção visíveis e botões
+            <strong>Gerar Certificado</strong> / <strong>Gerar Todos os Certificados (ZIP)</strong> presentes na tela.
+          </div>
+        </div>
+        <div class="result-box" id="result-001">⏳ Aguardando execução</div>
+        <div class="ev-section">
+          <div class="ev-label">Evidências</div>
+          <div class="ev-grid" id="ev-001"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-7609-002 -->
+    <div class="ct-block" id="ct-7609-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-id">CT-7609-002</span>
+        <span class="ct-title">Gerar Certificado individual — 1 averbação selecionada → HTTP 200 + download (era HTTP 500)</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pendente" id="badge-002">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-row"><div class="ct-label">Tipo</div><div class="ct-val">Positivo — cenário do bug (individual)</div></div>
+        <div class="ct-row">
+          <div class="ct-label">Pré-condições</div>
+          <div class="ct-val">
+            <ul>
+              <li>CT-7609-001 executado com sucesso — grid visível com averbações</li>
+              <li>Checkbox de ao menos 1 averbação disponível para seleção</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Passos</div>
+          <div class="ct-val">
+            <ol>
+              <li>Na grid (pós CT-001), marcar o checkbox de <strong>1 averbação</strong> (protocolo 1 ou o primeiro disponível)</li>
+              <li>Clicar no botão <strong>Gerar Certificado</strong> (individual)</li>
+              <li>Aguardar resposta do servidor para <code>POST /alfa/citnet/AverbacaoNacional/GerarZip</code></li>
+              <li>Verificar status HTTP da resposta (esperado: 200; bug: 500)</li>
+              <li>Verificar se o download do certificado foi iniciado pelo browser</li>
+            </ol>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Dados de entrada</div>
+          <div class="ct-val">
+            <code>ids[]=&lt;protocolo_1&gt; &amp; mov[u_apo_pnc]=333 &amp; mov[c_rmo]=59 &amp; mov[c_org_prd]=1 &amp; mov[u_sgp]=1 &amp; ziparArquivo=false &amp; botaoGerarTodos=false</code>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Resultado esperado</div>
+          <div class="ct-val" style="color:var(--green-light)">
+            <code>POST /GerarZip</code> retorna <strong>HTTP 200</strong> com <code>Content-Type: application/pdf</code>
+            (ou application/zip para individual empacotado) e <code>Content-Disposition: attachment</code>.
+            Browser inicia o download do certificado PDF. <strong>Nenhum alert "Erro inesperado" exibido.</strong>
+          </div>
+        </div>
+        <div class="result-box" id="result-002">⏳ Aguardando execução</div>
+        <div class="ev-section">
+          <div class="ev-label">Evidências</div>
+          <div class="ev-grid" id="ev-002"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-7609-003 -->
+    <div class="ct-block" id="ct-7609-003">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-id">CT-7609-003</span>
+        <span class="ct-title">Gerar Todos os Certificados (ZIP) — lote → HTTP 200 + ZIP download (era HTTP 500)</span>
+        <div class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pendente" id="badge-003">PENDENTE</span>
+        </div>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-row"><div class="ct-label">Tipo</div><div class="ct-val">Positivo — cenário do bug (lote/ZIP)</div></div>
+        <div class="ct-row">
+          <div class="ct-label">Pré-condições</div>
+          <div class="ct-val">
+            <ul>
+              <li>CT-7609-001 executado com sucesso — grid visível com 4 averbações disponíveis</li>
+              <li>Botão <strong>Gerar Todos os Certificados (ZIP)</strong> visível e habilitado</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Passos</div>
+          <div class="ct-val">
+            <ol>
+              <li>Na grid (pós CT-001), clicar no botão <strong>Gerar Todos os Certificados (ZIP)</strong> (sem marcar checkbox individual — gera lote)</li>
+              <li>Aguardar resposta do servidor para <code>POST /alfa/citnet/AverbacaoNacional/GerarZip</code></li>
+              <li>Verificar status HTTP da resposta (esperado: 200; bug: 500)</li>
+              <li>Verificar se o download do arquivo ZIP foi iniciado pelo browser</li>
+            </ol>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Dados de entrada</div>
+          <div class="ct-val">
+            <code>ids[]=&lt;todos_os_ids&gt; &amp; mov[u_apo_pnc]=333 &amp; mov[c_rmo]=59 &amp; mov[c_org_prd]=1 &amp; mov[u_sgp]=1 &amp; ziparArquivo=true &amp; botaoGerarTodos=true</code>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Resultado esperado</div>
+          <div class="ct-val" style="color:var(--green-light)">
+            <code>POST /GerarZip</code> retorna <strong>HTTP 200</strong> com <code>Content-Type: application/zip</code>
+            e <code>Content-Disposition: attachment; filename=certificados.zip</code> (ou similar).
+            Browser inicia download do arquivo ZIP contendo os 4 certificados. <strong>Nenhum alert "Erro inesperado" exibido.</strong>
+          </div>
+        </div>
+        <div class="result-box" id="result-003">⏳ Aguardando execução</div>
+        <div class="ev-section">
+          <div class="ev-label">Evidências</div>
+          <div class="ev-grid" id="ev-003"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section CTs -->
+
+  <!-- RASTREABILIDADE -->
+  <div class="section">
+    <div class="section-title">Rastreabilidade</div>
+    <table class="prereq-table">
+      <tr><th>Critério / Comportamento Esperado</th><th>CT(s)</th></tr>
+      <tr><td>POST /GerarZip retorna HTTP 200 para geração individual</td><td>CT-7609-002</td></tr>
+      <tr><td>POST /GerarZip retorna HTTP 200 para geração em lote (ZIP)</td><td>CT-7609-003</td></tr>
+      <tr><td>Grid de averbações carregada com dados corretos (pré-condição)</td><td>CT-7609-001</td></tr>
+      <tr><td>Nenhum alert "Erro inesperado ao gerar certificado" exibido</td><td>CT-7609-002 / CT-7609-003</td></tr>
+      <tr><td>Download iniciado pelo browser após clique</td><td>CT-7609-002 / CT-7609-003</td></tr>
+    </table>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <div class="section-title">Riscos e Observações</div>
+    <div class="warn-box" style="margin-bottom:8px">
+      ⚠️ <strong>Credenciais FAIRFAX ALFA CITNET não confirmadas em memória.</strong>
+      Padrão assumido: <code>interno/11</code>. Se falhar, o executador deve reportar e aguardar instrução — não tentar variações.
+    </div>
+    <div class="warn-box" style="margin-bottom:8px">
+      ⚠️ <strong>O download de arquivo pode não ser diretamente visível via Playwright MCP.</strong>
+      Validar via interceptação de rede: status HTTP 200 + Content-Type zip/pdf no header da resposta é evidência suficiente quando o download não aparece na UI.
+    </div>
+    <div class="info-box">
+      ℹ️ <strong>Voidr tag:</strong> <code>voidr:DEF-FAIRFAX-CERTI-GERARZIP-500</code> — verificar se há fluxo automatizado disponível no Voidr antes de executar manualmente via MCP.
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<div class="footer">
+  BUG-7609 · FAIRFAX ALFA CITNET · Sprint 8 Sustentação · 30/06/2026 · QA: Wesley Moreira
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+
+function openLb(src) {
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:zoom-out';
+  const img = document.createElement('img');
+  img.src = src;
+  img.style.cssText = 'max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 40px #000';
+  ov.appendChild(img);
+  ov.onclick = () => ov.remove();
+  document.body.appendChild(ov);
+}
+</script>
+</body>
+</html>
