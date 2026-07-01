@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste BUG-7581 — TN ZURICH: Observações persiste caracteres especiais sem sanitização</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #c9d1d9;
+  --text-muted: #8b949e;
+  --purple: #7c3aed;
+  --purple-light: #a78bfa;
+  --red: #b91c1c;
+  --red-light: #f87171;
+  --green: #16a34a;
+  --green-light: #4ade80;
+  --yellow: #ca8a04;
+  --yellow-light: #fde047;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; }
+
+.topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+.topbar-logo { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.topbar-sep { color: var(--border); }
+.topbar-title { font-size: 13px; color: var(--text); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.badge-sprint { background: #1e3a5f; color: #60a5fa; }
+.badge-bug { background: #3b0a0a; color: var(--red-light); }
+.badge-seg { background: #0f2e1a; color: #4ade80; }
+.badge-pendente { background: #1c1c2e; color: var(--purple-light); }
+.badge-ok { background: #0a2e1a; color: var(--green-light); }
+.badge-erro { background: #2e0a0a; color: var(--red-light); }
+.badge-bloqueado { background: #2e1e0a; color: var(--yellow-light); }
+.badge-p1 { background: #3b0a0a; color: var(--red-light); }
+.badge-p2 { background: #2e1e0a; color: var(--yellow-light); }
+
+.hero { background: linear-gradient(135deg, #0d1117 0%, #1a0a2e 100%); border-bottom: 2px solid var(--purple); padding: 28px 24px 20px; }
+.hero-bug-id { font-size: 12px; color: var(--purple-light); font-weight: 700; letter-spacing: 1px; margin-bottom: 6px; }
+.hero-title { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 10px; line-height: 1.3; }
+.hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hero-desc { font-size: 13px; color: var(--text-muted); max-width: 780px; }
+
+.metrics-strip { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+.metric-card { flex: 1; background: var(--bg2); padding: 14px 20px; }
+.metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.metric-value { font-size: 28px; font-weight: 700; }
+.metric-total { color: var(--text); }
+.metric-ok { color: var(--green-light); }
+.metric-fail { color: var(--red-light); }
+.metric-pend { color: var(--purple-light); }
+.progress-bar-wrap { flex: 2; background: var(--bg2); padding: 14px 20px; display: flex; flex-direction: column; justify-content: center; }
+.progress-bar-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--green)); border-radius: 4px; transition: width 0.5s ease; }
+.progress-pct { font-size: 18px; font-weight: 700; color: var(--text-muted); margin-top: 6px; }
+
+.content { max-width: 960px; margin: 0 auto; padding: 24px; }
+.section { margin-bottom: 28px; }
+.section-title { font-size: 12px; color: var(--purple-light); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+
+.info-box { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--purple); border-radius: 4px; padding: 12px 14px; font-size: 13px; margin-bottom: 10px; }
+.warn-box { background: #1a1500; border: 1px solid #3d3200; border-left: 3px solid var(--yellow); border-radius: 4px; padding: 12px 14px; font-size: 13px; margin-bottom: 10px; }
+.prereq-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.prereq-table th { background: var(--bg3); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+.prereq-table td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+.prereq-table tr:nth-child(even) td { background: var(--bg2); }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: #79c0ff; }
+
+.group-header { background: linear-gradient(90deg, #1a0a2e, var(--bg2)); border: 1px solid var(--purple); border-radius: 6px 6px 0 0; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+.group-header-title { font-size: 13px; font-weight: 700; color: var(--purple-light); }
+
+.ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 4px; overflow: hidden; }
+.ct-block + .ct-block { border-top: none; border-radius: 0; }
+.ct-block:last-child { border-radius: 0 0 6px 6px; }
+.ct-head { padding: 12px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; transition: background 0.15s; }
+.ct-head:hover { background: var(--bg3); }
+.ct-id { font-family: 'Cascadia Code', monospace; font-size: 12px; color: var(--purple-light); font-weight: 700; min-width: 110px; }
+.ct-title { flex: 1; font-size: 13px; color: var(--text); }
+.ct-badges { display: flex; gap: 6px; align-items: center; }
+.ct-toggle { color: var(--text-muted); font-size: 11px; transition: transform 0.2s; margin-left: 8px; }
+.ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+.ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+.ct-block.expanded .ct-body { display: block; }
+
+.ct-row { display: grid; grid-template-columns: 150px 1fr; gap: 1px; background: var(--border); margin-bottom: 1px; border-radius: 3px; overflow: hidden; }
+.ct-label { background: var(--bg3); padding: 8px 12px; font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.ct-val { background: var(--bg2); padding: 8px 12px; font-size: 13px; }
+.ct-val ol, .ct-val ul { padding-left: 18px; }
+.ct-val li { margin-bottom: 4px; }
+
+.result-box { margin-top: 12px; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 10px 14px; font-size: 13px; color: var(--text-muted); }
+
+.ev-section { margin-top: 12px; }
+.ev-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; }
+.ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.ev-item img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; }
+.ev-caption { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+.footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">CITWEB QA</span>
+  <span class="topbar-sep">›</span>
+  <span class="topbar-title">Reteste — BUG-7581</span>
+  <span class="badge badge-sprint">Sprint 8 Sustentação</span>
+  <span class="badge badge-bug">BUG</span>
+  <span class="badge badge-seg">ZURICH</span>
+  <span class="badge badge-pendente">⏳ Aguardando execução</span>
+</div>
+
+<div class="hero">
+  <div class="hero-bug-id">BUG-7581 · CITNET ZURICH ALFA · Transporte Nacional</div>
+  <div class="hero-title">Campo Observações persiste caracteres especiais sem sanitização (CIT-127)</div>
+  <div class="hero-badges">
+    <span class="badge badge-sprint">Sprint 8 Sustentação</span>
+    <span class="badge badge-bug">Reteste</span>
+    <span class="badge badge-seg">ZURICH ALFA CITNET</span>
+    <span class="badge" style="background:#1a2e1a;color:#86efac">Transporte Nacional</span>
+    <span class="badge" style="background:#0a1e2e;color:#7dd3fc">Task #7648 Done</span>
+    <span class="badge badge-pendente" style="font-size:12px;padding:3px 10px">2 CTs · Pendente</span>
+  </div>
+  <div class="hero-desc">
+    Campo <code>n_jus_alt</code> (Observações, maxlength=100) na Averbação de Transporte Nacional
+    (<code>/alfa/citnet/AverbacaoNacional/AverbacaoRR</code>) aceitava e persistia caracteres especiais literais
+    (<code>@#$%&lt;&gt;&amp;"/teste</code>) sem sanitização nem rejeição via modal. Fix implementado pela task #7648.
+    Voidr TRANS-08 (suite EDGES) em 24/06/2026.
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric-card">
+    <div class="metric-label">Total CTs</div>
+    <div class="metric-value metric-total" id="exec-total">2</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Passou</div>
+    <div class="metric-value metric-ok" id="exec-aprovados">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Falhou</div>
+    <div class="metric-value metric-fail" id="exec-reprovados">0</div>
+  </div>
+  <div class="metric-card">
+    <div class="metric-label">Pendente</div>
+    <div class="metric-value metric-pend" id="exec-pendentes">2</div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-label">Progresso da execução</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    <div class="progress-pct" id="progress-pct">0%</div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">Identificação</div>
+    <table class="prereq-table">
+      <tr><th style="width:180px">Campo</th><th>Valor</th></tr>
+      <tr><td>Card</td><td>BUG-7581</td></tr>
+      <tr><td>Módulo</td><td>CITNET → Averbação → Transporte Nacional (<code>/alfa/citnet/AverbacaoNacional/AverbacaoRR</code>)</td></tr>
+      <tr><td>Campo afetado</td><td><code>n_jus_alt</code> (textarea Observações, maxlength=100)</td></tr>
+      <tr><td>Sprint</td><td>Sprint 8 Sustentação</td></tr>
+      <tr><td>Seguradora</td><td>ZURICH — HML ALFA</td></tr>
+      <tr><td>Sistema</td><td>CITNET (<code>/alfa/citnet/</code>)</td></tr>
+      <tr><td>Severidade</td><td>Média (3)</td></tr>
+      <tr><td>Task de dev</td><td>#7648 — Desenvolvimento Sanitização do campo Observações — <strong>Done</strong></td></tr>
+      <tr><td>Voidr Defect</td><td><code>DEF-ZURICH-TN-OBSERVACOES-SEM-SANITIZACAO</code></td></tr>
+      <tr><td>Voidr Caso</td><td>TRANS-08 (suite EDGES, module transporte-nacional)</td></tr>
+      <tr><td>Autor</td><td>Wesley Moreira — QA NStech</td></tr>
+      <tr><td>Data</td><td>01/07/2026</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Contexto do Bug</div>
+    <div class="info-box">
+      <strong>Comportamento incorreto observado (24/06/2026):</strong>
+      <ul style="margin-top:6px;padding-left:18px">
+        <li>Averbação TN: Filial 5555 (VOIDR) · Apólice 333 · Subgrupo 1 · Mínimos obrigatórios preenchidos</li>
+        <li>Observações preenchido com: <code>@#$%&lt;&gt;&amp;"/teste</code> (chars especiais: &lt; &gt; &amp; " /)</li>
+        <li>Gravar → "Gravação efetuada com sucesso!" (protocolo 13) — <strong>sem</strong> modal de validação</li>
+        <li>Recarregar protocolo 13 → Observações persistido = <code>@#$%&lt;&gt;&amp;"/teste</code> (idêntico ao digitado)</li>
+        <li>Comportamento: backend persiste os chars literais sem qualquer sanitização</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <strong>Comportamento esperado após fix (CIT-127):</strong>
+      O sistema deve adotar uma das abordagens:
+      <ul style="margin-top:6px;padding-left:18px">
+        <li><strong>Opção A — Sanitizar:</strong> escapar os chars especiais antes de persistir (ex: <code>&lt;</code> → <code>&amp;lt;</code>) OU removê-los silenciosamente</li>
+        <li><strong>Opção B — Rejeitar:</strong> exibir modal de validação específico impedindo a gravação quando chars especiais são detectados</li>
+        <li>Em ambos os casos: o valor <code>@#$%&lt;&gt;&amp;"/teste</code> <strong>não deve ser persistido literalmente</strong> no banco</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <strong>Rastreabilidade:</strong> Mesmo defeito de produto documentado no spec NSTech desde 22/05/2026 (CIT-127) — comportamento recorrente/cross-tenant. Confirmado também em ZURICH. Task #7648 implementa a correção.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Pré-requisitos e Massa de Dados</div>
+    <table class="prereq-table">
+      <tr><th style="width:200px">Item</th><th>Valor</th></tr>
+      <tr><td>Ambiente</td><td>ZURICH HML ALFA — <code>zurich-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td></tr>
+      <tr><td>Credenciais CITNET</td><td>Usuário: <code>VOIDR-NSTEC</code> | Senha: <code>NS-Vo1dr@b</code></td></tr>
+      <tr><td>Apólice</td><td><code>333</code> · Filial <code>5555</code> (VOIDR) · Subgrupo 1</td></tr>
+      <tr><td>Tipo de averbação</td><td>Transporte Nacional — <code>/AverbacaoNacional/AverbacaoRR</code></td></tr>
+      <tr><td>String de teste (CT-TNA-001)</td><td><code>@#$%&lt;&gt;&amp;"/teste</code> (exatamente como no bug original)</td></tr>
+      <tr><td>String de regressão (CT-TNA-002)</td><td><code>Observacao de teste sem especiais 123</code></td></tr>
+      <tr><td>Navegação</td><td>Sempre por clique a partir do login — nunca acesso direto por URL</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Escopo</div>
+    <div class="info-box">
+      <strong>In Scope:</strong> Campo <code>n_jus_alt</code> (Observações) na Averbação de Transporte Nacional ZURICH ALFA.
+      Verificar comportamento de sanitização/rejeição de chars especiais <code>&lt; &gt; &amp; " /</code>.
+    </div>
+    <div class="info-box">
+      <strong>Out of Scope:</strong> Outros campos da averbação TN, outros módulos, outros tenants.
+      Validar apenas o comportamento do campo Observações após o fix da task #7648.
+    </div>
+    <div class="warn-box">
+      ⚠️ <strong>Atenção ao resultado do CT-TNA-001:</strong> o reteste é aprovado se o sistema sanitizar OU rejeitar.
+      Ambas as abordagens são corretas per CIT-127. Documentar qual foi implementada.
+    </div>
+  </div>
+
+  <!-- CTs -->
+  <div class="section">
+    <div class="section-title">Casos de Teste</div>
+
+    <div class="group-header">
+      <span class="group-header-title">Grupo 1 — Reteste: campo Observações com chars especiais</span>
+    </div>
+
+    <!-- CT-TNA-001 -->
+    <div class="ct-block" id="ct-tna-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-id">CT-TNA-001</span>
+        <span class="ct-title">Observações com chars especiais: sistema sanitiza ou rejeita (não persiste literalmente)</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1 — Bloqueante</span>
+          <span class="badge badge-pendente" id="badge-tna-001">⏳ Pendente</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-row"><div class="ct-label">Tipo</div><div class="ct-val">Negativo / Validação de campo — Reteste (CIT-127)</div></div>
+        <div class="ct-row">
+          <div class="ct-label">Pré-condições</div>
+          <div class="ct-val">
+            <ul>
+              <li>Ambiente: ZURICH HML ALFA — <code>zurich-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+              <li>Credenciais: <code>VOIDR-NSTEC</code> / <code>NS-Vo1dr@b</code></li>
+              <li>Apólice 333, Filial 5555, Subgrupo 1 disponíveis no ambiente</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Passos</div>
+          <div class="ct-val">
+            <ol>
+              <li>Login no ZURICH ALFA CITNET com <code>VOIDR-NSTEC</code> / <code>NS-Vo1dr@b</code></li>
+              <li>Menu: <strong>Averbação</strong> → <strong>Transporte Nacional</strong> (ou equivalente na versão ZURICH)</li>
+              <li>Selecionar Filial <code>5555</code>, Apólice <code>333</code>, Subgrupo <code>1</code></li>
+              <li>Preencher campos mínimos obrigatórios (Meio de Transporte, Placa, UF Origem/Destino, Municípios, Valor da Mercadoria)</li>
+              <li>Localizar o campo <strong>Observações</strong> (<code>name="n_jus_alt"</code>) e preencher com: <code>@#$%&lt;&gt;&amp;"/teste</code></li>
+              <li>Capturar screenshot com o campo Observações visível e o valor digitado</li>
+              <li>Clicar em <strong>Gravar</strong> / <strong>Confirmar</strong></li>
+              <li>
+                <strong>Verificar o comportamento do sistema após Gravar:</strong>
+                <ul>
+                  <li><strong>Se modal de rejeição aparecer:</strong> capturar screenshot com texto do modal visível → o CT passa (opção B do fix)</li>
+                  <li><strong>Se gravar com sucesso:</strong> anotar protocolo e continuar para passo 9</li>
+                </ul>
+              </li>
+              <li>Recarregar pelo protocolo gerado → localizar campo Observações</li>
+              <li>Extrair valor via <code>browser_evaluate</code>: <code>document.querySelector('[name="n_jus_alt"]')?.value</code></li>
+              <li>Capturar screenshot com campo Observações visível após recarregar</li>
+            </ol>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Dados de entrada</div>
+          <div class="ct-val">
+            Filial: <code>5555</code> | Apólice: <code>333</code> | Subgrupo: <code>1</code><br>
+            Observações: <code>@#$%&lt;&gt;&amp;"/teste</code>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Resultado esperado</div>
+          <div class="ct-val">
+            <strong>Aprovado se QUALQUER UMA das condições for verdadeira:</strong>
+            <ul>
+              <li><strong>Opção A (sanitização):</strong> sistema grava, mas ao recarregar o campo Observações
+                mostra valor <em>diferente</em> de <code>@#$%&lt;&gt;&amp;"/teste</code>
+                (chars escapados ou removidos). Extrair valor exato via evaluate e documentar.</li>
+              <li><strong>Opção B (rejeição):</strong> sistema exibe modal de validação impedindo a gravação.
+                Capturar screenshot com texto exato do modal.</li>
+            </ul>
+            <strong style="color:var(--red-light)">Reprovado se:</strong> campo Observações ao recarregar
+            = <code>@#$%&lt;&gt;&amp;"/teste</code> (idêntico ao digitado — bug persiste).
+          </div>
+        </div>
+        <div class="result-box" id="result-tna-001">⏳ Aguardando execução</div>
+        <div class="ev-section">
+          <div class="ev-label">Evidências</div>
+          <div class="ev-grid" id="ev-tna-001">
+            <div style="color:var(--text-muted);font-size:13px">— a ser coletado durante execução —</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="group-header" style="margin-top:16px">
+      <span class="group-header-title">Grupo 2 — Regressão: Observações com texto normal</span>
+    </div>
+
+    <!-- CT-TNA-002 -->
+    <div class="ct-block" id="ct-tna-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-id">CT-TNA-002</span>
+        <span class="ct-title">Regressão — Observações com texto normal persiste corretamente após o fix</span>
+        <span class="ct-badges">
+          <span class="badge badge-p2">P2 — Importante</span>
+          <span class="badge badge-pendente" id="badge-tna-002">⏳ Pendente</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-row"><div class="ct-label">Tipo</div><div class="ct-val">Regressão — Positivo</div></div>
+        <div class="ct-row">
+          <div class="ct-label">Pré-condições</div>
+          <div class="ct-val">
+            <ul>
+              <li>Mesma massa: ZURICH ALFA, apólice 333, filial 5555, subgrupo 1</li>
+              <li>Executar após CT-TNA-001 (para verificar que o fix não quebrou o campo para textos normais)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Passos</div>
+          <div class="ct-val">
+            <ol>
+              <li>Login no ZURICH ALFA CITNET (reusar sessão do CT-TNA-001 se ativa)</li>
+              <li>Menu: <strong>Averbação</strong> → <strong>Transporte Nacional</strong></li>
+              <li>Selecionar Filial <code>5555</code>, Apólice <code>333</code>, Subgrupo <code>1</code></li>
+              <li>Preencher campos mínimos obrigatórios</li>
+              <li>Campo Observações: preencher com <code>Observacao de teste sem especiais 123</code></li>
+              <li>Capturar screenshot com campo Observações visível</li>
+              <li>Clicar em <strong>Gravar</strong></li>
+              <li>Aguardar mensagem de sucesso e anotar protocolo</li>
+              <li>Recarregar pelo protocolo → campo Observações exibe exatamente <code>Observacao de teste sem especiais 123</code></li>
+              <li>Extrair via evaluate: <code>document.querySelector('[name="n_jus_alt"]')?.value</code></li>
+              <li>Capturar screenshot final com o valor persistido visível</li>
+            </ol>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Dados de entrada</div>
+          <div class="ct-val">
+            Filial: <code>5555</code> | Apólice: <code>333</code> | Subgrupo: <code>1</code><br>
+            Observações: <code>Observacao de teste sem especiais 123</code>
+          </div>
+        </div>
+        <div class="ct-row">
+          <div class="ct-label">Resultado esperado</div>
+          <div class="ct-val">
+            <ul>
+              <li>Mensagem: <strong>"Gravação efetuada com sucesso!"</strong> sem modal de bloqueio</li>
+              <li>Campo Observações ao recarregar = <code>Observacao de teste sem especiais 123</code> (valor intacto)</li>
+              <li>O fix de sanitização não afetou textos sem chars especiais</li>
+            </ul>
+          </div>
+        </div>
+        <div class="result-box" id="result-tna-002">⏳ Aguardando execução</div>
+        <div class="ev-section">
+          <div class="ev-label">Evidências</div>
+          <div class="ev-grid" id="ev-tna-002">
+            <div style="color:var(--text-muted);font-size:13px">— a ser coletado durante execução —</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /CTs -->
+
+  <div class="section">
+    <div class="section-title">Matriz de Rastreabilidade</div>
+    <table class="prereq-table">
+      <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+      <tr><td>Chars especiais &lt; &gt; &amp; " / não persistidos literalmente em Observações</td><td>CT-TNA-001</td><td id="mat-001">⏳</td></tr>
+      <tr><td>Sistema sanitiza OU rejeita chars especiais (CIT-127)</td><td>CT-TNA-001</td><td id="mat-002">⏳</td></tr>
+      <tr><td>Texto normal em Observações persiste corretamente após fix</td><td>CT-TNA-002</td><td id="mat-003">⏳</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Riscos</div>
+    <table class="prereq-table">
+      <tr><th style="width:200px">Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr><td>Fix sanitiza somente alguns chars (não todos os 5: &lt; &gt; &amp; " /)</td><td>Média</td><td>Médio</td><td>Testar exatamente a string original do bug: <code>@#$%&lt;&gt;&amp;"/teste</code></td></tr>
+      <tr><td>Fix implementado mas não deployado em HML ZURICH ALFA</td><td>Baixa (task #7648 Done)</td><td>Alto — impede reteste</td><td>Verificar número de versão no rodapé do CITNET após login</td></tr>
+      <tr><td>Fix quebrou gravação de textos normais</td><td>Baixa</td><td>Médio</td><td>CT-TNA-002 garante cobertura de regressão</td></tr>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<div class="footer">
+  BUG-7581 · Sprint 8 Sustentação · ZURICH ALFA CITNET · Transporte Nacional · Autor: Wesley Moreira · 01/07/2026
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
