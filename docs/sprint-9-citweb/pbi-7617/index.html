@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — PBI-7617</title>
+<style>
+  :root{
+    --bg:#0f1114;--surface:#1a1d23;--surface-2:#22262e;--border:#343a46;
+    --text:#c9d1d9;--text-muted:#8b949e;--text-dim:#6e7681;
+    --accent:#3b9eff;--ok:#3fb950;--fail:#f85149;--block:#d29922;--pend:#8b949e;
+    --warn-bg:rgba(210,153,34,.12);--info-bg:rgba(59,158,255,.1);
+    --p1:#f85149;--p2:#d29922;--p3:#8b949e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+  header{background:linear-gradient(135deg,#0a2744 0%,#152238 50%,var(--bg) 100%);padding:32px 24px 28px;border-bottom:1px solid var(--border)}
+  .pbi-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+  header h1{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+  header p{color:var(--text-muted);font-size:13px}
+
+  .dash{display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;min-width:100px;text-align:center}
+  .dash-card .val{font-size:26px;font-weight:700;line-height:1}
+  .dash-card .lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .dash-wide{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;flex:1;min-width:220px}
+  .dash-wide .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .pb-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;background:var(--ok);border-radius:4px;transition:width .4s}
+  .pb-pct{font-size:13px;color:var(--pend);font-weight:600;margin-top:6px}
+
+  .section{margin:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .section-header{padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface-2);font-weight:600;font-size:13px;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px}
+  .section-body{padding:16px}
+
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .info-item label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .info-item span{font-size:13px;color:var(--text)}
+
+  .warn-box{background:var(--warn-bg);border-left:3px solid var(--block);border-radius:4px;padding:10px 14px;color:#e8c07d;font-size:13px;margin-bottom:10px}
+  .info-box{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;color:#a9d3ff;font-size:13px;margin-bottom:10px}
+
+  .group-header{background:linear-gradient(90deg,#0a2744,#152238);border-left:4px solid var(--accent);padding:10px 16px;font-weight:700;font-size:13px;color:#e6edf3;letter-spacing:.5px;margin-bottom:2px;border-radius:4px}
+
+  .ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-left:4px solid var(--pend);user-select:none;transition:background .15s}
+  .ct-bar:hover{background:var(--surface-2)}
+  [data-status="aprovado"]  .ct-bar{border-left-color:var(--ok)}
+  [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
+  [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
+  [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+  [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
+  .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
+  .ct-bar-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .ct-id{font-size:11px;font-weight:700;color:var(--accent);font-family:monospace;white-space:nowrap}
+  .ct-prio{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .p1{background:rgba(248,81,73,.2);color:var(--p1)}
+  .p2{background:rgba(210,153,34,.2);color:var(--p2)}
+  .p3{background:rgba(139,148,158,.2);color:var(--p3)}
+  .ct-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-status-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+  .chip-pend{background:rgba(139,148,158,.15);color:var(--pend)}
+  .chip-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .chip-fail{background:rgba(248,81,73,.15);color:var(--fail)}
+  .chip-block{background:rgba(210,153,34,.15);color:var(--block)}
+
+  .ct-panel{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2)}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ct-field label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .ct-field p,.ct-field ol,.ct-field ul{font-size:13px;color:var(--text)}
+  .ct-field ol,.ct-field ul{padding-left:18px}
+  .ct-field li{margin-bottom:3px}
+  .ct-field.full{grid-column:1/-1}
+  .ct-field code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .result-ok{background:rgba(63,185,80,.1);border-left:3px solid var(--ok);border-radius:4px;padding:8px 12px;color:#79c57e;font-size:13px}
+  .result-fail{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:8px 12px;color:#f85149;font-size:13px}
+
+  .ev-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .ev-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+  .ev-pendente{background:rgba(139,148,158,.15);color:var(--pend)}
+  .ev-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .ev-item img{width:100%;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+  .ev-item img:hover{opacity:.85}
+  .ev-item .ev-cap{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+  #lb.open{display:flex}
+  #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
+  #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px}
+
+  #resultado-execucao{margin:16px 24px;padding:14px 18px;border-radius:8px;font-size:13px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-muted)}
+
+  @media(max-width:640px){.ct-grid{grid-template-columns:1fr}.ct-title{white-space:normal}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="pbi-badge">PBI-7617 · Sprint 9</div>
+  <h1>CITNET KOVR — Relatório Resumo/Relação de Embarques com CNPJ em branco</h1>
+  <p>Módulo: CITNET → Relatórios → Resumo / Relação de Embarques &nbsp;|&nbsp; Sistema: CITNET &nbsp;|&nbsp; Seguradora: KOVR &nbsp;|&nbsp; Perfil: Segurado &nbsp;|&nbsp; Autor: Wesley Moreira &nbsp;|&nbsp; Data: 02/07/2026</p>
+</header>
+
+<div class="dash">
+  <div class="dash-card">
+    <div class="val" id="ct-total">5</div>
+    <div class="lbl">Total CTs</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-aprovados" style="color:var(--ok)">0</div>
+    <div class="lbl">Aprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-reprovados" style="color:var(--fail)">0</div>
+    <div class="lbl">Reprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-bloqueados" style="color:var(--block)">0</div>
+    <div class="lbl">Bloqueados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-pendentes" style="color:var(--pend)">5</div>
+    <div class="lbl">Pendentes</div>
+  </div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso de Execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-pct" id="pb-pct">0% — aguardando execução</div>
+  </div>
+</div>
+
+<!-- ══════════════════ IDENTIFICAÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Identificação</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Card</label><span>PBI-7617</span></div>
+      <div class="info-item"><label>Sprint</label><span>Sprint 9 Citweb</span></div>
+      <div class="info-item"><label>Módulo</label><span>CITNET → Relatórios → Resumo / Relação de Embarques</span></div>
+      <div class="info-item"><label>Sistema</label><span>CITNET</span></div>
+      <div class="info-item"><label>Seguradora</label><span>KOVR</span></div>
+      <div class="info-item"><label>Perfil testado</label><span>Segurado</span></div>
+      <div class="info-item"><label>Ambiente</label><span>ALFA HML</span></div>
+      <div class="info-item"><label>Task QA</label><span>—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DESCRIÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Descrição</div>
+  <div class="section-body">
+    <p style="margin-bottom:10px">No CITNET KOVR (perfil Segurado), os relatórios <strong>Resumo de Embarques</strong> e <strong>Relação de Embarques</strong> exibiam o campo CNPJ em branco tanto na tela de consulta quanto na impressão (PDF). O fix corrigiu o método <code>PreencheParametrosReport_RCV</code> para preencher corretamente o CNPJ — inclusive quando alfanumérico.</p>
+    <div class="info-box">
+      <strong>Contexto:</strong> O CNPJ na base pode ser alfanumérico (ex: <code>D77L6VWV000116</code> — formato de CNPJ estrangeiro). Antes do fix, o campo aparecia vazio; após o fix, deve ser exibido na consulta e no PDF de impressão. Deploy confirmado pelo dev (Fabiano) no ALFA HML.
+    </div>
+    <p style="margin-bottom:10px"><strong>Critérios de Aceite:</strong></p>
+    <ul style="padding-left:18px;font-size:13px">
+      <li><strong>CA01</strong> — Consulta Resumo de Embarques: campo CNPJ exibido com o valor correto (não em branco).</li>
+      <li><strong>CA02</strong> — Consulta Relação de Embarques: campo CNPJ exibido com o valor correto (não em branco).</li>
+      <li><strong>CA03</strong> — Impressão Resumo de Embarques: PDF/impressão exibe CNPJ corretamente.</li>
+      <li><strong>CA04</strong> — Impressão Relação de Embarques: PDF/impressão exibe CNPJ corretamente.</li>
+      <li><strong>CA05</strong> — CNPJ alfanumérico não causa erro nem é truncado.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ ESCOPO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Escopo</div>
+  <div class="section-body">
+    <p style="margin-bottom:8px;font-weight:600;color:var(--ok)">✓ In Scope</p>
+    <ul style="padding-left:18px;font-size:13px;margin-bottom:14px">
+      <li>CNPJ exibido corretamente na tela Resumo de Embarques (consulta)</li>
+      <li>CNPJ exibido corretamente na tela Relação de Embarques (consulta)</li>
+      <li>CNPJ exibido corretamente no PDF/impressão de ambos os relatórios</li>
+      <li>CNPJ alfanumérico (formato estrangeiro) aceito e exibido sem erro</li>
+      <li>Regressão básica: demais campos dos relatórios não afetados pelo fix</li>
+    </ul>
+    <p style="margin-bottom:8px;font-weight:600;color:var(--fail)">✗ Out of Scope</p>
+    <ul style="padding-left:18px;font-size:13px">
+      <li>Outras seguradoras (fix é específico KOVR / método RCV)</li>
+      <li>Perfis Corretor / Interno (escopo do PBI: Perfil Segurado)</li>
+      <li>Ambiente de produção (PRD) — apenas ALFA HML</li>
+      <li>Módulos de averbação ou faturamento (não afetados pelo fix)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ PRÉ-REQUISITOS ══════════════════ -->
+<div class="section">
+  <div class="section-header">Pré-Requisitos</div>
+  <div class="section-body">
+    <div class="warn-box">
+      Ambiente: <strong>KOVR ALFA HML</strong> — URL: <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code>. Deploy do fix confirmado pelo dev (02/07/2026).
+    </div>
+    <ul style="padding-left:18px;font-size:13px">
+      <li><strong>Credenciais:</strong> perfil Segurado — login <code>SEGURADO</code> / senha padrão CITNET HML</li>
+      <li><strong>Massa de dados:</strong> apólice <code>99999</code>, subgrupo <code>001</code>, referência <code>06/2026</code> (confirmada pelo dev)</li>
+      <li><strong>CNPJ esperado:</strong> <code>D77L6VWV000116</code> (alfanumérico)</li>
+      <li>Averbação cadastrada para a apólice no período informado (necessário para Relação de Embarques)</li>
+      <li>Acesso ao módulo Relatórios no CITNET KOVR ALFA via perfil Segurado</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ MASSA DE DADOS ══════════════════ -->
+<div class="section">
+  <div class="section-header">Massa de Dados</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Seguradora</label><span>KOVR</span></div>
+      <div class="info-item"><label>Ambiente</label><span>ALFA HML</span></div>
+      <div class="info-item"><label>Apólice</label><span>99999</span></div>
+      <div class="info-item"><label>Subgrupo</label><span>001</span></div>
+      <div class="info-item"><label>Referência</label><span>06/2026</span></div>
+      <div class="info-item"><label>CNPJ esperado</label><span>D77L6VWV000116</span></div>
+      <div class="info-item"><label>Perfil</label><span>Segurado</span></div>
+      <div class="info-item"><label>Fonte</label><span>Confirmado por Fabiano (dev) — 02/07/2026</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ CASOS DE TESTE ══════════════════ -->
+<div class="section">
+  <div class="section-header">Casos de Teste</div>
+  <div class="section-body" style="padding:12px">
+
+    <!-- GRUPO 1 -->
+    <div class="group-header" style="margin-bottom:10px">GRUPO 1 — Consulta: CNPJ visível na tela</div>
+
+    <!-- CT-EMB-001 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-EMB-001</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Consulta Resumo de Embarques — CNPJ exibido corretamente (não em branco)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">Pendente</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que após o fix o campo CNPJ é preenchido na tela de Consulta Resumo de Embarques, não ficando mais em branco.</p>
+          </div>
+          <div class="ct-field">
+            <label>Pré-condição</label>
+            <p>Login como Segurado na URL ALFA KOVR. Apólice 99999 / subgrupo 001 com averbações em 06/2026.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Acessar <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e realizar login com perfil Segurado</li>
+              <li>Navegar até o módulo Relatórios no menu principal</li>
+              <li>Clicar em "Resumo de Embarques"</li>
+              <li>Preencher: Apólice = <code>99999</code>, Subgrupo = <code>001</code>, Referência = <code>06/2026</code></li>
+              <li>Clicar em "Consultar" (ou botão equivalente)</li>
+              <li>Localizar o campo CNPJ no resultado exibido na tela</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">Campo CNPJ exibido com o valor <code>D77L6VWV000116</code> — não em branco. Nenhum erro na tela.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova (cenário anterior ao fix)</label>
+            <p>Campo CNPJ aparecia vazio (em branco) na mesma consulta antes da correção.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências <span class="ev-badge ev-pendente">Pendente</span></div>
+          <div class="ev-grid" id="ev-001"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-EMB-002 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-EMB-002</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Consulta Relação de Embarques — CNPJ exibido corretamente (não em branco)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">Pendente</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que após o fix o campo CNPJ é preenchido na tela de Consulta Relação de Embarques.</p>
+          </div>
+          <div class="ct-field">
+            <label>Pré-condição</label>
+            <p>Login como Segurado na URL ALFA KOVR. Averbação cadastrada para apólice 99999 / subgrupo 001 em 06/2026 (obrigatório para Relação de Embarques).</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Acessar <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e realizar login com perfil Segurado</li>
+              <li>Navegar até o módulo Relatórios no menu principal</li>
+              <li>Clicar em "Relação de Embarques"</li>
+              <li>Preencher: Apólice = <code>99999</code>, Subgrupo = <code>001</code>, Referência = <code>06/2026</code></li>
+              <li>Clicar em "Consultar" (ou botão equivalente)</li>
+              <li>Localizar o campo CNPJ no resultado exibido na tela</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">Campo CNPJ exibido com o valor <code>D77L6VWV000116</code> — não em branco. Nenhum erro na tela.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova (cenário anterior ao fix)</label>
+            <p>Campo CNPJ aparecia vazio (em branco) antes da correção.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências <span class="ev-badge ev-pendente">Pendente</span></div>
+          <div class="ev-grid" id="ev-002"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 2 -->
+    <div class="group-header" style="margin:14px 0 10px">GRUPO 2 — Impressão: CNPJ visível no PDF</div>
+
+    <!-- CT-EMB-003 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-EMB-003</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Impressão Resumo de Embarques — CNPJ visível no PDF/relatório impresso</span>
+        </div>
+        <span class="ct-status-chip chip-pend">Pendente</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que o campo CNPJ aparece corretamente no documento PDF gerado pela impressão do Resumo de Embarques.</p>
+          </div>
+          <div class="ct-field">
+            <label>Pré-condição</label>
+            <p>CT-EMB-001 executado com sucesso (consulta funcional). Mesmos dados de massa.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>A partir da tela de Consulta Resumo de Embarques (apólice 99999, subgrupo 001, ref 06/2026), clicar em "Imprimir" (ou "PDF" / "Exportar")</li>
+              <li>Aguardar a geração do relatório (PDF ou preview de impressão)</li>
+              <li>Localizar o campo CNPJ no documento gerado</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">Campo CNPJ exibe <code>D77L6VWV000116</code> no PDF/relatório. Nenhum campo em branco onde CNPJ deveria aparecer.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova (cenário anterior ao fix)</label>
+            <p>Campo CNPJ aparecia em branco no documento impresso/PDF antes da correção.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências <span class="ev-badge ev-pendente">Pendente</span></div>
+          <div class="ev-grid" id="ev-003"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-EMB-004 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-EMB-004</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Impressão Relação de Embarques — CNPJ visível no PDF/relatório impresso</span>
+        </div>
+        <span class="ct-status-chip chip-pend">Pendente</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que o campo CNPJ aparece corretamente no documento PDF gerado pela impressão da Relação de Embarques.</p>
+          </div>
+          <div class="ct-field">
+            <label>Pré-condição</label>
+            <p>CT-EMB-002 executado com sucesso (consulta funcional). Averbação cadastrada no período.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>A partir da tela de Consulta Relação de Embarques (apólice 99999, subgrupo 001, ref 06/2026), clicar em "Imprimir" (ou "PDF" / "Exportar")</li>
+              <li>Aguardar a geração do relatório (PDF ou preview de impressão)</li>
+              <li>Localizar o campo CNPJ no documento gerado</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">Campo CNPJ exibe <code>D77L6VWV000116</code> no PDF/relatório. Nenhum campo em branco onde CNPJ deveria aparecer.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova (cenário anterior ao fix)</label>
+            <p>Campo CNPJ aparecia em branco no documento impresso/PDF antes da correção.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências <span class="ev-badge ev-pendente">Pendente</span></div>
+          <div class="ev-grid" id="ev-004"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GRUPO 3 -->
+    <div class="group-header" style="margin:14px 0 10px">GRUPO 3 — Regressão</div>
+
+    <!-- CT-EMB-005 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggleCT(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-EMB-005</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">Regressão — demais campos dos relatórios íntegros após o fix</span>
+        </div>
+        <span class="ct-status-chip chip-pend">Pendente</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que o fix no método <code>PreencheParametrosReport_RCV</code> não afetou outros campos exibidos nos relatórios (segurado, apólice, subgrupo, referência, valores, datas).</p>
+          </div>
+          <div class="ct-field">
+            <label>Pré-condição</label>
+            <p>CT-EMB-001 e CT-EMB-002 executados com sucesso.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Na tela de Resumo de Embarques (mesma consulta do CT-EMB-001), verificar os demais campos: nome do segurado, número da apólice, subgrupo, referência, total de embarques e valores</li>
+              <li>Na tela de Relação de Embarques (mesma consulta do CT-EMB-002), verificar: lista de averbações, datas, valores unitários e totais</li>
+              <li>Nos PDFs gerados nos CTs 003 e 004, confirmar que todos os campos aparecem completos e sem truncamento</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">Todos os campos além do CNPJ continuam exibidos corretamente. Nenhum campo presente antes do fix desaparece ou tem valor alterado inesperadamente.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências <span class="ev-badge ev-pendente">Pendente</span></div>
+          <div class="ev-grid" id="ev-005"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RESULTADO DA EXECUÇÃO ══════════════════ -->
+<div id="resultado-execucao">Execução não iniciada — aguardando aprovação do plano (GATE 1).</div>
+
+<!-- Lightbox -->
+<div id="lb" onclick="closeLB()">
+  <img id="lb-img" src="" alt="">
+  <div id="lb-cap"></div>
+</div>
+
+<script>
+function toggleCT(bar){
+  var block=bar.parentElement;
+  var panel=block.querySelector('.ct-panel');
+  var expanded=block.getAttribute('data-expanded')==='true';
+  block.setAttribute('data-expanded',expanded?'false':'true');
+  panel.style.display=expanded?'none':'block';
+}
+
+function openLB(src,cap){
+  document.getElementById('lb-img').src=src;
+  document.getElementById('lb-cap').textContent=cap||'';
+  document.getElementById('lb').classList.add('open');
+}
+function closeLB(){document.getElementById('lb').classList.remove('open')}
+
+(function updateDash(){
+  var blocks=document.querySelectorAll('.ct-block');
+  var tot=blocks.length,ap=0,rp=0,bl=0,pe=0;
+  blocks.forEach(function(b){
+    var s=b.getAttribute('data-status');
+    if(s==='aprovado')ap++;
+    else if(s==='reprovado')rp++;
+    else if(s==='bloqueado')bl++;
+    else pe++;
+  });
+  document.getElementById('ct-total').textContent=tot;
+  document.getElementById('ct-aprovados').textContent=ap;
+  document.getElementById('ct-reprovados').textContent=rp;
+  document.getElementById('ct-bloqueados').textContent=bl;
+  document.getElementById('ct-pendentes').textContent=pe;
+  var exec=ap+rp+bl;
+  var pct=tot>0?Math.round(exec/tot*100):0;
+  document.getElementById('pb-fill').style.width=pct+'%';
+  document.getElementById('pb-pct').textContent=pct+'% — '+(exec===0?'aguardando execução':exec+'/'+tot+' executados');
+})();
+</script>
+</body>
+</html>
