@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — PBI-7582</title>
+<style>
+  :root{
+    --bg:#0f1114;--surface:#1a1d23;--surface-2:#22262e;--border:#343a46;
+    --text:#c9d1d9;--text-muted:#8b949e;--text-dim:#6e7681;
+    --accent:#3b9eff;--ok:#3fb950;--fail:#f85149;--block:#d29922;--pend:#8b949e;
+    --warn-bg:rgba(210,153,34,.12);--info-bg:rgba(59,158,255,.1);
+    --p1:#f85149;--p2:#d29922;--p3:#8b949e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+  header{background:linear-gradient(135deg,#0a2744 0%,#152238 50%,var(--bg) 100%);padding:32px 24px 28px;border-bottom:1px solid var(--border)}
+  .pbi-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+  header h1{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+  header p{color:var(--text-muted);font-size:13px}
+
+  .dash{display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;min-width:100px;text-align:center}
+  .dash-card .val{font-size:26px;font-weight:700;line-height:1}
+  .dash-card .lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .dash-wide{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;flex:1;min-width:220px}
+  .dash-wide .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .pb-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;background:var(--ok);border-radius:4px;transition:width .4s}
+  .pb-pct{font-size:13px;color:var(--pend);font-weight:600;margin-top:6px}
+
+  .section{margin:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .section-header{padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface-2);font-weight:600;font-size:13px;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px}
+  .section-body{padding:16px}
+
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .info-item label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .info-item span{font-size:13px;color:var(--text)}
+
+  .warn-box{background:var(--warn-bg);border-left:3px solid var(--block);border-radius:4px;padding:10px 14px;color:#e8c07d;font-size:13px;margin-bottom:10px}
+  .info-box{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;color:#a9d3ff;font-size:13px;margin-bottom:10px}
+
+  .matriz{width:100%;border-collapse:collapse;font-size:13px}
+  .matriz th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .matriz td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .matriz tr:last-child td{border-bottom:none}
+  .cov-ok{color:var(--ok);font-weight:600}
+  .cov-pend{color:var(--pend)}
+
+  .group-header{background:linear-gradient(90deg,#0a2744,#152238);border-left:4px solid var(--accent);padding:10px 16px;font-weight:700;font-size:13px;color:#e6edf3;letter-spacing:.5px;margin-bottom:2px;border-radius:4px}
+
+  .ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-left:4px solid var(--pend);user-select:none;transition:background .15s}
+  .ct-bar:hover{background:var(--surface-2)}
+  [data-status="aprovado"]  .ct-bar{border-left-color:var(--ok)}
+  [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
+  [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
+  [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+  [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
+  .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
+  .ct-bar-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .ct-id{font-size:11px;font-weight:700;color:var(--accent);font-family:monospace;white-space:nowrap}
+  .ct-prio{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .p1{background:rgba(248,81,73,.2);color:var(--p1)}
+  .p2{background:rgba(210,153,34,.2);color:var(--p2)}
+  .p3{background:rgba(139,148,158,.2);color:var(--p3)}
+  .ct-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-status-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+  .chip-pend{background:rgba(139,148,158,.15);color:var(--pend)}
+  .chip-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .chip-fail{background:rgba(248,81,73,.15);color:var(--fail)}
+  .chip-block{background:rgba(210,153,34,.15);color:var(--block)}
+
+  .ct-panel{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2)}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ct-field label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .ct-field p,.ct-field ol,.ct-field ul{font-size:13px;color:var(--text)}
+  .ct-field ol,.ct-field ul{padding-left:18px}
+  .ct-field li{margin-bottom:3px}
+  .ct-field.full{grid-column:1/-1}
+  .ct-field code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .result-ok{background:rgba(63,185,80,.1);border-left:3px solid var(--ok);border-radius:4px;padding:8px 12px;color:#79c57e;font-size:13px}
+  .result-fail{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:8px 12px;color:#f85149;font-size:13px}
+
+  .ev-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .ev-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+  .ev-pendente{background:rgba(139,148,158,.15);color:var(--pend)}
+  .ev-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .ev-item img{width:100%;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+  .ev-item img:hover{opacity:.85}
+  .ev-item .ev-cap{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+  #lb.open{display:flex}
+  #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
+  #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px}
+
+  #resultado-execucao{margin:16px 24px;padding:14px 18px;border-radius:8px;font-size:13px;font-weight:600;background:var(--surface);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="pbi-badge">PBI-7582 · Sprint 9</div>
+  <h1>DI/DUIMP — Contadores de Carga por Sessão</h1>
+  <p>Módulo: Interface WI/Siscomex → Declarações Adições → Carga → DI Carga &nbsp;|&nbsp; Sistema: CITWEB &nbsp;|&nbsp; Ramo: Internacional &nbsp;|&nbsp; Autor: Wesley Moreira &nbsp;|&nbsp; Data: 02/07/2026</p>
+</header>
+
+<div class="dash">
+  <div class="dash-card">
+    <div class="val" id="ct-total">3</div>
+    <div class="lbl">Total CTs</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-aprovados" style="color:var(--ok)">0</div>
+    <div class="lbl">Aprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-reprovados" style="color:var(--fail)">0</div>
+    <div class="lbl">Reprovados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-bloqueados" style="color:var(--block)">0</div>
+    <div class="lbl">Bloqueados</div>
+  </div>
+  <div class="dash-card">
+    <div class="val" id="ct-pendentes" style="color:var(--pend)">3</div>
+    <div class="lbl">Pendentes</div>
+  </div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso de Execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-pct" id="pb-pct">0% — aguardando execução</div>
+  </div>
+</div>
+
+<!-- ══════════════════ IDENTIFICAÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Identificação</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Card</label><span>PBI-7582</span></div>
+      <div class="info-item"><label>Sprint</label><span>Sprint 9 Citweb</span></div>
+      <div class="info-item"><label>Módulo</label><span>Interface WI/Siscomex → Declarações Adições → Carga → DI Carga</span></div>
+      <div class="info-item"><label>Sistema</label><span>CITWEB</span></div>
+      <div class="info-item"><label>Ramo</label><span>Internacional (WI/Siscomex)</span></div>
+      <div class="info-item"><label>Seguradoras testadas</label><span>AXA (prioritária) + CITWEB CORE</span></div>
+      <div class="info-item"><label>Tags</label><span>AXA; CITWEB CORE</span></div>
+      <div class="info-item"><label>Task QA</label><span>—</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ DESCRIÇÃO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Descrição</div>
+  <div class="section-body">
+    <p style="margin-bottom:10px">O módulo DI Carga (Interface WI/Siscomex → Declarações Adições → Carga) exibe ao final do processamento quatro contadores: <strong>Lidas</strong>, <strong>Desprezadas</strong>, <strong>Inconsistentes</strong> e <strong>Incluídas</strong>. O PBI corrige um problema em que esses contadores acumulavam dados de sessões de outros usuários em vez de refletir exclusivamente a execução da sessão corrente.</p>
+    <div class="info-box">
+      <strong>Contexto:</strong> Em ambiente multiusuário, dois operadores processando cargas DI simultaneamente viam contadores somados — gerando confusão operacional e possibilidade de reprocessamento incorreto.
+    </div>
+    <p style="margin-bottom:10px"><strong>Critérios de Aceite:</strong></p>
+    <ul style="padding-left:18px;font-size:13px">
+      <li><strong>CA01</strong> — Isolamento por sessão simultânea: contadores do usuário A não são afetados pelos dados processados pelo usuário B na mesma janela de tempo.</li>
+      <li><strong>CA02</strong> — Estabilidade: contadores exibidos ao fim do processamento refletem corretamente a quantidade de registros da própria execução.</li>
+      <li><strong>CA03</strong> — Consistência durante processamento: contadores incrementam apenas com registros pertencentes à sessão ativa.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ ESCOPO ══════════════════ -->
+<div class="section">
+  <div class="section-header">Escopo</div>
+  <div class="section-body">
+    <p style="margin-bottom:8px;font-weight:600;color:var(--ok)">✓ In Scope</p>
+    <ul style="padding-left:18px;font-size:13px;margin-bottom:14px">
+      <li>Exibição dos contadores Lidas, Desprezadas, Inconsistentes e Incluídas após processamento DI</li>
+      <li>Isolamento dos contadores por sessão (usuário A vs usuário B simultâneos)</li>
+      <li>Estabilidade dos valores após conclusão da carga</li>
+      <li>Módulo: DI Carga (WI/Siscomex → Declarações Adições → Carga)</li>
+    </ul>
+    <p style="margin-bottom:8px;font-weight:600;color:var(--fail)">✗ Out of Scope</p>
+    <ul style="padding-left:18px;font-size:13px">
+      <li>Módulo DUIMP Carga (fluxo análogo — regressão futura se escopo expandir)</li>
+      <li>Validação de ambiente de produção (PRD) — apenas HML</li>
+      <li>Rollup de contadores para relatórios gerenciais</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════ PRÉ-REQUISITOS ══════════════════ -->
+<div class="section">
+  <div class="section-header">Pré-Requisitos</div>
+  <div class="section-body">
+    <div class="warn-box" style="margin-bottom:12px">
+      <strong>⚠ Massa de dados:</strong> CT-WIS-001 e CT-WIS-002 exigem pacotes DI disponíveis para carga no período selecionado. Verificar banco HML antes de executar. CT-WIS-002 requer duas sessões ativas simultaneamente — abrir em dois navegadores distintos ou dois perfis do Chrome.
+    </div>
+    <div class="warn-box">
+      <strong>⚠ Cotação de moeda:</strong> Módulo WI/Siscomex (ramo internacional) exige cotação USD (código 220) vigente na data. Verificar em Tabelas → Cadastros → Cotações de Moeda antes de iniciar.
+    </div>
+    <table class="matriz" style="margin-top:12px">
+      <thead>
+        <tr>
+          <th>Recurso</th>
+          <th>Detalhe</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Acesso CITWEB HML AXA</td>
+          <td>ROT_AUTO / T7Jjm6xF — URL ambiente HML</td>
+          <td class="cov-ok">Disponível</td>
+        </tr>
+        <tr>
+          <td>Pacotes DI no período</td>
+          <td>Ao menos 1 pacote disponível para carga na janela de data</td>
+          <td class="cov-pend">Verificar HML</td>
+        </tr>
+        <tr>
+          <td>Cotação USD (cód. 220)</td>
+          <td>Tabelas → Cadastros → Cotações de Moeda</td>
+          <td class="cov-pend">Verificar</td>
+        </tr>
+        <tr>
+          <td>Dois perfis de navegador</td>
+          <td>CT-WIS-002 exige sessões independentes — 2 janelas distintas logadas com o mesmo ou diferentes usuários</td>
+          <td class="cov-pend">Preparar antes de CT-002</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════ COBERTURA DE CAs ══════════════════ -->
+<div class="section">
+  <div class="section-header">Cobertura de Critérios de Aceite</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead>
+        <tr>
+          <th>CA</th>
+          <th>Descrição</th>
+          <th>CT(s) que cobrem</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CA01</td>
+          <td>Isolamento por sessão simultânea</td>
+          <td class="cov-ok">CT-WIS-002</td>
+        </tr>
+        <tr>
+          <td>CA02</td>
+          <td>Estabilidade dos contadores</td>
+          <td class="cov-ok">CT-WIS-001, CT-WIS-002</td>
+        </tr>
+        <tr>
+          <td>CA03</td>
+          <td>Consistência durante processamento</td>
+          <td class="cov-ok">CT-WIS-003</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════ CASOS DE TESTE ══════════════════ -->
+<div class="section">
+  <div class="section-header">Casos de Teste</div>
+  <div class="section-body" style="padding:12px 0">
+
+    <div style="padding:0 16px;margin-bottom:10px">
+      <div class="group-header">Grupo 1 — Processamento e Contadores DI (Sessão Única)</div>
+    </div>
+
+    <!-- CT-WIS-001 -->
+    <div style="padding:0 16px;margin-bottom:8px">
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggle(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-WIS-001</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Processamento DI — Contadores exibidos corretamente após carga única</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que após processar uma carga DI com um único usuário, os quatro contadores (Lidas, Desprezadas, Inconsistentes, Incluídas) refletem corretamente a quantidade de registros da execução.</p>
+          </div>
+          <div class="ct-field">
+            <label>Critério de Aceite Coberto</label>
+            <p>CA02 — Estabilidade dos contadores</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condição</label>
+            <p>Usuário logado no CITWEB HML AXA (ROT_AUTO). Ao menos 1 pacote DI disponível no período. Cotação USD vigente cadastrada.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Fazer login no CITWEB HML AXA com usuário ROT_AUTO.</li>
+              <li>Navegar: <strong>Interface WI/Siscomex → Declarações Adições → Carga → DI Carga</strong>.</li>
+              <li>Preencher <strong>Data Inicial</strong> e <strong>Data Final</strong> com período que contenha pacotes disponíveis.</li>
+              <li>Clicar em <strong>Listar Pacotes</strong> e aguardar o carregamento da grade.</li>
+              <li>Selecionar ao menos 1 pacote (marcar checkbox).</li>
+              <li>Clicar em <strong>Efetuar Carga</strong> e confirmar na caixa de diálogo.</li>
+              <li>Aguardar processamento até exibir resultado.</li>
+              <li>Registrar os valores dos contadores: <code>Lidas</code>, <code>Desprezadas</code>, <code>Inconsistentes</code>, <code>Incluídas</code>.</li>
+              <li>Capturar screenshot da tela de resultado com todos os contadores visíveis.</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <p>Os quatro contadores são exibidos. A soma <strong>Lidas = Desprezadas + Inconsistentes + Incluídas</strong> (ou Lidas ≥ Incluídas). Os valores correspondem à quantidade de registros do pacote selecionado. Nenhum contador exibe valor negativo ou incorretamente zerado.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova</label>
+            <p>Sem a correção do PBI, o contador Lidas poderia exibir um valor acumulado de sessões anteriores ou de outros usuários logados simultaneamente. Após a correção, repetir o processamento com o mesmo pacote e confirmar que os contadores refletem apenas a execução atual.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">PENDENTE</span>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div style="padding:0 16px;margin-bottom:10px">
+      <div class="group-header">Grupo 2 — Isolamento por Sessão Simultânea</div>
+    </div>
+
+    <!-- CT-WIS-002 -->
+    <div style="padding:0 16px;margin-bottom:8px">
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggle(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-WIS-002</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Isolamento de sessão — contadores de A não refletem dados de B processando simultaneamente</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Validar que quando dois usuários processam cargas DI simultaneamente, cada um vê exclusivamente os contadores referentes à sua própria execução (CA01, CA02).</p>
+          </div>
+          <div class="ct-field">
+            <label>Critério de Aceite Coberto</label>
+            <p>CA01 — Isolamento por sessão simultânea; CA02 — Estabilidade</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condição</label>
+            <p>Dois navegadores (ou dois perfis do Chrome) abertos e logados no CITWEB HML — ambos como ROT_AUTO ou como dois usuários distintos. Dois conjuntos de pacotes DI distintos disponíveis (ex.: períodos de data diferentes). Cotação USD vigente.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li><strong>[Sessão A]</strong> Navegar: Interface WI/Siscomex → Declarações Adições → Carga → DI Carga. Preencher período A. Clicar em Listar Pacotes. Selecionar N pacotes (anotar N).</li>
+              <li><strong>[Sessão B — simultaneamente]</strong> Navegar ao mesmo módulo no segundo navegador. Preencher período B (diferente de A). Listar Pacotes. Selecionar M pacotes (anotar M, M ≠ N).</li>
+              <li><strong>[Sessão A]</strong> Clicar em Efetuar Carga e confirmar.</li>
+              <li><strong>[Sessão B — logo após A iniciar]</strong> Clicar em Efetuar Carga e confirmar.</li>
+              <li>Aguardar ambos os processamentos concluírem.</li>
+              <li><strong>[Sessão A]</strong> Verificar contadores exibidos. Capturar screenshot.</li>
+              <li><strong>[Sessão B]</strong> Verificar contadores exibidos. Capturar screenshot.</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <p>Sessão A exibe contadores correspondentes a N pacotes selecionados por A. Sessão B exibe contadores correspondentes a M pacotes selecionados por B. Os valores de A e B são independentes — a Sessão A não exibe soma de A+B, e vice-versa.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova</label>
+            <p>Antes da correção, Sessão A exibiria "Lidas" com valor acumulado incluindo os pacotes de B. Após a correção, Sessão A deve exibir exclusivamente seus N registros.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">PENDENTE</span>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div style="padding:0 16px;margin-bottom:10px">
+      <div class="group-header">Grupo 3 — Consistência Após Processamento Concorrente</div>
+    </div>
+
+    <!-- CT-WIS-003 -->
+    <div style="padding:0 16px;margin-bottom:8px">
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar" onclick="toggle(this)">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-WIS-003</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">Consistência pós-concorrência — contadores de A não mudam após B concluir</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel" style="display:none">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Objetivo</label>
+            <p>Verificar que os contadores do usuário A permanecem inalterados na tela após o usuário B concluir seu próprio processamento (CA03 — consistência durante/após processamento).</p>
+          </div>
+          <div class="ct-field">
+            <label>Critério de Aceite Coberto</label>
+            <p>CA03 — Consistência durante processamento</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condição</label>
+            <p>Continuação do cenário CT-WIS-002 (ambas as sessões ativas após processar). Alternativamente: Sessão A concluiu seu processamento; Sessão B ainda está processando (ou inicia um segundo processamento).</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li><strong>[Sessão A]</strong> Após CT-WIS-002 ou novo processamento: anotar os valores dos quatro contadores exibidos (Lidas_A, Desprezadas_A, Inconsistentes_A, Incluídas_A).</li>
+              <li><strong>[Sessão B]</strong> Iniciar um novo processamento DI (selecionar pacotes distintos, Efetuar Carga).</li>
+              <li>Aguardar Sessão B concluir.</li>
+              <li><strong>[Sessão A]</strong> Reobservar os contadores na tela de resultado da Sessão A (sem recarregar a página).</li>
+              <li>Capturar screenshot de ambas as telas.</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <p>Os contadores da Sessão A continuam exibindo Lidas_A, Desprezadas_A, Inconsistentes_A, Incluídas_A — os mesmos valores de antes. O processamento da Sessão B não alterou a tela de resultado da Sessão A.</p>
+          </div>
+          <div class="ct-field full">
+            <label>Contraprova</label>
+            <p>Sem a correção, os contadores da Sessão A poderiam ser atualizados (incrementados) ao término do processamento da Sessão B, gerando inconsistência. Após a correção, a tela de A é estável e isolada.</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">PENDENTE</span>
+        </div>
+      </div>
+    </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════ RESULTADO FINAL ══════════════════ -->
+<div id="resultado-execucao">
+  ⏳ Aguardando execução dos CTs
+</div>
+
+<!-- Lightbox -->
+<div id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <span id="lb-cap"></span>
+</div>
+
+<script>
+function toggle(bar){
+  const block=bar.closest('.ct-block');
+  const panel=block.querySelector('.ct-panel');
+  const exp=block.getAttribute('data-expanded')==='true';
+  block.setAttribute('data-expanded',exp?'false':'true');
+  panel.style.display=exp?'none':'block';
+}
+function openLb(src,cap){
+  document.getElementById('lb-img').src=src;
+  document.getElementById('lb-cap').textContent=cap||'';
+  document.getElementById('lb').classList.add('open');
+}
+function closeLb(){document.getElementById('lb').classList.remove('open')}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb()});
+document.querySelectorAll('.ev-item img').forEach(img=>{
+  img.addEventListener('click',()=>openLb(img.src,img.closest('.ev-item').querySelector('.ev-cap')?.textContent));
+});
+</script>
+</body>
+</html>
