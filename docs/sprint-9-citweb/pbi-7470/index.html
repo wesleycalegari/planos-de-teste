@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — PBI-7470</title>
+<style>
+  :root{
+    --bg:#0f1114;--surface:#1a1d23;--surface-2:#22262e;--border:#343a46;
+    --text:#c9d1d9;--text-muted:#8b949e;--text-dim:#6e7681;
+    --accent:#3b9eff;--ok:#3fb950;--fail:#f85149;--block:#d29922;--pend:#8b949e;
+    --warn-bg:rgba(210,153,34,.12);--info-bg:rgba(59,158,255,.1);
+    --p1:#f85149;--p2:#d29922;--p3:#8b949e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+  header{background:linear-gradient(135deg,#0a2744 0%,#152238 50%,var(--bg) 100%);padding:32px 24px 28px;border-bottom:1px solid var(--border)}
+  .pbi-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+  header h1{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+  header p{color:var(--text-muted);font-size:13px}
+
+  .dash{display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;min-width:100px;text-align:center}
+  .dash-card .val{font-size:26px;font-weight:700;line-height:1}
+  .dash-card .lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .dash-wide{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;flex:1;min-width:220px}
+  .dash-wide .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .pb-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;background:var(--pend);border-radius:4px;width:0%;transition:width .4s}
+  .pb-pct{font-size:13px;color:var(--pend);font-weight:600;margin-top:6px}
+
+  .section{margin:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .section-header{padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface-2);font-weight:600;font-size:13px;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px}
+  .section-body{padding:16px}
+
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .info-item label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .info-item span{font-size:13px;color:var(--text)}
+
+  .warn-box{background:var(--warn-bg);border-left:3px solid var(--block);border-radius:4px;padding:10px 14px;color:#e8c07d;font-size:13px;margin-bottom:10px}
+  .info-box{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;color:#a9d3ff;font-size:13px;margin-bottom:10px}
+
+  .matriz{width:100%;border-collapse:collapse;font-size:13px}
+  .matriz th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .matriz td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .matriz tr:last-child td{border-bottom:none}
+  .cov-ok{color:var(--ok);font-weight:600}
+  .cov-pend{color:var(--pend)}
+
+  .group-header{background:linear-gradient(90deg,#0a2744,#152238);border-left:4px solid var(--accent);padding:10px 16px;font-weight:700;font-size:13px;color:#e6edf3;letter-spacing:.5px;margin-bottom:2px;border-radius:4px}
+
+  .ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-left:4px solid var(--pend);user-select:none;transition:background .15s}
+  .ct-bar:hover{background:var(--surface-2)}
+  [data-status="aprovado"]  .ct-bar{border-left-color:var(--ok)}
+  [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
+  [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
+  [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+  [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
+  .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
+  .ct-bar-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .ct-id{font-size:11px;font-weight:700;color:var(--accent);font-family:monospace;white-space:nowrap}
+  .ct-prio{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .p1{background:rgba(248,81,73,.2);color:var(--p1)}
+  .p2{background:rgba(210,153,34,.2);color:var(--p2)}
+  .p3{background:rgba(139,148,158,.2);color:var(--p3)}
+  .ct-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-status-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+  .chip-pend{background:rgba(139,148,158,.15);color:var(--pend)}
+  .chip-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .chip-fail{background:rgba(248,81,73,.15);color:var(--fail)}
+  .chip-block{background:rgba(210,153,34,.15);color:var(--block)}
+
+  .ct-panel{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2);display:none}
+  [data-expanded="true"] .ct-panel{display:block}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ct-field label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .ct-field p,.ct-field ol,.ct-field ul{font-size:13px;color:var(--text)}
+  .ct-field ol,.ct-field ul{padding-left:18px}
+  .ct-field li{margin-bottom:3px}
+  .ct-field.full{grid-column:1/-1}
+  .ct-field code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .result-ok{background:rgba(63,185,80,.1);border-left:3px solid var(--ok);border-radius:4px;padding:8px 12px;color:#79c57e;font-size:13px}
+  .result-fail{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:8px 12px;color:#f85149;font-size:13px}
+
+  .ev-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .ev-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+  .ev-pendente{background:rgba(139,148,158,.15);color:var(--pend)}
+  .ev-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .ev-item img{width:100%;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+  .ev-item img:hover{opacity:.85}
+  .ev-item .ev-cap{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+  #lb.open{display:flex}
+  #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
+  #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px}
+
+  .risks-table{width:100%;border-collapse:collapse;font-size:13px}
+  .risks-table th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .risks-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .risks-table tr:last-child td{border-bottom:none}
+  .risk-high{color:var(--fail)}
+  .risk-med{color:var(--block)}
+  .risk-low{color:var(--ok)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="pbi-badge">PBI-7470 · Sprint 9</div>
+  <h1>[CITWEB] Recálculo de DDR — FAIRFAX</h1>
+  <p>Expõe botão "Recalcular DDR" para qualquer seguradora com DDR cadastrado e encadeia DDR automaticamente no recálculo geral · Autor: QA Auto · 06/07/2026</p>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:var(--accent)">5</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:var(--ok)">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:var(--fail)">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:var(--pend)">5</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-pct" id="pb-pct">0% concluído</div>
+  </div>
+</div>
+
+<!-- IDENTIFICAÇÃO -->
+<div class="section">
+  <div class="section-header">Identificação</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Card</label><span>PBI-7470</span></div>
+      <div class="info-item"><label>Sprint</label><span>Sprint_9_Citweb</span></div>
+      <div class="info-item"><label>Sistema</label><span>CITWEB — Site Nacional</span></div>
+      <div class="info-item"><label>Seguradora</label><span>FAIRFAX (principal) · AXA / EZZE (regressão)</span></div>
+      <div class="info-item"><label>Ramos</label><span>52, 54 (RCTR-C), 55, 58-RCTAC</span></div>
+      <div class="info-item"><label>Autor</label><span>QA Auto · Wesley Moreira</span></div>
+      <div class="info-item"><label>Data</label><span>06/07/2026</span></div>
+      <div class="info-item"><label>Build ref.</label><span>feat/7470-recalculo-ddr (11 commits)</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- DESCRIÇÃO -->
+<div class="section">
+  <div class="section-header">Descrição &amp; Contexto</div>
+  <div class="section-body">
+    <div class="info-box">
+      <strong>O que mudou:</strong> O botão "Recalcular DDR" era visível apenas para AXA (hardcode <code>Empresa == "AXA"</code>). Agora é exibido para qualquer seguradora com o indicativo <code>Ind_Existe_tb_ddr_tom_cit</code> ativo. Adicionalmente, o recálculo geral ("Recalcular") passou a encadear o DDR automaticamente ao final para ramos elegíveis (52, 54, 55, 58-RCTAC), exceto para CHUBB, ACE e EZZE (exceção por Indicativo: <code>Ind_ExcecaoRecalculoDdrIntegrado = 'S'</code>).
+    </div>
+    <div class="warn-box" style="margin-top:8px">
+      <strong>Contexto de negócio:</strong> FAIRFAX não conseguia fechar apólices com DDR — funcionalidade existia no CIT legado (VB6) mas no CITWEB só AXA acessava o botão. Ticket Movidesk #274325.
+    </div>
+    <p style="margin-top:10px;font-size:13px"><strong>Gate por Indicativo</strong> (em vez de comparação de nome de empresa hardcoded) passou por várias rodadas de review até chegar nesta forma. Indicativos novos se auto-provisionam em catalogs novos; catalogs existentes (ex.: EZZE) precisaram de seed manual via script SQL executado em HML em 06/07/2026.</p>
+  </div>
+</div>
+
+<!-- PRÉ-REQUISITOS -->
+<div class="section">
+  <div class="section-header">Pré-Requisitos &amp; Massa de Dados</div>
+  <div class="section-body">
+    <div class="info-box">
+      <strong>Ambiente principal:</strong> HML FAIRFAX — <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code><br>
+      Usuário: <code>ROT_AUTO</code> | Senha: <code>T7Jjm6xF</code> | Perfil: Operador/Gestor
+    </div>
+    <div class="info-box" style="margin-top:8px">
+      <strong>Massa FAIRFAX (validada end-to-end em HML — Diego Almeida, 06/07/2026):</strong><br>
+      Apólice: <code>1</code> | Ramo: <code>54 — RCTR-C</code> | Filial: <code>1</code> | Subgrupo: <code>1</code> | Referência: <code>05/2026</code><br>
+      DDR Parcial vigente: <code>04/2026 a 09/2026</code><br>
+      Averbações: <code>202600000069</code> / <code>202600000070</code>
+    </div>
+    <div class="info-box" style="margin-top:8px">
+      <strong>Ambiente regressão AXA:</strong> HML AXA — <code>https://axa-hml-faturamento.nsseg.com.br/login/</code><br>
+      Usuário: <code>FRED</code> | Senha: <code>DERF</code>
+    </div>
+    <div class="info-box" style="margin-top:8px">
+      <strong>Ambiente regressão EZZE:</strong> HML EZZE — <code>https://ezze-hml-faturamento.nsseg.com.br/login/</code><br>
+      Usuário: <code>FRED</code> | Senha: <code>DERF</code>
+    </div>
+    <div class="warn-box" style="margin-top:8px">
+      <strong>Seed SQL EZZE executado:</strong> Script <code>7470-seed-indicativos-ddr.sql</code> executado no catalog EZZE em 06/07/2026 16:56. <code>Ind_ExcecaoRecalculoDdrIntegrado = 'S'</code> confirmado. Sem alteração de schema — apenas dados de configuração.
+    </div>
+  </div>
+</div>
+
+<!-- CASOS DE TESTE -->
+<div class="section">
+  <div class="section-header">Casos de Teste</div>
+  <div class="section-body">
+
+    <div class="group-header">Grupo 1 — FAIRFAX: Novo acesso ao Recálculo de DDR</div>
+    <div style="height:8px"></div>
+
+    <!-- CT-DDR-001 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDR-001</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Botão "Recalcular DDR" visível e funcional para FAIRFAX — happy path</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Tipo</label><p>Positivo — Novo acesso</p>
+          </div>
+          <div class="ct-field">
+            <label>Prioridade</label><p>P1 — Bloqueante (CA-01)</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML FAIRFAX (<code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code>)</li>
+              <li>Branch <code>feat/7470-recalculo-ddr</code> deployada em HML</li>
+              <li>Usuário ROT_AUTO com perfil de acesso ao módulo Recálculo de Averbações</li>
+              <li>Apólice 1 | Ramo 54 | Filial 1 | DDR Parcial vigente 04/2026-09/2026</li>
+            </ul>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Acessar <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code> e fazer login com ROT_AUTO / T7Jjm6xF</li>
+              <li>No menu superior clicar em <strong>Nacional</strong></li>
+              <li>No submenu clicar em <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Verificar que o botão <strong>"Recalcular DDR"</strong> está visível na tela</li>
+              <li>Preencher: Filial = <code>1</code>, Ramo = <code>54</code>, Apólice = <code>1</code>, Referência = <code>05/2026</code></li>
+              <li>Clicar em <strong>"Recalcular DDR"</strong></li>
+              <li>Confirmar o dialog de confirmação (se aparecer)</li>
+              <li>Aguardar processamento e capturar a mensagem de resultado</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">✓ Botão "Recalcular DDR" presente e clicável. Após execução: mensagem <strong>"Foram recalculadas N averbações com sucesso!"</strong> (N ≥ 1), sem erro 500 ou mensagem de exceção.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Aguardando execução</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-DDR-002 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDR-002</span>
+          <span class="ct-prio p1">P1</span>
+          <span class="ct-title">Recálculo geral ("Recalcular") encadeia DDR automaticamente — FAIRFAX ramo 54</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Tipo</label><p>Positivo — Encadeamento automático</p>
+          </div>
+          <div class="ct-field">
+            <label>Prioridade</label><p>P1 — Bloqueante (CA-02)</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condições</label>
+            <ul>
+              <li>Mesmo ambiente e massa do CT-DDR-001</li>
+              <li>Ramo 54 está na lista de elegíveis (52, 54, 55, 58-RCTAC)</li>
+              <li>FAIRFAX não está na lista de exceções (CHUBB/ACE/EZZE)</li>
+            </ul>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Login HML FAIRFAX com ROT_AUTO / T7Jjm6xF</li>
+              <li>Nacional → Averbação → Recálculo de Averbações</li>
+              <li>Preencher: Filial = <code>1</code>, Ramo = <code>54</code>, Apólice = <code>1</code>, Referência = <code>05/2026</code></li>
+              <li>Clicar em <strong>"Recalcular"</strong> (botão de recálculo geral — NÃO o botão DDR)</li>
+              <li>Confirmar o dialog</li>
+              <li>Aguardar conclusão do recálculo geral</li>
+              <li>Verificar se o encadeamento DDR ocorreu automaticamente ao final</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">✓ Recálculo geral conclui com sucesso E encadeia o DDR automaticamente (Opção B): mensagem indica que o DDR foi processado em seguida. Sem erro 500 ou stack trace.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Observação Técnica</label>
+            <p style="font-size:12px;color:var(--text-muted)">O encadeamento DDR ocorre via <code>AverbacaoMovimentoAbertoNacionalDomain.cs</code> após <code>RecalcularAverbacaoBloco</code>. Para ramos elegíveis sem exceção de empresa, o DDR é acionado automaticamente (Opção B do fork de lógica no Domain).</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Aguardando execução</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+    <div class="group-header">Grupo 2 — Exceções ao encadeamento DDR (CHUBB/ACE/EZZE)</div>
+    <div style="height:8px"></div>
+
+    <!-- CT-DDR-003 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDR-003</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">EZZE — recálculo geral NÃO encadeia DDR (Ind_ExcecaoRecalculoDdrIntegrado = 'S')</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Tipo</label><p>Negativo — Exceção por Indicativo</p>
+          </div>
+          <div class="ct-field">
+            <label>Prioridade</label><p>P2 — Importante (CA-02 — exceção)</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML EZZE (<code>https://ezze-hml-faturamento.nsseg.com.br/login/</code>)</li>
+              <li>Usuário: FRED / DERF</li>
+              <li>Seed SQL executado: <code>Ind_ExcecaoRecalculoDdrIntegrado = 'S'</code> no catalog EZZE</li>
+              <li>Apólice com DDR cadastrado disponível em HML EZZE (buscar via UI)</li>
+            </ul>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Login HML EZZE com FRED / DERF</li>
+              <li>Nacional → Averbação → Recálculo de Averbações</li>
+              <li>Preencher Filial, Ramo (elegível: 52, 54, 55 ou 58-RCTAC), Apólice e Referência</li>
+              <li>Clicar em <strong>"Recalcular"</strong> (recálculo geral)</li>
+              <li>Aguardar conclusão</li>
+              <li>Verificar que o DDR NÃO foi encadeado automaticamente após o recálculo geral</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">✓ Recálculo geral conclui normalmente mas SEM encadear o DDR automaticamente. Comportamento anterior da EZZE mantido. Sem erro 500.</div>
+          </div>
+          <div class="ct-field full">
+            <label>Observação Técnica</label>
+            <p style="font-size:12px;color:var(--text-muted)">A exceção é controlada pelo indicativo <code>Ind_ExcecaoRecalculoDdrIntegrado</code>. Quando <code>'S'</code>, o Domain ignora o encadeamento automático do DDR — independentemente do ramo. CHUBB e ACE seguem a mesma lógica (CHUBB adicionalmente usa procedure dedicada via <code>Ind_UsaProcedureDedicadaDdr</code>).</p>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Aguardando execução</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:16px"></div>
+    <div class="group-header">Grupo 3 — Regressão (AXA &amp; Smoke)</div>
+    <div style="height:8px"></div>
+
+    <!-- CT-DDR-004 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDR-004</span>
+          <span class="ct-prio p2">P2</span>
+          <span class="ct-title">AXA — botão "Recalcular DDR" continua visível e funcional (sem regressão)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Tipo</label><p>Regressão</p>
+          </div>
+          <div class="ct-field">
+            <label>Prioridade</label><p>P2 — Importante (CA-03)</p>
+          </div>
+          <div class="ct-field full">
+            <label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML AXA (<code>https://axa-hml-faturamento.nsseg.com.br/login/</code>)</li>
+              <li>Usuário: FRED / DERF</li>
+              <li>Apólice com DDR cadastrado disponível em HML AXA (apólice 2, filial 1 — possui CC)</li>
+            </ul>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Login HML AXA com FRED / DERF</li>
+              <li>Nacional → Averbação → Recálculo de Averbações</li>
+              <li>Verificar que o botão <strong>"Recalcular DDR"</strong> está visível</li>
+              <li>Preencher Filial, Ramo, Apólice e Referência adequados para AXA</li>
+              <li>Clicar em <strong>"Recalcular DDR"</strong></li>
+              <li>Confirmar e aguardar resultado</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">✓ Botão "Recalcular DDR" visível para AXA (regressão). Execução conclui com sucesso — mensagem "Foram recalculadas N averbações com sucesso!". Comportamento da AXA mantido após refactor de hardcode para gate por Indicativo.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Aguardando execução</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-DDR-005 -->
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDR-005</span>
+          <span class="ct-prio p3">P3</span>
+          <span class="ct-title">Smoke — login e navegação FAIRFAX sem erro 500</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field">
+            <label>Tipo</label><p>Smoke / Regressão geral</p>
+          </div>
+          <div class="ct-field">
+            <label>Prioridade</label><p>P3 — Desejável</p>
+          </div>
+          <div class="ct-field full">
+            <label>Passos</label>
+            <ol>
+              <li>Login FAIRFAX HML com ROT_AUTO / T7Jjm6xF</li>
+              <li>Verificar que o menu principal carrega sem erro 500</li>
+              <li>Navegar por Nacional → Averbação</li>
+              <li>Navegar por Nacional → Apólice → Dados Apólice</li>
+              <li>Verificar que as telas carregam normalmente sem HTTP 500 ou exceção não tratada</li>
+            </ol>
+          </div>
+          <div class="ct-field full">
+            <label>Resultado Esperado</label>
+            <div class="result-ok">✓ Login bem-sucedido. Navegação principal sem erro 500 ou stack trace. Telas do módulo Nacional carregam corretamente.</div>
+          </div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-lbl">Evidências</div>
+          <span class="ev-badge ev-pendente">Aguardando execução</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MATRIZ DE RASTREABILIDADE -->
+<div class="section">
+  <div class="section-header">Matriz de Rastreabilidade</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead>
+        <tr>
+          <th>Critério de Aceite</th>
+          <th>CTs</th>
+          <th>Cobertura</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>CA-01: Usuário FAIRFAX vê e usa o botão "Recalcular DDR"</td>
+          <td>CT-DDR-001</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td>CA-02: Recálculo geral encadeia DDR para ramos 52/54/55/58-RCTAC, exceto CHUBB/ACE/EZZE</td>
+          <td>CT-DDR-002, CT-DDR-003</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td>CA-03: AXA, ACE e CHUBB mantêm comportamento anterior</td>
+          <td>CT-DDR-004</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td>Smoke: login e navegação sem erro 500</td>
+          <td>CT-DDR-005</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- MÉTRICAS -->
+<div class="section">
+  <div class="section-header">Métricas</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead>
+        <tr><th>Prioridade</th><th>Qtd</th><th>CTs</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>P1 — Bloqueante</td><td>2</td><td>CT-DDR-001, CT-DDR-002</td></tr>
+        <tr><td>P2 — Importante</td><td>2</td><td>CT-DDR-003, CT-DDR-004</td></tr>
+        <tr><td>P3 — Desejável</td><td>1</td><td>CT-DDR-005</td></tr>
+        <tr><td><strong>Total</strong></td><td><strong>5</strong></td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="info-box" style="margin-top:12px">
+      <strong>Cobertura CAs:</strong> 3 critérios de aceite mapeados · 5 CTs · 100% dos CAs cobertos (0% executados).
+    </div>
+  </div>
+</div>
+
+<!-- RISCOS -->
+<div class="section">
+  <div class="section-header">Riscos</div>
+  <div class="section-body">
+    <table class="risks-table">
+      <thead>
+        <tr><th>Risco</th><th>Prob</th><th>Impacto</th><th>Mitigação</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Indicativo <code>Ind_Existe_tb_ddr_tom_cit</code> não ativo para FAIRFAX HML — botão não aparece</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-high">Alto</td>
+          <td>Verificar via SQL <code>SELECT * FROM tb_ctl_sis_cit WHERE UPPER(n_fun_sis) LIKE '%DDR%'</code> antes de executar CT-DDR-001</td>
+        </tr>
+        <tr>
+          <td>Seed SQL EZZE revertido por deploy posterior — indicativo voltaria a 'N' e EZZE passaria a encadear DDR</td>
+          <td class="risk-low">Baixa</td>
+          <td class="risk-med">Médio</td>
+          <td>Diego confirmou script idempotente (IF NOT EXISTS / UPDATE condicional). Verificar valor antes de executar CT-DDR-003.</td>
+        </tr>
+        <tr>
+          <td>Apólice 1 FAIRFAX sem averbações abertas no período 05/2026 — recálculo retorna "0 averbações"</td>
+          <td class="risk-low">Baixa</td>
+          <td class="risk-med">Médio</td>
+          <td>Massa validada por Diego end-to-end (averbações 202600000069 / 202600000070). Se massa sumir, buscar via <code>SELECT TOP 5 u_avb FROM tb_mov_avb_rcv_cit</code> no HML.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ESCOPO -->
+<div class="section">
+  <div class="section-header">Escopo</div>
+  <div class="section-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div style="font-weight:600;color:var(--ok);margin-bottom:8px;font-size:13px">✓ IN SCOPE</div>
+        <ul style="font-size:13px;padding-left:16px;color:var(--text)">
+          <li>Botão "Recalcular DDR" visível para FAIRFAX</li>
+          <li>Recálculo DDR via botão específico FAIRFAX</li>
+          <li>Encadeamento automático DDR no recálculo geral (ramos 52/54/55/58-RCTAC)</li>
+          <li>Exceção EZZE (não encadeia DDR)</li>
+          <li>Regressão AXA (botão DDR continua funcionando)</li>
+          <li>Smoke login/navegação FAIRFAX</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-weight:600;color:var(--fail);margin-bottom:8px;font-size:13px">✗ OUT OF SCOPE</div>
+        <ul style="font-size:13px;padding-left:16px;color:var(--text)">
+          <li>Deploy em produção</li>
+          <li>Cenário "tenant sem DDR" (não existe no HML)</li>
+          <li>Testes de performance e carga</li>
+          <li>CHUBB/ACE (não há catalogs disponíveis em HML)</li>
+          <li>Ramos não elegíveis (ex.: 59-RCV)</li>
+          <li>CITNET — não afetado por esta feature</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <div id="lb-cap"></div>
+</div>
+
+<script>
+function openLb(src, cap) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-cap').textContent = cap;
+  document.getElementById('lb').classList.add('open');
+}
+function closeLb() {
+  document.getElementById('lb').classList.remove('open');
+}
+document.querySelectorAll('.ct-bar').forEach(bar => {
+  bar.addEventListener('click', () => {
+    const block = bar.closest('.ct-block');
+    const expanded = block.dataset.expanded === 'true';
+    block.dataset.expanded = expanded ? 'false' : 'true';
+  });
+});
+document.querySelectorAll('.ev-item img').forEach(img => {
+  img.onclick = (e) => { e.stopPropagation(); openLb(img.src, img.alt); };
+});
+</script>
+</body>
+</html>
