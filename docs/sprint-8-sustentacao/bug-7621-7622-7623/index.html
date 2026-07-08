@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Testes — BUGs #7621 · #7622 · #7623 | CITNET KOVR ALFA — Embarques</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --muted:    #8b949e;
+  --accent:   #1f6feb;
+  --accent2:  #238636;
+  --accent3:  #1a7f64;
+  --accent4:  #9a6700;
+  --fail:     #da3633;
+  --warn:     #d29922;
+  --chip-p1:  #da3633;
+  --chip-p2:  #ca5010;
+  --chip-p3:  #6e7681;
+  --chip-pend:#1f6feb;
+  --chip-ok:  #238636;
+  --chip-fail:#da3633;
+  --chip-blk: #6e7681;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.topbar-sub   { font-size: 11px; color: var(--muted); }
+.topbar-bugs  { display: flex; gap: 6px; margin-left: auto; }
+.bug-chip {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: #161b22;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* ── METRICS STRIP ── */
+.metrics {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.metric {
+  flex: 1;
+  padding: 12px 20px;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.metric:last-child { border-right: none; }
+.metric-val { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.metric-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
+.mv-total  { color: var(--accent); }
+.mv-ok     { color: var(--accent2); }
+.mv-fail   { color: var(--fail); }
+.mv-pend   { color: var(--muted); }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap { padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.progress-bar  { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent2); border-radius: 3px; width: 0%; transition: width .4s; }
+.progress-lbl  { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* ── MAIN LAYOUT ── */
+.container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+/* ── INFO BOX ── */
+.info-box {
+  background: #0d1f38;
+  border: 1px solid #1f4d88;
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.info-box strong { color: #79c0ff; }
+.warn-box {
+  background: #1c1700;
+  border: 1px solid #4d3800;
+  border-left: 4px solid var(--warn);
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.warn-box strong { color: #e3b341; }
+
+/* ── GROUP HEADER ── */
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 24px 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.gh-blue   { background: #0d1f38; border-left: 4px solid var(--accent);  color: #79c0ff; }
+.gh-green  { background: #0d2618; border-left: 4px solid var(--accent2); color: #56d364; }
+.gh-teal   { background: #0d2218; border-left: 4px solid var(--accent3); color: #39d353; }
+.gh-amber  { background: #1c1700; border-left: 4px solid var(--accent4); color: #e3b341; }
+.gh-violet { background: #1a0f33; border-left: 4px solid #8b5cf6;        color: #c4b5fd; }
+.gh-grey   { background: #161b22; border-left: 4px solid var(--muted);   color: var(--muted); }
+.gh-badge  { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: rgba(255,255,255,.08); }
+
+/* ── CT BLOCK ── */
+.ct-block {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.ct-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+}
+.ct-bar:hover { background: rgba(255,255,255,.03); }
+.ct-toggle { font-size: 10px; color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+.ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+.ct-id   { font-size: 11px; font-weight: 700; color: var(--accent); font-family: monospace; }
+.ct-title { font-size: 13px; font-weight: 500; flex: 1; }
+.ct-panel { display: none; border-top: 1px solid var(--border); }
+.ct-block.expanded .ct-panel { display: block; }
+
+/* ── PRIORITY BADGES ── */
+.prio { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.prio-p1 { background: rgba(218,54,51,.18); color: #ff7b72; border: 1px solid rgba(218,54,51,.4); }
+.prio-p2 { background: rgba(202,80,16,.18); color: #ffa657; border: 1px solid rgba(202,80,16,.4); }
+.prio-p3 { background: rgba(110,118,129,.18); color: var(--muted); border: 1px solid rgba(110,118,129,.4); }
+
+/* ── STATUS CHIPS ── */
+.chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.chip-pend { background: rgba(31,111,235,.2); color: #79c0ff; border: 1px solid rgba(31,111,235,.4); }
+.chip-ok   { background: rgba(35,134,54,.2);  color: #56d364; border: 1px solid rgba(35,134,54,.4); }
+.chip-fail { background: rgba(218,54,51,.2);  color: #ff7b72; border: 1px solid rgba(218,54,51,.4); }
+.chip-blk  { background: rgba(110,118,129,.2); color: var(--muted); border: 1px solid rgba(110,118,129,.4); }
+
+/* ── CT PANEL CONTENT ── */
+.ct-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.ct-field {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.ct-field.full { grid-column: 1 / -1; border-right: none; }
+.ct-field:nth-child(even) { border-right: none; }
+.ct-field label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); display: block; margin-bottom: 4px; }
+.ct-field p, .ct-field ul, .ct-field ol { font-size: 12px; color: #c9d1d9; }
+.ct-field ul, .ct-field ol { padding-left: 16px; }
+.ct-field li { margin-bottom: 3px; }
+code { background: #21262d; border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-size: 11px; font-family: 'Cascadia Code', 'Consolas', monospace; color: #79c0ff; }
+.result-ok   { background: #0d2618; border: 1px solid #238636; border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #56d364; }
+.result-fail { background: #1c0d0d; border: 1px solid #da3633; border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #ff7b72; }
+
+/* ── EVIDÊNCIAS ── */
+.ev-section { padding: 12px 16px; border-top: 1px solid var(--border); background: #0d1117; }
+.ev-label   { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+.ev-grid    { display: flex; gap: 8px; flex-wrap: wrap; }
+.ev-item    { }
+.ev-item img { max-width: 340px; max-height: 220px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; display: block; }
+.ev-item img:hover { border-color: var(--accent); }
+.ev-cap { font-size: 10px; color: var(--muted); margin-top: 4px; max-width: 340px; }
+.ev-banner-ok   { background: #0d2618; border: 1px solid #238636; border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #56d364; margin-bottom: 8px; }
+.ev-banner-fail { background: #1c0d0d; border: 1px solid #da3633; border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #ff7b72; margin-bottom: 8px; }
+.ev-banner-pend { background: #0d1f38; border: 1px solid #1f6feb; border-radius: 4px; padding: 8px 12px; font-size: 12px; color: #79c0ff; margin-bottom: 8px; }
+
+/* ── LIGHTBOX ── */
+#lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9999; align-items:center; justify-content:center; cursor:zoom-out; }
+#lb.open { display:flex; }
+#lb img { max-width:92vw; max-height:90vh; border-radius:6px; box-shadow:0 8px 40px rgba(0,0,0,.6); }
+
+/* ── FOOTER ── */
+footer { text-align:center; padding: 32px 24px; color: var(--muted); font-size: 11px; border-top: 1px solid var(--border); margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="this.classList.remove('open')"><img id="lb-img" src="" alt=""></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Plano de Testes — Embarques CITNET → CITWEB</div>
+    <div class="topbar-sub">CITNET KOVR ALFA HML &nbsp;·&nbsp; Perfil Segurado &nbsp;·&nbsp; Sprint 8 Sustentação &nbsp;·&nbsp; 08/07/2026</div>
+  </div>
+  <div class="topbar-bugs">
+    <span class="bug-chip">BUG #7621</span>
+    <span class="bug-chip">BUG #7622</span>
+    <span class="bug-chip">BUG #7623</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="metric-val mv-total" id="m-total">8</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric"><div class="metric-val mv-ok" id="m-ok">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric"><div class="metric-val mv-fail" id="m-fail">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric"><div class="metric-val mv-pend" id="m-pend">8</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+  <div class="progress-lbl" id="prog-lbl">0 de 8 executados (0%)</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="container">
+
+  <div class="info-box">
+    <strong>Contexto do Bug</strong><br>
+    Apólices <code>99991</code> (Ramo 56), <code>99992</code> (Ramo 52) e <code>99993</code> (Ramo 38) no CITNET KOVR ALFA: ao gerar Prévia / Relatório Mensal com perfil Segurado, o sistema exibia apenas a opção <em>"Prêmio Mínimo Sem Averbação"</em> mesmo com embarques averbados no CITNET. As averbações não replicavam para o CITWEB, tornando impossível selecionar averbações específicas na prévia.<br><br>
+    <strong>Ambiente:</strong> <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code> &nbsp;|&nbsp;
+    <strong>Credenciais:</strong> <code>TSTALFA1 / Alfanu#94b</code> (Interno ALFA)
+  </div>
+
+  <!-- GROUP 1: SMOKE -->
+  <div class="group-header gh-blue">
+    <span>Grupo 1 — Smoke / Acesso</span>
+    <span class="gh-badge">1 CT</span>
+  </div>
+
+  <!-- CT-EMB-001 -->
+  <div class="ct-block expanded" id="ct-emb-001">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-001</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Login CITNET KOVR ALFA com perfil Interno (TSTALFA1)</span>
+      <span class="chip chip-pend" id="chip-ct-emb-001">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Smoke</p></div>
+        <div class="ct-field"><label>Ramo</label><p>N/A — acesso geral</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>Ambiente CITNET KOVR ALFA acessível: <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>Navegar para <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+            <li>Preencher <strong>Usuário:</strong> <code>TSTALFA1</code></li>
+            <li>Preencher <strong>Senha:</strong> <code>Alfanu#94b</code></li>
+            <li>Clicar em <strong>Entrar</strong></li>
+            <li>Verificar que o menu principal do CITNET é exibido (tela home visível)</li>
+            <li>Capturar screenshot da tela inicial</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ Login realizado com sucesso. Tela home do CITNET exibida com menu superior visível. Sem mensagem de erro ou redirecionamento para tela de erro.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 2: BUG #7621 -->
+  <div class="group-header gh-green">
+    <span>Grupo 2 — BUG #7621 &nbsp;·&nbsp; Ramo 56 RCA-C &nbsp;·&nbsp; Apólice 99991</span>
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-EMB-002 -->
+  <div class="ct-block expanded" id="ct-emb-002">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-002</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 56 — Averbações do CITNET replicam no CITWEB (Apólice 99991)</span>
+      <span class="chip chip-pend" id="chip-ct-emb-002">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Replicação de dados</p></div>
+        <div class="ct-field"><label>Ramo</label><p>56 — RCA-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-001 aprovado (login CITNET KOVR ALFA)</li>
+            <li>Apólice <code>99991</code> (Ramo 56) ativa com ao menos 1 averbação</li>
+            <li>Acesso ao CITWEB KOVR HML: <code>https://kovr-hml-faturamento.nsseg.com.br/login/</code> com <code>ROT_AUTO / T7Jjm6xF</code></li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA, navegar para <strong>Averbações</strong> → consultar averbações da apólice <code>99991</code> (Ramo 56)</li>
+            <li>Verificar que existe ao menos 1 averbação registrada — anotar o número</li>
+            <li>Capturar screenshot da lista de averbações no CITNET</li>
+            <li>Abrir novo tab ou acessar o CITWEB KOVR HML: <code>https://kovr-hml-faturamento.nsseg.com.br/login/</code></li>
+            <li>Login com <code>ROT_AUTO / T7Jjm6xF</code></li>
+            <li>Navegar para <strong>Internacional</strong> → <strong>Averbação</strong> → consultar apólice <code>99991</code> / Ramo 56</li>
+            <li>Verificar que as averbações aparecem na listagem do CITWEB</li>
+            <li>Capturar screenshot do CITWEB mostrando as averbações</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ As averbações registradas no CITNET para apólice 99991 (Ramo 56) aparecem na consulta do CITWEB. Não há discrepância entre os registros dos dois sistemas.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-EMB-003 -->
+  <div class="ct-block expanded" id="ct-emb-003">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-003</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 56 — Relatório Mensal lista averbações na prévia (não só "Prêmio Mínimo")</span>
+      <span class="chip chip-pend" id="chip-ct-emb-003">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Validação de UI/relatório</p></div>
+        <div class="ct-field"><label>Ramo</label><p>56 — RCA-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-002 aprovado (averbações replicadas no CITWEB)</li>
+            <li>Sessão ativa no CITNET KOVR ALFA com TSTALFA1</li>
+            <li>Apólice <code>99991</code> com ao menos 1 embarque averbado no mês corrente</li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA, navegar para <strong>Faturamento</strong> → <strong>Relatório Mensal</strong> (ou <strong>Prévia</strong>)</li>
+            <li>Selecionar Ramo <strong>56 - RCA-C</strong> e apólice <code>99991</code></li>
+            <li>Selecionar a competência do mês com averbações</li>
+            <li>Clicar em <strong>Consultar</strong> / <strong>Gerar</strong></li>
+            <li>Verificar as opções disponíveis no resultado: deve aparecer opção de averbações listadas (não apenas "Prêmio Mínimo Sem Averbação")</li>
+            <li>Capturar screenshot mostrando as opções do relatório/prévia</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ O relatório mensal / prévia exibe as averbações realizadas como opção de seleção. A opção "Prêmio Mínimo Sem Averbação" não é a única disponível. As averbações da apólice 99991 aparecem listadas para seleção na prévia.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 3: BUG #7622 -->
+  <div class="group-header gh-teal">
+    <span>Grupo 3 — BUG #7622 &nbsp;·&nbsp; Ramo 52 RCTA-C &nbsp;·&nbsp; Apólice 99992</span>
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-EMB-004 -->
+  <div class="ct-block expanded" id="ct-emb-004">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-004</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 52 — Averbações do CITNET replicam no CITWEB (Apólice 99992)</span>
+      <span class="chip chip-pend" id="chip-ct-emb-004">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Replicação de dados</p></div>
+        <div class="ct-field"><label>Ramo</label><p>52 — RCTA-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-001 aprovado</li>
+            <li>Apólice <code>99992</code> (Ramo 52) com ao menos 1 averbação no CITNET</li>
+            <li>Acesso ao CITWEB KOVR HML com <code>ROT_AUTO / T7Jjm6xF</code></li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA → <strong>Averbações</strong> → consultar apólice <code>99992</code> (Ramo 52)</li>
+            <li>Verificar ao menos 1 averbação registrada — anotar número</li>
+            <li>Capturar screenshot da lista de averbações no CITNET</li>
+            <li>Acessar CITWEB KOVR HML → login <code>ROT_AUTO / T7Jjm6xF</code></li>
+            <li>Internacional → Averbação → apólice <code>99992</code> / Ramo 52</li>
+            <li>Verificar que as averbações aparecem no CITWEB</li>
+            <li>Capturar screenshot do CITWEB</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ As averbações do CITNET para apólice 99992 (Ramo 52) estão presentes no CITWEB. Registros consistentes entre os dois sistemas.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-EMB-005 -->
+  <div class="ct-block expanded" id="ct-emb-005">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-005</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 52 — Relatório Mensal lista averbações na prévia (não só "Prêmio Mínimo")</span>
+      <span class="chip chip-pend" id="chip-ct-emb-005">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Validação de UI/relatório</p></div>
+        <div class="ct-field"><label>Ramo</label><p>52 — RCTA-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-004 aprovado</li>
+            <li>Apólice <code>99992</code> com embarque averbado no mês corrente</li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA → <strong>Faturamento</strong> → <strong>Relatório Mensal</strong> / <strong>Prévia</strong></li>
+            <li>Selecionar Ramo <strong>52 - RCTA-C</strong> e apólice <code>99992</code></li>
+            <li>Selecionar competência com averbações</li>
+            <li>Consultar / Gerar</li>
+            <li>Verificar que averbações aparecem como opção de seleção</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ O relatório mensal / prévia Ramo 52 exibe as averbações como opção. A apólice 99992 não apresenta apenas "Prêmio Mínimo Sem Averbação".</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 4: BUG #7623 -->
+  <div class="group-header gh-amber">
+    <span>Grupo 4 — BUG #7623 &nbsp;·&nbsp; Ramo 38 RCTF-C &nbsp;·&nbsp; Apólice 99993</span>
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-EMB-006 -->
+  <div class="ct-block expanded" id="ct-emb-006">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-006</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 38 — Averbações do CITNET replicam no CITWEB (Apólice 99993)</span>
+      <span class="chip chip-pend" id="chip-ct-emb-006">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Replicação de dados</p></div>
+        <div class="ct-field"><label>Ramo</label><p>38 — RCTF-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-001 aprovado</li>
+            <li>Apólice <code>99993</code> (Ramo 38) com ao menos 1 averbação no CITNET</li>
+            <li>Acesso ao CITWEB KOVR HML com <code>ROT_AUTO / T7Jjm6xF</code></li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA → <strong>Averbações</strong> → consultar apólice <code>99993</code> (Ramo 38)</li>
+            <li>Verificar ao menos 1 averbação registrada</li>
+            <li>Capturar screenshot das averbações no CITNET</li>
+            <li>Acessar CITWEB KOVR HML → <code>ROT_AUTO / T7Jjm6xF</code></li>
+            <li>Nacional → Averbação (Ramo 38) → apólice <code>99993</code></li>
+            <li>Verificar averbações presentes</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ As averbações do CITNET para apólice 99993 (Ramo 38) estão visíveis no CITWEB. Replicação funcionando.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-EMB-007 -->
+  <div class="ct-block expanded" id="ct-emb-007">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-007</span>
+      <span class="prio prio-p1">P1</span>
+      <span class="ct-title">Ramo 38 — Relatório Mensal lista averbações na prévia (não só "Prêmio Mínimo")</span>
+      <span class="chip chip-pend" id="chip-ct-emb-007">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Positivo — Validação de UI/relatório</p></div>
+        <div class="ct-field"><label>Ramo</label><p>38 — RCTF-C</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>CT-EMB-006 aprovado</li>
+            <li>Apólice <code>99993</code> com embarque averbado no mês corrente</li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA → <strong>Faturamento</strong> → <strong>Relatório Mensal</strong> / <strong>Prévia</strong></li>
+            <li>Selecionar Ramo <strong>38 - RCTF-C</strong> e apólice <code>99993</code></li>
+            <li>Selecionar competência com averbações</li>
+            <li>Consultar / Gerar</li>
+            <li>Verificar que averbações aparecem como opção</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ O relatório mensal / prévia Ramo 38 exibe as averbações como opção selecionável. Apólice 99993 não mostra apenas "Prêmio Mínimo Sem Averbação".</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GROUP 5: REGRESSÃO -->
+  <div class="group-header gh-grey">
+    <span>Grupo 5 — Regressão</span>
+    <span class="gh-badge">1 CT</span>
+  </div>
+
+  <!-- CT-EMB-008 -->
+  <div class="ct-block expanded" id="ct-emb-008">
+    <div class="ct-bar">
+      <span class="ct-toggle">▶</span>
+      <span class="ct-id">CT-EMB-008</span>
+      <span class="prio prio-p2">P2</span>
+      <span class="ct-title">Regressão — "Prêmio Mínimo Sem Averbação" ainda disponível quando não há averbações</span>
+      <span class="chip chip-pend" id="chip-ct-emb-008">PENDENTE</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-grid">
+        <div class="ct-field"><label>Tipo</label><p>Negativo — Regressão</p></div>
+        <div class="ct-field"><label>Ramo</label><p>Qualquer (usar 56 / apólice sem averbações)</p></div>
+        <div class="ct-field full"><label>Pré-condições</label>
+          <ul>
+            <li>Apólice (Ramo 56) sem averbações em aberto na competência selecionada</li>
+            <li>Objetivo: garantir que o fix não removeu a opção "Prêmio Mínimo" para apólices sem averbação</li>
+          </ul>
+        </div>
+        <div class="ct-field full"><label>Passos</label>
+          <ol>
+            <li>No CITNET KOVR ALFA → Faturamento → Relatório Mensal / Prévia</li>
+            <li>Selecionar uma apólice Ramo 56 <strong>sem embarques averbados</strong> na competência</li>
+            <li>Gerar / Consultar</li>
+            <li>Verificar que a opção "Prêmio Mínimo Sem Averbação" está disponível</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-field full"><label>Resultado Esperado</label>
+          <div class="result-ok">✓ Para apólice sem averbações, a opção "Prêmio Mínimo Sem Averbação" ainda aparece corretamente. O fix não removeu esta opção para os casos em que ela é válida.</div>
+        </div>
+      </div>
+      <div class="ev-section">
+        <div class="ev-label">Evidências</div>
+        <div class="ev-banner-pend">⏳ Pendente — aguardando execução</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  Plano gerado em 08/07/2026 &nbsp;·&nbsp; QA Automation CITWEB &nbsp;·&nbsp; Bugs #7621 · #7622 · #7623 — CITNET KOVR ALFA
+</footer>
+
+<script>
+// Toggle accordion
+document.querySelectorAll('.ct-bar').forEach(bar => {
+  bar.addEventListener('click', () => bar.closest('.ct-block').classList.toggle('expanded'));
+});
+
+// Lightbox
+function openLb(src) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb').classList.add('open');
+}
+document.querySelectorAll('.ev-item img').forEach(img => {
+  img.addEventListener('click', e => { e.stopPropagation(); openLb(img.src); });
+});
+
+// Metrics update (called after each CT result is set)
+function updateMetrics() {
+  const chips = document.querySelectorAll('[id^="chip-ct-"]');
+  let ok=0, fail=0, blk=0, total=chips.length;
+  chips.forEach(c => {
+    if (c.classList.contains('chip-ok'))   ok++;
+    if (c.classList.contains('chip-fail')) fail++;
+    if (c.classList.contains('chip-blk'))  blk++;
+  });
+  const pend = total - ok - fail - blk;
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-ok').textContent    = ok;
+  document.getElementById('m-fail').textContent  = fail;
+  document.getElementById('m-pend').textContent  = pend;
+  const exec = ok + fail + blk;
+  const pct  = total > 0 ? Math.round(exec / total * 100) : 0;
+  document.getElementById('prog').style.width   = pct + '%';
+  document.getElementById('prog-lbl').textContent = exec + ' de ' + total + ' executados (' + pct + '%)';
+}
+updateMetrics();
+</script>
+</body>
+</html>
