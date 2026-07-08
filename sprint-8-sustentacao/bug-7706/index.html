@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Testes — BUG 7706 | AIG CITNET Aprovação de Prévia</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #1f6feb;
+    --accent2: #388bfd;
+    --green: #2ea043;
+    --green-bg: #0f2d1a;
+    --red: #da3633;
+    --red-bg: #2d0f0f;
+    --yellow: #d29922;
+    --yellow-bg: #2d200f;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  .topbar .badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar .sprint { color: var(--text2); font-size: 12px; }
+  .topbar h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar .build { color: var(--text2); font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+
+  .hero { background: linear-gradient(135deg, #1a0d0d 0%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: 32px 24px; }
+  .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .hero p { color: var(--text2); max-width: 720px; line-height: 1.7; }
+  .hero .tags { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .hero .tag { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  .hero .tag.blue { border-color: var(--accent); color: var(--text3); }
+  .hero .tag.red { border-color: var(--red); color: var(--red); }
+
+  .metrics { display: flex; gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .metric { flex: 1; background: var(--surface); padding: 16px 20px; text-align: center; }
+  .metric .num { font-size: 28px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .num.total { color: var(--text3); }
+  .num.pass { color: var(--green); }
+  .num.fail { color: var(--red); }
+  .num.pend { color: var(--yellow); }
+
+  .progress-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .progress-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+  .progress-pct { font-size: 12px; color: var(--text2); min-width: 40px; text-align: right; }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .massa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .massa-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .massa-card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .massa-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .massa-row:last-child { border-bottom: none; }
+  .massa-key { color: var(--text2); font-size: 12px; }
+  .massa-val { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+
+  .ct-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .ct-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .ct-bar:hover { background: var(--surface2); }
+  .ct-id { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; font-weight: 700; color: var(--text3); min-width: 100px; }
+  .ct-title { flex: 1; font-weight: 500; }
+  .ct-priority { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .p1 { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .p2 { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .ct-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; min-width: 80px; text-align: center; }
+  .status-pend { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .status-pass { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .status-fail { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .ct-chevron { color: var(--text2); font-size: 12px; transition: transform 0.2s; }
+  .ct-block.open .ct-chevron { transform: rotate(90deg); }
+
+  .ct-panel { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .ct-block.open .ct-panel { display: block; }
+
+  .ct-meta { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .ct-meta span { font-size: 12px; color: var(--text2); }
+  .ct-meta strong { color: var(--text); }
+
+  .ct-section { margin-top: 12px; }
+  .ct-section h5 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  .precond { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 10px 12px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  .steps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .steps-table th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .steps-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .steps-table tr:last-child td { border-bottom: none; }
+  .steps-table .num { color: var(--text2); font-size: 12px; font-weight: 700; width: 36px; text-align: center; }
+  .steps-table .acao { line-height: 1.6; }
+  .steps-table .result { color: var(--text3); line-height: 1.6; }
+  code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffa657; }
+
+  .obs-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.7; }
+  .obs-box.warn-box { border-color: var(--yellow); color: var(--text); background: var(--yellow-bg); }
+
+  .info-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; }
+  .info-box h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+
+  .group-header { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0; margin: 20px 0 8px; display: flex; align-items: center; gap: 8px; }
+  .group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .group-header .gh-badge { background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 10px; }
+
+  .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text2); font-size: 11px; margin-top: 48px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="badge">BUG 7706</div>
+  <span class="sprint">Sprint 8 — Sustentação CITWEB</span>
+  <h1>[AIG] CITNET — Aprovação de Prévia</h1>
+  <div class="build">Build 20260706.2</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>Plano de Testes — BUG 7706: AIG CITNET Aprovação de Prévia</h2>
+  <p>Validação da correção do módulo <strong>Aprovação de Prévia</strong> no CITNET AIG HML.
+  O bug relatado identificou erro ao pesquisar prévias por número de apólice e ao pesquisar
+  por nome do segurado na Filial 02, impedindo a conclusão da operação de aprovação.</p>
+  <div class="tags">
+    <span class="tag blue">CITNET</span>
+    <span class="tag blue">AIG HML</span>
+    <span class="tag blue">Ramo 59 — Nacional</span>
+    <span class="tag blue">Ramo 22 — Internacional</span>
+    <span class="tag">Faturamento</span>
+    <span class="tag">Aprovação de Prévia</span>
+    <span class="tag red">BUG FIX</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="num total" id="cnt-total">4</div><div class="lbl">Total de CTs</div></div>
+  <div class="metric"><div class="num pass" id="cnt-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="num fail" id="cnt-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="num pend" id="cnt-pend">4</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <span style="font-size:12px;color:var(--text2)">Progresso</span>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-pct" id="progress-pct">0%</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section-title">Identificação</div>
+  <div class="info-box">
+    <h4>Dados do Card</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+      <div><span style="color:var(--text2)">Card:</span> <strong>BUG-7706</strong></div>
+      <div><span style="color:var(--text2)">Tipo:</span> <strong>Bug Fix</strong></div>
+      <div><span style="color:var(--text2)">Sprint:</span> <strong>Sprint_8_Sustentacao</strong></div>
+      <div><span style="color:var(--text2)">Dev:</span> <strong>Ivan Mauricio</strong></div>
+      <div><span style="color:var(--text2)">Seguradora:</span> <strong>AIG</strong></div>
+      <div><span style="color:var(--text2)">Sistema:</span> <strong>CITNET</strong></div>
+      <div><span style="color:var(--text2)">Módulo:</span> <strong>Faturamento → Aprovação de Prévia</strong></div>
+      <div><span style="color:var(--text2)">Build:</span> <strong>20260706.2</strong></div>
+      <div><span style="color:var(--text2)">Autor:</span> <strong>QA Automation</strong></div>
+      <div><span style="color:var(--text2)">Data:</span> <strong>08/07/2026</strong></div>
+    </div>
+  </div>
+
+  <!-- DESCRIÇÃO DO BUG -->
+  <div class="section-title">Descrição do Bug</div>
+  <div class="info-box">
+    <h4>Cenário Atual (com bug)</h4>
+    <p style="margin-bottom:8px">Foram identificados dois comportamentos incorretos na tela de Aprovação de Prévia do CITNET AIG:</p>
+    <ol style="padding-left:20px;line-height:2;">
+      <li><strong>Pesquisa por número de apólice</strong> → sistema apresenta erro e não retorna resultados</li>
+      <li><strong>Pesquisa na Filial 02 por nome do segurado</strong> → sistema apresenta erro, impedindo localizar e aprovar a prévia</li>
+    </ol>
+    <p style="margin-top:8px;color:var(--text2)">Ambos os cenários impedem a conclusão do processo de aprovação pelos usuários internos.</p>
+  </div>
+  <div class="info-box">
+    <h4>Critérios de Aceite</h4>
+    <ol style="padding-left:20px;line-height:2;">
+      <li>O sistema deve permitir pesquisar prévias por número de apólice sem apresentar erros</li>
+      <li>O sistema deve permitir pesquisar prévias na Filial 02 por nome do segurado sem apresentar erros</li>
+      <li>As consultas devem retornar os registros correspondentes aos filtros informados</li>
+      <li>Após aprovação, a operação deve ser concluída com sucesso e a prévia deve ter seu status atualizado</li>
+      <li>Comportamento consistente em todas as filiais</li>
+    </ol>
+  </div>
+
+  <!-- ESCOPO -->
+  <div class="section-title">Escopo</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+    <div class="info-box">
+      <h4>In Scope</h4>
+      <ul style="padding-left:16px;line-height:2;font-size:13px;">
+        <li>Pesquisa de prévia por número de apólice (Nacional)</li>
+        <li>Pesquisa de prévia por nome do segurado (Nacional)</li>
+        <li>Pesquisa de prévia por número de apólice (Internacional)</li>
+        <li>Pesquisa de prévia por nome do segurado (Internacional)</li>
+        <li>Aprovação de prévias após pesquisa bem-sucedida</li>
+      </ul>
+    </div>
+    <div class="info-box">
+      <h4>Out of Scope</h4>
+      <ul style="padding-left:16px;line-height:2;font-size:13px;">
+        <li>Criação de averbações (pré-condição, não escopo do bug)</li>
+        <li>Fechamento Mensal (não alterado)</li>
+        <li>Relatórios CITNET (não afetados)</li>
+        <li>Outras seguradoras</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- AMBIENTE E ACESSO -->
+  <div class="section-title">Ambiente e Acesso</div>
+  <div class="info-box">
+    <h4>CITNET AIG — HML</h4>
+    <div style="font-size:13px;line-height:2;">
+      <div><span style="color:var(--text2)">URL CITWEB (base):</span> <code>https://aig-hml-faturamento.nsseg.com.br</code></div>
+      <div><span style="color:var(--text2)">Acesso CITNET:</span> Login no CITWEB → botão <strong>CITNET</strong> na home (abre nova aba via JWT)</div>
+      <div><span style="color:var(--text2)">URL CITNET (direta):</span> <code>https://aig-hml-faturamento.nsseg.com.br/citnet/</code></div>
+      <div><span style="color:var(--text2)">Aprovação Nacional:</span> <code>/citnet/AutorizacaoPrevia/AutorizacaoPrevia?tipo=N</code></div>
+      <div><span style="color:var(--text2)">Aprovação Internacional:</span> <code>/citnet/AutorizacaoPrevia/AutorizacaoPrevia?tipo=I</code></div>
+      <div><span style="color:var(--text2)">Credenciais CITNET:</span> <code>interno / 11</code></div>
+      <div><span style="color:var(--text2)">Script base:</span> <code>sprint-6/citnet-nstech/ct_25_aprovacao_previa_nac.py</code> e <code>ct_26_aprovacao_previa_int.py</code></div>
+    </div>
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section-title">Massa de Dados — Verificada no Banco HML</div>
+  <div class="massa-grid">
+    <div class="massa-card">
+      <h4>Nacional — Ramo 59 (Filial 1)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">2130131113</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">59 (RCV)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">1 — São Paulo</span></div>
+      <div class="massa-row"><span class="massa-key">Subgrupo</span><span class="massa-val">1</span></div>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">VOIDR TESTES</span></div>
+      <div class="massa-row"><span class="massa-key">Vigência</span><span class="massa-val">01/04/2026 – 01/04/2027</span></div>
+      <div class="massa-row"><span class="massa-key">Status</span><span class="massa-val" style="color:var(--green)">Vigente</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>Nacional — Ramo 59 (Filial 5)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">2260659000018</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">59 (RCV)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">5</span></div>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">PES #90120</span></div>
+      <div class="massa-row"><span class="massa-key">Vigência</span><span class="massa-val">01/03/2026 – 01/03/2027</span></div>
+      <div class="massa-row"><span class="massa-key">Obs</span><span class="massa-val" style="color:var(--yellow)">Nome a confirmar na UI</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>Internacional — Ramo 22 (Filial 1)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">6227150001</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">22 (IME)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">1 — São Paulo</span></div>
+      <div class="massa-row"><span class="massa-key">Subgrupo</span><span class="massa-val">12</span></div>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">VOIDR TESTES</span></div>
+      <div class="massa-row"><span class="massa-key">Vigência</span><span class="massa-val">03/06/2026 – 03/06/2027</span></div>
+      <div class="massa-row"><span class="massa-key">Prévias</span><span class="massa-val" style="color:var(--green)">2 em tb_avb_prv_cit</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>Internacional — Ramo 22 (alternativa)</h4>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">2250622006006</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">22 (IME)</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">1 — São Paulo</span></div>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">NSTECH - HML VALIDAÇÃO RCV</span></div>
+      <div class="massa-row"><span class="massa-key">Vigência</span><span class="massa-val">07/07/2026 – 07/07/2027</span></div>
+      <div class="massa-row"><span class="massa-key">Status</span><span class="massa-val" style="color:var(--green)">Vigente</span></div>
+    </div>
+  </div>
+  <div class="obs-box warn-box">
+    ⚠️ <strong>Nota sobre Filial 02:</strong> O banco AIG HML possui filial 1 (São Paulo) e filial 5 como filiais com apólices ramo 59.
+    Não há <code>c_org_prd = 2</code> cadastrado. Os CTs de "pesquisa por segurado" foram estruturados para Filial 1,
+    cobrindo o cenário de busca por nome. Se o ambiente AIG tiver uma "Filial 02" distinta na UI do CITNET,
+    será necessário criar massa adicional via cadastro de apólice naquela filial.
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section-title">Casos de Teste</div>
+
+  <!-- GRUPO NACIONAL -->
+  <div class="group-header">
+    Nacional — Ramo 59
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-APV-001 -->
+  <div class="ct-block" id="ct-apv-001">
+    <div class="ct-bar" onclick="toggle('ct-apv-001')">
+      <span class="ct-id">CT-APV-001</span>
+      <span class="ct-title">Nacional — Pesquisar prévia por número de apólice (Ramo 59)</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pend" id="status-ct-apv-001">PENDENTE</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 59 (RCV Nacional)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Apólice:</strong> 2130131113</span>
+        <span><strong>Tipo:</strong> Nacional (tipo=N)</span>
+        <span><strong>Bug:</strong> Erro ao pesquisar por número de apólice</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Ambiente AIG HML acessível: <code>https://aig-hml-faturamento.nsseg.com.br</code><br>
+          2. Apólice <code>2130131113</code> ativa para ramo 59, filial 1 (confirmado no banco HML em 08/07/2026)<br>
+          3. Usuário com acesso ao CITNET AIG (credenciais internas)<br>
+          4. Script base disponível em: <code>sprint-6/citnet-nstech/ct_25_aprovacao_previa_nac.py</code>
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Acessar <code>https://aig-hml-faturamento.nsseg.com.br</code> e realizar login com credenciais do usuário interno</td><td class="result">Login efetuado com sucesso, home do CITWEB carregada</td></tr>
+            <tr><td class="num">2</td><td class="acao">Na home do CITWEB, clicar no botão <strong>CITNET</strong></td><td class="result">Nova aba abre com o CITNET AIG autenticado via JWT</td></tr>
+            <tr><td class="num">3</td><td class="acao">No CITNET, clicar em <strong>Faturamento</strong> no menu superior</td><td class="result">Submenu de Faturamento expandido</td></tr>
+            <tr><td class="num">4</td><td class="acao">Clicar em <strong>Aprovação de Prévia</strong> no submenu</td><td class="result">Tela de Aprovação de Prévia Nacional carregada (<code>?tipo=N</code>)</td></tr>
+            <tr><td class="num">5</td><td class="acao">No campo <strong>Filial</strong> (<code>#c_org_prd</code>), selecionar <strong>1 — São Paulo</strong></td><td class="result">Filial selecionada; campos de apólice habilitados</td></tr>
+            <tr><td class="num">6</td><td class="acao">No campo <strong>Apólice</strong> (<code>#u_apo_pnc</code>), digitar <code>2130131113</code></td><td class="result">Número preenchido no campo</td></tr>
+            <tr><td class="num">7</td><td class="acao">Preencher o campo <strong>Mês/Ano</strong> (<code>#mes_ano</code>) com o mês de referência (ex: <code>06 / 2026</code>)</td><td class="result">Campo preenchido</td></tr>
+            <tr><td class="num">8</td><td class="acao">Clicar no botão <strong>Consultar</strong> (<code>#btConsultar</code>)</td><td class="result">
+              <strong>Após o fix:</strong> consulta executada sem erros; grid retorna resultados ou mensagem "Nenhum registro encontrado"<br>
+              <strong>Com o bug (antes do fix):</strong> sistema exibia mensagem de erro
+            </td></tr>
+            <tr><td class="num">9</td><td class="acao">Verificar se há prévias no grid. Se houver: selecionar ao menos um registro (checkbox) e clicar em <strong>Aprovar Selecionados</strong> (<code>#btAprovarTudo</code>)</td><td class="result">Prévias listadas; seleção possível; botão de aprovação habilitado</td></tr>
+            <tr><td class="num">10</td><td class="acao">Confirmar a aprovação no modal que se abrir (botão <strong>Processar</strong> / <strong>Sim</strong>)</td><td class="result">Modal de confirmação exibido; ao confirmar, aprovação concluída com sucesso; mensagem de "Aprovado" / "Processado" visível</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-apv-001">Aguardando execução.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-APV-002 -->
+  <div class="ct-block" id="ct-apv-002">
+    <div class="ct-bar" onclick="toggle('ct-apv-002')">
+      <span class="ct-id">CT-APV-002</span>
+      <span class="ct-title">Nacional — Pesquisar prévia por nome do segurado (Ramo 59)</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pend" id="status-ct-apv-002">PENDENTE</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 59 (RCV Nacional)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Segurado:</strong> VOIDR TESTES</span>
+        <span><strong>Tipo:</strong> Nacional (tipo=N)</span>
+        <span><strong>Bug:</strong> Erro ao pesquisar por nome do segurado na Filial 02</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Mesmas condições do CT-APV-001<br>
+          2. Segurado <strong>VOIDR TESTES</strong> (PES=1) cadastrado na filial — apólice <code>2130131113</code><br>
+          3. Se o ambiente AIG possui Filial 02 distinta na UI: criar apólice para aquela filial com o segurado antes de executar<br>
+          4. Caso Filial 02 não exista no ambiente: executar com Filial 1 e registrar observação
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Acessar CITNET AIG (via CITWEB → botão CITNET) e navegar até <strong>Faturamento → Aprovação de Prévia</strong></td><td class="result">Tela de Aprovação de Prévia Nacional carregada</td></tr>
+            <tr><td class="num">2</td><td class="acao">No campo <strong>Filial</strong> (<code>#c_org_prd</code>), selecionar a filial disponível na UI (se "Filial 02" existir, selecioná-la; caso contrário, usar Filial 1)</td><td class="result">Filial selecionada</td></tr>
+            <tr><td class="num">3</td><td class="acao">Deixar o campo <strong>Apólice</strong> vazio. No campo <strong>Segurado</strong> (<code>#c_idt_pes</code>), digitar o nome ou código do segurado: <code>VOIDR TESTES</code></td><td class="result">Campo segurado preenchido</td></tr>
+            <tr><td class="num">4</td><td class="acao">Preencher o campo <strong>Mês/Ano</strong> com o mês de referência</td><td class="result">Campo preenchido</td></tr>
+            <tr><td class="num">5</td><td class="acao">Clicar no botão <strong>Consultar</strong> (<code>#btConsultar</code>)</td><td class="result">
+              <strong>Após o fix:</strong> consulta executada sem erros; grid retorna prévias do segurado informado ou mensagem "Nenhum registro encontrado"<br>
+              <strong>Com o bug:</strong> sistema exibia erro para pesquisa por nome de segurado
+            </td></tr>
+            <tr><td class="num">6</td><td class="acao">Verificar se há prévias na grid. Se houver, selecionar ao menos um registro e clicar em <strong>Aprovar Selecionados</strong></td><td class="result">Aprovação realizada sem erro; status da prévia atualizado</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-apv-002">Aguardando execução.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GRUPO INTERNACIONAL -->
+  <div class="group-header">
+    Internacional — Ramo 22
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-APV-003 -->
+  <div class="ct-block" id="ct-apv-003">
+    <div class="ct-bar" onclick="toggle('ct-apv-003')">
+      <span class="ct-id">CT-APV-003</span>
+      <span class="ct-title">Internacional — Pesquisar prévia por número de apólice (Ramo 22)</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pend" id="status-ct-apv-003">PENDENTE</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 22 (IME Internacional)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Apólice:</strong> 6227150001</span>
+        <span><strong>Subgrupo:</strong> 12</span>
+        <span><strong>Tipo:</strong> Internacional (tipo=I)</span>
+        <span><strong>Prévias no banco:</strong> 2 registros em tb_avb_prv_cit</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Ambiente AIG HML acessível<br>
+          2. Apólice <code>6227150001</code> (ramo 22, filial 1, subgrupo 12) ativa — vigência 03/06/2026 a 03/06/2027<br>
+          3. 2 prévias existentes em <code>tb_avb_prv_cit</code> para esta apólice (TMP=20261001 e TMP=20261002, <code>i_env</code> vazio)<br>
+          4. Script base: <code>sprint-6/citnet-nstech/ct_26_aprovacao_previa_int.py</code>
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Acessar CITNET AIG via CITWEB e navegar até <strong>Faturamento → Aprovação de Prévia</strong></td><td class="result">Tela carregada no modo Internacional (<code>?tipo=I</code>)</td></tr>
+            <tr><td class="num">2</td><td class="acao">Selecionar filial <strong>1 — São Paulo</strong> no campo <code>#c_org_prd</code></td><td class="result">Filial selecionada</td></tr>
+            <tr><td class="num">3</td><td class="acao">No campo <strong>Apólice</strong> (<code>#u_apo_pnc</code>), digitar <code>6227150001</code></td><td class="result">Número preenchido</td></tr>
+            <tr><td class="num">4</td><td class="acao">Preencher <strong>Mês/Ano</strong> com o mês de referência das prévias (ex: <code>06 / 2026</code>)</td><td class="result">Campo preenchido</td></tr>
+            <tr><td class="num">5</td><td class="acao">Clicar em <strong>Consultar</strong> (<code>#btConsultar</code>)</td><td class="result">
+              <strong>Após o fix:</strong> consulta executa sem erros; grid exibe as prévias da apólice (ou mensagem "Nenhum registro")<br>
+              <strong>Com o bug:</strong> erro exibido ao pesquisar por número de apólice
+            </td></tr>
+            <tr><td class="num">6</td><td class="acao">Se prévias listadas: selecionar registro(s) e clicar em <strong>Aprovar Selecionados</strong> (<code>#btAprovarTudo</code>)</td><td class="result">Seleção permitida; botão habilitado</td></tr>
+            <tr><td class="num">7</td><td class="acao">Confirmar aprovação no modal (botão <strong>Processar</strong> / <strong>Sim</strong>)</td><td class="result">Aprovação concluída com sucesso; mensagem positiva exibida na tela</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-apv-003">Aguardando execução.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-APV-004 -->
+  <div class="ct-block" id="ct-apv-004">
+    <div class="ct-bar" onclick="toggle('ct-apv-004')">
+      <span class="ct-id">CT-APV-004</span>
+      <span class="ct-title">Internacional — Pesquisar prévia por nome do segurado (Ramo 22)</span>
+      <span class="ct-priority p2">P2</span>
+      <span class="ct-status status-pend" id="status-ct-apv-004">PENDENTE</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 22 (IME Internacional)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Segurado:</strong> VOIDR TESTES (APO 6227150001) ou NSTECH - HML VALIDAÇÃO RCV (APO 2250622006006)</span>
+        <span><strong>Tipo:</strong> Internacional (tipo=I)</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Mesmas condições do CT-APV-003<br>
+          2. Segurado <strong>VOIDR TESTES</strong> ou <strong>NSTECH - HML VALIDAÇÃO RCV</strong> presente nas prévias<br>
+          3. Confirmar nome exato do segurado na UI antes de preencher o campo de pesquisa
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Acessar tela de <strong>Aprovação de Prévia Internacional</strong> no CITNET AIG (<code>?tipo=I</code>)</td><td class="result">Tela carregada</td></tr>
+            <tr><td class="num">2</td><td class="acao">Selecionar <strong>Filial 1</strong> no campo <code>#c_org_prd</code></td><td class="result">Filial selecionada</td></tr>
+            <tr><td class="num">3</td><td class="acao">Deixar campo Apólice vazio; preencher campo <strong>Segurado</strong> (<code>#c_idt_pes</code>) com <code>VOIDR TESTES</code> ou código do segurado</td><td class="result">Campo segurado preenchido</td></tr>
+            <tr><td class="num">4</td><td class="acao">Preencher <strong>Mês/Ano</strong> e clicar em <strong>Consultar</strong></td><td class="result">
+              <strong>Após o fix:</strong> consulta executada sem erro; prévias do segurado listadas na grid<br>
+              <strong>Com o bug:</strong> erro ao pesquisar
+            </td></tr>
+            <tr><td class="num">5</td><td class="acao">Se prévias listadas: selecionar e aprovar</td><td class="result">Aprovação concluída com sucesso; sem erros</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-apv-004">Aguardando execução.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <div class="section-title">Scripts de Automação</div>
+  <div class="info-box">
+    <h4>Scripts Disponíveis (Sprint 6 — citnet-nstech)</h4>
+    <div style="font-size:13px;line-height:2;">
+      <div><code>ct_25_aprovacao_previa_nac.py</code> → Aprovação Prévia Nacional (tipo=N) — adaptar CONFIG para AIG</div>
+      <div><code>ct_26_aprovacao_previa_int.py</code> → Aprovação Prévia Internacional (tipo=I) — adaptar CONFIG para AIG</div>
+      <div style="margin-top:8px;color:var(--text2)">
+        <strong>Adaptar:</strong> <code>BASE_URL = "https://aig-hml-faturamento.nsseg.com.br"</code>,
+        <code>CITNET_USUARIO = "interno"</code>, <code>CITNET_SENHA = "11"</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table class="steps-table" style="margin-bottom:24px;">
+    <thead>
+      <tr><th>CT</th><th>Critério de Aceite</th><th>Cenário</th><th>Prioridade</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>CT-APV-001</code></td><td>CA1 — Pesquisa por apólice sem erro</td><td>Nacional / Filial 1 / APO 2130131113</td><td>P1</td></tr>
+      <tr><td><code>CT-APV-002</code></td><td>CA2 — Pesquisa por segurado sem erro</td><td>Nacional / Filial 1 ou 2 / VOIDR TESTES</td><td>P1</td></tr>
+      <tr><td><code>CT-APV-003</code></td><td>CA1 — Pesquisa por apólice sem erro</td><td>Internacional / Filial 1 / APO 6227150001</td><td>P1</td></tr>
+      <tr><td><code>CT-APV-004</code></td><td>CA2 — Pesquisa por segurado sem erro</td><td>Internacional / Filial 1 / VOIDR TESTES</td><td>P2</td></tr>
+    </tbody>
+  </table>
+
+</div>
+
+<div class="footer">
+  Plano gerado por QA Automation — BUG-7706 | AIG CITNET Aprovação de Prévia | Sprint 8 Sustentação | 08/07/2026
+</div>
+
+<script>
+function toggle(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+// Counters
+function updateCounters() {
+  let pass = 0, fail = 0, pend = 0;
+  document.querySelectorAll('.ct-status').forEach(s => {
+    if (s.classList.contains('status-pass')) pass++;
+    else if (s.classList.contains('status-fail')) fail++;
+    else pend++;
+  });
+  const total = pass + fail + pend;
+  document.getElementById('cnt-pass').textContent = pass;
+  document.getElementById('cnt-fail').textContent = fail;
+  document.getElementById('cnt-pend').textContent = pend;
+  document.getElementById('cnt-total').textContent = total;
+  const pct = total > 0 ? Math.round((pass / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+updateCounters();
+</script>
+</body>
+</html>
