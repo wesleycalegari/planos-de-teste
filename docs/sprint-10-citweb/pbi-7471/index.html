@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBI-7471 — Conversor RCTR-VI BulkCopy | Sprint 10</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --blue: #388bfd; --blue-dim: #1f3a5c;
+    --green: #2ea043; --green-dim: #0d2818;
+    --red: #f85149; --red-dim: #3d0c10;
+    --orange: #d29922; --orange-dim: #3a2b00;
+    --purple: #bc8cff; --purple-dim: #2d1f4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  /* TOPBAR */
+  .topbar { background: #010409; border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { color: var(--blue); font-weight: 700; font-size: 15px; }
+  .topbar .sep { color: var(--border); }
+  .topbar .sprint { color: var(--muted); font-size: 13px; }
+
+  /* HERO */
+  .hero { background: linear-gradient(135deg, #0d1f3c 0%, #0d1117 60%); border-bottom: 1px solid var(--blue-dim); padding: 28px 32px 22px; }
+  .hero h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .hero .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .hero .meta-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .hero .meta-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12px; }
+  .hero .meta-item span { color: var(--muted); }
+  .hero .meta-item strong { color: var(--text); }
+
+  /* METRICS STRIP */
+  .metrics { display: flex; gap: 12px; padding: 16px 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 110px; text-align: center; }
+  .metric-card .num { font-size: 26px; font-weight: 700; }
+  .metric-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .metric-card.total .num { color: var(--blue); }
+  .metric-card.p1 .num { color: var(--red); }
+  .metric-card.p2 .num { color: var(--orange); }
+  .metric-card.ok .num { color: var(--green); }
+  .metric-card.pend .num { color: var(--muted); }
+
+  /* CONTENT */
+  .content { padding: 24px 32px; max-width: 1100px; }
+
+  /* SECTION */
+  .section { margin-bottom: 24px; }
+  .section h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+
+  /* INFO / WARN BOX */
+  .info-box { background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+
+  /* GROUP HEADER */
+  .group-header { background: var(--blue); color: #fff; border-radius: 6px 6px 0 0; padding: 10px 16px; font-weight: 700; font-size: 13px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .group-header.green { background: #1a6630; }
+  .group-header.purple { background: #5a2d82; }
+  .group-header .grp-count { font-size: 12px; font-weight: 400; opacity: .8; }
+
+  /* CT BLOCK */
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-top: none; margin-bottom: 0; }
+  .ct-block:last-child { border-radius: 0 0 6px 6px; margin-bottom: 18px; }
+  .ct-head { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-weight: 700; font-size: 13px; color: var(--blue); min-width: 90px; }
+  .ct-title { flex: 1; font-size: 13px; }
+  .ct-badges { display: flex; gap: 6px; align-items: center; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .badge-p1 { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-p2 { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .badge-p3 { background: #21262d; color: #8b949e; border: 1px solid #8b949e; }
+  .badge-pend { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  .badge-ok { background: #0d2818; color: #2ea043; border: 1px solid #2ea043; }
+  .badge-rep { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-blk { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .ct-toggle { color: var(--muted); font-size: 11px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; padding: 0 16px 14px; border-top: 1px solid var(--border); }
+  .ct-block.expanded .ct-body { display: block; }
+
+  /* CT BODY SECTIONS */
+  .ct-section { margin-top: 10px; }
+  .ct-section-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; font-weight: 700; }
+  .ct-section p, .ct-section li { font-size: 13px; margin-bottom: 3px; }
+  .ct-section ol, .ct-section ul { padding-left: 18px; }
+  .ct-section code { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--purple); }
+
+  /* RESULT BOX */
+  .result-box { margin-top: 10px; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+  .result-box.pending { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+  .result-box.ok { background: var(--green-dim); border: 1px solid var(--green); color: #79c57e; }
+  .result-box.rep { background: var(--red-dim); border: 1px solid var(--red); color: #ffa0a0; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { background: var(--bg3); color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0d1117; }
+
+  /* RISK */
+  .risk-row td:nth-child(2) { color: var(--red); }
+  .risk-row.med td:nth-child(2) { color: var(--orange); }
+  .risk-row.low td:nth-child(2) { color: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">CITWEB QA</span>
+  <span class="sep">›</span>
+  <span class="sprint">Sprint 10</span>
+  <span class="sep">›</span>
+  <span>PBI-7471 — Conversor RCTR-VI BulkCopy</span>
+</div>
+
+<div class="hero">
+  <h1>PBI-7471 — Refactoring Conversor Internacional RCTR-VI</h1>
+  <div class="subtitle">Otimização de performance via SqlBulkCopy + deleção em lote no conversor RCTR-VI e ConversorController ramo 32 (Exportação)</div>
+  <div class="meta-row">
+    <div class="meta-item"><span>Card: </span><strong>PBI-7471</strong></div>
+    <div class="meta-item"><span>Sprint: </span><strong>Sprint_10_Citweb</strong></div>
+    <div class="meta-item"><span>Seguradora: </span><strong>AXA · KOVR</strong></div>
+    <div class="meta-item"><span>Sistema: </span><strong>CITWEB HML</strong></div>
+    <div class="meta-item"><span>Ramo: </span><strong>RCTR-VI · Exportação (ramo 32)</strong></div>
+    <div class="meta-item"><span>Autor: </span><strong>Claude QA</strong></div>
+    <div class="meta-item"><span>Data: </span><strong>08/07/2026</strong></div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric-card total"><div class="num" id="exec-total">6</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card p1"><div class="num">4</div><div class="lbl">P1 Bloqueante</div></div>
+  <div class="metric-card p2"><div class="num">2</div><div class="lbl">P2 Importante</div></div>
+  <div class="metric-card ok"><div class="num" id="exec-aprovados">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric-card pend"><div class="num" id="exec-pendentes">6</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<div class="content">
+
+  <!-- ESCOPO -->
+  <div class="section">
+    <h2>Escopo</h2>
+    <div class="info-box">
+      <strong>O que será testado:</strong> Implementação de SqlBulkCopy + deleção diferida no <code>ProcessamentoAverbacoesRCTRVIController</code> (Fase 2) e limpeza em lote no <code>ConversorController</code> para ramo 32/Exportação (Fase 3). Controlado pelo indicativo <code>Ind_Conversor_Processamento_BulkCopy</code>.
+    </div>
+    <div class="warn-box">
+      <strong>⚠️ Fora do escopo desta US:</strong> demais ramos internacionais (Importação/Exportação no fluxo de processamento de averbações — compatíveis via parâmetro BulkCopy=false). Tratamento já existente no código.
+    </div>
+    <table>
+      <tr><th>Critério de Aceite</th><th>CTs que cobrem</th></tr>
+      <tr><td>A solução deve ser escalável e reutilizável para demais seguradoras</td><td>CT-RVI-005 (KOVR sem indicativo funciona)</td></tr>
+      <tr><td>BulkCopy implementado no conversor RCTR-VI (viabilidade confirmada pelo código)</td><td>CT-RVI-001, CT-RVI-002</td></tr>
+      <tr><td>Testar com mais de 7.000 registros</td><td>CT-RVI-003</td></tr>
+      <tr><td>Guard AXA mantido (não excluir registros de conversão durante processamento)</td><td>CT-RVI-004</td></tr>
+      <tr><td>ConversorController ramo 32 (Exportação) — limpeza em lote</td><td>CT-RVI-006</td></tr>
+    </table>
+  </div>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section">
+    <h2>Pré-Requisitos</h2>
+    <table>
+      <tr><th>Item</th><th>Detalhe</th></tr>
+      <tr><td>AXA HML</td><td>URL: <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code> · Usuário: <code>FRED</code> · Senha: <code>DERF</code><br>Indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> ativo (confirmado pelo dev — task #7502)</td></tr>
+      <tr><td>KOVR HML</td><td>URL: <code>https://kovr-hml-faturamento.nsseg.com.br/Login/</code> · Usuário: <code>ROT_AUTO</code> · Senha: <code>T7Jjm6xF</code><br>Indicativo <strong>INATIVO</strong> (não cadastrado — comportamento anterior)</td></tr>
+      <tr><td>Massa — arquivo RCTR-VI ≥7.000 registros</td><td>Verificar tabela <code>tb_lay_out_prs_tmp_act_int_cit</code> no HML AXA. Se não existirem registros: solicitar ao dev arquivo .xlsx de teste com ≥7.000 linhas RCTR-VI.</td></tr>
+      <tr><td>Massa — arquivo RCTR-VI pequeno (CT-RVI-001/002)</td><td>Qualquer arquivo válido de averbações RCTR-VI (5–100 registros) — verificar existência na tabela ou subir arquivo de teste.</td></tr>
+      <tr><td>Massa — arquivo Exportação ramo 32 (CT-RVI-006)</td><td>Arquivo de Exportação válido — qualquer tamanho. Verificar tabela <code>tb_lay_out_cvr_tmp_act_int_cit</code> no HML.</td></tr>
+    </table>
+  </div>
+
+  <!-- GRUPO 1 -->
+  <div class="group-header">
+    <span>GRUPO 1 — BulkCopy ATIVO — AXA HML</span>
+    <span class="grp-count">4 CTs · CT-RVI-001 a 004</span>
+  </div>
+
+  <!-- CT-RVI-001 -->
+  <div class="ct-block" id="CT-RVI-001">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-001</span>
+      <span class="ct-title">Smoke — Conversor RCTR-VI acessível pós-deploy e conversão básica funcional</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Smoke · Positivo</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code></li>
+          <li>Indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> ativo na AXA</li>
+          <li>Arquivo RCTR-VI válido (qualquer tamanho) disponível para upload</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code></li>
+          <li>Login com <code>FRED</code> / <code>DERF</code></li>
+          <li>No menu, clicar em <strong>Conversor de Arquivos</strong></li>
+          <li>No menu lateral, clicar em <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Selecionar o arquivo RCTR-VI via campo de upload → clicar <strong>Importar</strong></li>
+          <li>No modal "A planilha será convertida para formato TXT. Confirma?", clicar <strong>Não</strong> (para manter o preview)</li>
+          <li>Selecionar um layout existente ou criar um novo se necessário</li>
+          <li>Clicar em <strong>Converter</strong></li>
+          <li>Aguardar resultado da conversão</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>A conversão concluiu sem erro. O resultado exibe os registros convertidos (Aceitas e/ou Rejeitadas). Sem mensagem de exceção ou timeout.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-001">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-002 -->
+  <div class="ct-block" id="CT-RVI-002">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-002</span>
+      <span class="ct-title">Processar arquivo RCTR-VI com BulkCopy ativo — paridade funcional</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Funcional</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — indicativo BulkCopy <strong>ativo</strong></li>
+          <li>Arquivo RCTR-VI válido (qualquer tamanho) já convertido (TXT na tabela temporária) ou arquivo para converter+processar</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Selecionar arquivo → Importar → Não (preview) → selecionar layout → <strong>Converter</strong></li>
+          <li>Aguardar conversão concluir</li>
+          <li>Clicar em <strong>Processar</strong></li>
+          <li>Aguardar o processamento concluir (monitorar hub de progresso)</li>
+          <li>Anotar: quantidade de <strong>Aceitas</strong>, quantidade de <strong>Rejeitadas</strong>, total de linhas do arquivo</li>
+          <li>Verificar que Aceitas + Rejeitadas = total de linhas do arquivo</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Processamento concluído sem erro. Aceitas + Rejeitadas = total de registros do arquivo. Nenhuma exceção ou timeout durante o processamento com BulkCopy ativo.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-002">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-003 -->
+  <div class="ct-block" id="CT-RVI-003">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-003</span>
+      <span class="ct-title">Processar ≥7.000 registros RCTR-VI com BulkCopy — sem timeout e paridade mantida (CA principal)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Performance · CA Principal</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — indicativo BulkCopy <strong>ativo</strong></li>
+          <li><strong>Arquivo RCTR-VI com ≥7.000 registros válidos</strong> — verificar tabela <code>tb_lay_out_prs_tmp_act_int_cit</code> ou obter arquivo do dev</li>
+          <li>Se usar arquivo existente na tabela temporária: verificar que registros são de apólice RCTR-VI ativa na AXA</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Se arquivo não estiver na tabela temporária: subir arquivo com ≥7.000 linhas → Importar → Não → selecionar layout → <strong>Converter</strong> (aguardar concluir)</li>
+          <li>Clicar em <strong>Processar</strong></li>
+          <li>Monitorar o hub de progresso — verificar que o processamento avança sem travar</li>
+          <li>Aguardar a conclusão do processamento</li>
+          <li>Anotar: tempo total, quantidade de Aceitas, quantidade de Rejeitadas</li>
+          <li>Verificar paridade: Aceitas + Rejeitadas = total de registros</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>O processamento de ≥7.000 registros concluiu <strong>sem timeout ou erro de servidor</strong>. A paridade é mantida (Aceitas + Rejeitadas = total). O hub de progresso finalizou corretamente. Critério de aprovação: conclusão sem exceção — não há threshold de tempo definido no CA.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-003">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-004 -->
+  <div class="ct-block" id="CT-RVI-004">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-004</span>
+      <span class="ct-title">Guard AXA — tabela de conversão mantida após processamento (registros não excluídos)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Regra de Negócio Específica AXA</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto da Regra</div>
+        <p class="info-box" style="font-size:12px">No Nacional, existe guard <code>nomeEmpresa != "AXA"</code> na lógica de exclusão. A AXA pula a etapa de exclusão de registros de conversão durante o processamento (histórico: CIT 2173/2169 — timeout e rotina batch Citnet na AXA). O RCTR-VI replicou esse guard. Este CT verifica que o comportamento foi mantido.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML</li>
+          <li>Arquivo RCTR-VI processado com BulkCopy ativo (resultado de CT-RVI-002 ou CT-RVI-003)</li>
+          <li>Acesso à tabela <code>tb_lay_out_cvr_tmp_act_int_cit</code> no banco HML (via SQL ou dev)</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Após processar um arquivo RCTR-VI na AXA HML (CT-RVI-002 ou CT-RVI-003)</li>
+          <li>Verificar a tabela <code>tb_lay_out_cvr_tmp_act_int_cit</code>:<br>
+            <code>SELECT COUNT(*) FROM tb_lay_out_cvr_tmp_act_int_cit WHERE [filtro_apolice_seguradora]</code></li>
+          <li>Confirmar que os registros de conversão <strong>não foram excluídos</strong> após o processamento</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Os registros na tabela <code>tb_lay_out_cvr_tmp_act_int_cit</code> referentes ao arquivo processado <strong>permanecem</strong> após o processamento (guard AXA ativo). Comportamento igual ao conversor Nacional para AXA.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-004">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- GRUPO 2 -->
+  <div class="group-header green">
+    <span>GRUPO 2 — BulkCopy INATIVO — KOVR HML (Regressão)</span>
+    <span class="grp-count">1 CT · CT-RVI-005</span>
+  </div>
+
+  <!-- CT-RVI-005 -->
+  <div class="ct-block" id="CT-RVI-005">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-005</span>
+      <span class="ct-title">Regressão — RCTR-VI com indicativo INATIVO (KOVR) funciona sem alteração de comportamento</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Regressão · Escalabilidade (CA 1)</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: KOVR HML — <code>https://kovr-hml-faturamento.nsseg.com.br/Login/</code></li>
+          <li>Usuário: <code>ROT_AUTO</code> / <code>T7Jjm6xF</code></li>
+          <li>Indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> <strong>NÃO cadastrado</strong> na KOVR (confirmado pelo dev)</li>
+          <li>Arquivo RCTR-VI válido disponível para upload</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login KOVR HML (<code>ROT_AUTO</code> / <code>T7Jjm6xF</code>)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Selecionar arquivo → Importar → Não → selecionar layout → <strong>Converter</strong></li>
+          <li>Aguardar conversão concluir</li>
+          <li>Clicar em <strong>Processar</strong></li>
+          <li>Aguardar o processamento concluir</li>
+          <li>Anotar: quantidade de Aceitas, Rejeitadas, total</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>O processamento em KOVR (sem indicativo) conclui sem erro, usando o <strong>fluxo antigo</strong> (insert/delete 1 a 1). Aceitas + Rejeitadas = total. A solução é escalável — funciona em seguradoras sem o indicativo ativo sem código específico.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-005">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- GRUPO 3 -->
+  <div class="group-header purple">
+    <span>GRUPO 3 — ConversorController Ramo 32 (Exportação) — Fase 3</span>
+    <span class="grp-count">1 CT · CT-RVI-006</span>
+  </div>
+
+  <!-- CT-RVI-006 -->
+  <div class="ct-block" id="CT-RVI-006">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-006</span>
+      <span class="ct-title">ConversorController ramo 32 (Exportação) — limpeza em lote na conversão funcional</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Regressão (Fase 3)</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto da Mudança</div>
+        <p class="info-box" style="font-size:12px">Fase 3: no <code>ConversorController</code> ramo 32 (Exportação), a limpeza inicial foi substituída de <code>Excluir</code> único para loop <code>ExcluirPorLoteInternacional</code> — igual ao Nacional. Este CT verifica que a conversão de arquivo Exportação continua funcional após essa mudança.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML (ou KOVR HML)</li>
+          <li>Arquivo de Exportação (ramo 32) válido disponível para upload</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (ou KOVR HML)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>Exportação</strong></li>
+          <li>Selecionar arquivo de Exportação → Importar → Não → selecionar layout → <strong>Converter</strong></li>
+          <li>Aguardar conclusão da conversão</li>
+          <li>Verificar resultado: registros convertidos exibidos, sem erro</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>A conversão do arquivo de Exportação (ramo 32) conclui sem erro. A limpeza em lote na fase inicial (<code>ExcluirPorLoteInternacional</code>) não causou regressão. Resultado igual ao comportamento anterior.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-006">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section" style="margin-top:32px">
+    <h2>Matriz de Rastreabilidade</h2>
+    <table>
+      <tr><th>Critério de Aceite</th><th>CT</th><th>Status</th></tr>
+      <tr><td>Escalável e reutilizável para demais seguradoras</td><td>CT-RVI-005</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>BulkCopy implementado no RCTR-VI (viabilidade confirmada)</td><td>CT-RVI-001, CT-RVI-002</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Testar com mais de 7.000 registros</td><td>CT-RVI-003</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Guard AXA preservado (sem exclusão de conversão)</td><td>CT-RVI-004</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>ConversorController ramo 32 — limpeza em lote (Fase 3)</td><td>CT-RVI-006</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+    </table>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <h2>Riscos</h2>
+    <table>
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr class="risk-row"><td>Arquivo com ≥7.000 registros não disponível no HML AXA</td><td>Média</td><td>Bloqueia CT-RVI-003 (CA principal)</td><td>Solicitar ao dev arquivo de teste com ≥7k linhas; verificar tabela temporária antes da execução</td></tr>
+      <tr class="risk-row med"><td>Conversor RCTR-VI inexistente no menu KOVR HML</td><td>Baixa</td><td>Bloqueia CT-RVI-005</td><td>Verificar via MCP se o menu existe; se não existir, documentar como BLOQUEADO e abrir DoR</td></tr>
+      <tr class="risk-row low"><td>Guard AXA comportamento diferente do esperado</td><td>Baixa</td><td>Bug de integridade de dados</td><td>Verificar com o dev a query exata para confirmar os registros na tabela de conversão</td></tr>
+      <tr class="risk-row med"><td>ConversorController ramo 32 (Exportação) sem menu em HML</td><td>Baixa</td><td>Bloqueia CT-RVI-006</td><td>Verificar disponibilidade do módulo Exportação em HML antes da execução</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
