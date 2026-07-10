@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PBI-5201 — Taxa por Cidade | Berkley CITWEB</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --blue: #388bfd; --blue-dim: #1f3a5c;
+    --green: #2ea043; --green-dim: #0d2818;
+    --red: #f85149; --red-dim: #3d0c10;
+    --orange: #d29922; --orange-dim: #3a2b00;
+    --purple: #bc8cff; --purple-dim: #2d1f4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: #010409; border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { color: var(--blue); font-weight: 700; font-size: 15px; }
+  .topbar .sep { color: var(--border); }
+  .topbar .sprint { color: var(--muted); font-size: 13px; }
+
+  .hero { background: linear-gradient(135deg, #0d1f3c 0%, #0d1117 60%); border-bottom: 1px solid var(--blue-dim); padding: 28px 32px 22px; }
+  .hero h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .hero .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .hero .meta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero .meta-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12px; }
+  .hero .meta-item span { color: var(--muted); }
+  .hero .meta-item strong { color: var(--text); }
+
+  .metrics { display: flex; gap: 12px; padding: 16px 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 110px; text-align: center; }
+  .metric-card .num { font-size: 26px; font-weight: 700; }
+  .metric-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .metric-card.total .num { color: var(--blue); }
+  .metric-card.p1 .num { color: var(--red); }
+  .metric-card.p2 .num { color: var(--orange); }
+  .metric-card.ok .num { color: var(--green); }
+  .metric-card.pend .num { color: var(--muted); }
+
+  .content { padding: 24px 32px; max-width: 1100px; }
+  .section { margin-bottom: 24px; }
+  .section h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+
+  .info-box { background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+
+  .ca-list { list-style: none; padding: 0; }
+  .ca-list li { padding: 8px 12px; border-left: 3px solid var(--blue); background: var(--bg2); margin-bottom: 6px; border-radius: 0 4px 4px 0; font-size: 13px; }
+
+  .group-header { background: var(--blue); color: #fff; border-radius: 6px 6px 0 0; padding: 10px 16px; font-weight: 700; font-size: 13px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .group-header.orange { background: #854a00; }
+  .group-header.green { background: #1a6630; }
+  .group-header.purple { background: #5a2d82; }
+  .group-header .grp-count { font-size: 12px; font-weight: 400; opacity: .8; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-top: none; }
+  .ct-block:last-child { border-radius: 0 0 6px 6px; margin-bottom: 18px; }
+  .ct-head { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-weight: 700; font-size: 13px; color: var(--blue); min-width: 100px; }
+  .ct-title { flex: 1; font-size: 13px; }
+  .ct-badges { display: flex; gap: 6px; align-items: center; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .badge-p1 { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-p2 { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .badge-p3 { background: #21262d; color: #8b949e; border: 1px solid #8b949e; }
+  .badge-pend { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  .badge-ok { background: #0d2818; color: #2ea043; border: 1px solid #2ea043; }
+  .badge-rep { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-blk { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .ct-toggle { color: var(--muted); font-size: 11px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; padding: 0 16px 14px; border-top: 1px solid var(--border); }
+  .ct-block.expanded .ct-body { display: block; }
+
+  .ct-section { margin-top: 10px; }
+  .ct-section-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; font-weight: 700; }
+  .ct-section p, .ct-section li { font-size: 13px; margin-bottom: 3px; }
+  .ct-section ol, .ct-section ul { padding-left: 18px; }
+  .ct-section code { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--purple); }
+
+  .result-box { margin-top: 10px; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+  .result-box.pending { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+  .result-box.ok { background: var(--green-dim); border: 1px solid var(--green); color: #79c57e; }
+  .result-box.rep { background: var(--red-dim); border: 1px solid var(--red); color: #ffa0a0; }
+
+  .ev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 10px; }
+  .ev-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .ev-item img { width: 100%; display: block; cursor: pointer; }
+  .ev-item .ev-label { font-size: 11px; color: var(--muted); padding: 4px 8px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { background: var(--bg3); color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--bg2); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">QA CITWEB</span>
+  <span class="sep">|</span>
+  <span class="sprint">Rollout BERKLEY — Sprint 10 (execução)</span>
+</div>
+
+<div class="hero">
+  <h1>PBI-5201 — Taxa por Cidade</h1>
+  <div class="subtitle">Taxa comercial por município no cálculo de averbações RCTR-C • BERKLEY • CITWEB Nacional</div>
+  <div class="meta-row">
+    <div class="meta-item"><span>PBI </span><strong>#5201</strong></div>
+    <div class="meta-item"><span>Seguradora </span><strong>BERKLEY</strong></div>
+    <div class="meta-item"><span>Sistema </span><strong>CITWEB</strong></div>
+    <div class="meta-item"><span>Ramos </span><strong>54 (RCTR-C) / 55 (RC-DC)</strong></div>
+    <div class="meta-item"><span>Task QA </span><strong>#7524</strong></div>
+    <div class="meta-item"><span>Build HML </span><strong>V 1.0.260624.1539</strong></div>
+    <div class="meta-item"><span>Massa </span><strong>Filial 901 / Apólice 0000900654001-001</strong></div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric-card total"><div class="num" id="m-total">8</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card p1"><div class="num" id="m-p1">5</div><div class="lbl">Prioridade 1</div></div>
+  <div class="metric-card p2"><div class="num" id="m-p2">3</div><div class="lbl">Prioridade 2</div></div>
+  <div class="metric-card ok"><div class="num" id="m-ok">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric-card pend"><div class="num" id="m-pend">8</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<div class="content">
+
+  <!-- CRITÉRIOS DE ACEITE -->
+  <div class="section">
+    <h2>Critérios de Aceite</h2>
+    <ul class="ca-list">
+      <li>Dado que o município da averbação esteja informado corretamente, quando o sistema realizar a busca da taxa comercial, então deverá localizar a taxa cadastrada para o município informado.</li>
+      <li>Dado que exista taxa comercial cadastrada para o município, quando a averbação for processada, então o sistema deverá retornar o valor correto para aplicação no cálculo do prêmio.</li>
+      <li>O sistema deverá aplicar automaticamente a taxa localizada no cálculo do prêmio da averbação.</li>
+      <li>Caso não exista taxa cadastrada para o município informado, o sistema deverá seguir a regra padrão definida pelo negócio ou apresentar mensagem de validação apropriada.</li>
+      <li>O cálculo do prêmio deverá refletir corretamente a taxa comercial obtida para o município da averbação.</li>
+    </ul>
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section">
+    <h2>Massa de Dados</h2>
+    <div class="info-box">
+      <strong>Ambiente HML BERKLEY:</strong> <code>https://berkley-hml-faturamento.nsseg.com.br</code><br>
+      <strong>Usuário:</strong> <code>SUPORTE</code> — Filial: <code>901 — NSTECH - TESTE CITWEB</code><br>
+      <strong>Apólice massa:</strong> <code>TST CITWEB NSTECH - AJUSTAVEL / 0000900654001-001</code><br>
+      <strong>Municípios COM taxa cadastrada:</strong> PERDIZES, RIO BRILHANTE, VALINHOS, URBANO (TO→UB)<br>
+      <strong>Tabela de taxas:</strong> <code>Tabelas → CADASTROS → Taxas → RCTR-C e Transporte Nacional Terrestre</code>
+    </div>
+  </div>
+
+  <!-- GRUPO 1: CADASTRO DE TAXAS POR MUNICÍPIO -->
+  <div class="section">
+    <h2>Casos de Teste</h2>
+
+    <div class="group-header orange">
+      Grupo 1 — Cadastro de Taxas por Município (Tabelas)
+      <span class="grp-count">2 CTs</span>
+    </div>
+
+    <!-- CT-TXC-001 -->
+    <div class="ct-block" id="ct-TXC-001">
+      <div class="ct-head" onclick="toggle('ct-TXC-001')">
+        <span class="ct-id">CT-TXC-001</span>
+        <span class="ct-title">Consultar municípios cadastrados na tela de Taxas RCTR-C</span>
+        <span class="ct-badges">
+          <span class="badge badge-p2">P2</span>
+          <span class="badge badge-pend" id="badge-TXC-001">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Logado no BERKLEY HML como <code>SUPORTE</code></li>
+            <li>Municípios com taxa cadastrada no banco HML: PERDIZES, RIO BRILHANTE, VALINHOS, URBANO</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>Navegar para <strong>Tabelas</strong> no menu principal</li>
+            <li>Clicar em <strong>CADASTROS → Taxas → RCTR-C e Transporte Nacional Terrestre</strong></li>
+            <li>Verificar a listagem de registros exibida</li>
+            <li>Localizar registros onde a coluna Origem ou Destino contém um município (ex: PERDIZES, RIO BRILHANTE, VALINHOS, URBANO)</li>
+            <li>Capturar screenshot da listagem com municípios visíveis</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Tela de Taxas RCTR-C carrega sem erros</li>
+            <li>Registros de municípios estão presentes na listagem (distinguíveis de registros de estados)</li>
+            <li>Colunas Origem e Destino exibem tanto estados (sigla) quanto municípios (nome)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-TXC-001"></div>
+        </div>
+        <div class="result-box pending" id="result-TXC-001">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- CT-TXC-002 -->
+    <div class="ct-block" id="ct-TXC-002">
+      <div class="ct-head" onclick="toggle('ct-TXC-002')">
+        <span class="ct-id">CT-TXC-002</span>
+        <span class="ct-title">Cadastrar nova taxa para município e editar registro existente</span>
+        <span class="ct-badges">
+          <span class="badge badge-p2">P2</span>
+          <span class="badge badge-pend" id="badge-TXC-002">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Logado no BERKLEY HML como <code>SUPORTE</code></li>
+            <li>Tela de Taxas RCTR-C aberta</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos — Cadastro</div>
+          <ol>
+            <li>Na tela <strong>Tabelas → Taxas → RCTR-C e Transporte Nacional Terrestre</strong>, clicar em <strong>Novo</strong></li>
+            <li>Selecionar <strong>Origem</strong> = <code>PERDIZES</code> (município) no dropdown</li>
+            <li>Selecionar <strong>Destino</strong> = <code>SÃO PAULO</code> (estado) no dropdown</li>
+            <li>Preencher <strong>Taxa RCTR-C</strong> com valor de teste (ex: <code>0.123456</code>)</li>
+            <li>Preencher demais taxas se necessário</li>
+            <li>Clicar em <strong>Gravar</strong></li>
+            <li>Capturar screenshot da confirmação de gravação</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Registro gravado com sucesso (mensagem de confirmação exibida)</li>
+            <li>Novo registro aparece na listagem com Origem = PERDIZES e Destino = SÃO PAULO</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-TXC-002"></div>
+        </div>
+        <div class="result-box pending" id="result-TXC-002">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- GRUPO 2: AVERBAÇÃO — CAMPOS DE MUNICÍPIO -->
+    <div class="group-header" style="margin-top:18px;">
+      Grupo 2 — Averbação RCTR-C: Campos Município de Origem / Destino
+      <span class="grp-count">4 CTs</span>
+    </div>
+
+    <!-- CT-MUN-001 -->
+    <div class="ct-block" id="ct-MUN-001">
+      <div class="ct-head" onclick="toggle('ct-MUN-001')">
+        <span class="ct-id">CT-MUN-001</span>
+        <span class="ct-title">Campos Município de Origem e Destino visíveis no formulário de Averbação RCTR-C</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pend" id="badge-MUN-001">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Logado no BERKLEY HML como <code>SUPORTE</code></li>
+            <li>Filial <code>901 — NSTECH - TESTE CITWEB</code> disponível</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No menu principal, clicar em <strong>Nacional → Averbação → RCTR-C</strong></li>
+            <li>Selecionar <strong>Filial</strong> = <code>901 — NSTECH - TESTE CITWEB</code></li>
+            <li>Selecionar apólice <code>TST CITWEB NSTECH - AJUSTAVEL / 0000900654001-001</code> no dropdown Nome</li>
+            <li>Verificar a seção de origem/destino do formulário</li>
+            <li>Capturar screenshot dos campos Município de Origem e Município de Destino</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Campo <strong>"Município de Origem"</strong> visível abaixo de "Estado de Origem", com campo de código + campo de nome (disabled) + botão lupa + botão Limpar</li>
+            <li>Campo <strong>"Município de Destino"</strong> visível abaixo de "Estado de Destino", com mesma estrutura</li>
+            <li>Ambos os campos são opcionais (não bloqueiam o formulário quando vazios)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-MUN-001"></div>
+        </div>
+        <div class="result-box pending" id="result-MUN-001">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- CT-MUN-002 -->
+    <div class="ct-block" id="ct-MUN-002">
+      <div class="ct-head" onclick="toggle('ct-MUN-002')">
+        <span class="ct-id">CT-MUN-002</span>
+        <span class="ct-title">Pesquisa de município via botão lupa retorna resultados e preenche campo</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pend" id="badge-MUN-002">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Formulário de Averbação RCTR-C aberto (continuando de CT-MUN-001)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No campo <strong>Município de Origem</strong>, clicar no botão de pesquisa (ícone lupa)</li>
+            <li>Verificar se modal/popup de busca de município é exibido</li>
+            <li>Digitar <code>PERDIZES</code> no campo de busca do modal</li>
+            <li>Selecionar o município PERDIZES no resultado</li>
+            <li>Verificar que o campo "Município de Origem" foi preenchido automaticamente</li>
+            <li>Capturar screenshot do modal e do campo preenchido</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Botão lupa abre modal/popup de busca de município</li>
+            <li>Município PERDIZES aparece nos resultados da busca</li>
+            <li>Ao selecionar, campo "Município de Origem" é preenchido com código e nome do município</li>
+            <li>Botão "Limpar" reseta o campo ao ser clicado</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-MUN-002"></div>
+        </div>
+        <div class="result-box pending" id="result-MUN-002">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- CT-MUN-003 -->
+    <div class="ct-block" id="ct-MUN-003">
+      <div class="ct-head" onclick="toggle('ct-MUN-003')">
+        <span class="ct-id">CT-MUN-003</span>
+        <span class="ct-title">Averbação com município COM taxa cadastrada aplica taxa do município no cálculo RCTR-C</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pend" id="badge-MUN-003">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Taxa cadastrada para município <code>PERDIZES</code> na tabela RCTR-C (Tabelas)</li>
+            <li>Formulário de Averbação RCTR-C aberto com apólice massa selecionada</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No formulário de Averbação RCTR-C, selecionar <strong>Estado de Origem</strong> = <code>SÃO PAULO</code></li>
+            <li>No campo <strong>Município de Origem</strong>, buscar e selecionar <code>PERDIZES</code></li>
+            <li>Selecionar <strong>Estado de Destino</strong> = <code>SÃO PAULO</code></li>
+            <li>Preencher <strong>Tipo Documento</strong> = <code>CTE</code> e número do documento</li>
+            <li>Informar <strong>Valor Segurado RCTR-C</strong> = <code>10000,00</code></li>
+            <li>Verificar a seção <strong>Condições Referenciais RCTR-C</strong> e <strong>Condições Comerciais RCTR-C</strong></li>
+            <li>Verificar se a taxa exibida corresponde à taxa do município PERDIZES (e não à taxa do estado SP)</li>
+            <li>Capturar screenshot das seções de taxa com o município preenchido</li>
+            <li>Clicar em <strong>Gravar</strong> e verificar se a averbação é gravada com sucesso</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Taxa na seção <strong>Condições Comerciais RCTR-C</strong> reflete a taxa específica do município PERDIZES</li>
+            <li>O prêmio calculado é baseado na taxa do município (não na taxa padrão do estado SP)</li>
+            <li>Averbação gravada com sucesso; município de origem registrado</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-MUN-003"></div>
+        </div>
+        <div class="result-box pending" id="result-MUN-003">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- CT-MUN-004 -->
+    <div class="ct-block" id="ct-MUN-004">
+      <div class="ct-head" onclick="toggle('ct-MUN-004')">
+        <span class="ct-id">CT-MUN-004</span>
+        <span class="ct-title">Averbação com município SEM taxa cadastrada segue regra padrão ou exibe validação</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pend" id="badge-MUN-004">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Formulário de Averbação RCTR-C aberto com apólice massa selecionada</li>
+            <li>Município de teste sem taxa cadastrada: qualquer município não mapeado na tabela (ex: SANTO ANDRÉ, OSASCO)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No formulário de Averbação RCTR-C, selecionar <strong>Estado de Origem</strong> = <code>SÃO PAULO</code></li>
+            <li>No campo <strong>Município de Origem</strong>, buscar e selecionar um município SEM taxa cadastrada</li>
+            <li>Selecionar <strong>Estado de Destino</strong> = <code>SÃO PAULO</code></li>
+            <li>Informar <strong>Valor Segurado RCTR-C</strong> = <code>10000,00</code></li>
+            <li>Verificar o comportamento do sistema: taxa exibida e possíveis mensagens</li>
+            <li>Capturar screenshot do resultado</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Sistema aplica taxa padrão do estado (SP) quando não há taxa cadastrada para o município <strong>OU</strong></li>
+            <li>Sistema exibe mensagem de validação informando que não há taxa cadastrada para o município informado</li>
+            <li>Em nenhum caso o sistema deve apresentar erro técnico (500, exception) ou valor de taxa zerado sem aviso</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-MUN-004"></div>
+        </div>
+        <div class="result-box pending" id="result-MUN-004">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- GRUPO 3: REGRESSÃO -->
+    <div class="group-header green" style="margin-top:18px;">
+      Grupo 3 — Regressão: Averbação Sem Município
+      <span class="grp-count">1 CT</span>
+    </div>
+
+    <!-- CT-REG-001 -->
+    <div class="ct-block" id="ct-REG-001">
+      <div class="ct-head" onclick="toggle('ct-REG-001')">
+        <span class="ct-id">CT-REG-001</span>
+        <span class="ct-title">Averbação sem município informado funciona normalmente (comportamento anterior mantido)</span>
+        <span class="ct-badges">
+          <span class="badge badge-p1">P1</span>
+          <span class="badge badge-pend" id="badge-REG-001">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Objetivo</div>
+          <p>Garantir que a introdução dos campos de município não quebrou o fluxo padrão de averbação (sem município).</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Formulário de Averbação RCTR-C aberto com apólice massa selecionada</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No formulário de Averbação RCTR-C, selecionar <strong>Estado de Origem</strong> = <code>SÃO PAULO</code></li>
+            <li><strong>Não informar</strong> Município de Origem (deixar em branco)</li>
+            <li>Selecionar <strong>Estado de Destino</strong> = <code>MINAS GERAIS</code></li>
+            <li><strong>Não informar</strong> Município de Destino (deixar em branco)</li>
+            <li>Preencher <strong>Tipo Documento</strong>, <strong>Data de Saída</strong> e <strong>Valor Segurado RCTR-C</strong> = <code>5000,00</code></li>
+            <li>Verificar que taxa é calculada normalmente (baseada no estado)</li>
+            <li>Clicar em <strong>Gravar</strong></li>
+            <li>Capturar screenshot de confirmação</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Formulário aceita averbação sem município sem erros de validação obrigatória</li>
+            <li>Taxa calculada normalmente com base nos estados (SP → MG)</li>
+            <li>Averbação gravada com sucesso</li>
+            <li>Nenhuma regressão introduzida pelo novo campo de município</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-REG-001"></div>
+        </div>
+        <div class="result-box pending" id="result-REG-001">Aguardando execução</div>
+      </div>
+    </div>
+
+    <!-- GRUPO 4: RELATÓRIOS -->
+    <div class="group-header purple" style="margin-top:18px;">
+      Grupo 4 — Relatórios com Informação de Município
+      <span class="grp-count">1 CT</span>
+    </div>
+
+    <!-- CT-REL-001 -->
+    <div class="ct-block" id="ct-REL-001">
+      <div class="ct-head" onclick="toggle('ct-REL-001')">
+        <span class="ct-id">CT-REL-001</span>
+        <span class="ct-title">Relação de Embarques inclui informação do município na listagem</span>
+        <span class="ct-badges">
+          <span class="badge badge-p2">P2</span>
+          <span class="badge badge-pend" id="badge-REL-001">PENDENTE</span>
+        </span>
+        <span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-title">Pré-condições</div>
+          <ul>
+            <li>Ao menos uma averbação com município informado gravada (resultado de CT-MUN-003)</li>
+            <li>Logado no BERKLEY HML como <code>SUPORTE</code></li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Passos</div>
+          <ol>
+            <li>No menu principal, navegar para <strong>Relatórios → Relação de Embarques</strong></li>
+            <li>Filtrar pelo período que inclua a averbação com município gravada em CT-MUN-003</li>
+            <li>Selecionar filial <code>901</code> se necessário</li>
+            <li>Gerar o relatório</li>
+            <li>Verificar se campo/coluna de município aparece na listagem de embarques</li>
+            <li>Repetir para <strong>Relação de Embarques Simplificado</strong> e <strong>Resumo de Embarques</strong></li>
+            <li>Capturar screenshots dos relatórios</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Resultado Esperado</div>
+          <ul>
+            <li>Relação de Embarques exibe campo de município de origem e/ou destino para averbações com município informado</li>
+            <li>Para averbações sem município, campo aparece vazio (sem quebrar o layout)</li>
+            <li>Relatórios carregam sem erros técnicos</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-title">Evidências</div>
+          <div class="ev-grid" id="ev-REL-001"></div>
+        </div>
+        <div class="result-box pending" id="result-REL-001">Aguardando execução</div>
+      </div>
+    </div>
+
+  </div><!-- /section -->
+
+  <!-- SUMÁRIO -->
+  <div class="section">
+    <h2>Sumário de Execução</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>CT</th><th>Descrição</th><th>Prioridade</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>CT-TXC-001</td><td>Consultar municípios na tela de Taxas RCTR-C</td><td>P2</td><td id="sum-TXC-001">PENDENTE</td></tr>
+        <tr><td>CT-TXC-002</td><td>Cadastrar taxa para município</td><td>P2</td><td id="sum-TXC-002">PENDENTE</td></tr>
+        <tr><td>CT-MUN-001</td><td>Campos Município visíveis no formulário de Averbação</td><td>P1</td><td id="sum-MUN-001">PENDENTE</td></tr>
+        <tr><td>CT-MUN-002</td><td>Pesquisa de município via botão lupa</td><td>P1</td><td id="sum-MUN-002">PENDENTE</td></tr>
+        <tr><td>CT-MUN-003</td><td>Cálculo COM município COM taxa → taxa do município aplicada</td><td>P1</td><td id="sum-MUN-003">PENDENTE</td></tr>
+        <tr><td>CT-MUN-004</td><td>Cálculo COM município SEM taxa → comportamento padrão</td><td>P1</td><td id="sum-MUN-004">PENDENTE</td></tr>
+        <tr><td>CT-REG-001</td><td>Regressão — sem município → funciona normalmente</td><td>P1</td><td id="sum-REG-001">PENDENTE</td></tr>
+        <tr><td>CT-REL-001</td><td>Relatórios incluem informação do município</td><td>P2</td><td id="sum-REL-001">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<script>
+function toggle(id) {
+  const b = document.getElementById('ct-' + id);
+  b.classList.toggle('expanded');
+}
+
+function setResult(ct, status, msg, evs) {
+  const badge = document.getElementById('badge-' + ct);
+  const result = document.getElementById('result-' + ct);
+  const sum = document.getElementById('sum-' + ct);
+  if (!badge) return;
+  badge.className = 'badge';
+  result.className = 'result-box';
+  if (status === 'ok') {
+    badge.classList.add('badge-ok'); badge.textContent = 'APROVADO';
+    result.classList.add('ok'); result.textContent = msg || 'CT aprovado.';
+    sum.textContent = 'APROVADO'; sum.style.color = '#2ea043';
+  } else if (status === 'rep') {
+    badge.classList.add('badge-rep'); badge.textContent = 'REPROVADO';
+    result.classList.add('rep'); result.textContent = msg || 'CT reprovado.';
+    sum.textContent = 'REPROVADO'; sum.style.color = '#f85149';
+  } else if (status === 'blk') {
+    badge.classList.add('badge-blk'); badge.textContent = 'BLOQUEADO';
+    result.classList.add('pending'); result.textContent = msg || 'CT bloqueado.';
+    sum.textContent = 'BLOQUEADO'; sum.style.color = '#d29922';
+  } else {
+    badge.classList.add('badge-pend'); badge.textContent = 'PENDENTE';
+    result.classList.add('pending'); result.textContent = 'Aguardando execução';
+    sum.textContent = 'PENDENTE'; sum.style.color = '';
+  }
+  if (evs && evs.length) {
+    const grid = document.getElementById('ev-' + ct);
+    if (grid) {
+      grid.innerHTML = evs.map(e => `<div class="ev-item"><img src="${e.src}" alt="${e.label}" onclick="window.open('${e.src}','_blank')"><div class="ev-label">${e.label}</div></div>`).join('');
+    }
+  }
+  updateMetrics();
+}
+
+function updateMetrics() {
+  const badges = document.querySelectorAll('[id^="badge-"]');
+  let ok = 0, rep = 0, blk = 0, pend = 0;
+  badges.forEach(b => {
+    if (b.textContent === 'APROVADO') ok++;
+    else if (b.textContent === 'REPROVADO') rep++;
+    else if (b.textContent === 'BLOQUEADO') blk++;
+    else pend++;
+  });
+  document.getElementById('m-ok').textContent = ok;
+  document.getElementById('m-pend').textContent = pend;
+}
+</script>
+</body>
+</html>
