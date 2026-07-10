@@ -58,6 +58,7 @@
   .group-header { background: var(--blue); color: #fff; border-radius: 6px 6px 0 0; padding: 10px 16px; font-weight: 700; font-size: 13px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
   .group-header.green { background: #1a6630; }
   .group-header.purple { background: #5a2d82; }
+  .group-header.orange { background: #6b3a00; }
   .group-header .grp-count { font-size: 12px; font-weight: 400; opacity: .8; }
 
   /* CT BLOCK */
@@ -131,14 +132,18 @@
 </div>
 
 <div class="metrics">
-  <div class="metric-card total"><div class="num" id="exec-total">6</div><div class="lbl">Total CTs</div></div>
-  <div class="metric-card p1"><div class="num">4</div><div class="lbl">P1 Bloqueante</div></div>
-  <div class="metric-card p2"><div class="num">2</div><div class="lbl">P2 Importante</div></div>
+  <div class="metric-card total"><div class="num" id="exec-total">11</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card p1"><div class="num">6</div><div class="lbl">P1 Bloqueante</div></div>
+  <div class="metric-card p2"><div class="num">5</div><div class="lbl">P2 Importante</div></div>
   <div class="metric-card ok"><div class="num" id="exec-aprovados">0</div><div class="lbl">Aprovados</div></div>
-  <div class="metric-card pend"><div class="num" id="exec-pendentes">6</div><div class="lbl">Pendentes</div></div>
+  <div class="metric-card pend"><div class="num" id="exec-pendentes">11</div><div class="lbl">Pendentes</div></div>
 </div>
 
 <div class="content">
+
+  <div class="warn-box" style="margin-bottom:20px">
+    <strong>Atualização 10/07/2026:</strong> Plano expandido com feedback da Produtos (Fabiola, comentário AzDO 20:50). Adicionados: cenários de performance com threshold de tempo por registro (CT-RVI-007/008), processamento simultâneo (CT-RVI-009) e motor de cálculo RCTR-VI completo (CT-RVI-010/011). Total: 6 → 11 CTs.
+  </div>
 
   <!-- ESCOPO -->
   <div class="section">
@@ -156,6 +161,11 @@
       <tr><td>Testar com mais de 7.000 registros</td><td>CT-RVI-003</td></tr>
       <tr><td>Guard AXA mantido (não excluir registros de conversão durante processamento)</td><td>CT-RVI-004</td></tr>
       <tr><td>ConversorController ramo 32 (Exportação) — limpeza em lote</td><td>CT-RVI-006</td></tr>
+      <tr><td>Performance — arquivo mesma apólice: mínimo 0,5s/registro (sem timeout)</td><td>CT-RVI-007</td></tr>
+      <tr><td>Performance — arquivo múltiplas apólices: mínimo 1,6s/registro (cache invalidation)</td><td>CT-RVI-008</td></tr>
+      <tr><td>Processamento paralelo — dois usuários simultâneos sem serialização</td><td>CT-RVI-009</td></tr>
+      <tr><td>Motor de cálculo RCTR-VI: prêmio = IS × Taxa Total ÷ 100, tarifária ≥ comercial, prêmio mínimo, adicionais</td><td>CT-RVI-010</td></tr>
+      <tr><td>Motor de cálculo RCTR-VI: fluxo completo apólice → CC → subgrupo → averbação → emissão → relatórios → fechamento</td><td>CT-RVI-011</td></tr>
     </table>
   </div>
 
@@ -460,6 +470,267 @@
     </div>
   </div>
 
+  <!-- GRUPO 4 -->
+  <div class="group-header orange">
+    <span>GRUPO 4 — Performance e Processamento Simultâneo</span>
+    <span class="grp-count">3 CTs · CT-RVI-007 a 009</span>
+  </div>
+
+  <!-- CT-RVI-007 -->
+  <div class="ct-block" id="CT-RVI-007">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-007</span>
+      <span class="ct-title">Performance — arquivo mesma apólice ≥7.000 registros — mínimo 0,5s/registro, sem timeout</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Performance · Referência (0,5s/registro)</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto</div>
+        <p class="info-box" style="font-size:12px">Referência de produção: 354 registros = 25 min (≈ 4,2s/reg antes do fix). Pós-fix BulkCopy: mínimo esperado 0,5s/registro. Para 7.000 registros: mínimo esperado ≈ 58min. Arquivo de mesma apólice = sem invalidação de cache entre registros.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — indicativo BulkCopy <strong>ativo</strong></li>
+          <li>Arquivo RCTR-VI com ≥7.000 registros <strong>todos da mesma apólice</strong></li>
+          <li>Capturar horário de início e fim do processamento</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Selecionar arquivo (mesma apólice, ≥7.000 registros) → Importar → Não → selecionar layout → <strong>Converter</strong></li>
+          <li>Aguardar conversão concluir</li>
+          <li>Anotar horário de início → clicar <strong>Processar</strong></li>
+          <li>Monitorar o hub de progresso até conclusão</li>
+          <li>Anotar horário de fim → calcular tempo total e tempo por registro</li>
+          <li>Verificar: Aceitas + Rejeitadas = total de registros</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Processamento concluiu sem timeout ou erro. Tempo por registro ≥ 0,5s (melhoria comprovada vs referência de produção). Paridade mantida. Critério de aprovação: conclusão completa sem exceção de servidor.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-007">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-008 -->
+  <div class="ct-block" id="CT-RVI-008">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-008</span>
+      <span class="ct-title">Performance — arquivo com múltiplas apólices ≥7.000 registros — mínimo 1,6s/registro, sem timeout</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Performance · Referência (1,6s/registro — cache invalidation)</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto</div>
+        <p class="info-box" style="font-size:12px">Arquivo com múltiplas apólices provoca invalidação de cache entre mudanças de apólice, elevando o tempo por registro para ≥ 1,6s. Cenário mais próximo dos arquivos reais de produção. Para 7.000 registros: mínimo esperado ≈ 3h 6min.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — indicativo BulkCopy <strong>ativo</strong></li>
+          <li>Arquivo RCTR-VI com ≥7.000 registros com <strong>múltiplas apólices distintas</strong></li>
+          <li>Capturar horário de início e fim do processamento</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li>Menu → <strong>Conversor de Arquivos</strong> → <strong>Converte Arquivo</strong> → <strong>RCTR-VI</strong></li>
+          <li>Selecionar arquivo (múltiplas apólices, ≥7.000 registros) → Importar → Não → selecionar layout → <strong>Converter</strong></li>
+          <li>Aguardar conversão concluir</li>
+          <li>Anotar horário de início → clicar <strong>Processar</strong></li>
+          <li>Monitorar o hub de progresso até conclusão</li>
+          <li>Anotar horário de fim → calcular tempo total e tempo por registro</li>
+          <li>Verificar: Aceitas + Rejeitadas = total de registros</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Processamento concluiu sem timeout ou erro. Tempo por registro ≥ 1,6s (comportamento esperado com múltiplas apólices — cache invalidation). Paridade mantida. Critério de aprovação: conclusão completa sem exceção de servidor.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-008">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-009 -->
+  <div class="ct-block" id="CT-RVI-009">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-009</span>
+      <span class="ct-title">Processamento simultâneo — dois usuários processando RCTR-VI ao mesmo tempo sem serialização</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Performance · Concorrência</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto</div>
+        <p class="info-box" style="font-size:12px">Antes do fix, o processamento era serializado — dois usuários simultâneos causavam timeout ou deadlock. O BulkCopy deve permitir processamentos concorrentes. Este CT valida que dois usuários conseguem processar RCTR-VI ao mesmo tempo sem interferência mútua.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML — indicativo BulkCopy <strong>ativo</strong></li>
+          <li>Duas sessões de browser distintas (perfis diferentes ou aba anônima)</li>
+          <li>Um arquivo RCTR-VI válido disponível para cada sessão</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Sessão A: Login AXA HML (<code>FRED</code> / <code>DERF</code>) → Conversor → RCTR-VI → Importar → Converter</li>
+          <li>Sessão B: Login AXA HML (segundo usuário) → Conversor → RCTR-VI → Importar → Converter</li>
+          <li>Sessão A: clicar <strong>Processar</strong></li>
+          <li>Sessão B: clicar <strong>Processar</strong> <em>antes que Sessão A conclua</em></li>
+          <li>Monitorar ambas as sessões simultaneamente</li>
+          <li>Verificar que ambas progridem e concluem sem bloquear uma a outra</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Ambas as sessões processam concorrentemente e concluem com sucesso. Nenhum timeout, deadlock ou erro de servidor. O sistema não serializa os processamentos — ambos avançam em paralelo no hub de progresso.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-009">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- GRUPO 5 -->
+  <div class="group-header">
+    <span>GRUPO 5 — Motor de Cálculo RCTR-VI</span>
+    <span class="grp-count">2 CTs · CT-RVI-010 a 011</span>
+  </div>
+
+  <!-- CT-RVI-010 -->
+  <div class="ct-block" id="CT-RVI-010">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-010</span>
+      <span class="ct-title">Motor de cálculo — regras de prêmio RCTR-VI (IS × Taxa ÷ 100, tarifária ≥ comercial, prêmio mínimo, adicionais)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Regras de Negócio</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Regras de Negócio</div>
+        <ul>
+          <li><strong>Fórmula:</strong> Prêmio = IS × Taxa Total ÷ 100</li>
+          <li><strong>Tarifária ≥ Comercial:</strong> taxa tarifária nunca pode ser menor que a taxa comercial</li>
+          <li><strong>Prêmio mínimo:</strong> se prêmio calculado &lt; mínimo da apólice, aplica o mínimo</li>
+          <li><strong>Taxa manual:</strong> taxa inserida manualmente na averbação prevalece sobre a do CC</li>
+          <li><strong>Taxa negociada especial:</strong> coberturas com taxa negociada especial usam essa taxa</li>
+          <li><strong>Adicionais:</strong> entram no cálculo somente se marcados como "Sim" no formulário</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML</li>
+          <li>Apólice RCTR-VI ativa com CC (taxa negociada) e subgrupo configurados</li>
+          <li>Prêmio mínimo configurado na apólice</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li>Acessar apólice RCTR-VI com CC e subgrupo configurados</li>
+          <li>Criar averbação manual: preencher IS, selecionar subgrupo, verificar taxa carregada do CC</li>
+          <li>Calcular manualmente o prêmio esperado: IS × Taxa Total ÷ 100</li>
+          <li>Verificar que o prêmio exibido == prêmio calculado</li>
+          <li>Verificar que taxa tarifária ≥ taxa comercial (sistema não permite comercial > tarifária)</li>
+          <li>Criar averbação com IS muito baixo → confirmar que prêmio usa o valor mínimo da apólice</li>
+          <li>Preencher adicional como "Sim" → confirmar que entra no cálculo total</li>
+          <li>Preencher adicional como "Não" → confirmar que não entra no cálculo</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Prêmio = IS × Taxa Total ÷ 100 (verificado manualmente). Taxa tarifária ≥ comercial sempre. Prêmio mínimo aplicado quando calculado &lt; mínimo. Adicionais incluídos somente quando "Sim". Taxa manual prevalece sobre CC quando preenchida.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-010">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-RVI-011 -->
+  <div class="ct-block" id="CT-RVI-011">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-RVI-011</span>
+      <span class="ct-title">Motor de cálculo — fluxo completo RCTR-VI: apólice → CC → subgrupo → averbação → emissão → relatórios → fechamento</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>End-to-End · Regressão completa RCTR-VI</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA HML</li>
+          <li>Apólice RCTR-VI ativa disponível para criação de CC e subgrupo</li>
+          <li>Mês de teste disponível para fechamento (não fechado anteriormente)</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA HML (<code>FRED</code> / <code>DERF</code>)</li>
+          <li><strong>Apólice:</strong> verificar/utilizar apólice RCTR-VI ativa</li>
+          <li><strong>CC:</strong> criar Condição Comercial com taxa negociada (tarifária e comercial definidas)</li>
+          <li><strong>Subgrupo:</strong> criar subgrupo associado à apólice e CC</li>
+          <li><strong>Averbação:</strong> criar averbação manual RCTR-VI vinculada ao subgrupo; verificar prêmio calculado</li>
+          <li><strong>Impressão:</strong> imprimir a averbação → confirmar sem erro</li>
+          <li><strong>Prévia emissão:</strong> executar prévia de emissão → confirmar sem erro</li>
+          <li><strong>Relatórios pré-fechamento:</strong> gerar Resumo de Embarques, Relação de Embarques, Análise, Relatório de Produção</li>
+          <li><strong>Fechamento mensal:</strong> executar fechamento do período</li>
+          <li><strong>Relatórios pós-fechamento:</strong> regenerar os mesmos relatórios e confirmar consistência dos dados</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>Fluxo completo RCTR-VI concluído sem erro em todas as etapas: CC criada, subgrupo vinculado, averbação com prêmio correto, impressão bem-sucedida, prévia sem erro, relatórios gerados (pré e pós-fechamento), fechamento concluído.</p>
+      </div>
+      <div class="result-box pending" id="result-RVI-011">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
   <!-- MATRIZ DE RASTREABILIDADE -->
   <div class="section" style="margin-top:32px">
     <h2>Matriz de Rastreabilidade</h2>
@@ -470,6 +741,11 @@
       <tr><td>Testar com mais de 7.000 registros</td><td>CT-RVI-003</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
       <tr><td>Guard AXA preservado (sem exclusão de conversão)</td><td>CT-RVI-004</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
       <tr><td>ConversorController ramo 32 — limpeza em lote (Fase 3)</td><td>CT-RVI-006</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Performance — arquivo mesma apólice: mínimo 0,5s/registro sem timeout</td><td>CT-RVI-007</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Performance — arquivo múltiplas apólices: mínimo 1,6s/registro sem timeout</td><td>CT-RVI-008</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Processamento paralelo — dois usuários simultâneos sem serialização</td><td>CT-RVI-009</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Motor de cálculo RCTR-VI: prêmio = IS × Taxa Total ÷ 100, tarifária ≥ comercial, mínimo, adicionais</td><td>CT-RVI-010</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Motor de cálculo RCTR-VI: fluxo completo apólice → CC → subgrupo → averbação → fechamento</td><td>CT-RVI-011</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
     </table>
   </div>
 
