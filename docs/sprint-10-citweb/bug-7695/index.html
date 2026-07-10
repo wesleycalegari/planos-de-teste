@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG #7695 — CITNET AIG Conversor RCTR-C</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --border:   #30363d;
+  --accent:   #7c3aed;
+  --accent2:  #a78bfa;
+  --green:    #2ea043;
+  --green-bg: #0d1f0d;
+  --red:      #d13438;
+  --red-bg:   #1f0d0d;
+  --yellow:   #d29922;
+  --yel-bg:   #1f1a0d;
+  --text:     #c9d1d9;
+  --muted:    #8b949e;
+  --tag-bg:   #21262d;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+
+/* topbar */
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.topbar-bug{color:var(--red);font-weight:600;font-size:12px}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.hero-sub span{display:flex;align-items:center;gap:4px}
+.bug-context{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:6px;padding:14px 16px}
+.bug-context h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.bug-context p{font-size:13px;color:var(--text);margin-bottom:6px}
+.bug-context code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+
+/* metrics-strip */
+.metrics{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total   .metric-val{color:var(--text)}
+.m-ok      .metric-val{color:#2ea043}
+.m-rep     .metric-val{color:var(--red)}
+.m-pend    .metric-val{color:var(--yellow)}
+
+/* progress */
+.progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);border-radius:4px;transition:width .4s}
+
+/* container */
+.container{padding:0 24px 40px}
+
+/* group */
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted);transition:transform .2s}
+.group-header.collapsed .group-toggle{transform:rotate(-90deg)}
+
+/* ct-block */
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#2ea043}
+.badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-bloqueado{background:var(--yel-bg);color:var(--yellow)}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.ct-caret{color:var(--muted);transition:transform .2s;font-size:11px}
+.ct-bar.collapsed .ct-caret{transform:rotate(-90deg)}
+
+/* ct-panel */
+.ct-panel{padding:14px;border-top:1px solid var(--border)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text);margin-bottom:3px}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.ct-section ol li::marker{color:var(--accent);font-weight:600}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.pre-cond li{margin-bottom:4px}
+.expected{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 10px;font-size:13px;color:#79c57e}
+.tag{background:var(--tag-bg);color:var(--muted);padding:1px 7px;border-radius:3px;font-size:11px;margin-right:4px}
+.ct-ev{margin-top:10px}
+
+/* fix-box */
+.fix-box{background:#0d1f1f;border:1px solid #2ea043;border-left:4px solid #2ea043;border-radius:6px;padding:12px 14px;margin-bottom:16px}
+.fix-box h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#2ea043;margin-bottom:8px}
+.fix-box p,.fix-box li{font-size:13px;color:#c9d1d9;margin-bottom:4px}
+.fix-box code{background:#0a1a0a;border:1px solid #2ea043;padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.fix-box ul{padding-left:18px}
+
+/* nota env */
+.nota-env{background:var(--yel-bg);border:1px solid var(--yellow);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#fbbf24}
+.nota-env strong{color:var(--yellow)}
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">QA</span>
+  <span class="topbar-title">Reteste BUG #7695 — CITNET AIG Conversor RCTR-C</span>
+  <span class="topbar-sprint">Sprint 10 Citweb · 2026-07-10</span>
+  <span class="topbar-bug">BUG #7695</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">CITNET AIG — Conversor RCTR-C: FormatException no layout DRK LOG (35 colunas)</div>
+  <div class="hero-sub">
+    <span>🏢 Seguradora: AIG</span>
+    <span>💻 Sistema: CITNET</span>
+    <span>📦 Módulo: Conversor → RCTR-C (ramo 54)</span>
+    <span>🔧 PR: #1803 (feature/cnpj_alfanumerico)</span>
+  </div>
+
+  <div class="fix-box">
+    <h3>✅ Fix Aplicado</h3>
+    <p><strong>Causa raiz:</strong> <code>CitNetServiceNac/ConversorNacionalService.cs</code> · <code>ProcessaLinha_Aig</code> · case 54 (RCTR-C)</p>
+    <p>Quando o layout do cliente não inclui a coluna <code>v_is_cnn_rcf</code> (layout "DRK LOG", 35 colunas em vez de 36), os campos seguintes do bloco de CT-e são lidos uma posição adiantada no array. O campo <code>c_cdd_dst</code> recebe <code>"C"</code> (tipo de documento) e <code>int.Parse("C")</code> lança <code>FormatException</code> → HTTP 500 / modal "Erro no processamento dos dados!"</p>
+    <p><strong>Fix:</strong> deslocamento dinâmico calculado por <code>dados.Length</code>: 37 = layout sem <code>v_is_cnn_rcf</code> → offset aplicado; 38 = layout completo → comportamento original preservado.</p>
+    <ul>
+      <li>PR #1803 mergeado em <code>feature/cnpj_alfanumerico</code> (commit <code>6fbd2fb8</code>)</li>
+      <li>Build AIG confirmado sem erros</li>
+      <li>Deploy em HML confirmado via pipeline</li>
+    </ul>
+  </div>
+
+  <div class="nota-env">
+    <strong>⚠️ Pré-condição de ambiente:</strong> Credenciais AIG CITNET HML não constam no catálogo padrão.
+    URL esperada: <code>https://aig-hml-faturamento.nsseg.com.br/citnet/</code> · Credenciais: confirmar com Wesley antes da execução.
+    Arquivo de teste com layout "DRK LOG" (35 colunas) deve ser preparado ou extraído do LogErro03072026.zip anexado ao card.
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="exec-total">3</div><div class="metric-lbl">Total</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="exec-aprovados">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="exec-pendentes">3</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:0%"></div></div>
+
+<div class="container">
+
+<!-- GRUPO 1: Reteste do Fix -->
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo 1 — Reteste: Conversor RCTR-C AIG (layout 35 colunas)</h2>
+  <span class="group-badge">2 CTs · P1</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <!-- CT-CVA-001 -->
+  <div class="ct-block" id="ct-CVA-001">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CVA-001</span>
+      <span class="ct-title">Processar arquivo com layout DRK LOG (35 colunas — sem <code>v_is_cnn_rcf</code>) deve concluir sem erro</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente" id="badge-CVA-001">PENDENTE</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Positivo — Reteste do fix (cenário que gerava o bug)</p>
+      </div>
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>AIG CITNET HML acessível: <code>https://aig-hml-faturamento.nsseg.com.br/citnet/</code></li>
+          <li>Credenciais CITNET AIG disponíveis (confirmar com Wesley — padrão esperado: <code>interno</code> / <code>11</code>)</li>
+          <li>Arquivo CSV de teste com <strong>35 colunas</strong> no formato DRK LOG (extrair do <code>LogErro03072026.zip</code> ou preparar arquivo sintético com a linha bruta do log: <code>Tipo Doc = "C"</code>, <code>CNPJ Emb = "27617104000104"</code>)</li>
+          <li>Layout "DRK LOG" configurado no conversor CITNET para ramo RCTR-C</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Acessar <code>https://aig-hml-faturamento.nsseg.com.br/citnet/</code> e realizar login com as credenciais AIG</li>
+          <li>Navegar via menu: <strong>Conversor</strong> (link no menu lateral ou home)</li>
+          <li>Selecionar ramo: <strong>RCTR-C</strong></li>
+          <li>Clicar em "Escolher arquivo" e selecionar o arquivo CSV de 35 colunas (layout DRK LOG)</li>
+          <li>Clicar em <strong>IMPORTAR</strong> e aguardar confirmação de importação</li>
+          <li>No campo "Nome do Arquivo de Lay-Out de Entrada", selecionar o layout <strong>DRK LOG</strong> (35 colunas)</li>
+          <li>Clicar em <strong>CONVERTER</strong></li>
+          <li>Aguardar resultado na tabela de preview</li>
+          <li>Clicar em <strong>PROCESSAR</strong></li>
+          <li>Aguardar modal de resultado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Critério de Aceite</h4>
+        <div class="expected">
+          ✓ Os embarques são processados sem erro<br>
+          ✓ Modal de resultado exibe "Aceitos: N" com valor &gt; 0<br>
+          ✓ NÃO aparece modal "Erro no processamento dos dados!" (HTTP 500)<br>
+          ✓ Campo <code>c_cdd_dst</code> (código do município de destino) recebe valor numérico correto — não o literal "C"<br>
+          ✓ CNPJ do embarcador exibe <code>27617104000104</code> (dado do log original)
+        </div>
+      </div>
+      <div class="ct-ev" id="ev-CVA-001"></div>
+    </div>
+  </div>
+
+  <!-- CT-CVA-002 -->
+  <div class="ct-block" id="ct-CVA-002">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CVA-002</span>
+      <span class="ct-title">Regressão — Layout completo (36 colunas, com <code>v_is_cnn_rcf</code>) continua processando corretamente</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente" id="badge-CVA-002">PENDENTE</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Regressão — Garantir que o fix não afetou o comportamento do layout AIG padrão (36 colunas)</p>
+      </div>
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>Mesmo ambiente AIG CITNET HML do CT-CVA-001</li>
+          <li>Arquivo CSV de teste com <strong>36 colunas</strong> (layout AIG completo, incluindo <code>v_is_cnn_rcf</code>)</li>
+          <li>Layout de 36 colunas configurado ou selecionável no sistema</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Mesmos passos de login do CT-CVA-001</li>
+          <li>Navegar para Conversor → RCTR-C</li>
+          <li>Selecionar arquivo CSV com <strong>36 colunas</strong> (layout completo)</li>
+          <li>Clicar em IMPORTAR</li>
+          <li>Selecionar layout de 36 colunas (layout AIG padrão/completo)</li>
+          <li>Clicar em CONVERTER</li>
+          <li>Clicar em PROCESSAR</li>
+          <li>Verificar resultado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Critério de Aceite</h4>
+        <div class="expected">
+          ✓ Embarques processados sem erro (comportamento idêntico ao anterior ao fix)<br>
+          ✓ Campos <code>c_cdd_dst</code>, tipo de documento e CNPJ do embarcador com valores corretos<br>
+          ✓ Modal de resultado mostra "Aceitos: N" &gt; 0 e "Rejeitados: 0" (ou motivo legítimo se houver rejeição por dados inválidos)
+        </div>
+      </div>
+      <div class="ct-ev" id="ev-CVA-002"></div>
+    </div>
+  </div>
+
+</div><!-- /group-body -->
+
+<!-- GRUPO 2: Exploratório -->
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo 2 — Exploratório</h2>
+  <span class="group-badge">1 CT · P2</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <!-- CT-CVA-003 -->
+  <div class="ct-block" id="ct-CVA-003">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CVA-003</span>
+      <span class="ct-title">Exploratório — Outros ramos AIG no conversor não foram impactados pelo fix</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente" id="badge-CVA-003">PENDENTE</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Exploratório — Verificar se o fix em <code>ProcessaLinha_Aig case 54</code> não afetou outros cases do switch (outros ramos AIG no conversor)</p>
+      </div>
+      <div class="ct-section">
+        <h4>Guias de exploração</h4>
+        <ul class="pre-cond">
+          <li>Se AIG usa outros ramos no CITNET conversor (ex: RCTA-C, Transporte Nacional), testar um deles</li>
+          <li>Verificar se a tela de Conversor exibe todos os ramos habilitados para AIG</li>
+          <li>Tentar importar arquivo com 0 linhas (arquivo vazio) → sistema deve tratar graciosamente</li>
+          <li>Tentar importar arquivo com delimitador errado → verificar mensagem de erro</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Critério de conclusão</h4>
+        <div class="expected">
+          ✓ Outros ramos AIG (se existirem) processam corretamente<br>
+          ✓ Nenhum novo erro identificado além do escopo do fix<br>
+          ✓ SE achado bug: registrar com passos + evidências
+        </div>
+      </div>
+      <div class="ct-ev" id="ev-CVA-003"></div>
+    </div>
+  </div>
+
+</div><!-- /group-body -->
+
+</div><!-- /container -->
+
+<script>
+function toggleGroup(header) {
+  header.classList.toggle('collapsed');
+  var body = header.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+function toggleCT(bar) {
+  bar.classList.toggle('collapsed');
+  var panel = bar.nextElementSibling;
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+function updateMetrics() {
+  var badges = document.querySelectorAll('[id^="badge-"]');
+  var ok = 0, rep = 0, pend = 0;
+  badges.forEach(function(b) {
+    if (b.classList.contains('badge-ok')) ok++;
+    else if (b.classList.contains('badge-erro')) rep++;
+    else pend++;
+  });
+  document.getElementById('exec-aprovados').textContent = ok;
+  document.getElementById('exec-reprovados').textContent = rep;
+  document.getElementById('exec-pendentes').textContent = pend;
+  var total = badges.length;
+  var exec = ok + rep;
+  document.getElementById('progress-bar').style.width = (total > 0 ? Math.round(exec/total*100) : 0) + '%';
+}
+updateMetrics();
+</script>
+</body>
+</html>
