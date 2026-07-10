@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BUG-7754 — GerarRelatorio HTTP 500 Gestão | Sprint 10</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --blue: #388bfd; --blue-dim: #1f3a5c;
+    --green: #2ea043; --green-dim: #0d2818;
+    --red: #f85149; --red-dim: #3d0c10;
+    --orange: #d29922; --orange-dim: #3a2b00;
+    --purple: #bc8cff; --purple-dim: #2d1f4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: #010409; border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; }
+  .topbar .logo { color: var(--red); font-weight: 700; font-size: 15px; }
+  .topbar .sep { color: var(--border); }
+  .topbar .sprint { color: var(--muted); font-size: 13px; }
+
+  .hero { background: linear-gradient(135deg, #3d0c10 0%, #0d1117 60%); border-bottom: 1px solid #f8514940; padding: 28px 32px 22px; }
+  .hero h1 { font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .hero .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .hero .meta-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .hero .meta-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12px; }
+  .hero .meta-item span { color: var(--muted); }
+  .hero .meta-item strong { color: var(--text); }
+
+  .metrics { display: flex; gap: 12px; padding: 16px 32px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px 18px; min-width: 110px; text-align: center; }
+  .metric-card .num { font-size: 26px; font-weight: 700; }
+  .metric-card .lbl { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: .5px; }
+  .metric-card.total .num { color: var(--red); }
+  .metric-card.p1 .num { color: var(--red); }
+  .metric-card.p2 .num { color: var(--orange); }
+  .metric-card.ok .num { color: var(--green); }
+  .metric-card.pend .num { color: var(--muted); }
+
+  .content { padding: 24px 32px; max-width: 1100px; }
+  .section { margin-bottom: 24px; }
+  .section h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+
+  .info-box { background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+  .warn-box { background: var(--orange-dim); border: 1px solid var(--orange); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+  .danger-box { background: var(--red-dim); border: 1px solid var(--red); border-radius: 6px; padding: 10px 14px; margin-bottom: 12px; font-size: 13px; }
+
+  .group-header { background: var(--red); color: #fff; border-radius: 6px 6px 0 0; padding: 10px 16px; font-weight: 700; font-size: 13px; margin-top: 18px; display: flex; justify-content: space-between; align-items: center; }
+  .group-header.orange { background: #6b3a00; }
+  .group-header .grp-count { font-size: 12px; font-weight: 400; opacity: .8; }
+
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-top: none; margin-bottom: 0; }
+  .ct-block:last-child { border-radius: 0 0 6px 6px; margin-bottom: 18px; }
+  .ct-head { padding: 10px 16px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 10px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-weight: 700; font-size: 13px; color: var(--red); min-width: 90px; }
+  .ct-title { flex: 1; font-size: 13px; }
+  .ct-badges { display: flex; gap: 6px; align-items: center; }
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 700; }
+  .badge-p1 { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-p2 { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .badge-pend { background: #21262d; color: #8b949e; border: 1px solid #30363d; }
+  .badge-ok { background: #0d2818; color: #2ea043; border: 1px solid #2ea043; }
+  .badge-rep { background: #3d0c10; color: #f85149; border: 1px solid #f85149; }
+  .badge-blk { background: #3a2b00; color: #d29922; border: 1px solid #d29922; }
+  .ct-toggle { color: var(--muted); font-size: 11px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; padding: 0 16px 14px; border-top: 1px solid var(--border); }
+  .ct-block.expanded .ct-body { display: block; }
+
+  .ct-section { margin-top: 10px; }
+  .ct-section-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; font-weight: 700; }
+  .ct-section p, .ct-section li { font-size: 13px; margin-bottom: 3px; }
+  .ct-section ol, .ct-section ul { padding-left: 18px; }
+  .ct-section code { background: var(--bg3); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'Courier New', monospace; font-size: 12px; color: var(--purple); }
+
+  .result-box { margin-top: 10px; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+  .result-box.pending { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+  .result-box.ok { background: var(--green-dim); border: 1px solid var(--green); color: #79c57e; }
+  .result-box.rep { background: var(--red-dim); border: 1px solid var(--red); color: #ffa0a0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { background: var(--bg3); color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; padding: 8px 12px; border: 1px solid var(--border); text-align: left; }
+  td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0d1117; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">CITWEB QA</span>
+  <span class="sep">›</span>
+  <span class="sprint">Sprint 10</span>
+  <span class="sep">›</span>
+  <span>BUG-7754 — GerarRelatorio HTTP 500 Gestão</span>
+</div>
+
+<div class="hero">
+  <h1>BUG-7754 — CITWEB AXA: Gestão GerarRelatorio retorna HTTP 500</h1>
+  <div class="subtitle">Endpoint GerarRelatorio falha com HTTP 500 ao exportar qualquer relatório do módulo Gestão (CNPJA-01 a CNPJA-05)</div>
+  <div class="meta-row">
+    <div class="meta-item"><span>Card: </span><strong>BUG-7754</strong></div>
+    <div class="meta-item"><span>Epic: </span><strong>#7283 Homologação CNPJ ALFA</strong></div>
+    <div class="meta-item"><span>Sprint: </span><strong>Sprint_10_Citweb</strong></div>
+    <div class="meta-item"><span>Seguradora: </span><strong>AXA</strong></div>
+    <div class="meta-item"><span>Sistema: </span><strong>CITWEB Alfa</strong></div>
+    <div class="meta-item"><span>Severity: </span><strong>2 - High</strong></div>
+    <div class="meta-item"><span>Autor: </span><strong>Claude QA</strong></div>
+    <div class="meta-item"><span>Data: </span><strong>10/07/2026</strong></div>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric-card total"><div class="num" id="exec-total">7</div><div class="lbl">Total CTs</div></div>
+  <div class="metric-card p1"><div class="num">5</div><div class="lbl">P1 Bloqueante</div></div>
+  <div class="metric-card p2"><div class="num">2</div><div class="lbl">P2 Importante</div></div>
+  <div class="metric-card ok"><div class="num" id="exec-aprovados">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric-card pend"><div class="num" id="exec-pendentes">7</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<div class="content">
+
+  <!-- ESCOPO -->
+  <div class="section">
+    <h2>Escopo</h2>
+    <div class="danger-box">
+      <strong>Bug reportado:</strong> No módulo Gestão do CITWEB AXA (ambiente alfa/alfanumérico), ao clicar em <strong>Exportar</strong> em qualquer relatório, a requisição POST para <code>GerarRelatorio?parametro=GESTAO</code> retorna <strong>HTTP 500</strong> e nenhum arquivo é baixado. Em alguns relatórios exibe "Ocorreu um erro inesperado". Reproduzido em 3 execuções consecutivas (Voidr DEF-CNPJ-GESTAO-RELATORIO-500).
+    </div>
+    <div class="warn-box">
+      <strong>⚠️ Indício:</strong> O mesmo endpoint com <code>parametro=NACIONAL</code> e <code>parametro=INTERNACIONAL</code> também pode retornar 500 (comentário no código de teste Voidr). O fix deve ser verificado nesses contextos também (CT-GES-006 / CT-GES-007).
+    </div>
+    <table>
+      <tr><th>Critério de Aceite (inferido)</th><th>CT</th></tr>
+      <tr><td>Relação de Apólices exporta sem HTTP 500 e retorna arquivo (CNPJA-01)</td><td>CT-GES-001</td></tr>
+      <tr><td>Produção exporta sem HTTP 500 (CNPJA-02 — "Ocorreu um erro inesperado" eliminado)</td><td>CT-GES-002</td></tr>
+      <tr><td>Análise da Produção exporta sem HTTP 500 (CNPJA-03)</td><td>CT-GES-003</td></tr>
+      <tr><td>Relatório de Pendência de Pagamento exporta sem HTTP 500 (CNPJA-04)</td><td>CT-GES-004</td></tr>
+      <tr><td>Relatório de Prêmio Mínimo exporta sem HTTP 500 (CNPJA-05)</td><td>CT-GES-005</td></tr>
+      <tr><td>Regressão — export parametro=NACIONAL sem 500</td><td>CT-GES-006</td></tr>
+      <tr><td>Regressão — export parametro=INTERNACIONAL sem 500</td><td>CT-GES-007</td></tr>
+    </table>
+  </div>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section">
+    <h2>Pré-Requisitos</h2>
+    <table>
+      <tr><th>Item</th><th>Detalhe</th></tr>
+      <tr><td>AXA CITWEB Alfa</td><td>URL: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code><br>Login: <code>FRED</code> / <code>DERF</code><br>Ambiente alfanumérico — suporta CNPJ com letras</td></tr>
+      <tr><td>Massa — apólice alfanumérica</td><td>Qualquer apólice ativa no ambiente alfa com CNPJ alfanumérico. Verificar na tela Gestão → Relatórios se aparecem apólices no filtro GERAL antes de exportar.</td></tr>
+      <tr><td>Fix deployado</td><td>Bug ainda In Progress (dev task "Analise e Desenvolvimento" To Do). Executar somente após deploy do fix em HML alfa.</td></tr>
+    </table>
+  </div>
+
+  <!-- GRUPO 1 -->
+  <div class="group-header">
+    <span>GRUPO 1 — Gestão: Exports de Relatórios (CNPJA-01 a CNPJA-05)</span>
+    <span class="grp-count">5 CTs · CT-GES-001 a 005</span>
+  </div>
+
+  <!-- CT-GES-001 -->
+  <div class="ct-block expanded" id="CT-GES-001">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-001</span>
+      <span class="ct-title">Relação de Apólices — export retorna 2xx e arquivo (CNPJA-01)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Sanidade · CNPJA-01</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Ambiente: AXA CITWEB Alfa — <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code></li>
+          <li>Fix do bug #7754 deployado em HML alfa</li>
+          <li>Pelo menos uma apólice ativa no filtro GERAL</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login em <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code> com <code>FRED</code> / <code>DERF</code></li>
+          <li>No menu, abrir o módulo <strong>Gestão</strong> (popup)</li>
+          <li>Navegar até <strong>Relatórios → Relação de Apólices</strong></li>
+          <li>Definir filtro <strong>Tipo Ramo = GERAL</strong></li>
+          <li>Clicar em <strong>Exportar</strong> (confirmar "Sim" se solicitado)</li>
+          <li>Aguardar a resposta do servidor</li>
+          <li>Verificar via DevTools (Network) que o POST para <code>GerarRelatorio?parametro=GESTAO</code> retornou 2xx</li>
+          <li>Confirmar que o arquivo foi baixado com sucesso</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST <code>GerarRelatorio?parametro=GESTAO</code> retorna 2xx. Arquivo XLSX/XLS/CSV é baixado para o computador. Nenhuma mensagem de erro exibida na tela.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contraprova (pré-fix)</div>
+        <p>Antes do fix: POST retornava HTTP 500 e nenhum arquivo era baixado — confirmado em 3 execuções Voidr (EXEC-001731 → 001732 → 001733).</p>
+      </div>
+      <div class="result-box pending" id="result-GES-001">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-GES-002 -->
+  <div class="ct-block" id="CT-GES-002">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-002</span>
+      <span class="ct-title">Produção — export retorna 2xx e arquivo sem "Ocorreu um erro inesperado" (CNPJA-02)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Sanidade · CNPJA-02</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Pré-condições</div>
+        <ul>
+          <li>Mesmo ambiente e login de CT-GES-001</li>
+          <li>Fix deployado</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Módulo Gestão → <strong>Relatórios → Produção</strong></li>
+          <li>Filtro Tipo Ramo = GERAL → clicar <strong>Exportar</strong></li>
+          <li>Aguardar resposta do servidor</li>
+          <li>Verificar que NÃO aparece "Ocorreu um erro inesperado"</li>
+          <li>Verificar via DevTools que o POST retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST retorna 2xx. Arquivo baixado com sucesso. Mensagem "Ocorreu um erro inesperado" NÃO aparece na tela.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-002">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-GES-003 -->
+  <div class="ct-block" id="CT-GES-003">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-003</span>
+      <span class="ct-title">Análise da Produção — export retorna 2xx e arquivo (CNPJA-03)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Sanidade · CNPJA-03</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Módulo Gestão → <strong>Relatórios → Análise da Produção</strong></li>
+          <li>Filtro Tipo Ramo = GERAL → clicar <strong>Exportar</strong></li>
+          <li>Verificar via DevTools que POST retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST retorna 2xx. Arquivo baixado sem erro.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-003">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-GES-004 -->
+  <div class="ct-block" id="CT-GES-004">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-004</span>
+      <span class="ct-title">Relatório de Pendência de Pagamento — export retorna 2xx (CNPJA-04)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Sanidade · CNPJA-04</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Módulo Gestão → <strong>Relatório Gerencial → Relatório de Pendência de Pagamento</strong></li>
+          <li>Definir filtros → clicar <strong>Exportar</strong></li>
+          <li>Verificar via DevTools que POST retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST retorna 2xx. Arquivo baixado sem erro.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-004">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-GES-005 -->
+  <div class="ct-block" id="CT-GES-005">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-005</span>
+      <span class="ct-title">Relatório de Prêmio Mínimo — export retorna 2xx (CNPJA-05)</span>
+      <div class="ct-badges">
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Positivo · Sanidade · CNPJA-05</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Módulo Gestão → <strong>Relatório Gerencial → Relatório de Prêmio Mínimo</strong></li>
+          <li>Definir filtros → clicar <strong>Exportar</strong></li>
+          <li>Verificar via DevTools que POST retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST retorna 2xx. Arquivo baixado sem erro.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-005">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- GRUPO 2 -->
+  <div class="group-header orange">
+    <span>GRUPO 2 — Regressão: parametro=NACIONAL e INTERNACIONAL</span>
+    <span class="grp-count">2 CTs · CT-GES-006 a 007</span>
+  </div>
+
+  <!-- CT-GES-006 -->
+  <div class="ct-block" id="CT-GES-006">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-006</span>
+      <span class="ct-title">Regressão — GerarRelatorio com parametro=NACIONAL retorna 2xx e arquivo</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Regressão · Indício de falha estendida ao contexto Nacional</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Contexto</div>
+        <p class="info-box" style="font-size:12px">Código de teste Voidr indica que o endpoint <code>GerarRelatorio</code> também falha com <code>parametro=NACIONAL</code>. Este CT verifica se o fix da Gestão resolveu também o contexto Nacional ou se há falha residual.</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Acessar módulo Nacional (Averbações / Relatórios Nacional)</li>
+          <li>Navegar até qualquer relatório exportável no contexto Nacional</li>
+          <li>Clicar em <strong>Exportar</strong></li>
+          <li>Verificar via DevTools que POST para <code>GerarRelatorio?parametro=NACIONAL</code> retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST <code>GerarRelatorio?parametro=NACIONAL</code> retorna 2xx. Arquivo baixado. Sem regressão no contexto Nacional.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-006">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- CT-GES-007 -->
+  <div class="ct-block" id="CT-GES-007">
+    <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+      <span class="ct-id">CT-GES-007</span>
+      <span class="ct-title">Regressão — GerarRelatorio com parametro=INTERNACIONAL retorna 2xx e arquivo</span>
+      <div class="ct-badges">
+        <span class="badge badge-p2">P2</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body">
+      <div class="ct-section">
+        <div class="ct-section-title">Tipo</div>
+        <p>Regressão · Indício de falha estendida ao contexto Internacional</p>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Passos</div>
+        <ol>
+          <li>Login AXA CITWEB Alfa (FRED/DERF)</li>
+          <li>Acessar módulo Internacional (Averbações / Relatórios Internacional)</li>
+          <li>Navegar até qualquer relatório exportável no contexto Internacional</li>
+          <li>Clicar em <strong>Exportar</strong></li>
+          <li>Verificar via DevTools que POST para <code>GerarRelatorio?parametro=INTERNACIONAL</code> retornou 2xx</li>
+          <li>Confirmar arquivo baixado</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <div class="ct-section-title">Resultado Esperado</div>
+        <p>POST <code>GerarRelatorio?parametro=INTERNACIONAL</code> retorna 2xx. Arquivo baixado. Sem regressão no contexto Internacional.</p>
+      </div>
+      <div class="result-box pending" id="result-GES-007">⏳ Aguardando execução</div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section" style="margin-top:32px">
+    <h2>Matriz de Rastreabilidade</h2>
+    <table>
+      <tr><th>Critério de Aceite</th><th>CT</th><th>Status</th></tr>
+      <tr><td>Relação de Apólices exporta sem HTTP 500 (CNPJA-01)</td><td>CT-GES-001</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Produção exporta sem HTTP 500 e sem "Ocorreu um erro inesperado" (CNPJA-02)</td><td>CT-GES-002</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Análise da Produção exporta sem HTTP 500 (CNPJA-03)</td><td>CT-GES-003</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Relatório de Pendência de Pagamento exporta sem HTTP 500 (CNPJA-04)</td><td>CT-GES-004</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Relatório de Prêmio Mínimo exporta sem HTTP 500 (CNPJA-05)</td><td>CT-GES-005</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Regressão — GerarRelatorio parametro=NACIONAL sem 500</td><td>CT-GES-006</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+      <tr><td>Regressão — GerarRelatorio parametro=INTERNACIONAL sem 500</td><td>CT-GES-007</td><td><span class="badge badge-pend">PENDENTE</span></td></tr>
+    </table>
+  </div>
+
+  <!-- RISCOS -->
+  <div class="section">
+    <h2>Riscos</h2>
+    <table>
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+      <tr><td>AXA HML alfa retorna 522 (infra instável)</td><td>Alta</td><td>Bloqueia todos os CTs</td><td>Verificar conectividade antes da execução; notificar no Teams se bloqueado</td></tr>
+      <tr><td>Relatório retorna 2xx mas arquivo está vazio ou corrompido</td><td>Baixa</td><td>Bug residual</td><td>Verificar tamanho e conteúdo do arquivo baixado — não apenas o status HTTP</td></tr>
+      <tr><td>CNPJ alfanumérico não aparece no arquivo exportado</td><td>Média</td><td>Objetivo central da entrega não validado</td><td>Verificar se o arquivo exportado contém CNPJs alfanuméricos (ex: D77L6VWV000116)</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
