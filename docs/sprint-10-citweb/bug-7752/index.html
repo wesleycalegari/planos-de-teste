@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG #7752 — CITNET AXA Conversor Processar Erro Genérico</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#f59e0b;--accent2:#fcd34d;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e;--tag-bg:#21262d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#000;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.topbar-bug{color:var(--red);font-weight:600;font-size:12px}
+.hero{background:linear-gradient(135deg,#1a1200 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.bug-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.bug-box h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.bug-box p{font-size:13px;color:var(--text);margin-bottom:6px}
+.bug-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.warn-box{background:var(--yel-bg);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.warn-box h3{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--yellow);margin-bottom:6px}
+.warn-box p,.warn-box li{font-size:13px;color:#fbbf24;margin-bottom:4px}
+.warn-box ul{padding-left:16px}
+.info-box{background:#0d1420;border:1px solid #0ea5e9;border-left:4px solid #0ea5e9;border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.info-box p,.info-box li{font-size:13px;color:#7dd3fc;margin-bottom:4px}
+.info-box ul{padding-left:16px}
+.metrics{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+.progress-wrap{margin:8px 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);border-radius:4px;transition:width .4s}
+.container{padding:0 24px 40px}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#000;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted);transition:transform .2s}
+.group-header.collapsed .group-toggle{transform:rotate(-90deg)}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#2ea043}
+.badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-bloqueado{background:var(--yel-bg);color:var(--yellow)}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.ct-caret{color:var(--muted);transition:transform .2s;font-size:11px}
+.ct-bar.collapsed .ct-caret{transform:rotate(-90deg)}
+.ct-panel{padding:14px;border-top:1px solid var(--border)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text);margin-bottom:3px}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.ct-section ol li::marker{color:var(--accent);font-weight:600}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.pre-cond li{margin-bottom:4px}
+.expected{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 10px;font-size:13px;color:#79c57e}
+.ct-ev{margin-top:10px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">QA</span>
+  <span class="topbar-title">Reteste BUG #7752 — CITNET AXA Conversor Processar Erro Genérico</span>
+  <span class="topbar-sprint">Sprint 10 Citweb · 2026-07-10</span>
+  <span class="topbar-bug">BUG #7752</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">CITNET AXA (alfanum) — Conversor: Processar retorna mensagem de erro genérica</div>
+  <div class="hero-sub">
+    <span>🏢 Seguradora: AXA</span>
+    <span>💻 Sistema: CITNET</span>
+    <span>🌐 Módulo: Conversor → Processar</span>
+    <span>📋 Epic: #7283</span>
+  </div>
+
+  <div class="bug-box">
+    <h3>Defeito</h3>
+    <p><strong>BUG #7752</strong> — Na etapa <strong>Processar</strong> do Conversor, ao processar as averbações convertidas, o backend responde com a mensagem genérica <code>Erro no processamento dos dados!</code>, sem detalhar a causa. O fluxo anterior (Importar → Layout → Converter) opera normalmente.</p>
+    <p>Voidr: <code>DEF-AXA-CONVERSOR-PROCESSAR-ERRO-GENERICO</code> | Reprodutibilidade: <strong>intermittent</strong> | Severidade: <strong>High (P2)</strong></p>
+    <p>Tela: <code>/alfa/citnet/Conversor/Conversor</code></p>
+    <p>Ambiente: <code>axa-hml-faturamento.nsseg.com.br</code></p>
+    <p>Test case Voidr afetado: <code>CONVE-13</code></p>
+  </div>
+
+  <div class="warn-box">
+    <h3>Observação — Bug Intermittent</h3>
+    <ul>
+      <li>A falha é <strong>intermittent</strong> — nem toda execução do Processar dispara o erro</li>
+      <li>O fix deve garantir que <strong>quando houver falha, a mensagem seja específica</strong> (não genérica)</li>
+      <li>O CT-CVS-001 valida o fix: se processar com sucesso → feedback claro; se falhar → mensagem específica</li>
+    </ul>
+  </div>
+
+  <div class="info-box">
+    <p>Credenciais AXA alfanum: <strong>FRED / DERF</strong></p>
+    <p>Wizard do Conversor: Selecionar Ramo → Importar arquivo CSV → Layout → Converter → <strong>Processar</strong></p>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="cnt-total">2</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="cnt-ok">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="cnt-rep">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="cnt-pend">2</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+
+<div class="container">
+
+  <div class="group-header" onclick="toggleGroup(this)">
+    <h2>Grupo 1 — Etapa Processar</h2>
+    <span class="group-badge">1 CT</span>
+    <span class="group-toggle">▼</span>
+  </div>
+
+  <!-- CT-CVS-001 -->
+  <div class="ct-block">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CVS-001</span>
+      <span class="ct-title">Processar averbações convertidas deve exibir feedback claro (sem erro genérico) após fix</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente" id="badge-CVS-001">PENDENTE</span>
+      <span class="ct-caret">▼</span>
+    </div>
+    <div class="ct-panel" id="panel-CVS-001">
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>Acesso ao ambiente HML-AXA alfanum: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login</code></li>
+          <li>Credenciais: <strong>FRED / DERF</strong></li>
+          <li>Arquivo CSV válido para importação no Conversor disponível (pode usar qualquer ramo disponível)</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login</code> e fazer login com <strong>FRED / DERF</strong></li>
+          <li>Navegar pelo menu ao Módulo <strong>Conversor</strong> (Conversor → Conversor)</li>
+          <li>Selecionar um ramo disponível (ex: RCTR-C, Transporte Nacional, ou outro presente no ambiente)</li>
+          <li>Aguardar a tela carregar com segurados e layouts disponíveis</li>
+          <li>Clicar em <strong>Importar</strong> e selecionar um arquivo CSV válido para o ramo escolhido</li>
+          <li>Aguardar a importação — verificar que a tabela de registros é exibida</li>
+          <li>Selecionar o <strong>Layout</strong> correspondente ao ramo</li>
+          <li>Clicar em <strong>Converter</strong> — aguardar a conversão ser processada</li>
+          <li>Clicar em <strong>Processar</strong></li>
+          <li>Observar o resultado retornado pelo sistema</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado (após fix)</h4>
+        <div class="expected">
+          ✓ Cenário A — Sucesso: O processamento conclui com feedback claro mostrando quantidade de registros aceitos e/ou rejeitados<br>
+          ✓ Cenário B — Falha: Se houver falha, a mensagem de erro é <strong>específica</strong> (ex: "Campo X inválido no registro N") — NÃO genérica como "Erro no processamento dos dados!"<br>
+          ✗ REPROVADO se: o sistema exibir a mensagem genérica <code>Erro no processamento dos dados!</code> sem contexto adicional
+        </div>
+      </div>
+      <div class="ct-ev" id="ev-CVS-001"></div>
+    </div>
+  </div>
+
+  <div class="group-header" onclick="toggleGroup(this)">
+    <h2>Grupo 2 — Regressivo: Fluxo Completo Conversor</h2>
+    <span class="group-badge">1 CT</span>
+    <span class="group-toggle">▼</span>
+  </div>
+
+  <!-- CT-CVS-002 -->
+  <div class="ct-block">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CVS-002</span>
+      <span class="ct-title">Fluxo Importar → Layout → Converter não foi afetado pelo fix (regressivo)</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente" id="badge-CVS-002">PENDENTE</span>
+      <span class="ct-caret">▼</span>
+    </div>
+    <div class="ct-panel" id="panel-CVS-002">
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>Sessão ativa no HML-AXA alfanum com credenciais FRED / DERF</li>
+          <li>Arquivo CSV válido para o ramo a ser testado</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Navegar para <strong>Conversor</strong></li>
+          <li>Selecionar ramo (ex: RCTR-C ou Transporte Nacional)</li>
+          <li>Verificar que os <strong>segurados</strong> carregam corretamente após seleção do ramo</li>
+          <li>Verificar que os <strong>layouts disponíveis</strong> para o ramo são exibidos</li>
+          <li>Importar arquivo CSV — verificar que a tabela de registros é exibida corretamente</li>
+          <li>Selecionar layout e clicar <strong>Converter</strong></li>
+          <li>Verificar que a conversão completa sem erros e exibe resumo dos registros convertidos</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado</h4>
+        <div class="expected">
+          ✓ Ramo selecionado → segurados e layouts carregam corretamente<br>
+          ✓ Importação → tabela de registros exibida<br>
+          ✓ Conversão → resumo de registros convertidos sem erros<br>
+          ✓ Nenhuma regressão no fluxo pré-Processar introduzida pelo fix
+        </div>
+      </div>
+      <div class="ct-ev" id="ev-CVS-002"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleCT(bar){
+  var panel=bar.nextElementSibling;
+  bar.classList.toggle('collapsed');
+  panel.style.display=bar.classList.contains('collapsed')?'none':'block';
+}
+function toggleGroup(hdr){
+  hdr.classList.toggle('collapsed');
+  var el=hdr.nextElementSibling;
+  while(el&&!el.classList.contains('group-header')){
+    el.style.display=hdr.classList.contains('collapsed')?'none':'block';
+    el=el.nextElementSibling;
+  }
+}
+function updateMetrics(){
+  var badges=document.querySelectorAll('.badge[id^="badge-"]');
+  var ok=0,rep=0,pend=0;
+  badges.forEach(function(b){
+    if(b.classList.contains('badge-ok'))ok++;
+    else if(b.classList.contains('badge-erro'))rep++;
+    else pend++;
+  });
+  document.getElementById('cnt-ok').textContent=ok;
+  document.getElementById('cnt-rep').textContent=rep;
+  document.getElementById('cnt-pend').textContent=pend;
+  var total=badges.length;
+  var done=ok+rep;
+  document.getElementById('progress').style.width=(total>0?Math.round(done/total*100):0)+'%';
+}
+updateMetrics();
+</script>
+</body>
+</html>
