@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7753 | RCTR-C / RCTF-C Validações Ausentes (AXA)</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --muted: #8b949e;
+    --blue: #1f6feb; --blue-light: #388bfd; --blue-dim: #1c2d3e;
+    --green: #2ea043; --green-dim: #0d2016; --green-text: #56d364;
+    --red: #da3633; --red-dim: #1e0c0c; --red-text: #ff7b72;
+    --yellow: #9e6a03; --yellow-dim: #1f1600; --yellow-text: #e3b341;
+    --orange: #bc4c00;
+    --purple: #6e40c9; --purple-dim: #1a0d2e; --purple-text: #bc8cff;
+    --p1: #da3633; --p2: #bc4c00; --p3: #656d76;
+    --ok: #2ea043; --pend: #388bfd; --blk: #9e6a03; --err: #da3633;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  a { color: var(--blue-light); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* TOPBAR */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  .topbar-badge { background: var(--red-dim); border: 1px solid var(--red); color: var(--red-text); border-radius: 20px; padding: 2px 12px; font-size: 12px; font-weight: 600; }
+  .topbar-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .topbar-meta { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* HERO */
+  .hero { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 24px 32px; }
+  .hero h1 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .hero-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .hero-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tag { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 11px; color: var(--muted); }
+  .tag.blue { border-color: var(--blue); color: var(--blue-light); background: var(--blue-dim); }
+  .tag.red { border-color: var(--red); color: var(--red-text); background: var(--red-dim); }
+  .tag.purple { border-color: var(--purple); color: var(--purple-text); background: var(--purple-dim); }
+
+  /* METRICS */
+  .metrics { display: flex; gap: 16px; padding: 16px 32px; background: var(--bg); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 20px; min-width: 120px; text-align: center; }
+  .metric-val { font-size: 28px; font-weight: 700; line-height: 1; }
+  .metric-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-card.total .metric-val { color: var(--blue-light); }
+  .metric-card.ok .metric-val { color: var(--green-text); }
+  .metric-card.pend .metric-val { color: var(--blue-light); }
+  .metric-card.blk .metric-val { color: var(--yellow-text); }
+  .metric-card.err .metric-val { color: var(--red-text); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { padding: 0 32px 16px; background: var(--bg); }
+  .progress-bar { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; display: flex; }
+  .pb-ok { background: var(--green); }
+  .pb-err { background: var(--red); }
+  .pb-blk { background: var(--yellow); }
+  .pb-pend { background: var(--blue); }
+  .progress-lbl { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* MAIN */
+  .main { padding: 24px 32px; max-width: 1100px; }
+
+  /* SECTION HEADER */
+  .section-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  /* INFO BOX */
+  .info-box { background: var(--blue-dim); border: 1px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; }
+  .warn-box { background: var(--yellow-dim); border: 1px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--yellow-text); }
+  .crit-box { background: var(--red-dim); border: 1px solid var(--red); border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--red-text); }
+
+  /* GROUP HEADER */
+  .group-header { background: var(--blue); color: #fff; padding: 10px 16px; border-radius: 6px 6px 0 0; font-size: 13px; font-weight: 700; margin-top: 20px; display: flex; align-items: center; gap: 8px; }
+  .group-header.red-grp { background: var(--red); }
+  .group-header.purple-grp { background: var(--purple); }
+  .group-header.green-grp { background: var(--green); }
+
+  /* CT BLOCK */
+  .ct-block { border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block + .ct-block { border-radius: 0; margin-bottom: 0; }
+  .ct-block:last-child { border-radius: 0 0 6px 6px; }
+  .ct-head { background: var(--bg2); padding: 10px 14px; cursor: pointer; user-select: none; display: flex; align-items: center; gap: 8px; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: monospace; font-size: 12px; color: var(--muted); min-width: 90px; }
+  .ct-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .ct-toggle { font-size: 11px; color: var(--muted); transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; background: var(--bg); border-top: 1px solid var(--border); padding: 14px 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+
+  /* BADGES */
+  .badge { border-radius: 12px; padding: 2px 10px; font-size: 11px; font-weight: 700; }
+  .badge-p1 { background: var(--red-dim); border: 1px solid var(--red); color: var(--red-text); }
+  .badge-p2 { background: var(--yellow-dim); border: 1px solid var(--yellow); color: var(--yellow-text); }
+  .badge-p3 { background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+  .badge-ok { background: var(--green-dim); border: 1px solid var(--green); color: var(--green-text); }
+  .badge-pend { background: var(--blue-dim); border: 1px solid var(--blue); color: var(--blue-light); }
+  .badge-blk { background: var(--yellow-dim); border: 1px solid var(--yellow); color: var(--yellow-text); }
+  .badge-err { background: var(--red-dim); border: 1px solid var(--red); color: var(--red-text); }
+
+  /* CT DETAIL */
+  .ct-row { display: grid; grid-template-columns: 140px 1fr; gap: 4px 12px; margin-bottom: 8px; font-size: 13px; }
+  .ct-lbl { color: var(--muted); font-size: 12px; padding-top: 2px; }
+  .ct-val { color: var(--text); }
+  ol.steps { padding-left: 20px; }
+  ol.steps li { margin-bottom: 4px; font-size: 13px; }
+  .result-box { border-radius: 4px; padding: 8px 12px; margin-top: 12px; font-size: 13px; }
+  .result-box.pend { background: var(--blue-dim); border: 1px solid var(--blue); color: var(--blue-light); }
+  .result-box.ok { background: var(--green-dim); border: 1px solid var(--green); color: var(--green-text); }
+  .result-box.err { background: var(--red-dim); border: 1px solid var(--red); color: var(--red-text); }
+  .result-box.blk { background: var(--yellow-dim); border: 1px solid var(--yellow); color: var(--yellow-text); }
+  .ct-ev { margin-top: 10px; }
+  .ct-ev img { max-width: 100%; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: block; margin-top: 8px; }
+  .ct-ev .ev-caption { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* MATRIX */
+  .matrix-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .matrix-table th { background: var(--bg3); padding: 8px 12px; text-align: left; border: 1px solid var(--border); font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .matrix-table td { padding: 8px 12px; border: 1px solid var(--border); vertical-align: top; }
+  .matrix-table tr:nth-child(even) td { background: var(--bg2); }
+
+  /* FOOTER */
+  .footer { padding: 20px 32px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <span class="topbar-badge">BUG</span>
+  <span class="topbar-title">BUG-7753 · RCTR-C / RCTF-C — Validações de Apólice Ausentes (AXA)</span>
+  <span class="topbar-meta">Sprint 10 · CITWEB AXA · QA: Wesley Moreira · 2026-07-13</span>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>[ CITWEB - AXA ] RCTR-C / RCTF-C — Validações de apólice ausentes: OCD+OCD/Içamento simultâneos e Taxa Desconto/Agravo habilitada indevidamente</h1>
+  <div class="hero-sub">Dois bugs de validação de formulário detectados no ambiente alfanumérico AXA — reproduzidos de forma consistente em todas as tentativas (EXEC-001731 → 001733).</div>
+  <div class="hero-tags">
+    <span class="tag blue">AXA</span>
+    <span class="tag blue">CITWEB</span>
+    <span class="tag red">Severity 2 - High</span>
+    <span class="tag">RCTR-C</span>
+    <span class="tag">RCTF-C</span>
+    <span class="tag">alfanum</span>
+    <span class="tag purple">Sprint 10</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric-card total"><div class="metric-val" id="exec-total">8</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric-card ok"><div class="metric-val" id="exec-aprovados">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric-card err"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric-card blk"><div class="metric-val" id="exec-bloqueados">0</div><div class="metric-lbl">Bloqueados</div></div>
+  <div class="metric-card pend"><div class="metric-val" id="exec-pendentes">8</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap">
+  <div class="progress-bar">
+    <div class="pb-ok" id="pb-ok" style="width:0%"></div>
+    <div class="pb-err" id="pb-err" style="width:0%"></div>
+    <div class="pb-blk" id="pb-blk" style="width:0%"></div>
+    <div class="pb-pend" id="pb-pend" style="width:100%"></div>
+  </div>
+  <div class="progress-lbl">0 / 8 executados · 0% concluído</div>
+</div>
+
+<div class="main">
+
+  <!-- CONTEXTO DO BUG -->
+  <div class="section-title">Contexto do Bug</div>
+  <div class="crit-box">
+    <strong>Bug 1 — Taxa de Desconto/Agravo habilitada sem validação</strong><br>
+    O campo Taxa de Desconto/Agravo deveria iniciar <em>desabilitado</em> enquanto não houver opção selecionada no dropdown. Além disso, o sistema deveria bloquear o salvamento quando o campo estiver habilitado e vazio. Atualmente o campo inicia habilitado e a apólice é salva sem restrição.<br><br>
+    <strong>Bug 2 — Exclusividade OCD / OCD-Içamento ausente</strong><br>
+    A aplicação permite salvar apólice com "Adicional de OCD" e "Adicional de OCD/Içamento" marcados simultaneamente. A regra de negócio exige que sejam mutuamente exclusivos — mensagem esperada: <em>"Não é possível ter Adicional de OCD e Adicional de OCD/Içamento ao mesmo tempo"</em>. O save retorna sucesso silenciosamente.
+  </div>
+  <div class="info-box">
+    <strong>Origem:</strong> Voidr defect <code>DEF-AXA-RCTRC-RCTFC-OCD-ICAMENTO-TAXA-AGRAVO</code> · Ambiente: <code>alfanum (HML)</code><br>
+    <strong>Referência cruzada:</strong> DEF-EXEC237-BUGS-CONFIRMADOS-OCD-TAXA (CITWEB-NsTech) · Tenant Berkley: DEF-CAMPO-TAXA-84619, DEF-RCTRC-OCD-ICAMENTO-VALIDACAO-MUTUA-AUSENTE<br>
+    <strong>Reprodutibilidade:</strong> Always — reproduzido nas execuções EXEC-001731 → 001732 → 001733
+  </div>
+
+  <!-- PRÉ-REQUISITOS -->
+  <div class="section-title">Pré-Requisitos</div>
+  <div class="info-box">
+    <strong>Ambiente:</strong> CITWEB AXA alfanum (HML) · URL base: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code><br>
+    <strong>Credenciais:</strong> Usuário <code>FRED</code> | Senha <code>DERF</code><br>
+    <strong>Módulos testados:</strong> Cadastros → Apólice → RCTR-C e Cadastros → Apólice → RCTF-C<br>
+    <strong>Massa:</strong> Criar nova apólice RCTR-C / RCTF-C nos cenários de teste — não requer apólice pré-existente específica; os bugs manifestam-se durante o <em>cadastro</em> de apólice, antes do primeiro salvamento.
+  </div>
+
+  <!-- GRUPO 1: BUG 1 - RCTR-C -->
+  <div class="group-header">
+    Grupo 1 — Bug 1: Taxa de Desconto/Agravo | RCTR-C
+  </div>
+  <div class="warn-box" style="border-radius:0;border-top:none;">
+    Campo Taxa de Desconto/Agravo deveria iniciar desabilitado. Estes CTs verificam o estado inicial e a validação ao salvar.
+  </div>
+
+  <!-- CT-OTA-001 -->
+  <div class="ct-block" id="block-OTA-001">
+    <div class="ct-head" onclick="toggle('OTA-001')">
+      <span class="ct-id">CT-OTA-001</span>
+      <span class="ct-title">Campo Taxa Desconto/Agravo inicia desabilitado sem opção no dropdown — RCTR-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-001">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-001">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — estado inicial de campo</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Usuário logado no CITWEB AXA alfa (FRED/DERF). Nenhuma opção selecionada no dropdown de Desconto/Agravo.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code></li>
+          <li>Logar com <code>FRED / DERF</code></li>
+          <li>No menu superior: clicar em <strong>Cadastros</strong> → <strong>Apólice</strong> → <strong>RCTR-C</strong></li>
+          <li>Clicar em <strong>Novo</strong> (ou abrir formulário de nova apólice)</li>
+          <li>Localizar o campo/dropdown de <strong>Taxa de Desconto/Agravo</strong></li>
+          <li>Verificar o estado do campo: está habilitado ou desabilitado?</li>
+          <li>Capturar screenshot do estado inicial</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">O campo Taxa de Desconto/Agravo deve estar <strong>desabilitado</strong> (cinza, não editável) quando nenhuma opção estiver selecionada no dropdown de Desconto/Agravo.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado obtido</span><span class="ct-val"><em>(a preencher após execução)</em></span></div>
+      <div class="result-box pend" id="result-OTA-001">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-001"></div>
+    </div>
+  </div>
+
+  <!-- CT-OTA-002 -->
+  <div class="ct-block" id="block-OTA-002">
+    <div class="ct-head" onclick="toggle('OTA-002')">
+      <span class="ct-id">CT-OTA-002</span>
+      <span class="ct-title">Salvar com Taxa Desconto/Agravo habilitada e vazia deve ser bloqueado — RCTR-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-002">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-002">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — validação ao salvar</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTR-C aberto. Dropdown de Desconto/Agravo selecionado (campo Taxa habilitado). Campo Taxa deixado em branco.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Acessar formulário de nova apólice RCTR-C (conforme CT-OTA-001)</li>
+          <li>Selecionar qualquer opção no dropdown de <strong>Desconto/Agravo</strong> (para habilitar o campo Taxa)</li>
+          <li>Confirmar que o campo <strong>Taxa de Desconto/Agravo</strong> ficou habilitado e editável</li>
+          <li>Deixar o campo <strong>Taxa</strong> em branco (não preencher)</li>
+          <li>Preencher os demais campos obrigatórios da apólice com dados válidos</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">O sistema deve <strong>bloquear</strong> o salvamento com mensagem de validação indicando que o campo Taxa é obrigatório quando a opção está selecionada. A apólice NÃO deve ser criada.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado obtido</span><span class="ct-val"><em>(a preencher após execução)</em></span></div>
+      <div class="result-box pend" id="result-OTA-002">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-002"></div>
+    </div>
+  </div>
+
+  <!-- GRUPO 2: BUG 1 - RCTF-C -->
+  <div class="group-header">
+    Grupo 2 — Bug 1: Taxa de Desconto/Agravo | RCTF-C
+  </div>
+
+  <!-- CT-OTA-003 -->
+  <div class="ct-block" id="block-OTA-003">
+    <div class="ct-head" onclick="toggle('OTA-003')">
+      <span class="ct-id">CT-OTA-003</span>
+      <span class="ct-title">Campo Taxa Desconto/Agravo inicia desabilitado sem opção no dropdown — RCTF-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-003">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-003">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — estado inicial de campo (RCTF-C)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Usuário logado no CITWEB AXA alfa (FRED/DERF). Formulário de nova apólice RCTF-C aberto.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Navegar por clique: <strong>Cadastros</strong> → <strong>Apólice</strong> → <strong>RCTF-C</strong></li>
+          <li>Clicar em <strong>Novo</strong></li>
+          <li>Localizar o campo/dropdown de <strong>Taxa de Desconto/Agravo</strong></li>
+          <li>Verificar o estado inicial: campo habilitado ou desabilitado?</li>
+          <li>Capturar screenshot</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Campo Taxa de Desconto/Agravo deve iniciar <strong>desabilitado</strong> — idêntico ao comportamento esperado no RCTR-C.</span></div>
+      <div class="result-box pend" id="result-OTA-003">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-003"></div>
+    </div>
+  </div>
+
+  <!-- CT-OTA-004 -->
+  <div class="ct-block" id="block-OTA-004">
+    <div class="ct-head" onclick="toggle('OTA-004')">
+      <span class="ct-id">CT-OTA-004</span>
+      <span class="ct-title">Salvar com Taxa Desconto/Agravo habilitada e vazia deve ser bloqueado — RCTF-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-004">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-004">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — validação ao salvar (RCTF-C)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTF-C aberto. Dropdown de Desconto/Agravo com opção selecionada. Campo Taxa em branco.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Abrir formulário de nova apólice RCTF-C</li>
+          <li>Selecionar opção no dropdown de <strong>Desconto/Agravo</strong></li>
+          <li>Deixar o campo <strong>Taxa</strong> em branco</li>
+          <li>Preencher demais campos obrigatórios</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Sistema deve <strong>bloquear</strong> com mensagem de validação. Apólice NÃO deve ser criada.</span></div>
+      <div class="result-box pend" id="result-OTA-004">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-004"></div>
+    </div>
+  </div>
+
+  <!-- GRUPO 3: BUG 2 - OCD/OCD-Içamento RCTR-C -->
+  <div class="group-header red-grp">
+    Grupo 3 — Bug 2: Exclusividade OCD / OCD-Içamento | RCTR-C
+  </div>
+
+  <!-- CT-OTA-005 -->
+  <div class="ct-block" id="block-OTA-005">
+    <div class="ct-head" onclick="toggle('OTA-005')">
+      <span class="ct-id">CT-OTA-005</span>
+      <span class="ct-title">Sistema bloqueia seleção simultânea de OCD e OCD/Içamento — RCTR-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-005">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-005">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — validação de exclusividade (RCTR-C)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTR-C aberto. Os checkboxes "Adicional de OCD" e "Adicional de OCD/Içamento" visíveis.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Dados de entrada</span><span class="ct-val">Marcar ambos: ☑ Adicional de OCD + ☑ Adicional de OCD/Içamento simultaneamente</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Abrir formulário de nova apólice RCTR-C</li>
+          <li>Localizar checkbox <strong>Adicional de OCD</strong> → marcar</li>
+          <li>Capturar screenshot com OCD marcado</li>
+          <li>Localizar checkbox <strong>Adicional de OCD/Içamento</strong> → marcar</li>
+          <li>Capturar screenshot com ambos marcados</li>
+          <li>Preencher demais campos obrigatórios com dados válidos</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Sistema deve <strong>bloquear</strong> o salvamento exibindo mensagem: <em>"Não é possível ter Adicional de OCD e Adicional de OCD/Içamento ao mesmo tempo"</em>. A apólice NÃO deve ser criada.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado obtido</span><span class="ct-val"><em>(a preencher após execução)</em></span></div>
+      <div class="result-box pend" id="result-OTA-005">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-005"></div>
+    </div>
+  </div>
+
+  <!-- GRUPO 4: BUG 2 - OCD/OCD-Içamento RCTF-C -->
+  <div class="group-header red-grp">
+    Grupo 4 — Bug 2: Exclusividade OCD / OCD-Içamento | RCTF-C
+  </div>
+
+  <!-- CT-OTA-006 -->
+  <div class="ct-block" id="block-OTA-006">
+    <div class="ct-head" onclick="toggle('OTA-006')">
+      <span class="ct-id">CT-OTA-006</span>
+      <span class="ct-title">Sistema bloqueia seleção simultânea de OCD e OCD/Içamento — RCTF-C</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pend" id="badge-OTA-006">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-006">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Negativo — validação de exclusividade (RCTF-C)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTF-C aberto.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Dados de entrada</span><span class="ct-val">Marcar ambos: ☑ Adicional de OCD + ☑ Adicional de OCD/Içamento</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Abrir formulário de nova apólice RCTF-C</li>
+          <li>Marcar <strong>Adicional de OCD</strong></li>
+          <li>Marcar <strong>Adicional de OCD/Içamento</strong></li>
+          <li>Preencher demais campos obrigatórios</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Sistema deve <strong>bloquear</strong> com a mensagem de exclusividade: <em>"Não é possível ter Adicional de OCD e Adicional de OCD/Içamento ao mesmo tempo"</em>. Apólice NÃO criada.</span></div>
+      <div class="result-box pend" id="result-OTA-006">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-006"></div>
+    </div>
+  </div>
+
+  <!-- GRUPO 5: REGRESSÃO -->
+  <div class="group-header green-grp">
+    Grupo 5 — Regressão — Happy Path (Cenários Válidos)
+  </div>
+  <div class="info-box" style="border-radius:0;border-top:none;">
+    CTs que validam que os cenários corretos (campo habilitado com opção selecionada; OCD isolado) continuam funcionando após o fix.
+  </div>
+
+  <!-- CT-OTA-007 -->
+  <div class="ct-block" id="block-OTA-007">
+    <div class="ct-head" onclick="toggle('OTA-007')">
+      <span class="ct-id">CT-OTA-007</span>
+      <span class="ct-title">Taxa habilitada com opção válida selecionada permite salvar — RCTR-C</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend" id="badge-OTA-007">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-007">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Positivo — regressão (happy path)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTR-C. Dropdown Desconto/Agravo selecionado com opção válida.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Abrir formulário de nova apólice RCTR-C</li>
+          <li>Selecionar opção válida no dropdown <strong>Desconto/Agravo</strong></li>
+          <li>Preencher o campo <strong>Taxa</strong> com valor válido (ex: <code>5</code>)</li>
+          <li>Preencher todos os demais campos obrigatórios da apólice</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Apólice salva com sucesso — mensagem de confirmação visível. Campo Taxa preenchido com valor válido não deve ser bloqueado.</span></div>
+      <div class="result-box pend" id="result-OTA-007">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-007"></div>
+    </div>
+  </div>
+
+  <!-- CT-OTA-008 -->
+  <div class="ct-block" id="block-OTA-008">
+    <div class="ct-head" onclick="toggle('OTA-008')">
+      <span class="ct-id">CT-OTA-008</span>
+      <span class="ct-title">OCD isolado (sem OCD/Içamento) deve permitir salvar — RCTR-C</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pend" id="badge-OTA-008">PENDENTE</span>
+      <span class="ct-toggle">▶</span>
+    </div>
+    <div class="ct-body" id="body-OTA-008">
+      <div class="ct-row"><span class="ct-lbl">Tipo</span><span class="ct-val">Positivo — regressão (OCD sem OCD/Içamento)</span></div>
+      <div class="ct-row"><span class="ct-lbl">Pré-condição</span><span class="ct-val">Formulário de nova apólice RCTR-C. Apenas "Adicional de OCD" marcado, OCD/Içamento desmarcado.</span></div>
+      <div class="ct-row"><span class="ct-lbl">Passos</span><span class="ct-val">
+        <ol class="steps">
+          <li>Abrir formulário de nova apólice RCTR-C</li>
+          <li>Marcar apenas <strong>Adicional de OCD</strong></li>
+          <li>Garantir que <strong>Adicional de OCD/Içamento</strong> está desmarcado</li>
+          <li>Capturar screenshot com estado dos checkboxes</li>
+          <li>Preencher demais campos obrigatórios</li>
+          <li>Clicar em <strong>Salvar</strong></li>
+          <li>Capturar screenshot do resultado</li>
+        </ol>
+      </span></div>
+      <div class="ct-row"><span class="ct-lbl">Resultado esperado</span><span class="ct-val">Apólice salva com sucesso. OCD isolado não deve ser bloqueado pela validação de exclusividade.</span></div>
+      <div class="result-box pend" id="result-OTA-008">⏳ PENDENTE — aguardando execução</div>
+      <div class="ct-ev" id="ev-OTA-008"></div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table class="matrix-table">
+    <thead>
+      <tr>
+        <th>Critério de Aceite / Comportamento Esperado</th>
+        <th>CTs Cobrindo</th>
+        <th>Resultado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Campo Taxa Desconto/Agravo deve iniciar desabilitado sem opção selecionada (RCTR-C)</td>
+        <td>CT-OTA-001</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Salvar com taxa habilitada e vazia deve ser bloqueado com mensagem (RCTR-C)</td>
+        <td>CT-OTA-002</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Campo Taxa Desconto/Agravo deve iniciar desabilitado sem opção selecionada (RCTF-C)</td>
+        <td>CT-OTA-003</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Salvar com taxa habilitada e vazia deve ser bloqueado com mensagem (RCTF-C)</td>
+        <td>CT-OTA-004</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>OCD + OCD/Içamento simultâneos bloqueados com mensagem de exclusividade (RCTR-C)</td>
+        <td>CT-OTA-005</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>OCD + OCD/Içamento simultâneos bloqueados com mensagem de exclusividade (RCTF-C)</td>
+        <td>CT-OTA-006</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Regressão: taxa preenchida com opção válida não bloqueia o salvamento (RCTR-C)</td>
+        <td>CT-OTA-007</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+      <tr>
+        <td>Regressão: OCD isolado (sem OCD/Içamento) permite salvamento (RCTR-C)</td>
+        <td>CT-OTA-008</td>
+        <td><span class="badge badge-pend">PENDENTE</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- RISCOS -->
+  <div class="section-title">Riscos</div>
+  <div class="info-box">
+    <strong>R1 — Ambiente alfa instável:</strong> O ambiente alfanumérico pode ter deploys distintos do HML regular. Verificar build do sistema na tela inicial antes de executar.<br>
+    <strong>R2 — Bug já corrigido no HML mas não no alfa:</strong> Se o dev deployou o fix apenas no HML regular, o bug pode não reproduzir no alfa. Registrar a versão do build no início da execução.<br>
+    <strong>R3 — Campos OCD/RCTF-C diferentes de RCTR-C:</strong> O layout do RCTF-C pode ter nomes levemente diferentes para os checkboxes. Inspecionar o DOM se necessário.<br>
+    <strong>R4 — Dev task ainda em progresso:</strong> O card está "In Progress" — verificar o build antes de executar para garantir que o fix já está disponível.
+  </div>
+
+</div>
+
+<div class="footer">
+  Plano de Teste — BUG-7753 · Sprint 10 Citweb · Gerado em 2026-07-13 por Wesley Moreira (QA automação) ·
+  <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-10-citweb/bug-7753/" target="_blank">GitHub Pages</a>
+</div>
+
+<script>
+function toggle(id) {
+  document.getElementById('block-'+id).classList.toggle('expanded');
+}
+document.querySelectorAll('.ct-head').forEach(h => {
+  // accordion já configurado via onclick
+});
+</script>
+</body>
+</html>
