@@ -3,25 +3,31 @@
   "sprint": "Sprint_10_Citweb",
   "ambiente": "CITWEB HML AXA",
   "started_at": "2026-07-13",
-  "executed_at": "2026-07-13",
+  "executed_at": "2026-07-14",
   "ct_next_index": 12,
   "ct_results": {
-    "CT-RVI-001": "BLOQUEADO:massa:arquivo-rctrvi",
-    "CT-RVI-002": "BLOQUEADO:dep:CT-RVI-001",
-    "CT-RVI-003": "BLOQUEADO:dep:CT-RVI-001",
-    "CT-RVI-004": "BLOQUEADO:dep:CT-RVI-002",
-    "CT-RVI-005": "BLOQUEADO:massa:arquivo-rctrvi",
-    "CT-RVI-006": "BLOQUEADO:massa:arquivo-exportacao-r32",
-    "CT-RVI-007": "BLOQUEADO:dep:CT-RVI-003",
-    "CT-RVI-008": "BLOQUEADO:dep:CT-RVI-003",
-    "CT-RVI-009": "BLOQUEADO:massa:arquivo-rctrvi",
+    "CT-RVI-001": "APROVADO",
+    "CT-RVI-002": "REPROVADO:CRITICO:http500-processar",
+    "CT-RVI-003": "BLOQUEADO:depende-do-bug-CT-RVI-002",
+    "CT-RVI-004": "BLOQUEADO:depende-do-bug-CT-RVI-002",
+    "CT-RVI-005": "PARCIAL:modulo-existe-mesmo-build-com-bug",
+    "CT-RVI-006": "REPROVADO:achado:http500-converter-nao-isolado",
+    "CT-RVI-007": "BLOQUEADO:depende-do-bug-CT-RVI-002",
+    "CT-RVI-008": "BLOQUEADO:depende-do-bug-CT-RVI-002",
+    "CT-RVI-009": "BLOQUEADO:depende-do-bug-CT-RVI-002",
     "CT-RVI-010": "APROVADO",
-    "CT-RVI-011": "BLOQUEADO:dep:massa:fluxo-completo-sem-di-real"
+    "CT-RVI-011": "BLOQUEADO:depende-do-bug-CT-RVI-002"
   },
-  "bloqueio_principal": "Grupo 1-9: arquivo RCTR-VI não disponível no HML AXA para upload ao Conversor. CT-RVI-011: fluxo completo E2E requer DI real de importação para gravar averbação e prosseguir com emissão/fechamento.",
+  "bloqueio_principal": "ACHADO CRÍTICO 14/07/2026: botão Processar da tela 'Processa Averbações RCTR-VI' (AXA HML, build V 1.0.260707.1137) retorna HTTP 500 'Ocorreu um erro inesperado!' de forma reproduzível (3/3 tentativas) — tanto com arquivo sintético de 20 registros (apólice real 320413160839, vigente) quanto com lote real pré-existente de 1050 registros já convertidos. Isso é exatamente o núcleo do que este PBI mudou (refactor BulkCopy do processamento RCTR-VI) e bloqueia toda a cadeia de CTs que dependem de Processar concluir (003, 004, 007, 008, 009, 011). CT-RVI-006 (Exportação, controller separado) também retornou HTTP 500 no Converter (2/2), causa não isolada — pode ser dado de teste ou defeito relacionado, requer triagem do dev.",
+  "ct001_observacoes": "Converter concluído sem erro: 21 registros lidos (20 dados + 1 cabeçalho), 20 convertidos, 1 rejeitado (cabeçalho, 'CONTEÚDO NÃO É NUMÉRICO' — esperado). Layout 'QA' já configurado mapeia corretamente as 16 colunas do arquivo gerado a partir da fixture real de produção.",
+  "ct002_observacoes": "REPROVADO CRÍTICO: clique em Processar → HTTP 500 'Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.' Reproduzido 3x: (1) meu lote de 20 registros layout QA, (2) lote real pré-existente de 1050 registros layout TESTE RCTRVI - PERFORMANCE (dados de produção, não meus). Console: 'Failed to load resource: the server responded with a status of 500 () @ .../ProcessamentoAverbacoesRCTRVI/Processar'. Como reproduz com dados reais pré-existentes (não criados por este teste), descarta hipótese de dado sintético malformado — indica regressão real introduzida pelo refactor BulkCopy.",
+  "ct005_observacoes": "Módulo RCTR-VI ACESSÍVEL no menu Converte Arquivo do KOVR HML (contradiz risco documentado no plano de 10/07 'conversor RCTVI inexistente no menu KOVR'). Build idêntico ao AXA (V 1.0.260707.1137) — mesmo binário, logo a mesma falha de Processar é esperada também no KOVR. Conversão/processamento completos não exercidos no KOVR por falta de layout/massa própria neste tenant — regressão funcional plena fica pendente.",
+  "ct006_observacoes": "Converter Exportação (apólice 10, layout 'NOVO 19122025', ambos válidos/vigentes no banco) retornou HTTP 500 2/2 tentativas. Controller diferente do RCTR-VI (ConversorController genérico, usado por múltiplos ramos). Não foi possível isolar se é regressão do mesmo tipo ou problema no arquivo de teste sintético — recomendado o dev verificar log de exceção do IIS.",
   "ct010_observacoes": "Motor de cálculo verificado: fórmula IS×Taxa÷100=140,00 ✓, tarifária=comercial ✓, adicionais CC (Roubo+Avarias+Ext.Perímetro) entram automaticamente. Não verificável: prêmio mínimo (apólice HML sem configuração) e controle de adicional via checkbox (adicionais CC independem de checkbox).",
   "acoes_necessarias": [
-    "Solicitar ao dev arquivo RCTR-VI de teste para unbloquear CTs 001-009",
-    "Para CT-RVI-011: obter DI real de importação para habilitar GRAVAR na averbação RCTVI"
+    "CRÍTICO: dev investigar exceção real do HTTP 500 em ProcessamentoAverbacoesRCTRVIController/Processar (log de exceção do servidor/IIS necessário — página de erro genérica não expõe stack trace)",
+    "Verificar se o mesmo bug afeta o Converter genérico (Exportação) — CT-RVI-006",
+    "Após fix: reexecutar CT-RVI-002/003/004/007/008/009/011 (todos dependem do Processar)",
+    "CT-RVI-003/007/008 (volume): escala reduzida para 1000 registros autorizada por Wesley (14/07) em vez de 7.000 — arquivos já gerados em testes-automatizados/pbi-7471/, prontos para reexecução após o fix"
   ]
 }
