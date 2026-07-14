@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7703 — CITNET Mitsui: Conversor retorna erro genérico ao Converter</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+    --blue: #58a6ff; --blue-dim: #1f6feb; --blue-bg: #0a1628;
+    --green: #3fb950; --green-bg: #061a0e;
+    --red: #f85149; --red-bg: #1a0505;
+    --yellow: #d29922; --yellow-bg: #1a1200;
+    --ok: #3fb950; --fail: #f85149; --pend: #d29922; --block: #e3963e;
+    --p1-color: #f85149; --p1-bg: rgba(248,81,73,.12); --p1-border: rgba(248,81,73,.35);
+    --p2-color: #e3963e; --p2-bg: rgba(227,150,62,.12); --p2-border: rgba(227,150,62,.35);
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-logo { font-size: 13px; font-weight: 700; color: var(--blue); border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 4px; }
+  .topbar-title { color: var(--text-muted); font-size: 13px; }
+  .topbar-tags { display: flex; gap: 6px; margin-left: auto; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-bug   { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-p1    { background: var(--p1-bg); color: var(--p1-color); border: 1px solid var(--p1-border); }
+  .badge-p2    { background: var(--p2-bg); color: var(--p2-color); border: 1px solid var(--p2-border); }
+  .badge-pend  { background: #1a1200; color: var(--yellow); border: 1px solid #5a4000; }
+  .badge-pass  { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c2e; }
+  .badge-fail  { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-citnet { background: #1a1228; color: #c9a8f0; border: 1px solid #4a3a6a; }
+  .badge-mitsui { background: #0a1a2a; color: #6ab4f0; border: 1px solid #1a4a7a; }
+  .badge-blk   { background: #1a1000; color: var(--block); border: 1px solid #5a3800; }
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #161b22 100%); border-bottom: 2px solid var(--red); padding: 24px 24px 18px; }
+  .hero-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .hero .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 36px; flex-wrap: wrap; align-items: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .pb-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .progress-bar .pb-track { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar .pb-fill { background: var(--blue); border-radius: 4px; height: 6px; transition: width .4s; }
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: var(--blue-bg); border: 1px solid var(--blue-dim); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .warn-box { background: var(--yellow-bg); border: 1px solid #5a4000; border-left: 4px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .fail-box { background: var(--red-bg); border: 1px solid #5a1a1a; border-left: 4px solid var(--red); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .ok-box { background: var(--green-bg); border: 1px solid #1a5c2e; border-left: 4px solid var(--green); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 7px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1117; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+  .group-hd { padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; display: flex; align-items: center; gap: 10px; color: #fff; }
+  .grp-bug    { background: #2a0808; }
+  .grp-regr   { background: #2a1a00; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block:not(:last-child) { border-radius: 0; }
+  .ct-block.p1 { border-left: 3px solid var(--p1-color); }
+  .ct-block.p2 { border-left: 3px solid var(--p2-color); }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .ct-title { flex: 1; font-weight: 600; color: var(--text); font-size: 13px; }
+  .ct-toggle { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 5px; font-size: 13px; }
+  .ct-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .ev-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ev-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ev-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .ev-item img { width: 100%; max-width: 420px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+  .ev-item .ev-cap { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .cov-ok { color: var(--ok); font-weight: 700; }
+  .cov-fail { color: var(--fail); font-weight: 700; }
+  .cov-pend { color: var(--pend); font-weight: 700; }
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:94vw; max-height:88vh; border-radius:6px; border:1px solid var(--border); }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:94vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:14px; right:18px; font-size:28px; color:#c9d1d9; cursor:pointer; background:none; border:none; line-height:1; }
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+<div id="lb">
+  <button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">✕</button>
+  <img id="lb-img" src=""><div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-7703 — CITNET Mitsui: Conversor retorna erro genérico ao Converter</span>
+  <div class="topbar-tags">
+    <span class="badge badge-bug">BUG-7703</span>
+    <span class="badge badge-mitsui">MITSUI</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-bug">BUG-7703</span>
+    <span class="badge badge-p1">Severidade 2 — Alta</span>
+    <span class="badge badge-mitsui">MITSUI HML ALFA</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+  <h1>Conversor de Arquivos — Converter retorna "Erro no processamento dos dados!"</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET MITSUI HML ALFA</span>
+    <span><strong>Módulo:</strong> Conversor de Arquivos</span>
+    <span><strong>Epic:</strong> 7283 — Homologação CNPJ ALFA</span>
+    <span><strong>Sprint:</strong> Sprint_8_Sustentacao</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 13/07/2026</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)" id="m-total">3</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">2</div><div class="lbl">P1 — Bloqueante</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2 — Importante</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="m-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--red)" id="m-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="m-pend">3</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label" id="pb-label">0% executado — aguardando execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="fail-box">
+      <strong>Bug reportado:</strong> No CITNET MITSUI HML ALFA, ao acessar o módulo <strong>Conversor de Arquivos</strong>,
+      selecionar qualquer layout e clicar em <strong>Converter</strong>, o sistema retorna imediatamente a mensagem genérica
+      <code>Erro no processamento dos dados!</code>. O módulo é completamente inoperante.
+      O erro ocorre em todos os layouts testados (RCTR-C, Transp.Nacional).
+    </div>
+    <div class="info-box">
+      <strong>Contexto:</strong> Card gerado no reteste do Epic #7283 — Homologação CNPJ ALFA — 03/07/2026.
+      O card original #7523 foi encerrado após o reteste reprovar a correção suposta.
+      Este card documenta o bug persistente e a nova correção aplicada.
+    </div>
+    <div class="info-box">
+      <strong>Ambiente:</strong> CITNET MITSUI HML ALFA · <code>mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code>
+      · Usuário: <code>VOIDR-NSTEC</code> / <code>NS-Vo1dr@b</code> (perfil INTERNO)
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Critérios de Aceite</div>
+    <ul style="padding-left:20px;font-size:13px;line-height:1.9">
+      <li>Ao clicar em <strong>Converter</strong> com arquivo válido para o layout selecionado, o sistema deve processar o arquivo <strong>sem</strong> retornar <code>Erro no processamento dos dados!</code>.</li>
+      <li>Após conversão bem-sucedida, os registros convertidos devem ser exibidos na tela ou o botão <strong>Processar</strong> deve estar ativo.</li>
+      <li>Ao clicar em <strong>Processar</strong>, as averbações devem ser criadas com sucesso.</li>
+      <li>O fluxo deve funcionar para todos os layouts (RCTR-C, Transp.Nacional).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Massa de Dados</div>
+    <table>
+      <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>URL CITNET</td><td><code>mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td><td>HML ALFA MITSUI</td></tr>
+        <tr><td>Usuário</td><td><code>VOIDR-NSTEC</code></td><td>Perfil INTERNO</td></tr>
+        <tr><td>Senha</td><td><code>NS-Vo1dr@b</code></td><td>—</td></tr>
+        <tr><td>Layout RCTR-C</td><td>Arquivo de teste .txt/.xlsx RCTR-C</td><td>Usar arquivo disponível no ambiente ou gerar via script</td></tr>
+        <tr><td>Layout Transp.Nacional</td><td>Arquivo de teste Transp.Nacional</td><td>Regressão — formato alternativo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <!-- Grupo: Bug Fix -->
+    <div class="group-hd grp-bug">🐛 Fix Verificado — Conversor funciona após correção</div>
+
+    <!-- CT-CVR-001 -->
+    <div class="ct-block p1" id="ct-CVR-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CVR-001</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Converter arquivo RCTR-C válido sem retornar erro genérico</span>
+        <span class="badge badge-pend" id="badge-CVR-001">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Verificação de fix</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>Acesso ao CITNET MITSUI HML ALFA com usuário INTERNO</li>
+            <li>Arquivo de teste RCTR-C válido disponível para importação</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+            <li>Login com <code>VOIDR-NSTEC</code> / <code>NS-Vo1dr@b</code></li>
+            <li>Navegar: menu principal → <strong>Conversor de Arquivos</strong></li>
+            <li>No campo Layout, selecionar <strong>RCTR-C</strong></li>
+            <li>Importar arquivo de teste RCTR-C válido</li>
+            <li>Clicar em <strong>Converter</strong></li>
+            <li>Verificar a mensagem/resultado exibido na tela</li>
+            <li>Capturar screenshot do resultado</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Nenhuma mensagem de erro. Os registros convertidos são exibidos na tela ou o botão <strong>Processar</strong> fica ativo. O fix eliminou o "Erro no processamento dos dados!".</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CVR-001">⏳ Aguardando execução</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CVR-001"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-CVR-002 -->
+    <div class="ct-block p1" id="ct-CVR-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CVR-002</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Processar após Converter RCTR-C → averbações geradas sem erro</span>
+        <span class="badge badge-pend" id="badge-CVR-002">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Verificação de fluxo completo</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>CT-CVR-001 executado com sucesso (Converter sem erro)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Após CT-CVR-001 (registros convertidos exibidos / botão Processar ativo)</li>
+            <li>Clicar em <strong>Processar</strong></li>
+            <li>Verificar mensagem de resultado da operação</li>
+            <li>Verificar se as averbações foram criadas no sistema</li>
+            <li>Capturar screenshot do resultado do Processar</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ As averbações são processadas com sucesso. Mensagem de confirmação exibida. Nenhum "Erro no processamento dos dados!" no Processar.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CVR-002">⏳ Aguardando execução</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CVR-002"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grupo: Regressão -->
+    <div class="group-hd grp-regr">🔁 Regressão — Outros layouts não impactados</div>
+
+    <!-- CT-CVR-003 -->
+    <div class="ct-block p2" id="ct-CVR-003">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CVR-003</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="ct-title">Conversor Transp.Nacional → Converter funciona após correção (regressão)</span>
+        <span class="badge badge-pend" id="badge-CVR-003">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Regressão — Layout alternativo</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar CITNET MITSUI HML ALFA (mesmo login de CT-CVR-001)</li>
+            <li>Navegar: menu principal → <strong>Conversor de Arquivos</strong></li>
+            <li>No campo Layout, selecionar <strong>Transp.Nacional</strong></li>
+            <li>Importar arquivo de teste Transp.Nacional válido</li>
+            <li>Clicar em <strong>Converter</strong></li>
+            <li>Verificar resultado — sem mensagem de erro genérica</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Converter funciona para Transp.Nacional. A correção do fix não introduziu regressão em outros layouts.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CVR-003">⏳ Aguardando execução</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CVR-003"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section CTs -->
+
+  <div class="section">
+    <div class="section-title">5. Rastreabilidade</div>
+    <table>
+      <thead><tr><th>CT</th><th>Descrição</th><th>Prioridade</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CT-CVR-001</td><td>Converter RCTR-C sem erro genérico</td><td>P1</td><td class="cov-pend" id="sum-CVR-001">PENDENTE</td></tr>
+        <tr><td>CT-CVR-002</td><td>Processar após Converter → averbações criadas</td><td>P1</td><td class="cov-pend" id="sum-CVR-002">PENDENTE</td></tr>
+        <tr><td>CT-CVR-003</td><td>Regressão Transp.Nacional</td><td>P2</td><td class="cov-pend" id="sum-CVR-003">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<footer>BUG-7703 · CITNET MITSUI HML ALFA · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · 13/07/2026</footer>
+
+<script>
+  function openLB(src, cap) {
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lb-cap').textContent = cap;
+    document.getElementById('lb').classList.add('open');
+  }
+  document.getElementById('lb').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+</script>
+</body>
+</html>

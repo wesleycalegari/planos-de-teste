@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7704 — CITNET KOVR: Certificado exibe CNPJ da corretora divergente do CITWEB</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+    --blue: #58a6ff; --blue-dim: #1f6feb; --blue-bg: #0a1628;
+    --green: #3fb950; --green-bg: #061a0e;
+    --red: #f85149; --red-bg: #1a0505;
+    --yellow: #d29922; --yellow-bg: #1a1200;
+    --ok: #3fb950; --fail: #f85149; --pend: #d29922; --block: #e3963e;
+    --p1-color: #f85149; --p1-bg: rgba(248,81,73,.12); --p1-border: rgba(248,81,73,.35);
+    --p2-color: #e3963e; --p2-bg: rgba(227,150,62,.12); --p2-border: rgba(227,150,62,.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-logo { font-size: 13px; font-weight: 700; color: var(--blue); border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 4px; }
+  .topbar-title { color: var(--text-muted); font-size: 13px; }
+  .topbar-tags { display: flex; gap: 6px; margin-left: auto; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-bug   { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-p1    { background: var(--p1-bg); color: var(--p1-color); border: 1px solid var(--p1-border); }
+  .badge-p2    { background: var(--p2-bg); color: var(--p2-color); border: 1px solid var(--p2-border); }
+  .badge-pend  { background: #1a1200; color: var(--yellow); border: 1px solid #5a4000; }
+  .badge-pass  { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c2e; }
+  .badge-fail  { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-citnet { background: #1a1228; color: #c9a8f0; border: 1px solid #4a3a6a; }
+  .badge-kovr  { background: #0a2018; color: #5fd0b0; border: 1px solid #1a5840; }
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #161b22 100%); border-bottom: 2px solid var(--red); padding: 24px 24px 18px; }
+  .hero-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .hero .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 36px; flex-wrap: wrap; align-items: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .pb-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .progress-bar .pb-track { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar .pb-fill { background: var(--blue); border-radius: 4px; height: 6px; }
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: var(--blue-bg); border: 1px solid var(--blue-dim); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .warn-box { background: var(--yellow-bg); border: 1px solid #5a4000; border-left: 4px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .fail-box { background: var(--red-bg); border: 1px solid #5a1a1a; border-left: 4px solid var(--red); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .ok-box { background: var(--green-bg); border: 1px solid #1a5c2e; border-left: 4px solid var(--green); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 7px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1117; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+  .group-hd { padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; display: flex; align-items: center; gap: 10px; color: #fff; }
+  .grp-bug  { background: #2a0808; }
+  .grp-regr { background: #2a1a00; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block:not(:last-child) { border-radius: 0; }
+  .ct-block.p1 { border-left: 3px solid var(--p1-color); }
+  .ct-block.p2 { border-left: 3px solid var(--p2-color); }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .ct-title { flex: 1; font-weight: 600; color: var(--text); font-size: 13px; }
+  .ct-toggle { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 5px; font-size: 13px; }
+  .ct-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .ev-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ev-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ev-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .ev-item img { width: 100%; max-width: 420px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+  .ev-item .ev-cap { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .cov-ok { color: var(--ok); font-weight: 700; }
+  .cov-fail { color: var(--fail); font-weight: 700; }
+  .cov-pend { color: var(--pend); font-weight: 700; }
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:94vw; max-height:88vh; border-radius:6px; border:1px solid var(--border); }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:94vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:14px; right:18px; font-size:28px; color:#c9d1d9; cursor:pointer; background:none; border:none; line-height:1; }
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+<div id="lb">
+  <button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">✕</button>
+  <img id="lb-img" src=""><div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-7704 — CITNET KOVR: Certificado com CNPJ da corretora divergente do CITWEB</span>
+  <div class="topbar-tags">
+    <span class="badge badge-bug">BUG-7704</span>
+    <span class="badge badge-kovr">KOVR</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-bug">BUG-7704</span>
+    <span class="badge badge-p1">Severidade 2 — Alta</span>
+    <span class="badge badge-kovr">KOVR HML ALFA</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+  <h1>Perfil Segurado — Certificado de Exportação exibe CNPJ da corretora divergente do CITWEB</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET KOVR HML ALFA</span>
+    <span><strong>Módulo:</strong> Averbação Internacional — Certificado</span>
+    <span><strong>Epic:</strong> 7283 — Homologação CNPJ ALFA</span>
+    <span><strong>Sprint:</strong> Sprint_8_Sustentacao</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 13/07/2026</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)">2</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">1</div><div class="lbl">P1 — Bloqueante</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2 — Importante</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="m-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--red)" id="m-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="m-pend">2</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label">0% executado — aguardando execução</div>
+    <div class="pb-track"><div class="pb-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="fail-box">
+      <strong>Bug reportado:</strong> No CITNET KOVR HML ALFA, ao gerar o certificado de uma averbação de Exportação,
+      o <strong>CNPJ da corretora</strong> exibido no certificado é <strong>divergente</strong> do CNPJ cadastrado
+      no CITWEB para aquela corretora. Documentos fiscais contêm dado incorreto.
+    </div>
+    <div class="info-box">
+      <strong>Root cause (dev):</strong> Método <code>FormatarCpfCnpj</code> duplicado — o fix do #7615 corrigiu
+      a cópia errada. Deploy concluído em CITNET KOVR ALFA HML (build 1708 / Release-16, def 65).
+    </div>
+    <div class="info-box">
+      <strong>Ambiente:</strong> CITNET KOVR HML ALFA · <code>kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code>
+      · Usuário: <code>TSTALFA1</code> (perfil INTERNO)
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Critérios de Aceite</div>
+    <ul style="padding-left:20px;font-size:13px;line-height:1.9">
+      <li>O CNPJ da corretora exibido no certificado de averbação de Exportação deve ser <strong>idêntico</strong> ao CNPJ cadastrado no CITWEB para aquela corretora.</li>
+      <li>Nenhuma divergência entre o CNPJ do CITNET e o CNPJ do CITWEB.</li>
+      <li>O certificado deve continuar sendo gerado normalmente (sem erros de geração após o fix).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Massa de Dados</div>
+    <table>
+      <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>URL CITNET</td><td><code>kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td><td>HML ALFA KOVR</td></tr>
+        <tr><td>Usuário CITNET</td><td><code>TSTALFA1</code></td><td>Perfil INTERNO</td></tr>
+        <tr><td>Averbação teste</td><td>Protocolo 2 (Exportação existente)</td><td>Conforme repro steps do card</td></tr>
+        <tr><td>CNPJ referência</td><td>Verificar no CITWEB: cadastro da corretora → anotar valor</td><td>Comparar com o exibido no certificado</td></tr>
+        <tr><td>URL CITWEB</td><td><code>kovr-hml.nsseg.com.br</code> ou equivalente</td><td>Para consultar CNPJ da corretora</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box" style="margin-top:10px">
+      ⚠️ <strong>Passo 0 obrigatório:</strong> antes de executar os CTs, verificar no CITWEB o CNPJ da corretora da averbação Protocolo 2 e anotar o valor correto. Esse valor será o critério de comparação.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <!-- Grupo: Fix Verificado -->
+    <div class="group-hd grp-bug">🐛 Fix Verificado — CNPJ do certificado corresponde ao CITWEB</div>
+
+    <!-- CT-CRT-001 -->
+    <div class="ct-block p1" id="ct-CRT-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CRT-001</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">CNPJ da corretora no certificado de Exportação = CNPJ cadastrado no CITWEB</span>
+        <span class="badge badge-pend" id="badge-CRT-001">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Verificação de fix (comparação CNPJ)</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>CNPJ da corretora verificado e anotado no CITWEB KOVR HML</li>
+            <li>Averbação de Exportação Protocolo 2 existente no CITNET KOVR HML ALFA</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li><strong>Passo 0 — Verificar CNPJ no CITWEB:</strong> acessar CITWEB KOVR HML → Cadastros → Corretoras → localizar a corretora → anotar o CNPJ exibido (valor de referência)</li>
+            <li>Acessar CITNET KOVR HML ALFA: <code>kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+            <li>Login com <code>TSTALFA1</code></li>
+            <li>Navegar: menu principal → <strong>Averbações → Internacional → Averbação de Exportação</strong></li>
+            <li>Carregar averbação existente (Protocolo 2)</li>
+            <li>Clicar no botão de impressão / <strong>Certificado</strong> para gerar o certificado de averbação</li>
+            <li>No certificado gerado, localizar o CNPJ da corretora</li>
+            <li>Comparar o CNPJ exibido no certificado com o valor anotado no Passo 0</li>
+            <li>Capturar screenshot do certificado com o CNPJ visível</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O CNPJ da corretora exibido no certificado é <strong>idêntico</strong> ao CNPJ cadastrado no CITWEB. Nenhuma divergência. O fix do método <code>FormatarCpfCnpj</code> resolveu o problema.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CRT-001">⏳ Aguardando execução</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CRT-001"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grupo: Regressão -->
+    <div class="group-hd grp-regr">🔁 Regressão — Certificado gerado normalmente</div>
+
+    <!-- CT-CRT-002 -->
+    <div class="ct-block p2" id="ct-CRT-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CRT-002</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="ct-title">Certificado gerado sem erros — demais dados do certificado não alterados pelo fix</span>
+        <span class="badge badge-pend" id="badge-CRT-002">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Regressão — Integridade do certificado após fix</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>CT-CRT-001 executado com sucesso</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>No mesmo certificado gerado em CT-CRT-001</li>
+            <li>Verificar que o certificado foi gerado sem erros (sem exception, sem tela branca)</li>
+            <li>Verificar campos principais: número da averbação, segurado, valores IS, percurso — estão corretos</li>
+            <li>Verificar que o fix não alterou outros campos além do CNPJ</li>
+            <li>Capturar screenshot do certificado completo</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Certificado gerado normalmente. Demais dados do certificado (número averbação, segurado, valores) não foram alterados pelo fix. Nenhuma regressão introduzida.</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CRT-002">⏳ Aguardando execução</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CRT-002"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section CTs -->
+
+  <div class="section">
+    <div class="section-title">5. Rastreabilidade</div>
+    <table>
+      <thead><tr><th>CT</th><th>Descrição</th><th>Prioridade</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CT-CRT-001</td><td>CNPJ certificado = CNPJ CITWEB</td><td>P1</td><td class="cov-pend" id="sum-CRT-001">PENDENTE</td></tr>
+        <tr><td>CT-CRT-002</td><td>Certificado gerado normalmente — sem regressão</td><td>P2</td><td class="cov-pend" id="sum-CRT-002">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<footer>BUG-7704 · CITNET KOVR HML ALFA · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · 13/07/2026</footer>
+
+<script>
+  document.getElementById('lb').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+</script>
+</body>
+</html>
