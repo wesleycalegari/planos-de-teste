@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reprodução BUG #7793 — CITWEB AXA Relatório de SLA (RCV 59) não exibido no /alfa/</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#7c3aed;--accent2:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e;--tag-bg:#21262d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.topbar-bug{color:var(--red);font-weight:600;font-size:12px}
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.bug-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.bug-box h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.bug-box p{font-size:13px;color:var(--text);margin-bottom:6px}
+.bug-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.result-banner{background:var(--yel-bg);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.result-banner h3{font-size:15px;font-weight:700;color:#fbbf24;margin-bottom:6px}
+.result-banner p{font-size:13px;color:#e3c168;margin-bottom:4px}
+.result-banner code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.warn-box{background:var(--yel-bg);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.warn-box h3{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--yellow);margin-bottom:6px}
+.warn-box p,.warn-box li{font-size:13px;color:#fbbf24;margin-bottom:4px}
+.warn-box ul{padding-left:16px}
+.warn-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.info-box{background:#0d1a2e;border:1px solid #1f6feb;border-left:4px solid #1f6feb;border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.info-box h3{font-size:11px;font-weight:700;text-transform:uppercase;color:#58a6ff;margin-bottom:6px}
+.info-box p,.info-box li{font-size:13px;color:#a5d0ff;margin-bottom:4px}
+.info-box ul{padding-left:16px}
+.info-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.metrics{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+.progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);border-radius:4px;transition:width .4s}
+.container{padding:0 24px 40px}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted);transition:transform .2s}
+.group-header.collapsed .group-toggle{transform:rotate(-90deg)}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#2ea043}
+.badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-bloqueado{background:var(--yel-bg);color:var(--yellow)}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.badge-p3{background:#1c1f26;color:#6e7681;font-size:10px}
+.ct-caret{color:var(--muted);transition:transform .2s;font-size:11px}
+.ct-bar.collapsed .ct-caret{transform:rotate(-90deg)}
+.ct-panel{padding:14px;border-top:1px solid var(--border)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text);margin-bottom:3px}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.ct-section ol li::marker{color:var(--accent);font-weight:600}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.pre-cond li{margin-bottom:4px}
+.pre-cond code{color:#79c57e}
+.expected{background:#0d1a2e;border:1px solid #1f6feb;border-radius:4px;padding:8px 10px;font-size:13px;color:#a5d0ff}
+.obtained{background:#1f0d0d;border:1px solid var(--red);border-radius:4px;padding:8px 10px;font-size:13px;color:#f1707a}
+.obtained.ok{background:#0d1f0d;border-color:#2ea043;color:#79c57e}
+.ct-ev{margin-top:10px}
+.ev-ok{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;color:#79c57e;margin-bottom:8px}
+.ev-rep{background:#1f0d0d;border:1px solid var(--red);border-radius:4px;padding:8px 12px;font-size:12px;color:#f1707a;margin-bottom:8px}
+.ev-grid{display:flex;flex-wrap:wrap;gap:12px}
+.ev-item{flex:1 1 320px;max-width:100%}
+.ev-item img{width:100%;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:opacity .15s}
+.ev-item img:hover{opacity:.85}
+.ev-cap{font-size:11px;color:var(--muted);margin-top:3px}
+.lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lb.open{display:flex}
+.lb img{max-width:96%;max-height:96%;border:1px solid var(--border);border-radius:6px}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:1px solid var(--border)}
+table.meta{width:100%;border-collapse:collapse;margin-top:4px;font-size:12px}
+table.meta td{border:1px solid var(--border);padding:5px 9px}
+table.meta td:first-child{background:#0d1117;color:var(--muted);width:150px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">QA</span>
+  <span class="topbar-title">Reprodução BUG #7793 — Relatório de SLA (RCV 59) não exibido no AXA /alfa/</span>
+  <span class="topbar-sprint">Sprint 10 Citweb · Execução 2026-07-15</span>
+  <span class="topbar-bug">BUG #7793</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">CITWEB AXA (alfanum) — Relatório de SLA do produto RCV (ramo 59) inacessível</div>
+  <div class="hero-sub">
+    <span>🏢 Seguradora: AXA</span>
+    <span>💻 Sistema: CITWEB</span>
+    <span>🌐 Módulo: Gestão → Relatórios → SLA</span>
+    <span>🔗 Env: alfanum (HML)</span>
+    <span>🏗️ Build: V 1.0.260713.2020 (GESTÃO)</span>
+    <span>📦 Voidr: DEF-AXA-RCVRA-SLA-PRODUTO-NAO-EXIBIDO</span>
+  </div>
+
+  <table class="meta">
+    <tr><td>Sistema</td><td>CITWEB</td></tr>
+    <tr><td>Módulo</td><td>Gestão → Relatórios → SLA (Relatório de SLA)</td></tr>
+    <tr><td>Ambiente</td><td>AXA HML alfanum — <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code></td></tr>
+    <tr><td>Ramo</td><td>RCV — ramo 59</td></tr>
+    <tr><td>Credenciais</td><td><code>FRED</code> / <code>DERF</code></td></tr>
+    <tr><td>Teste Voidr</td><td>RCVRA-204 — falhou em EXEC-001746 → EXEC-001748 (14/07); passou em 08/07 (EXEC anterior)</td></tr>
+    <tr><td>Execução QA</td><td>15/07/2026 · Playwright MCP (navegação por clique desde o login)</td></tr>
+  </table>
+
+  <div class="result-banner">
+    <h3>⚠️ Defeito REPRODUZIDO — porém a causa raiz é AMBIENTE/DADOS, não código</h3>
+    <p>No AXA <strong>alfanum (/alfa/)</strong>, o <strong>Relatório de SLA está totalmente inacessível</strong>: o módulo GESTÃO tem 31 links de menu e <strong>nenhum "SLA"</strong> (nem "Justificativa de SLA"). Como o menu não existe, o produto RCV não pode ser listado/selecionado — reproduzindo o sintoma do card.</p>
+    <p>No AXA <strong>não-alfa</strong> (referência), os menus <code>SLA</code> (<code>/Gestao/RelatorioSLA</code>) e <code>Justificativa de SLA</code> (<code>/Gestao/JustificativaSLA</code>) existem normalmente → a funcionalidade existe no código; o que falta é o dado que a habilita no ambiente alfanum.</p>
+    <p><strong>Conclusão:</strong> não é defeito de código do CITWEB — é lacuna de ambiente/dados no banco alfanum do AXA. Encaminhado como correção de ambiente (restaurar/semear a tabela habilitadora).</p>
+  </div>
+
+  <div class="bug-box">
+    <h3>🐛 Bug Reportado (Voidr — 2026-07-14)</h3>
+    <p><strong>Sintoma:</strong> No fluxo de Relatório de SLA do produto RCV (ramo 59) no CITWEB AXA alfanum, o produto <strong>não é exibido na aba de listagem de relatórios</strong>; o item nunca fica visível e o fluxo não avança.</p>
+    <p><strong>Erro do teste automatizado (RCVRA-204):</strong> <code>Timed out 15000ms waiting for expect(locator).toBeVisible() — locator('table, .grid, form').or(combobox) — element(s) not found</code> (dentro de iframe).</p>
+    <p><strong>URL base:</strong> <code>https://axa-hml-faturamento.nsseg.com.br/alfa/</code> · <strong>Build reportada:</strong> <code>V 1.0.260713.1840</code> · <strong>Reprodutibilidade:</strong> always</p>
+  </div>
+
+  <div class="info-box">
+    <h3>ℹ️ Causa raiz — menu SLA é gated por indicador de existência de tabela</h3>
+    <ul>
+      <li>O menu SLA é controlado pelo indicador <code>Ind_Existe_tb_jst_atr_mov_cit</code> em <code>Tabelas/Controllers/MenuController.cs:1062</code> — representa a <strong>existência da tabela</strong> <code>tb_jst_atr_mov_cit</code> (justificativa de atraso de movimento). Confirmado no mapeamento de indicadores do CITWEB e na cobertura do PBI-7499.</li>
+      <li>No /alfa/ somem <strong>os dois</strong> menus dependentes dessa tabela: <code>SLA</code> (RelatorioSLA) <em>e</em> <code>Justificativa de SLA</code> (que mantém a própria tabela). No não-alfa aparecem os dois. → a tabela <code>tb_jst_atr_mov_cit</code> <strong>não existe no banco alfanum</strong> do AXA.</li>
+      <li>Inventário de links de menu (via <code>browser_evaluate</code>): <strong>/alfa/ = 31 links, 0 com "SLA"</strong> · <strong>não-alfa = 33 links, 2 com "SLA"</strong>.</li>
+    </ul>
+  </div>
+
+  <div class="warn-box">
+    <h3>⚠️ Classificação e recomendação</h3>
+    <ul>
+      <li>O teste Voidr RCVRA-204 <strong>passou em 08/07</strong> e passou a falhar de forma determinística a partir de <strong>14/07</strong> no mesmo ambiente alfanum → a tabela existia e foi perdida (provável refresh/rebuild do banco alfanum entre essas datas).</li>
+      <li>Corroboração: a execução <strong>EXEC-001748 (14/07)</strong> teve <strong>127 de 151 testes falhando</strong> no alfanum (mesmo dia, mesma cadeia do BUG #7755) — sinal de ambiente alfanum incompleto/instável naquele momento.</li>
+      <li><strong>Não é defeito de código do CITWEB</strong> — o gating de menu funciona por design (oculta quando a tabela não existe). Recomendação: <strong>infra/dev restaurar/semear <code>tb_jst_atr_mov_cit</code> no banco alfanum do AXA</strong>; depois reexecutar RCVRA-204 no Voidr para fechar o defect.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="exec-total">2</div><div class="metric-lbl">Total</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="exec-aprovados">1</div><div class="metric-lbl">Referência OK</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="exec-reprovados">1</div><div class="metric-lbl">Defeito reproduzido</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="exec-pendentes">0</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:100%"></div></div>
+
+<div class="container">
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo 1 — Reprodução do defeito (AXA /alfa/ alfanum)</h2>
+  <span class="group-badge">1 CT · P1</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <!-- CT-SLA-R01 -->
+  <div class="ct-block" id="ct-SLA-R01">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-SLA-R01</span>
+      <span class="ct-title">Relatório de SLA acessível via Gestão → Relatórios no AXA /alfa/ (produto RCV 59 listável)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-erro" id="badge-SLA-R01">REPROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Reprodução — Confirma o sintoma reportado no card (produto RCV não selecionável no Relatório de SLA).</p>
+      </div>
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>AXA CITWEB HML alfanum: <code>https://axa-hml-faturamento.nsseg.com.br/alfa/login/</code></li>
+          <li>Credenciais: <code>FRED</code> / <code>DERF</code></li>
+          <li>Build GESTÃO no momento do teste: <code>V 1.0.260713.2020</code></li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Login <code>FRED/DERF</code> no /alfa/ → menu principal</li>
+          <li>Clicar em <strong>Gestão</strong> (abre o módulo GESTÃO)</li>
+          <li>Clicar em <strong>Relatórios</strong> (expandir submenu)</li>
+          <li>Localizar o item <strong>SLA</strong> / <strong>Relatório de SLA</strong> na lista</li>
+          <li>(Diagnóstico) inventariar todos os links de menu via <code>browser_evaluate</code></li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado</h4>
+        <div class="expected">O item <strong>SLA</strong> aparece no submenu Gestão → Relatórios, permitindo abrir o Relatório de SLA e selecionar/listar o produto RCV (ramo 59).</div>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Obtido</h4>
+        <div class="obtained">✗ O submenu <strong>Relatórios lista 17 itens e NENHUM "SLA"</strong>. O módulo GESTÃO inteiro tem <strong>31 links de menu e nenhum "SLA"</strong> em lugar algum (nem em Relatórios, nem em Relatório Gerencial, nem em Emissão); o corpo da página não menciona "SLA". → Relatório de SLA inacessível; produto RCV não pode ser listado. <strong>Defeito reproduzido.</strong></div>
+      </div>
+      <div class="ct-ev">
+        <div class="ev-rep">✗ <strong>REPROVADO</strong> (defeito reproduzido) — SLA ausente no menu · AXA CITWEB alfanum HML · 15/07/2026 · <em>Causa raiz: ambiente/dados (ver boxes acima), não código.</em></div>
+        <div class="ev-grid">
+          <div class="ev-item"><img src="evidencias/CT-SLA-R01/01_alfa-relatorios-sem-sla.png" alt="Submenu Gestão Relatórios no /alfa/ sem SLA" onclick="openLb(this.src)"><div class="ev-cap">EV1 — AXA /alfa/ · Gestão → Relatórios expandido: 17 itens, nenhum "SLA" (build V 1.0.260713.2020)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo 2 — Referência (AXA não-alfa: funcionalidade existe)</h2>
+  <span class="group-badge">1 CT · P2</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <!-- CT-SLA-R02 -->
+  <div class="ct-block" id="ct-SLA-R02">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-SLA-R02</span>
+      <span class="ct-title">Menu SLA presente no AXA não-alfa (prova de que a funcionalidade existe e o problema é /alfa/-específico)</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-ok" id="badge-SLA-R02">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Referência / Regressão — Confirma que o Relatório de SLA existe e é visível no AXA padrão (não-alfa), isolando o defeito ao ambiente alfanum.</p>
+      </div>
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>AXA CITWEB HML não-alfa: <code>https://axa-hml-faturamento.nsseg.com.br/login/</code></li>
+          <li>Credenciais: <code>FRED</code> / <code>DERF</code> · Build GESTÃO: <code>V 1.0.260706.1811</code></li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Login <code>FRED/DERF</code> no ambiente não-alfa → menu principal</li>
+          <li>Abrir <strong>Gestão</strong> → <strong>Relatórios</strong></li>
+          <li>Verificar presença do item <strong>SLA</strong> (e <strong>Justificativa de SLA</strong>)</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado</h4>
+        <div class="expected">O item <strong>SLA</strong> aparece no submenu Relatórios do AXA não-alfa.</div>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Obtido</h4>
+        <div class="obtained ok">✓ Menu <strong>SLA</strong> (<code>/Gestao/RelatorioSLA</code>) presente e visível no submenu Relatórios, além de <strong>Justificativa de SLA</strong> (<code>/Gestao/JustificativaSLA</code>). Inventário: 33 links, 2 com "SLA". → Funcionalidade existe; ausência no /alfa/ é ambiente-específica.</div>
+      </div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <strong>APROVADO</strong> — SLA presente no AXA não-alfa · CITWEB HML · 15/07/2026</div>
+        <div class="ev-grid">
+          <div class="ev-item"><img src="evidencias/CT-SLA-R02/01_naoalfa-relatorios-com-sla.png" alt="Submenu Gestão Relatórios no não-alfa com SLA" onclick="openLb(this.src)"><div class="ev-cap">EV1 — AXA não-alfa · Gestão → Relatórios: item "SLA" presente (build V 1.0.260706.1811)</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="footer">QA — Reprodução BUG #7793 · CITWEB AXA · Sprint 10 Citweb · Execução 15/07/2026 · Playwright MCP · Causa raiz: ambiente/dados (tabela tb_jst_atr_mov_cit ausente no alfanum)</div>
+
+<div class="lb" id="lb" onclick="this.classList.remove('open')"><img id="lb-img" src="" alt="evidência ampliada"></div>
+
+<script>
+function toggleCT(bar){bar.classList.toggle('collapsed');var p=bar.nextElementSibling;if(p)p.style.display=p.style.display==='none'?'block':'none';}
+function toggleGroup(h){h.classList.toggle('collapsed');var b=h.nextElementSibling;if(b)b.style.display=h.classList.contains('collapsed')?'none':'block';}
+function openLb(src){var lb=document.getElementById('lb');document.getElementById('lb-img').src=src;lb.classList.add('open');}
+// métricas a partir dos badges
+(function(){
+  var badges=document.querySelectorAll('.ct-bar .badge-ok,.ct-bar .badge-erro,.ct-bar .badge-bloqueado,.ct-bar .badge-pendente');
+  var ok=document.querySelectorAll('.ct-bar .badge-ok').length;
+  var rep=document.querySelectorAll('.ct-bar .badge-erro').length;
+  var pend=document.querySelectorAll('.ct-bar .badge-pendente').length;
+  var total=badges.length;
+  document.getElementById('exec-total').textContent=total;
+  document.getElementById('exec-aprovados').textContent=ok;
+  document.getElementById('exec-reprovados').textContent=rep;
+  document.getElementById('exec-pendentes').textContent=pend;
+  var done=total-pend;
+  document.getElementById('progress-bar').style.width=(total?Math.round(done/total*100):0)+'%';
+})();
+</script>
+</body>
+</html>
