@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reteste BUG #7704 — CITNET KOVR Certificado Exportação CNPJ Corretora</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#7c3aed;--accent2:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e;--tag-bg:#21262d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.topbar-bug{color:var(--red);font-weight:600;font-size:12px}
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.bug-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.bug-box h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+.bug-box p{font-size:13px;color:var(--text);margin-bottom:6px}
+.bug-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.result-banner{background:var(--green-bg);border:1px solid var(--green);border-left:4px solid var(--green);border-radius:6px;padding:14px 16px;margin-bottom:12px}
+.result-banner h3{font-size:15px;font-weight:700;color:#3fb950;margin-bottom:6px}
+.result-banner p{font-size:13px;color:#79c57e;margin-bottom:4px}
+.warn-box{background:var(--yel-bg);border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.warn-box h3{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--yellow);margin-bottom:6px}
+.warn-box p,.warn-box li{font-size:13px;color:#fbbf24;margin-bottom:4px}
+.warn-box ul{padding-left:16px}
+.info-box{background:#0d1a2e;border:1px solid #1f6feb;border-left:4px solid #1f6feb;border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.info-box h3{font-size:11px;font-weight:700;text-transform:uppercase;color:#58a6ff;margin-bottom:6px}
+.info-box p,.info-box li{font-size:13px;color:#a5d0ff;margin-bottom:4px}
+.info-box ul{padding-left:16px}
+.info-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.metrics{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+.progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);border-radius:4px;transition:width .4s}
+.container{padding:0 24px 40px}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted);transition:transform .2s}
+.group-header.collapsed .group-toggle{transform:rotate(-90deg)}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#2ea043}
+.badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-bloqueado{background:var(--yel-bg);color:var(--yellow)}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.badge-p3{background:#1c1f26;color:#6e7681;font-size:10px}
+.ct-caret{color:var(--muted);transition:transform .2s;font-size:11px}
+.ct-bar.collapsed .ct-caret{transform:rotate(-90deg)}
+.ct-panel{padding:14px;border-top:1px solid var(--border)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text);margin-bottom:3px}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.ct-section ol li::marker{color:var(--accent);font-weight:600}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.pre-cond li{margin-bottom:4px}
+.pre-cond code{color:#79c57e}
+.expected{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 10px;font-size:13px;color:#79c57e}
+.obtained{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 10px;font-size:13px;color:#79c57e}
+.ct-ev{margin-top:10px}
+.ev-ok{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;color:#79c57e;margin-bottom:8px}
+.ev-grid{display:flex;flex-wrap:wrap;gap:12px}
+.ev-item{flex:1 1 320px;max-width:100%}
+.ev-item img{width:100%;border:1px solid var(--border);border-radius:6px;cursor:pointer;transition:opacity .15s}
+.ev-item img:hover{opacity:.85}
+.ev-cap{font-size:11px;color:var(--muted);margin-top:3px}
+.lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;align-items:center;justify-content:center;padding:20px;cursor:zoom-out}
+.lb.open{display:flex}
+.lb img{max-width:96%;max-height:96%;border:1px solid var(--border);border-radius:6px}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">QA</span>
+  <span class="topbar-title">Reteste BUG #7704 — CITNET KOVR Certificado de Exportação: CNPJ da Corretora</span>
+  <span class="topbar-sprint">Sprint 10 Citweb · Epic #7283 · Execução 2026-07-15</span>
+  <span class="topbar-bug">BUG #7704</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">CITNET KOVR (alfanum) — Certificado de Averbação de Exportação: CNPJ da corretora idêntico ao CITWEB</div>
+  <div class="hero-sub">
+    <span>🏢 Seguradora: KOVR</span>
+    <span>💻 Sistema: CITNET</span>
+    <span>🌐 Módulo: Averbações → Internacional → Exportação → Certificado</span>
+    <span>🔗 Env: /alfa/ (HML)</span>
+    <span>🏗️ Build: 1708 / Release-16 (def 65)</span>
+    <span>🔧 Fix: PR #1821</span>
+  </div>
+
+  <div class="result-banner">
+    <h3>✓ Reteste APROVADO — Bug NÃO reproduz · 2/2 CTs aprovados · 100%</h3>
+    <p><strong>Execução:</strong> 15/07/2026 · CITNET KOVR /alfa/ HML · usuário TSTALFA1 (INTERNO) · Playwright MCP</p>
+    <p>O certificado de averbação de Exportação (Apólice <strong>99910</strong> / Subgrupo <strong>1</strong> / Protocolo <strong>2</strong>) exibe o CNPJ da corretora <strong>alfanumérico com as letras preservadas</strong> — <code>WX.BHR.25Y/0001-58</code>, idêntico ao cadastrado no CITWEB — e não mais o valor com letras removidas (<code>00.000.025/0001-58</code>) do bug. O CNPJ da seguradora permanece correto (<code>93.202.448/0001-79</code>), sem regressão.</p>
+  </div>
+
+  <div class="bug-box">
+    <h3>🐛 Bug Reportado (Reteste Epic #7283 — Homologação CNPJ ALFA — 03/07/2026)</h3>
+    <p><strong>Sintoma:</strong> O certificado de averbação gerado pelo CITNET KOVR exibia o <strong>CNPJ da corretora divergente</strong> do CNPJ cadastrado no CITWEB — as letras do CNPJ alfanumérico eram removidas na impressão, comprometendo documentos fiscais.</p>
+    <p><strong>Causa raiz (dev — Fabiano Souza):</strong> método <code>FormatarCpfCnpj</code> duplicado. O card #7615 corrigiu a cópia em <code>RelatorioCertificadoExportacaoService</code>, mas a action que gera o PDF (<code>RelatorioController.CertificadoExportacaoReportPdf</code>) usava outra cópia com regex <code>[^0-9]</code> — que descartava as letras.</p>
+    <p><strong>Fix (PR #1821):</strong> regex <code>[^0-9A-Z]</code> + <code>ToUpper()</code> em <code>RelatorioController.cs:12883</code>, preservando os caracteres alfanuméricos. Deploy em CITNET KOVR /alfa/ HML (build 1708 / Release-16, def 65).</p>
+    <p><strong>Origem:</strong> card #7615 encerrado após o reteste reprovar a correção suposta; o #7704 documenta o bug persistente (agora corrigido pelo PR #1821).</p>
+  </div>
+
+  <div class="info-box">
+    <h3>ℹ️ Como foi validado</h3>
+    <ul>
+      <li>Fluxo real por clique: Login CITNET KOVR /alfa/ → <strong>Averbações → Internacional → Exportação</strong> → Apólice 99910/Subgrupo 1 → Consulta por Protocolo → carregar <strong>Protocolo 2</strong> (Status: Processado) → botão <strong>Certificado</strong> → modal "Cadastro Certificado de Exportação" → <strong>Imprimir</strong>.</li>
+      <li>A impressão abre a action <strong>fixada</strong> <code>/alfa/citnet/Relatorio/CertificadoExportacaoReportPdf</code> em nova aba, renderizando o PDF do certificado (título do documento: <code>CertificadoExportacao_KOVR</code>).</li>
+      <li>O CNPJ da corretora foi lido diretamente do certificado renderizado (blocos <em>Seguradora</em> e <em>Corretora</em>). O certificado do CITNET consome os dados da corretora do cadastro compartilhado do CITWEB; como o defeito era exclusivamente a remoção das letras na formatação do PDF, a preservação dos caracteres comprova a paridade com o CITWEB.</li>
+    </ul>
+  </div>
+
+  <div class="warn-box">
+    <h3>⚠️ Nota sobre a referência CITWEB</h3>
+    <ul>
+      <li>O valor de referência do CNPJ da corretora no CITWEB (<code>WX.BHR.25Y/0001-58</code>) está documentado no smoke test do dev na Task #7774 e é corroborado pela leitura do próprio certificado.</li>
+      <li>A recaptura independente pela UI do CITWEB /alfa/ KOVR não foi possível nesta sessão (credenciais do CITWEB alfanum indisponíveis; apenas o banco AXA-alfa está conectado). A validação apoia-se na prova comportamental inequívoca: o certificado agora renderiza o CNPJ <strong>com letras</strong> (WX, BHR, 25Y), o oposto exato do defeito.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="exec-total">2</div><div class="metric-lbl">Total</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="exec-aprovados">2</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="exec-pendentes">0</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progress-bar" style="width:100%"></div></div>
+
+<div class="container">
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo 1 — Certificado de Exportação: CNPJ alfanumérico (KOVR /alfa/)</h2>
+  <span class="group-badge">2 CTs · P1/P2</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <!-- CT-CERT-001 -->
+  <div class="ct-block" id="ct-CERT-001">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CERT-001</span>
+      <span class="ct-title">Certificado de Exportação deve exibir o CNPJ da corretora alfanumérico idêntico ao CITWEB (letras preservadas)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-ok" id="badge-CERT-001">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Positivo — Cenário real do bug (impressão do certificado com CNPJ alfanumérico da corretora).</p>
+      </div>
+      <div class="ct-section">
+        <h4>Pré-condições</h4>
+        <ul class="pre-cond">
+          <li>CITNET KOVR /alfa/ HML acessível: <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></li>
+          <li>Usuário <code>TSTALFA1</code> (perfil INTERNO), Filial <code>SÃO PAULO - 1</code></li>
+          <li>Massa: Apólice <code>99910</code> / Subgrupo <code>1 - SEGURADO ALFANUMERICO</code> / averbação de Exportação <code>Protocolo 2</code> (Data Saída 01/06/2026, Status Processado)</li>
+          <li>Corretora vinculada: <code>CORRETOR ALFANUM</code> (CNPJ alfanumérico cadastrado no CITWEB)</li>
+        </ul>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>Login CITNET KOVR /alfa/ (TSTALFA1) → menu <strong>Averbações → Internacional → Exportação</strong></li>
+          <li>Selecionar Apólice <strong>99910</strong> e Subgrupo <strong>1</strong></li>
+          <li>Abrir a consulta de protocolo (lupa), "Pesquisar por" = <strong>PROTOCOLO</strong>, informar <strong>2</strong> e Pesquisar; clicar no protocolo <strong>2</strong> na grade para carregar a averbação</li>
+          <li>Clicar em <strong>Certificado</strong> → no modal "Cadastro Certificado de Exportação" clicar em <strong>Imprimir</strong> → responder "Não" ao diálogo "Deseja imprimir assinatura digital?"</li>
+          <li>No certificado PDF gerado, conferir o CNPJ do bloco <strong>Corretora</strong></li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado</h4>
+        <div class="expected">O CNPJ da corretora no certificado é idêntico ao cadastrado no CITWEB — alfanumérico com letras preservadas: <strong>WX.BHR.25Y/0001-58</strong> (e não <code>00.000.025/0001-58</code>).</div>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Obtido</h4>
+        <div class="obtained">✓ O certificado exibe <strong>Corretora: CORRETOR ALFANUM — CNPJ WX.BHR.25Y/0001-58</strong>, com os caracteres alfabéticos preservados. O valor com letras removidas do bug (<code>00.000.025/0001-58</code>) não ocorre mais. Fix PR #1821 confirmado.</div>
+      </div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <strong>APROVADO</strong> — CNPJ da corretora alfanumérico preservado no certificado · CITNET KOVR /alfa/ HML · 15/07/2026</div>
+        <div class="ev-grid">
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev1-averbacao-proto2-carregada.png" alt="Averbação Protocolo 2 carregada" onclick="openLb(this.src)"><div class="ev-cap">EV1 — Averbação de Exportação Protocolo 2 carregada (Apólice 99910 / Subgrupo 1); botão Certificado habilitado</div></div>
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev2-modal-certificado-config.png" alt="Modal Cadastro Certificado de Exportação" onclick="openLb(this.src)"><div class="ev-cap">EV2 — Modal "Cadastro Certificado de Exportação" (Certificado 2, Segurado ALFANUMERICO) → botão Imprimir</div></div>
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev3-certificado-completo.png" alt="Certificado de Exportação renderizado" onclick="openLb(this.src)"><div class="ev-cap">EV3 — Certificado de Seguro de Transportes gerado (CertificadoExportacao_KOVR, Nº 0002)</div></div>
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev4-cnpj-corretora-seguradora.png" alt="CNPJ corretora e seguradora no certificado" onclick="openLb(this.src)"><div class="ev-cap">EV4 — Ampliação dos blocos: <strong>Corretora CORRETOR ALFANUM — CNPJ WX.BHR.25Y/0001-58</strong> (alfanumérico) · Seguradora KOVR — CNPJ 93.202.448/0001-79</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-CERT-002 -->
+  <div class="ct-block" id="ct-CERT-002">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-CERT-002</span>
+      <span class="ct-title">Regressão — CNPJ da seguradora permanece correto e o certificado renderiza sem erro</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-ok" id="badge-CERT-002">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section">
+        <h4>Tipo</h4>
+        <p>Regressão — Garante que a correção da formatação não afetou o CNPJ da seguradora (numérico) nem a geração do documento.</p>
+      </div>
+      <div class="ct-section">
+        <h4>Passos</h4>
+        <ol>
+          <li>No mesmo certificado gerado no CT-CERT-001, conferir o CNPJ do bloco <strong>Seguradora</strong></li>
+          <li>Verificar que o certificado é renderizado integralmente, sem erro (HTTP 500 / "Ocorreu um erro inesperado!")</li>
+        </ol>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Esperado</h4>
+        <div class="expected">CNPJ da seguradora KOVR = <strong>93.202.448/0001-79</strong>, sem alteração; certificado gerado sem erro.</div>
+      </div>
+      <div class="ct-section">
+        <h4>Resultado Obtido</h4>
+        <div class="obtained">✓ Seguradora <strong>KOVR — CNPJ 93.202.448/0001-79</strong> exibido corretamente. O certificado (Nº 0002) foi gerado e renderizado por completo (action <code>CertificadoExportacaoReportPdf</code> retornou 200 OK), sem HTTP 500 nem página de erro.</div>
+      </div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <strong>APROVADO</strong> — CNPJ da seguradora sem regressão · certificado gerado sem erro · CITNET KOVR /alfa/ HML · 15/07/2026</div>
+        <div class="ev-grid">
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev4-cnpj-corretora-seguradora.png" alt="CNPJ seguradora no certificado" onclick="openLb(this.src)"><div class="ev-cap">EV1 — Bloco Seguradora: KOVR — CNPJ 93.202.448/0001-79 (numérico, sem regressão)</div></div>
+          <div class="ev-item"><img src="evidencias/7704-ct001-ev3-certificado-completo.png" alt="Certificado completo sem erro" onclick="openLb(this.src)"><div class="ev-cap">EV2 — Certificado renderizado integralmente, sem página de erro</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="footer">QA — Reteste BUG #7704 · CITNET KOVR /alfa/ · Epic #7283 · Sprint 10 Citweb · Execução 15/07/2026 · Playwright MCP</div>
+
+<div class="lb" id="lb" onclick="this.classList.remove('open')"><img id="lb-img" src="" alt="evidência ampliada"></div>
+
+<script>
+function toggleCT(bar){bar.classList.toggle('collapsed');var p=bar.nextElementSibling;if(p)p.style.display=p.style.display==='none'?'block':'none';}
+function toggleGroup(h){h.classList.toggle('collapsed');var b=h.nextElementSibling;if(b)b.style.display=h.classList.contains('collapsed')?'none':'block';}
+function openLb(src){var lb=document.getElementById('lb');document.getElementById('lb-img').src=src;lb.classList.add('open');}
+// métricas a partir dos badges
+(function(){
+  var badges=document.querySelectorAll('.ct-bar .badge-ok,.ct-bar .badge-erro,.ct-bar .badge-bloqueado,.ct-bar .badge-pendente');
+  var ok=document.querySelectorAll('.ct-bar .badge-ok').length;
+  var rep=document.querySelectorAll('.ct-bar .badge-erro').length;
+  var pend=document.querySelectorAll('.ct-bar .badge-pendente').length;
+  var total=badges.length;
+  document.getElementById('exec-total').textContent=total;
+  document.getElementById('exec-aprovados').textContent=ok;
+  document.getElementById('exec-reprovados').textContent=rep;
+  document.getElementById('exec-pendentes').textContent=pend;
+  var done=total-pend;
+  document.getElementById('progress-bar').style.width=(total?Math.round(done/total*100):0)+'%';
+})();
+</script>
+</body>
+</html>
