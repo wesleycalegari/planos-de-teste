@@ -131,12 +131,12 @@
   <div class="metric"><div class="val" style="color:var(--blue)" id="m-total">3</div><div class="lbl">Total CTs</div></div>
   <div class="metric"><div class="val" style="color:var(--p1-color)">2</div><div class="lbl">P1 — Bloqueante</div></div>
   <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2 — Importante</div></div>
-  <div class="metric"><div class="val" style="color:var(--green)" id="m-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="m-pass">3</div><div class="lbl">Aprovados</div></div>
   <div class="metric"><div class="val" style="color:var(--red)" id="m-fail">0</div><div class="lbl">Reprovados</div></div>
-  <div class="metric"><div class="val" style="color:var(--yellow)" id="m-pend">3</div><div class="lbl">Pendentes</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="m-pend">0</div><div class="lbl">Pendentes</div></div>
   <div class="progress-bar">
-    <div class="pb-label" id="pb-label">0% executado — aguardando execução</div>
-    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-label" id="pb-label">100% executado — 3/3 aprovados · reteste 15/07/2026</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:100%;background:var(--green)"></div></div>
   </div>
 </div>
 
@@ -157,7 +157,16 @@
     </div>
     <div class="info-box">
       <strong>Ambiente:</strong> CITNET MITSUI HML ALFA · <code>mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code>
-      · Usuário: <code>VOIDR-NSTEC</code> / <code>NS-Vo1dr@b</code> (perfil INTERNO)
+      · Usuário <code>interno</code> (perfil INTERNO) — login <strong>sem selecionar filial</strong> ("Selecione...").
+    </div>
+    <div class="ok-box">
+      <strong>Root cause (análise do dev):</strong> a régua RCTR-C em <code>tb_cit_net_lay_out_pdr</code> (CIT-AVB-RCT) da MITSUI
+      estava <strong>sem o campo 26 ("Valor Container RC-DC")</strong> — 36 campos em vez de 37. O <code>ProcessaLinha</code>
+      lê por índices fixos (assume 37), então o deslocamento fazia <code>int.Parse("O")</code> (Tipo de Documento lido na posição
+      do Município de Destino) estourar <code>System.FormatException</code> → HTTP 500, exibido como o erro genérico.
+      <strong>Fix:</strong> INSERT do campo 26 na régua (realinha as posições). <strong>Reteste (15/07/2026):</strong> régua agora
+      com <strong>37 campos incluindo o campo 26</strong>; Converter e Processar retornam <strong>HTTP 200</strong> (antes: 500);
+      <strong>1 averbação incluída (Aceitos: 1)</strong> com CNPJ alfanumérico válido e 1 linha rejeitada por CNPJ inválido. Bug corrigido.
     </div>
   </div>
 
@@ -177,10 +186,12 @@
       <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
       <tbody>
         <tr><td>URL CITNET</td><td><code>mitsui-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td><td>HML ALFA MITSUI</td></tr>
-        <tr><td>Usuário</td><td><code>VOIDR-NSTEC</code></td><td>Perfil INTERNO</td></tr>
-        <tr><td>Senha</td><td><code>NS-Vo1dr@b</code></td><td>—</td></tr>
-        <tr><td>Layout RCTR-C</td><td>Arquivo de teste .txt/.xlsx RCTR-C</td><td>Usar arquivo disponível no ambiente ou gerar via script</td></tr>
-        <tr><td>Layout Transp.Nacional</td><td>Arquivo de teste Transp.Nacional</td><td>Regressão — formato alternativo</td></tr>
+        <tr><td>Usuário</td><td><code>interno</code> (perfil INTERNO)</td><td>Login sem selecionar filial ("Selecione...")</td></tr>
+        <tr><td>Filial</td><td><code>FILIAL VOIDR - 5555</code></td><td>Filial de teste ALFA (selecionada no Conversor)</td></tr>
+        <tr><td>Apólice / Subgrupo</td><td><code>333</code> / <code>1</code></td><td>Segurado VOIDR TESTES — descoberta via UI</td></tr>
+        <tr><td>CNPJ Embarcador</td><td><code>NH773Y09000110</code> (válido) · <code>ABC1234</code> (inválido)</td><td>Alfanumérico — 1 aceito, 1 rejeitado</td></tr>
+        <tr><td>Mercadoria</td><td><code>DIVERSAS</code> (cód. 1234567891)</td><td>Data de saída = data corrente (regra: ≥ hoje)</td></tr>
+        <tr><td>Arquivos massa</td><td>RCTR-C .xlsx (2 linhas) · Transp.Nacional</td><td>Gerados via openpyxl · layout "RETESTE7703RCTRC"</td></tr>
       </tbody>
     </table>
   </div>
@@ -198,7 +209,7 @@
         <span class="ct-id">CT-CVR-001</span>
         <span class="badge badge-p1">P1</span>
         <span class="ct-title">Converter arquivo RCTR-C válido sem retornar erro genérico</span>
-        <span class="badge badge-pend" id="badge-CVR-001">PENDENTE</span>
+        <span class="badge badge-pass" id="badge-CVR-001">APROVADO</span>
       </div>
       <div class="ct-body">
         <div class="ct-section">
@@ -231,11 +242,16 @@
         </div>
         <div class="ct-section">
           <div class="ct-section-lbl">Resultado Obtido</div>
-          <div class="ct-result" id="result-CVR-001">⏳ Aguardando execução</div>
+          <div class="ct-result" id="result-CVR-001" style="border-left:3px solid var(--green)">✓ <strong>APROVADO</strong> — Régua RCTR-C carregou com <strong>37 campos incluindo o campo 26 "Valor Container RC-DC"</strong> (a correção; antes eram 36, pulando de 25 p/ 27). Arquivo importado e convertido: <strong>"CONVERSÃO FINALIZADA: Lidos 2 / Aceitos 2 / Rejeitados 0"</strong> — sem o modal "Erro no processamento dos dados!". <code>POST /Conversor/Converter</code> → <strong>HTTP 200</strong>. · MITSUI ALFA HML · 15/07/2026</div>
         </div>
         <div class="ev-section">
           <div class="ev-section-lbl">Evidências</div>
-          <div class="ev-grid" id="ev-CVR-001"></div>
+          <div class="ev-grid" id="ev-CVR-001">
+            <div class="ev-item"><img src="evidencias/EV0-login-home.png" onclick="openLB('evidencias/EV0-login-home.png','EV0 — Login INTERNO MITSUI ALFA')"><div class="ev-cap">EV0 — Login CITNET MITSUI ALFA (perfil INTERNO)</div></div>
+            <div class="ev-item"><img src="evidencias/EV1-layout-campo26.png" onclick="openLB('evidencias/EV1-layout-campo26.png','EV1 — Régua RCTR-C com campo 26 presente (37 campos)')"><div class="ev-cap">EV1 — Régua RCTR-C: campo 26 "Valor Container RC-DC" presente (fix)</div></div>
+            <div class="ev-item"><img src="evidencias/EV2-preview-importado.png" onclick="openLB('evidencias/EV2-preview-importado.png','EV2 — Preview do arquivo importado sem erro')"><div class="ev-cap">EV2 — Arquivo importado: preview dos registros sem erro genérico</div></div>
+            <div class="ev-item"><img src="evidencias/EV3-conversao-2aceitos.png" onclick="openLB('evidencias/EV3-conversao-2aceitos.png','EV3 — Conversão finalizada: 2 lidos, 2 aceitos, 0 rejeitados')"><div class="ev-cap">EV3 — "CONVERSÃO FINALIZADA: 2 / 2 / 0" — sem erro genérico</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -247,7 +263,7 @@
         <span class="ct-id">CT-CVR-002</span>
         <span class="badge badge-p1">P1</span>
         <span class="ct-title">Processar após Converter RCTR-C → averbações geradas sem erro</span>
-        <span class="badge badge-pend" id="badge-CVR-002">PENDENTE</span>
+        <span class="badge badge-pass" id="badge-CVR-002">APROVADO</span>
       </div>
       <div class="ct-body">
         <div class="ct-section">
@@ -276,11 +292,15 @@
         </div>
         <div class="ct-section">
           <div class="ct-section-lbl">Resultado Obtido</div>
-          <div class="ct-result" id="result-CVR-002">⏳ Aguardando execução</div>
+          <div class="ct-result" id="result-CVR-002" style="border-left:3px solid var(--green)">✓ <strong>APROVADO</strong> — <strong>"PROCESSAMENTO FINALIZADO: Lidos 2 / Aceitos 1 / Rejeitados 1"</strong>. <code>POST /Conversor/Processar</code> → <strong>HTTP 200</strong>, resposta <code>{codigo:0, msg:"OK!"}</code> (antes: HTTP 500 / FormatException). A linha do CNPJ válido <strong>NH773Y09000110</strong> foi <strong>aceita (averbação incluída)</strong>; a do CNPJ inválido <strong>ABC1234</strong> (7 posições) foi corretamente rejeitada — idêntico à validação do dev. Nenhum "Erro no processamento dos dados!". · MITSUI ALFA HML · 15/07/2026<br><span style="color:var(--text-muted);font-size:12px">Nota: o erro genérico do bug só era exibido no handler <code>error:</code> do AJAX (HTTP 500). Com o fix, o Processar retorna resultado de negócio estruturado e valida corretamente (ex.: a 1ª tentativa com data retroativa foi rejeitada com "Data de saída inválida, deverá ser maior ou igual a 15/07/2026" — o sistema valida e reporta, não crasha).</span></div>
         </div>
         <div class="ev-section">
           <div class="ev-section-lbl">Evidências</div>
-          <div class="ev-grid" id="ev-CVR-002"></div>
+          <div class="ev-grid" id="ev-CVR-002">
+            <div class="ev-item"><img src="evidencias/EV5-processamento-aceitos1.png" onclick="openLB('evidencias/EV5-processamento-aceitos1.png','EV5 — Processamento: Lidos 2, Aceitos 1, Rejeitados 1')"><div class="ev-cap">EV5 — "PROCESSAMENTO FINALIZADO: 2 / 1 / 1" — averbação criada via conversor</div></div>
+            <div class="ev-item"><img src="evidencias/EV4-processamento-sem-erro.png" onclick="openLB('evidencias/EV4-processamento-sem-erro.png','EV4 — Processamento finalizado sem o erro genérico')"><div class="ev-cap">EV4 — Processamento sem o modal "Erro no processamento dos dados!" (bug eliminado)</div></div>
+            <div class="ev-item"><img src="evidencias/EV6-rejeitados-motivo.png" onclick="openLB('evidencias/EV6-rejeitados-motivo.png','EV6 — Registros rejeitados com mensagem de erro de negócio explícita')"><div class="ev-cap">EV6 — Grid "Registros Rejeitados" com motivo de negócio explícito (módulo valida e reporta, não crasha)</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -295,7 +315,7 @@
         <span class="ct-id">CT-CVR-003</span>
         <span class="badge badge-p2">P2</span>
         <span class="ct-title">Conversor Transp.Nacional → Converter funciona após correção (regressão)</span>
-        <span class="badge badge-pend" id="badge-CVR-003">PENDENTE</span>
+        <span class="badge badge-pass" id="badge-CVR-003">APROVADO</span>
       </div>
       <div class="ct-body">
         <div class="ct-section">
@@ -320,11 +340,13 @@
         </div>
         <div class="ct-section">
           <div class="ct-section-lbl">Resultado Obtido</div>
-          <div class="ct-result" id="result-CVR-003">⏳ Aguardando execução</div>
+          <div class="ct-result" id="result-CVR-003" style="border-left:3px solid var(--green)">✓ <strong>APROVADO</strong> — No Conversor, ao selecionar Ramo <strong>21 - Transporte Nacional</strong> (Filial 5555, Segurado VOIDR TESTES), o layout carrega normalmente (<strong>38 campos</strong>) <strong>sem</strong> o erro genérico. O módulo deixou de estar "completamente inoperante" — o fix da régua RCTR-C não introduziu regressão em outro layout. · MITSUI ALFA HML · 15/07/2026</div>
         </div>
         <div class="ev-section">
           <div class="ev-section-lbl">Evidências</div>
-          <div class="ev-grid" id="ev-CVR-003"></div>
+          <div class="ev-grid" id="ev-CVR-003">
+            <div class="ev-item"><img src="evidencias/EV7-transp-nacional.png" onclick="openLB('evidencias/EV7-transp-nacional.png','EV7 — Layout Transporte Nacional carrega sem erro')"><div class="ev-cap">EV7 — Conversor Ramo 21 (Transporte Nacional): layout carrega sem o erro genérico</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -336,16 +358,16 @@
     <table>
       <thead><tr><th>CT</th><th>Descrição</th><th>Prioridade</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td>CT-CVR-001</td><td>Converter RCTR-C sem erro genérico</td><td>P1</td><td class="cov-pend" id="sum-CVR-001">PENDENTE</td></tr>
-        <tr><td>CT-CVR-002</td><td>Processar após Converter → averbações criadas</td><td>P1</td><td class="cov-pend" id="sum-CVR-002">PENDENTE</td></tr>
-        <tr><td>CT-CVR-003</td><td>Regressão Transp.Nacional</td><td>P2</td><td class="cov-pend" id="sum-CVR-003">PENDENTE</td></tr>
+        <tr><td>CT-CVR-001</td><td>Converter RCTR-C sem erro genérico</td><td>P1</td><td class="cov-ok" id="sum-CVR-001">APROVADO</td></tr>
+        <tr><td>CT-CVR-002</td><td>Processar após Converter → averbações criadas (Aceitos 1)</td><td>P1</td><td class="cov-ok" id="sum-CVR-002">APROVADO</td></tr>
+        <tr><td>CT-CVR-003</td><td>Regressão Transp.Nacional</td><td>P2</td><td class="cov-ok" id="sum-CVR-003">APROVADO</td></tr>
       </tbody>
     </table>
   </div>
 
 </div><!-- /content -->
 
-<footer>BUG-7703 · CITNET MITSUI HML ALFA · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · 13/07/2026</footer>
+<footer>BUG-7703 · CITNET MITSUI HML ALFA · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Plano 13/07/2026 · Reteste executado 15/07/2026 — 3/3 APROVADOS</footer>
 
 <script>
   function openLB(src, cap) {
@@ -356,6 +378,8 @@
   document.getElementById('lb').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
   });
+  // Auto-expandir todos os CTs (evidências visíveis)
+  document.querySelectorAll('.ct-block').forEach(function(b){ b.classList.add('expanded'); });
 </script>
 </body>
 </html>
