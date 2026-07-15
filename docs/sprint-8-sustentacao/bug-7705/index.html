@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Testes — BUG 7705 | KOVR CITNET Conversor de Arquivos (reteste)</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --surface2: #21262d; --border: #30363d;
+    --accent: #1f6feb; --accent2: #388bfd; --green: #2ea043; --green-bg: #0f2d1a;
+    --red: #da3633; --red-bg: #2d0f0f; --yellow: #d29922; --yellow-bg: #2d200f;
+    --text: #e6edf3; --text2: #8b949e; --text3: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  .topbar .badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar .sprint { color: var(--text2); font-size: 12px; }
+  .topbar h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar .build { color: var(--text2); font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+  .hero { background: linear-gradient(135deg, #0d1a0d 0%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: 32px 24px; }
+  .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .hero p { color: var(--text2); max-width: 760px; line-height: 1.7; }
+  .hero .tags { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .hero .tag { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  .hero .tag.blue { border-color: var(--accent); color: var(--text3); }
+  .hero .tag.green { border-color: var(--green); color: var(--green); }
+  .metrics { display: flex; gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .metric { flex: 1; background: var(--surface); padding: 16px 20px; text-align: center; }
+  .metric .num { font-size: 28px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .num.total { color: var(--text3); } .num.pass { color: var(--green); } .num.fail { color: var(--red); } .num.pend { color: var(--yellow); }
+  .progress-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .progress-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+  .progress-pct { font-size: 12px; color: var(--text2); min-width: 40px; text-align: right; }
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .massa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .massa-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .massa-card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .massa-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .massa-row:last-child { border-bottom: none; }
+  .massa-key { color: var(--text2); font-size: 12px; }
+  .massa-val { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+  .ct-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .ct-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .ct-bar:hover { background: var(--surface2); }
+  .ct-id { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; font-weight: 700; color: var(--text3); min-width: 110px; }
+  .ct-title { flex: 1; font-weight: 500; }
+  .ct-priority { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .p1 { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .p2 { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .ct-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; min-width: 80px; text-align: center; }
+  .status-pend { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .status-pass { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .status-fail { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .ct-chevron { color: var(--text2); font-size: 12px; transition: transform 0.2s; }
+  .ct-block.open .ct-chevron { transform: rotate(90deg); }
+  .ct-panel { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .ct-block.open .ct-panel { display: block; }
+  .ct-meta { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .ct-meta span { font-size: 12px; color: var(--text2); }
+  .ct-meta strong { color: var(--text); }
+  .ct-section { margin-top: 12px; }
+  .ct-section h5 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .precond { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 10px 12px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+  .steps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .steps-table th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .steps-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .steps-table tr:last-child td { border-bottom: none; }
+  .steps-table .num { color: var(--text2); font-size: 12px; font-weight: 700; width: 36px; text-align: center; }
+  .steps-table .acao { line-height: 1.6; }
+  .steps-table .result { color: var(--text3); line-height: 1.6; }
+  code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffa657; }
+  .obs-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.7; }
+  .obs-box.warn-box { border-color: var(--yellow); color: var(--text); background: var(--yellow-bg); }
+  .info-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; }
+  .info-box h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+  .group-header { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0; margin: 20px 0 8px; display: flex; align-items: center; gap: 8px; }
+  .group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .group-header .gh-badge { background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 10px; }
+  .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text2); font-size: 11px; margin-top: 48px; }
+  .kv { display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:13px; }
+  .kv > div span { color: var(--text2); }
+</style>
+</head>
+<body>
+
+<!-- metadados p/ extrator do publicar.py -->
+<div style="display:none">
+  <label>Sistema</label><span>CITNET</span>
+  <label>Módulo</label><span>Conversor de Arquivos</span>
+  <span class="ev-badge ev-ok"></span>
+  <span class="ev-badge ev-ok"></span>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="badge">BUG 7705</div>
+  <span class="sprint">Sprint 8 — Sustentação CITWEB · Epic 7283 (CNPJ Alfanumérico)</span>
+  <h1>[KOVR] CITNET — Conversor de Arquivos (reteste)</h1>
+  <div class="build">Build 1710 / Release-18 (def 65)</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>Plano de Testes — BUG 7705: KOVR CITNET Conversor de Arquivos</h2>
+  <p>Reteste da correção (PR #1822) do módulo <strong>Conversor de Arquivos</strong> no CITNET KOVR HML ALFA.
+  O bug original reportava a mensagem <em>"Erro Consulta Arquivo de Layout"</em> ao selecionar o ramo — o
+  perfil <strong>SEGURADO</strong> não tinha o segurado auto-selecionado (regressão do épico CNPJ alfanumérico),
+  deixando o combo de Layout vazio e inviabilizando criar/usar layout de conversão. Reteste executado com o
+  usuário do card <code>TSTALFA1</code> nos ramos <strong>RCV (59)</strong> e <strong>RCTR-C (54)</strong>.</p>
+  <div class="tags">
+    <span class="tag blue">CITNET</span>
+    <span class="tag blue">KOVR HML ALFA</span>
+    <span class="tag blue">Ramo 59 — RCV</span>
+    <span class="tag blue">Ramo 54 — RCTR-C</span>
+    <span class="tag">Conversor de Arquivos</span>
+    <span class="tag">Epic 7283 — CNPJ Alfanumérico</span>
+    <span class="tag green">RETESTE APROVADO</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="num total" id="cnt-total">2</div><div class="lbl">Total de CTs</div></div>
+  <div class="metric"><div class="num pass" id="cnt-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="num fail" id="cnt-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="num pend" id="cnt-pend">2</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <span style="font-size:12px;color:var(--text2)">Progresso</span>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-pct" id="progress-pct">0%</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section-title">Identificação</div>
+  <div class="info-box">
+    <h4>Dados do Card</h4>
+    <div class="kv">
+      <div><span>Card:</span> <strong>BUG-7705</strong></div>
+      <div><span>Tipo:</span> <strong>Bug Fix — Reteste</strong></div>
+      <div><span>Epic pai:</span> <strong>#7283 — Homologação CNPJ Alfanumérico</strong></div>
+      <div><span>Task filha (evidências dev):</span> <strong>#7775</strong></div>
+      <div><span>Sprint:</span> <strong>Sprint_8_Sustentacao</strong></div>
+      <div><span>Dev:</span> <strong>Fabiano Souza</strong></div>
+      <div><span>Seguradora:</span> <strong>KOVR</strong></div>
+      <div><span>Sistema:</span> <strong>CITNET (ALFA)</strong></div>
+      <div><span>Módulo:</span> <strong>Conversor de Arquivos</strong></div>
+      <div><span>Fix (PR):</span> <strong>#1822</strong></div>
+      <div><span>Build homologado:</span> <strong>1710 / Release-18 (def 65)</strong></div>
+      <div><span>Data do reteste:</span> <strong>15/07/2026</strong></div>
+    </div>
+  </div>
+
+  <!-- DESCRIÇÃO DO BUG -->
+  <div class="section-title">Descrição do Bug e Correção</div>
+  <div class="info-box">
+    <h4>Cenário Original (com bug)</h4>
+    <p style="margin-bottom:8px">Ao acessar <strong>Conversor de Arquivos</strong> no CITNET KOVR HML ALFA e selecionar
+    um ramo (RCV/59 ou RCTR-C/54), o sistema não carregava o layout de conversão. O combo de Layout permanecia vazio,
+    impedindo importar/converter arquivos — o módulo ficava inoperante para o usuário SEGURADO.</p>
+  </div>
+  <div class="info-box">
+    <h4>Causa Raiz (documentada pelo dev)</h4>
+    <p>No épico CNPJ alfanumérico, <code>hdIdUsuario</code> / <code>Session[idUsuario]</code> passou a ser o documento
+    (<code>u_cpf_cgc</code> paddado, ex.: <code>00000776000116</code>), que não casa com o <em>value</em> da option do
+    combo Segurado (<code>c_idt_pes</code> / código <code>776000116</code>). Em <code>CarregaSegurado</code> (conversor.js),
+    o perfil SEGURADO não auto-selecionava o segurado → combo de Layout ficava vazio.
+    <br>O erro HTTP 500 <em>"Erro Consulta Arquivo de Layout"</em> relatado era um deploy-gap do card original #7616,
+    já resolvido no build anterior.</p>
+  </div>
+  <div class="info-box">
+    <h4>Fix Aplicado (PR #1822)</h4>
+    <p>Para o perfil <strong>SEGURADO não-AXA</strong>: se <code>val(idUsuario)</code> não casar com nenhuma option,
+    seleciona por <code>clientes[0].c_idt_pes</code> (o código, que casa com a option) — restaurando a auto-seleção do
+    segurado e o carregamento do combo de Layout.</p>
+  </div>
+  <div class="info-box">
+    <h4>Critérios de Aceite</h4>
+    <ol style="padding-left:20px;line-height:2;">
+      <li>Ao selecionar o ramo no Conversor, o segurado é auto-selecionado (perfil SEGURADO)</li>
+      <li>O combo de Layout é populado, permitindo escolher/criar layout de conversão</li>
+      <li>Não é exibida a mensagem "Erro Consulta Arquivo de Layout" (nem outro erro)</li>
+      <li>Comportamento consistente em múltiplos ramos (RCV/59 e RCTR-C/54)</li>
+    </ol>
+  </div>
+
+  <!-- AMBIENTE E ACESSO -->
+  <div class="section-title">Ambiente e Acesso</div>
+  <div class="info-box">
+    <h4>CITNET KOVR — HML ALFA</h4>
+    <div style="font-size:13px;line-height:2;">
+      <div><span style="color:var(--text2)">URL CITNET ALFA:</span> <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code></div>
+      <div><span style="color:var(--text2)">Conversor:</span> menu <strong>Conversor</strong> → <code>/alfa/citnet/Conversor/Conversor</code></div>
+      <div><span style="color:var(--text2)">Usuário:</span> <code>TSTALFA1</code> (perfil SEGURADO — SEGURADO ALFANUMERICO)</div>
+      <div><span style="color:var(--text2)">Filial:</span> SÃO PAULO - 1</div>
+      <div><span style="color:var(--text2)">Credenciais:</span> carregadas de <code>.env</code> (<code>HML_KOVR_ALFA_CITNET_USER/PASS</code>) — nunca hardcoded</div>
+      <div><span style="color:var(--text2)">Execução:</span> Playwright MCP (navegação por clique a partir do login)</div>
+    </div>
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section-title">Massa de Dados</div>
+  <div class="massa-grid">
+    <div class="massa-card">
+      <h4>Segurado (perfil do usuário)</h4>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">SEGURADO ALFANUMERICO</span></div>
+      <div class="massa-row"><span class="massa-key">Código (c_idt_pes)</span><span class="massa-val">776000116</span></div>
+      <div class="massa-row"><span class="massa-key">CNPJ alfanumérico</span><span class="massa-val">D77L6VWV000116</span></div>
+      <div class="massa-row"><span class="massa-key">hdIdUsuario (paddado)</span><span class="massa-val">00000776000116</span></div>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">SÃO PAULO - 1</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>Ramos testados</h4>
+      <div class="massa-row"><span class="massa-key">RCV</span><span class="massa-val">59 — CIT-AVB-RCV</span></div>
+      <div class="massa-row"><span class="massa-key">RCTR-C</span><span class="massa-val">54 — CIT-AVB-RCT</span></div>
+      <div class="massa-row"><span class="massa-key">Layout esperado</span><span class="massa-val" style="color:var(--green)">(Layout de Entrada) + Novo Layout de Entrada</span></div>
+    </div>
+  </div>
+  <div class="obs-box warn-box">
+    ⚠️ <strong>Observação sobre o perfil:</strong> a descrição do card citava "perfil INTERNO (TSTALFA1)", porém o fix e o
+    reteste confirmam que o usuário <code>TSTALFA1</code> loga como <strong>SEGURADO</strong> (SEGURADO ALFANUMERICO) —
+    caminho de código <code>CarregaSegurado</code> corrigido. Isso não afeta o resultado: o combo de Layout populou nos
+    dois ramos, que era o critério central do bug.
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">
+    Conversor de Arquivos — Reteste
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-RET-001 -->
+  <div class="ct-block" id="ct-ret-001">
+    <div class="ct-bar" onclick="toggle('ct-ret-001')">
+      <span class="ct-id">CT-RET-001</span>
+      <span class="ct-title">Conversor — Ramo RCV (59): segurado auto-selecionado + combo de Layout populado</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pass" id="status-ct-ret-001">APROVADO</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 59 (RCV)</span>
+        <span><strong>Perfil:</strong> SEGURADO (TSTALFA1)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Tipo:</strong> Reteste (positivo)</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Ambiente KOVR ALFA acessível: <code>https://kovr-hml-faturamento.nsseg.com.br/alfa/citnet/</code><br>
+          2. Login como <code>TSTALFA1</code> (SEGURADO), filial SÃO PAULO - 1<br>
+          3. Build homologado 1710 / Release-18 (def 65) com PR #1822
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Acessar a URL do CITNET KOVR ALFA e efetuar login com <code>TSTALFA1</code> (filial SÃO PAULO - 1)</td><td class="result">Home do CitNet carregada, menu superior visível (usuário TSTALFA)</td></tr>
+            <tr><td class="num">2</td><td class="acao">Clicar no menu <strong>Conversor</strong></td><td class="result">Tela "Conversor de Layout - CitNet" carregada com os combos Ramo e Layout</td></tr>
+            <tr><td class="num">3</td><td class="acao">Selecionar o ramo <strong>59 - RCV</strong> no combo <code>#c_rmo</code></td><td class="result">
+              Segurado auto-selecionado em <code>#c_idt_pes</code> = <strong>SEGURADO ALFANUMERICO</strong> (776000116);
+              combo de Layout <code>#cmbLayout</code> populado com <code>(Layout de Entrada)</code> e <code>Novo Layout de Entrada</code>;
+              tabela de campos do layout renderizada. <strong>Sem</strong> a mensagem "Erro Consulta Arquivo de Layout".
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-ret-001" style="border-color:var(--green);color:var(--text)">
+          ✅ <strong>APROVADO</strong> — 15/07/2026 · KOVR HML ALFA · TSTALFA1 (SEGURADO)<br>
+          Verificado via <code>browser_evaluate</code>:
+          <ul style="margin:6px 0 0 18px;line-height:1.9;">
+            <li><code>#c_rmo</code> = "59 - RCV"</li>
+            <li><code>#c_idt_pes</code> = <strong>776000116 · "SEGURADO ALFANUMERICO"</strong> (auto-selecionado)</li>
+            <li><code>#cmbLayout</code> = <strong>["(Layout de Entrada)", "Novo Layout de Entrada"]</strong> (habilitado)</li>
+            <li><code>hdIdUsuario</code> = 00000776000116 (documento paddado — não impediu a auto-seleção após o fix)</li>
+            <li>"Erro Consulta Arquivo de Layout" presente na página: <strong>false</strong>; nenhum erro visível na tela</li>
+          </ul>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="evidencias/7705-CT001-EV0-conversor-inicial.png" target="_blank"><img src="evidencias/7705-CT001-EV0-conversor-inicial.png" style="max-width:320px;border:1px solid var(--border);border-radius:4px;" alt="EV0 - Conversor tela inicial"></a>
+            <a href="evidencias/7705-CT001-EV1-rcv59-segurado-layout-ok.png" target="_blank"><img src="evidencias/7705-CT001-EV1-rcv59-segurado-layout-ok.png" style="max-width:320px;border:1px solid var(--border);border-radius:4px;" alt="EV1 - Ramo 59 RCV, layout carregado"></a>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">EV0 — tela inicial do Conversor · EV1 — Ramo 59-RCV com Layout "(Layout de Entrada)" e tabela de campos renderizada</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-RET-002 -->
+  <div class="ct-block" id="ct-ret-002">
+    <div class="ct-bar" onclick="toggle('ct-ret-002')">
+      <span class="ct-id">CT-RET-002</span>
+      <span class="ct-title">Conversor — Ramo RCTR-C (54): segurado auto-selecionado + combo de Layout populado</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pass" id="status-ct-ret-002">APROVADO</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 54 (RCTR-C)</span>
+        <span><strong>Perfil:</strong> SEGURADO (TSTALFA1)</span>
+        <span><strong>Filial:</strong> 1 — São Paulo</span>
+        <span><strong>Tipo:</strong> Reteste (positivo)</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Mesmas condições do CT-RET-001 (sessão já autenticada no Conversor)<br>
+          2. Confirma que a correção vale para mais de um ramo (multi-ramo)
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Na tela do Conversor, selecionar o ramo <strong>54 - RCTR-C</strong> no combo <code>#c_rmo</code></td><td class="result">
+              Segurado permanece auto-selecionado (<strong>SEGURADO ALFANUMERICO</strong>); combo de Layout populado com
+              <code>(Layout de Entrada)</code> e <code>Novo Layout de Entrada</code>; tabela de campos específicos do RCTR-C
+              renderizada (Série Documento, Estado Transbordo, Tipo Transporte…). <strong>Sem</strong> mensagem de erro.
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" id="result-ct-ret-002" style="border-color:var(--green);color:var(--text)">
+          ✅ <strong>APROVADO</strong> — 15/07/2026 · KOVR HML ALFA · TSTALFA1 (SEGURADO)<br>
+          Verificado via <code>browser_evaluate</code>:
+          <ul style="margin:6px 0 0 18px;line-height:1.9;">
+            <li><code>#c_rmo</code> = "54 - RCTR-C"</li>
+            <li><code>#c_idt_pes</code> = <strong>776000116 · "SEGURADO ALFANUMERICO"</strong> (auto-selecionado)</li>
+            <li><code>#cmbLayout</code> = <strong>["(Layout de Entrada)", "Novo Layout de Entrada"]</strong> (habilitado)</li>
+            <li>"Erro Consulta Arquivo de Layout" presente na página: <strong>false</strong>; nenhum erro visível na tela</li>
+          </ul>
+          <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+            <a href="evidencias/7705-CT002-EV1-rctrc54-segurado-layout-ok.png" target="_blank"><img src="evidencias/7705-CT002-EV1-rctrc54-segurado-layout-ok.png" style="max-width:320px;border:1px solid var(--border);border-radius:4px;" alt="EV1 - Ramo 54 RCTR-C, layout carregado"></a>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:4px">EV1 — Ramo 54-RCTR-C com Layout "(Layout de Entrada)" e tabela de campos RCTR-C renderizada</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <div class="section-title">Script de Automação (regressão)</div>
+  <div class="info-box">
+    <h4>Reteste automatizado</h4>
+    <div style="font-size:13px;line-height:2;">
+      <div><code>testes-automatizados/sprint-8-sustentacao/bug-7705/reteste_conversor_kovr_alfa.py</code></div>
+      <div style="color:var(--text2)">Playwright sync API — login KOVR ALFA (credenciais via <code>.env</code>), navega ao Conversor por clique,
+      seleciona ramos 59 e 54 e valida: segurado = SEGURADO ALFANUMERICO, <code>cmbLayout</code> com 2 opções, ausência de
+      "Erro Consulta Arquivo de Layout". Gera screenshots em <code>evidencias/</code>.</div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table class="steps-table" style="margin-bottom:24px;">
+    <thead>
+      <tr><th>CT</th><th>Critério de Aceite</th><th>Cenário</th><th>Prioridade</th><th>Status</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>CT-RET-001</code></td><td>CA1+CA2+CA3 — auto-seleção do segurado, combo de Layout populado, sem erro</td><td>KOVR ALFA / Ramo 59 RCV / SEGURADO</td><td>P1</td><td style="color:var(--green)">APROVADO</td></tr>
+      <tr><td><code>CT-RET-002</code></td><td>CA1+CA2+CA3+CA4 — idem, multi-ramo</td><td>KOVR ALFA / Ramo 54 RCTR-C / SEGURADO</td><td>P1</td><td style="color:var(--green)">APROVADO</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box" style="border-color:var(--green)">
+    <h4>Conclusão</h4>
+    <p>Reteste <strong>APROVADO</strong> (2/2 CTs). A correção do PR #1822 restaurou a auto-seleção do segurado no perfil
+    SEGURADO do Conversor de Arquivos, o combo de Layout passou a popular corretamente nos ramos RCV (59) e RCTR-C (54),
+    e a mensagem "Erro Consulta Arquivo de Layout" não ocorre. O comportamento do card #7705 está corrigido no build
+    1710 / Release-18 (def 65).</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  Plano gerado por QA Automation — BUG-7705 | KOVR CITNET Conversor de Arquivos (reteste) | Sprint 8 Sustentação · Epic 7283 | 15/07/2026
+</div>
+
+<script>
+function toggle(id) { document.getElementById(id).classList.toggle('open'); }
+function updateCounters() {
+  let pass = 0, fail = 0, pend = 0;
+  document.querySelectorAll('.ct-status').forEach(s => {
+    if (s.classList.contains('status-pass')) pass++;
+    else if (s.classList.contains('status-fail')) fail++;
+    else pend++;
+  });
+  const total = pass + fail + pend;
+  document.getElementById('cnt-pass').textContent = pass;
+  document.getElementById('cnt-fail').textContent = fail;
+  document.getElementById('cnt-pend').textContent = pend;
+  document.getElementById('cnt-total').textContent = total;
+  const pct = total > 0 ? Math.round((pass / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+updateCounters();
+</script>
+</body>
+</html>
