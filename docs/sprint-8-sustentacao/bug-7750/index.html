@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reteste — BUG 7750 | AIG CITNET Aprovação de Prévia Internacional (Ramo 22)</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --accent: #1f6feb;
+    --accent2: #388bfd;
+    --green: #2ea043;
+    --green-bg: #0f2d1a;
+    --red: #da3633;
+    --red-bg: #2d0f0f;
+    --yellow: #d29922;
+    --yellow-bg: #2d200f;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+
+  .topbar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
+  .topbar .badge { background: var(--red); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  .topbar .sprint { color: var(--text2); font-size: 12px; }
+  .topbar h1 { font-size: 15px; font-weight: 600; flex: 1; }
+  .topbar .build { color: var(--text2); font-size: 11px; background: var(--surface2); padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border); }
+
+  .hero { background: linear-gradient(135deg, #0d1a12 0%, #0d1117 100%); border-bottom: 1px solid var(--border); padding: 32px 24px; }
+  .hero h2 { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
+  .hero p { color: var(--text2); max-width: 760px; line-height: 1.7; }
+  .hero .tags { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .hero .tag { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+  .hero .tag.blue { border-color: var(--accent); color: var(--text3); }
+  .hero .tag.green { border-color: var(--green); color: var(--green); }
+
+  .metrics { display: flex; gap: 1px; background: var(--border); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .metric { flex: 1; background: var(--surface); padding: 16px 20px; text-align: center; }
+  .metric .num { font-size: 28px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .num.total { color: var(--text3); }
+  .num.pass { color: var(--green); }
+  .num.fail { color: var(--red); }
+  .num.pend { color: var(--yellow); }
+
+  .progress-wrap { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 12px; }
+  .progress-bar { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 3px; transition: width 0.3s; }
+  .progress-pct { font-size: 12px; color: var(--text2); min-width: 40px; text-align: right; }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .section-title { font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin: 24px 0 12px; display: flex; align-items: center; gap: 8px; }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .massa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .massa-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .massa-card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+  .massa-row { display: flex; justify-content: space-between; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .massa-row:last-child { border-bottom: none; }
+  .massa-key { color: var(--text2); font-size: 12px; }
+  .massa-val { font-family: 'SF Mono', Consolas, monospace; font-size: 13px; color: var(--text); font-weight: 600; }
+
+  .ct-block { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .ct-bar { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .ct-bar:hover { background: var(--surface2); }
+  .ct-id { font-family: 'SF Mono', Consolas, monospace; font-size: 12px; font-weight: 700; color: var(--text3); min-width: 100px; }
+  .ct-title { flex: 1; font-weight: 500; }
+  .ct-priority { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+  .p1 { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .p2 { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .ct-status { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; min-width: 80px; text-align: center; }
+  .status-pend { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .status-pass { background: rgba(46,160,67,0.15); color: var(--green); border: 1px solid rgba(46,160,67,0.3); }
+  .status-fail { background: rgba(218,54,51,0.15); color: var(--red); border: 1px solid rgba(218,54,51,0.3); }
+  .ct-chevron { color: var(--text2); font-size: 12px; transition: transform 0.2s; }
+  .ct-block.open .ct-chevron { transform: rotate(90deg); }
+
+  .ct-panel { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+  .ct-block.open .ct-panel { display: block; }
+
+  .ct-meta { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+  .ct-meta span { font-size: 12px; color: var(--text2); }
+  .ct-meta strong { color: var(--text); }
+
+  .ct-section { margin-top: 12px; }
+  .ct-section h5 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+
+  .precond { background: var(--surface2); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 10px 12px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+  .steps-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .steps-table th { background: var(--surface2); color: var(--text2); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .steps-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .steps-table tr:last-child td { border-bottom: none; }
+  .steps-table .num { color: var(--text2); font-size: 12px; font-weight: 700; width: 36px; text-align: center; }
+  .steps-table .acao { line-height: 1.6; }
+  .steps-table .result { color: var(--text3); line-height: 1.6; }
+  code { background: var(--surface2); border: 1px solid var(--border); border-radius: 3px; padding: 1px 5px; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #ffa657; }
+
+  .obs-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 10px 12px; font-size: 12px; color: var(--text2); margin-top: 12px; line-height: 1.7; }
+  .obs-box.warn-box { border-color: var(--yellow); color: var(--text); background: var(--yellow-bg); }
+
+  .ev-grid { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .ev-grid figure { margin: 0; max-width: 320px; }
+  .ev-grid img { width: 100%; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; display: block; }
+  .ev-grid figcaption { font-size: 11px; color: var(--text2); margin-top: 3px; }
+
+  .info-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; font-size: 13px; line-height: 1.7; }
+  .info-box h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+
+  .group-header { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.07em; padding: 8px 0; margin: 20px 0 8px; display: flex; align-items: center; gap: 8px; }
+  .group-header::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  .group-header .gh-badge { background: var(--surface2); border: 1px solid var(--border); padding: 2px 8px; border-radius: 4px; font-size: 10px; }
+
+  .footer { background: var(--surface); border-top: 1px solid var(--border); padding: 16px 24px; text-align: center; color: var(--text2); font-size: 11px; margin-top: 48px; }
+
+  /* Lightbox */
+  #lb { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 999; cursor: zoom-out; }
+  #lb.open { display: flex; align-items: center; justify-content: center; }
+  #lb img { max-width: 95%; max-height: 95%; border: 1px solid var(--border); border-radius: 6px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="badge">BUG 7750</div>
+  <span class="sprint">Sprint 8 — Sustentação CITWEB</span>
+  <h1>[AIG] CITNET — Aprovação de Prévia Internacional (Ramo 22)</h1>
+  <div class="build">Reteste PR #1826</div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <h2>Reteste — BUG 7750: AIG CITNET Aprovação de Prévia Internacional (Ramo 22)</h2>
+  <p>Validação da correção do fluxo <strong>Internacional (Ramo 22)</strong> na tela de
+  <strong>Aprovação de Prévia</strong> do CITNET AIG HML. Follow-up do <strong>BUG-7706</strong>,
+  cujo fix (Build 20260706.2) corrigiu apenas o fluxo Nacional (Ramo 59) — o Internacional
+  permanecia exibindo <em>"Erro na Consulta de Fechamento de Fatura!"</em>. A correção do
+  <strong>PR #1826</strong> aplicou a mesma guarda de nulo já usada no ADO-7752
+  (<code>Listar_Axa</code>) ao método <code>ApoliceNacionalRepository.Listar_Aig()</code>.</p>
+  <div class="tags">
+    <span class="tag blue">CITNET</span>
+    <span class="tag blue">AIG HML</span>
+    <span class="tag blue">Ramo 22 — Internacional</span>
+    <span class="tag">Faturamento → Aprovação de Prévia</span>
+    <span class="tag">Alfanumérico</span>
+    <span class="tag green">RETESTE — APROVADO</span>
+  </div>
+</div>
+
+<!-- METRICS -->
+<div class="metrics">
+  <div class="metric"><div class="num total" id="cnt-total">2</div><div class="lbl">Total de CTs</div></div>
+  <div class="metric"><div class="num pass" id="cnt-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="num fail" id="cnt-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="num pend" id="cnt-pend">2</div><div class="lbl">Pendentes</div></div>
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-wrap">
+  <span style="font-size:12px;color:var(--text2)">Progresso</span>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <span class="progress-pct" id="progress-pct">0%</span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- IDENTIFICAÇÃO -->
+  <div class="section-title">Identificação</div>
+  <div class="info-box">
+    <h4>Dados do Card</h4>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+      <div><span style="color:var(--text2)">Card:</span> <strong>BUG-7750</strong></div>
+      <div><span style="color:var(--text2)">Tipo:</span> <strong>Bug Fix (reteste)</strong></div>
+      <div><span style="color:var(--text2)">Épico pai:</span> <strong>Epic 7283 (Sustentação)</strong></div>
+      <div><span style="color:var(--text2)">Relacionado:</span> <strong>BUG-7706</strong></div>
+      <div><span style="color:var(--text2)">Sprint:</span> <strong>Sprint_8_Sustentacao</strong></div>
+      <div><span style="color:var(--text2)">Dev:</span> <strong>Ivan Mauricio</strong></div>
+      <div><span style="color:var(--text2)">Seguradora:</span> <strong>AIG</strong></div>
+      <div><span style="color:var(--text2)">Sistema:</span> <strong>CITNET</strong></div>
+      <div><span style="color:var(--text2)">Módulo:</span> <strong>Faturamento → Aprovação de Prévia</strong></div>
+      <div><span style="color:var(--text2)">Severidade:</span> <strong>2 - High</strong></div>
+      <div><span style="color:var(--text2)">Fix:</span> <strong>PR #1826</strong></div>
+      <div><span style="color:var(--text2)">Data reteste:</span> <strong>15/07/2026</strong></div>
+    </div>
+  </div>
+
+  <!-- CONTEXTO DO BUG -->
+  <div class="section-title">Contexto do Bug</div>
+  <div class="info-box">
+    <h4>Cenário Original (com bug)</h4>
+    <p style="margin-bottom:8px">Na tela de Aprovação de Prévia Internacional, ao selecionar a Filial
+    e clicar no radio <strong>"Ramo/Apólice/Subgrupo"</strong> (antes mesmo de escolher um Ramo), a função
+    <code>CarregaApolice()</code> disparava <code>POST /Apolice/Listar</code> com o Ramo em branco —
+    escaneando TODAS as apólices da filial de uma vez. O sistema respondia <strong>HTTP 500</strong> e
+    exibia o modal <em>"Erro na Consulta de Fechamento de Fatura!"</em> para ambos os filtros de consulta.</p>
+    <p style="color:var(--text2)">Stack: <code>ApoliceNacionalRepository.Listar_Aig() =&gt; Input string was not in a correct format.</code>
+    — campos <code>c_pro</code>, <code>c_idt_pes_cli</code> e <code>c_idt_pes_cvd</code> lidos sem guarda de nulo/vazio.</p>
+  </div>
+  <div class="info-box">
+    <h4>Fix Aplicado (PR #1826)</h4>
+    <p>Adicionada guarda de nulo/vazio na leitura dos campos <code>c_pro</code>, <code>c_idt_pes_cli</code> e
+    <code>c_idt_pes_cvd</code> em <code>Listar_Aig()</code> — mesmo padrão já corrigido no ADO-7752
+    (<code>Listar_Axa</code>). A consulta passa a executar sem <code>FormatException</code>.</p>
+  </div>
+  <div class="info-box">
+    <h4>Critério de Aceite (reteste)</h4>
+    <ol style="padding-left:20px;line-height:2;">
+      <li>Ao clicar no radio "Ramo/Apólice/Subgrupo" com a Filial selecionada, <code>POST /Apolice/Listar</code>
+      deve responder <strong>HTTP 200</strong> (sem FormatException) e carregar os campos Ramo/Apólice/Subgrupo.</li>
+      <li>A consulta de prévias Internacional (Ramo 22) — por apólice e por segurado — deve executar
+      <strong>sem o erro genérico</strong> "Erro na Consulta de Fechamento de Fatura!".</li>
+      <li>O sistema deve exibir a grid de prévias OU a mensagem de negócio normal
+      "Não há movimento para a competência informada!" (idem ao Nacional corrigido no BUG-7706).</li>
+    </ol>
+  </div>
+
+  <!-- AMBIENTE E ACESSO -->
+  <div class="section-title">Ambiente e Acesso</div>
+  <div class="info-box">
+    <h4>CITNET AIG — HML (citnetvulnera)</h4>
+    <div style="font-size:13px;line-height:2;">
+      <div><span style="color:var(--text2)">URL CITNET:</span> <code>https://aig-hml-faturamento.nsseg.com.br/citnetvulnera/</code></div>
+      <div><span style="color:var(--text2)">Banco:</span> SQL Server atual do AIG (o link <code>/citnet/</code> antigo apontava para Oracle SIM50B sem a massa do card)</div>
+      <div><span style="color:var(--text2)">Login:</span> <code>INTERNO / 11</code> — <strong>sem selecionar filial</strong> na tela de login</div>
+      <div><span style="color:var(--text2)">Navegação:</span> Menu <strong>Faturamento → Aprovação de Prévias → Aprovação</strong> (<code>AutorizacaoPrevia/AutorizacaoPrevia</code>)</div>
+      <div><span style="color:var(--text2)">Filtro de rede validado:</span> <code>POST /Apolice/Listar</code> e <code>POST /AutorizacaoPrevia/ConsultarPreviaLiberar</code></div>
+    </div>
+  </div>
+
+  <!-- MASSA DE DADOS -->
+  <div class="section-title">Massa de Dados — Descoberta Dinâmica na UI (15/07/2026)</div>
+  <div class="massa-grid">
+    <div class="massa-card">
+      <h4>Internacional — Ramo 22 EXPORTAÇÃO (por Apólice)</h4>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">1 — SÃO PAULO</span></div>
+      <div class="massa-row"><span class="massa-key">Ramo</span><span class="massa-val">22 - EXPORTAÇÃO</span></div>
+      <div class="massa-row"><span class="massa-key">Apólice</span><span class="massa-val">1002206001259</span></div>
+      <div class="massa-row"><span class="massa-key">Subgrupo</span><span class="massa-val">1 — SEKTOR LOGISTICS</span></div>
+      <div class="massa-row"><span class="massa-key">Competência</span><span class="massa-val">07/2026</span></div>
+      <div class="massa-row"><span class="massa-key">Apólices Ramo 22</span><span class="massa-val" style="color:var(--green)">4 reais carregadas</span></div>
+    </div>
+    <div class="massa-card">
+      <h4>Internacional — Ramo 22 (por Segurado)</h4>
+      <div class="massa-row"><span class="massa-key">Filial</span><span class="massa-val">1 — SÃO PAULO</span></div>
+      <div class="massa-row"><span class="massa-key">Segurado</span><span class="massa-val">SEKTOR LOGISTICS BRASIL</span></div>
+      <div class="massa-row"><span class="massa-key">CNPJ</span><span class="massa-val">17213222000195</span></div>
+      <div class="massa-row"><span class="massa-key">Competência</span><span class="massa-val">07/2026</span></div>
+      <div class="massa-row"><span class="massa-key">Segurados na filial</span><span class="massa-val" style="color:var(--green)">1065 opções</span></div>
+    </div>
+  </div>
+  <div class="obs-box warn-box">
+    ⚠️ <strong>Sobre a massa do card:</strong> a apólice original do card (<code>4244832831</code>, segurado
+    "VOIDR TESTES") pertencia ao banco Oracle antigo e não existe no <code>citnetvulnera</code> (SQL Server).
+    Massa descoberta dinamicamente na UI conforme protocolo de execução — a mesma apólice
+    <code>1002206001259</code> usada pelo dev na validação pós-deploy foi reutilizada para rastreabilidade.
+  </div>
+
+  <!-- CASOS DE TESTE -->
+  <div class="section-title">Casos de Teste</div>
+
+  <div class="group-header">
+    Internacional — Ramo 22 (Aprovação de Prévia)
+    <span class="gh-badge">2 CTs</span>
+  </div>
+
+  <!-- CT-APV-003 -->
+  <div class="ct-block" id="ct-apv-003">
+    <div class="ct-bar" onclick="toggle('ct-apv-003')">
+      <span class="ct-id">CT-APV-003</span>
+      <span class="ct-title">Internacional — Consultar prévia por Ramo/Apólice/Subgrupo (Ramo 22)</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pass" id="status-ct-apv-003">APROVADO</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 22 - EXPORTAÇÃO</span>
+        <span><strong>Filial:</strong> 1 — SÃO PAULO</span>
+        <span><strong>Apólice:</strong> 1002206001259</span>
+        <span><strong>Subgrupo:</strong> 1 — SEKTOR LOGISTICS</span>
+        <span><strong>Competência:</strong> 07/2026</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Ambiente <code>citnetvulnera</code> acessível e login <code>INTERNO / 11</code> efetuado (sem filial)<br>
+          2. Tela Faturamento → Aprovação de Prévia carregada (<code>AutorizacaoPrevia/AutorizacaoPrevia</code>)<br>
+          3. Filial 1 com apólices do Ramo 22 EXPORTAÇÃO disponíveis<br>
+          4. Reproduz o gatilho exato do bug: seleção de Filial + clique no radio "Ramo/Apólice/Subgrupo"
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">No campo <strong>Filial</strong> (<code>#c_org_prd</code>), selecionar <strong>1 — SÃO PAULO</strong></td><td class="result">Filial selecionada</td></tr>
+            <tr><td class="num">2</td><td class="acao">Clicar no radio <strong>"Ramo/Apólice/Subgrupo"</strong> (<code>#optApo</code>) — dispara <code>CarregaApolice()</code> → <code>POST /Apolice/Listar</code></td><td class="result"><strong>HTTP 200</strong> (era HTTP 500/FormatException); campos Ramo/Apólice/Subgrupo aparecem sem modal de erro</td></tr>
+            <tr><td class="num">3</td><td class="acao">No campo <strong>Ramo</strong> (<code>#c_rmo</code>), selecionar <strong>22 - EXPORTAÇÃO</strong></td><td class="result">Combobox de Apólices carrega (4 apólices reais)</td></tr>
+            <tr><td class="num">4</td><td class="acao">Selecionar <strong>Apólice</strong> <code>1002206001259</code> (<code>#u_apo_pnc</code>)</td><td class="result">Subgrupo auto-selecionado (1 — SEKTOR LOGISTICS)</td></tr>
+            <tr><td class="num">5</td><td class="acao">Preencher <strong>Competência</strong> (<code>#mes_ano</code>) com <code>07/2026</code></td><td class="result">Campo formatado "07 / 2026"</td></tr>
+            <tr><td class="num">6</td><td class="acao">Clicar em <strong>Consultar</strong> (<code>#btConsultar</code>) — dispara <code>POST /AutorizacaoPrevia/ConsultarPreviaLiberar</code></td><td class="result"><strong>HTTP 200</strong>; grid de prévias OU mensagem de negócio normal — <strong>sem</strong> o erro genérico</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" style="border-color:var(--green);color:var(--text)">
+          ✅ <strong>APROVADO</strong> — 15/07/2026 · CITNET AIG HML (citnetvulnera)<br>
+          Filial 1 — SÃO PAULO | Ramo 22 - EXPORTAÇÃO | Apólice 1002206001259 | Subgrupo 1 | Competência 07/2026<br>
+          <strong>Passo 2 (gatilho do bug):</strong> <code>POST /Apolice/Listar</code> → <strong>HTTP 200</strong>
+          (FormatException eliminada). Campos Ramo/Apólice/Subgrupo carregaram sem modal de erro.<br>
+          <strong>Passo 6 (consulta):</strong> <code>POST /AutorizacaoPrevia/ConsultarPreviaLiberar</code> → <strong>HTTP 200</strong>.
+          Retornou a mensagem de negócio normal: <strong>"Não há movimento para a competência informada!"</strong> —
+          o erro genérico <em>"Erro na Consulta de Fechamento de Fatura!"</em> <strong>NÃO</strong> ocorreu
+          (confirmado via <code>browser_evaluate</code>: <code>textoErroFatura = false</code>).
+          <div class="ev-grid">
+            <figure><img src="evidencias/7750-CT003-EV1-filial1-selecionada.png" alt="EV1 - Filial 1 selecionada"><figcaption>EV1 — Filial 1 (SÃO PAULO) selecionada</figcaption></figure>
+            <figure><img src="evidencias/7750-CT003-EV2-radio-ramo-sem-erro-200.png" alt="EV2 - Radio Ramo/Apólice/Subgrupo, POST 200 sem erro"><figcaption>EV2 — Radio "Ramo/Apólice/Subgrupo" (gatilho do 500): campos carregados, HTTP 200, sem modal de erro</figcaption></figure>
+            <figure><img src="evidencias/7750-CT003-EV3-form-completo-apolice-ramo22.png" alt="EV3 - Form completo Ramo 22 apólice"><figcaption>EV3 — Ramo 22 EXPORTAÇÃO + Apólice 1002206001259 + Subgrupo + Competência 07/2026</figcaption></figure>
+            <figure><img src="evidencias/7750-CT003-EV4-resultado-nao-ha-movimento-normal.png" alt="EV4 - Resultado mensagem de negócio normal"><figcaption>EV4 — Consulta OK: "Não há movimento para a competência informada!" (mensagem de negócio, não erro)</figcaption></figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CT-APV-004 -->
+  <div class="ct-block" id="ct-apv-004">
+    <div class="ct-bar" onclick="toggle('ct-apv-004')">
+      <span class="ct-id">CT-APV-004</span>
+      <span class="ct-title">Internacional — Consultar prévia por Segurado Principal (Ramo 22)</span>
+      <span class="ct-priority p1">P1</span>
+      <span class="ct-status status-pass" id="status-ct-apv-004">APROVADO</span>
+      <span class="ct-chevron">▶</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-meta">
+        <span><strong>Ramo:</strong> 22 (Internacional)</span>
+        <span><strong>Filial:</strong> 1 — SÃO PAULO</span>
+        <span><strong>Segurado:</strong> SEKTOR LOGISTICS BRASIL</span>
+        <span><strong>CNPJ:</strong> 17213222000195</span>
+        <span><strong>Competência:</strong> 07/2026</span>
+      </div>
+
+      <div class="ct-section">
+        <h5>Pré-condições</h5>
+        <div class="precond">
+          1. Mesmas condições do CT-APV-003 (ambiente, login, tela)<br>
+          2. Radio <strong>"Segurado Principal"</strong> (<code>#optSeg</code>) — marcado por padrão<br>
+          3. Segurado do Ramo 22 disponível na Filial 1 (SEKTOR LOGISTICS, o segurado da apólice 1002206001259)
+        </div>
+      </div>
+
+      <div class="ct-section">
+        <h5>Passos</h5>
+        <table class="steps-table">
+          <thead><tr><th class="num">#</th><th>Ação</th><th>Resultado Esperado</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td class="acao">Reabrir a tela de Aprovação de Prévia (form limpo) e selecionar <strong>Filial 1</strong> (<code>#c_org_prd</code>)</td><td class="result">Filial selecionada; combobox de segurados carrega (<code>Cliente/ListarPorFilial</code> → HTTP 200)</td></tr>
+            <tr><td class="num">2</td><td class="acao">Manter o radio <strong>"Segurado Principal"</strong> (<code>#optSeg</code>) marcado</td><td class="result">Campo Segurado visível</td></tr>
+            <tr><td class="num">3</td><td class="acao">No campo <strong>Segurado</strong> (<code>#c_idt_pes</code>), selecionar <strong>SEKTOR LOGISTICS BRASIL</strong></td><td class="result">Segurado preenchido</td></tr>
+            <tr><td class="num">4</td><td class="acao">Preencher <strong>Competência</strong> com <code>07/2026</code></td><td class="result">Campo formatado "07 / 2026"</td></tr>
+            <tr><td class="num">5</td><td class="acao">Clicar em <strong>Consultar</strong> (<code>#btConsultar</code>) — dispara <code>POST /AutorizacaoPrevia/ConsultarPreviaLiberar</code></td><td class="result"><strong>HTTP 200</strong>; grid de prévias OU mensagem de negócio normal — <strong>sem</strong> o erro genérico</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ct-section">
+        <h5>Resultado da Execução</h5>
+        <div class="obs-box" style="border-color:var(--green);color:var(--text)">
+          ✅ <strong>APROVADO</strong> — 15/07/2026 · CITNET AIG HML (citnetvulnera)<br>
+          Filial 1 — SÃO PAULO | Segurado SEKTOR LOGISTICS BRASIL (CNPJ 17213222000195) | Competência 07/2026<br>
+          <code>POST /AutorizacaoPrevia/ConsultarPreviaLiberar</code> → <strong>HTTP 200</strong>.
+          Retornou a mensagem de negócio normal: <strong>"Não há movimento para a competência informada!"</strong> —
+          o erro genérico <em>"Erro na Consulta de Fechamento de Fatura!"</em> <strong>NÃO</strong> ocorreu
+          (confirmado via <code>browser_evaluate</code>: <code>textoErroFatura = false</code>).
+          Confirma que o fix cobre ambos os filtros (por apólice e por segurado) no Internacional.
+          <div class="ev-grid">
+            <figure><img src="evidencias/7750-CT004-EV1-form-segurado-sektor.png" alt="EV1 - Form por segurado SEKTOR"><figcaption>EV1 — Radio "Segurado Principal" + Segurado SEKTOR LOGISTICS + Competência 07/2026</figcaption></figure>
+            <figure><img src="evidencias/7750-CT004-EV2-resultado-segurado-normal.png" alt="EV2 - Resultado mensagem de negócio normal"><figcaption>EV2 — Consulta OK: "Não há movimento para a competência informada!" (mensagem de negócio, não erro)</figcaption></figure>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIZ DE RASTREABILIDADE -->
+  <div class="section-title">Matriz de Rastreabilidade</div>
+  <table class="steps-table" style="margin-bottom:24px;">
+    <thead>
+      <tr><th>CT</th><th>Critério de Aceite</th><th>Cenário</th><th>Prioridade</th><th>Resultado</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>CT-APV-003</code></td><td>CA1+CA2+CA3 — radio dispara POST 200; consulta por apólice sem erro genérico</td><td>Internacional / Filial 1 / APO 1002206001259 / Ramo 22</td><td>P1</td><td style="color:var(--green)">APROVADO</td></tr>
+      <tr><td><code>CT-APV-004</code></td><td>CA2+CA3 — consulta por segurado sem erro genérico</td><td>Internacional / Filial 1 / SEKTOR LOGISTICS</td><td>P1</td><td style="color:var(--green)">APROVADO</td></tr>
+    </tbody>
+  </table>
+
+  <!-- CONCLUSÃO -->
+  <div class="section-title">Conclusão</div>
+  <div class="info-box" style="border-color:var(--green);">
+    <h4 style="color:var(--green)">Reteste Aprovado — 2/2 CTs (100%)</h4>
+    <p>O fix do <strong>PR #1826</strong> corrige o fluxo <strong>Internacional (Ramo 22)</strong> da Aprovação
+    de Prévia no CITNET AIG. O gatilho exato do bug (Filial + radio "Ramo/Apólice/Subgrupo") agora responde
+    <strong>HTTP 200</strong> — a <code>FormatException</code> em <code>Listar_Aig()</code> foi eliminada —
+    e as consultas (por apólice e por segurado) executam sem o erro genérico "Erro na Consulta de Fechamento de Fatura!",
+    exibindo a mensagem de negócio normal. Comportamento idêntico ao Nacional já corrigido no BUG-7706.</p>
+  </div>
+
+</div>
+
+<div class="footer">
+  Plano de reteste gerado por QA Automation — BUG-7750 | AIG CITNET Aprovação de Prévia Internacional (Ramo 22) | Sprint 8 Sustentação | 15/07/2026
+</div>
+
+<div id="lb" onclick="this.classList.remove('open')"><img id="lb-img" src="" alt=""></div>
+
+<script>
+function toggle(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+// Lightbox
+function openLb(src) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb').classList.add('open');
+}
+document.querySelectorAll('.ev-grid img').forEach(img => {
+  img.addEventListener('click', () => openLb(img.src));
+});
+
+// Counters
+function updateCounters() {
+  let pass = 0, fail = 0, pend = 0;
+  document.querySelectorAll('.ct-status').forEach(s => {
+    if (s.classList.contains('status-pass')) pass++;
+    else if (s.classList.contains('status-fail')) fail++;
+    else pend++;
+  });
+  const total = pass + fail + pend;
+  document.getElementById('cnt-pass').textContent = pass;
+  document.getElementById('cnt-fail').textContent = fail;
+  document.getElementById('cnt-pend').textContent = pend;
+  document.getElementById('cnt-total').textContent = total;
+  const pct = total > 0 ? Math.round((pass / total) * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+}
+updateCounters();
+</script>
+</body>
+</html>
