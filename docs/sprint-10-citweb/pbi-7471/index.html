@@ -144,7 +144,8 @@
   <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">✅ RETESTE 16/07/2026 — Bug crítico do Processar RCTR-VI (CT-RVI-002) CORRIGIDO e confirmado. CT-RVI-006 (Exportação) segue REPROVADO — causa distinta, não coberta pelo mesmo fix</span>
 </div>
 <div style="text-align:center;margin-top:-6px;margin-bottom:10px">
-  <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">✅ VOLUME REAL 16/07/2026 — CT-RVI-003/004/007/008 reexecutados com 7.500 registros reais (não mais escala reduzida): APROVADOS, performance ≈0,01s/registro (≈40x melhor que a meta). CT-RVI-009 não executável nesta sessão (limitação de tooling, ver detalhe no CT)</span>
+  <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">✅ VOLUME REAL 16/07/2026 — CT-RVI-003/004/007/008 reexecutados com 7.500 registros reais (não mais escala reduzida): APROVADOS, performance ≈0,01s/registro (≈40x melhor que a meta)</span><br>
+  <span style="display:inline-block;background:#2d0d0d;color:#f85149;border:1px solid #f85149;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;margin-top:6px">🛑 CT-RVI-009 REPROVADO (16/07) — processamento concorrente do mesmo usuário causa perda silenciosa de dados + mensagem de sucesso falsa (ver detalhe no CT)</span>
 </div>
 <div style="text-align:center;margin-top:-6px;margin-bottom:10px">
   <span style="display:inline-block;background:#3a2b00;color:#d29922;border:1px solid #d29922;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">⚠️ CT-RVI-011 16/07/2026 — motor de cálculo confirmado correto (apólice→CC→subgrupo→averbação→prêmio→impressão→prévia, todos com evidência real); fechamento mensal bloqueado por dado cadastral pendente na apólice de teste (não é bug do PBI-7471)</span>
@@ -645,13 +646,13 @@
   </div>
 
   <!-- CT-RVI-009 -->
-  <div class="ct-block" id="CT-RVI-009">
+  <div class="ct-block expanded" id="CT-RVI-009">
     <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
       <span class="ct-id">CT-RVI-009</span>
       <span class="ct-title">Processamento simultâneo — dois usuários processando RCTR-VI ao mesmo tempo sem serialização</span>
       <div class="ct-badges">
-        <span class="badge badge-p2">P2</span>
-        <span class="badge badge-blk">BLOQUEADO</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="badge badge-rep">REPROVADO</span>
       </div>
       <span class="ct-toggle">▶</span>
     </div>
@@ -687,7 +688,21 @@
         <div class="ct-section-title">Resultado Esperado</div>
         <p>Ambas as sessões processam concorrentemente e concluem com sucesso. Nenhum timeout, deadlock ou erro de servidor. O sistema não serializa os processamentos — ambos avançam em paralelo no hub de progresso.</p>
       </div>
-      <div class="result-box" style="background:var(--orange-dim);border:1px solid var(--orange);color:#e5c46a;margin-top:10px;border-radius:6px;padding:8px 12px;font-size:13px" id="result-RVI-009">⚠️ <b>NÃO EXECUTADO</b> em 16/07/2026 — desbloqueado (CT-RVI-002 corrigido), mas não testado nesta sessão por limitação de tooling, não do código: uma validação correta deste CT exige <b>duas sessões de usuário genuinamente independentes</b> (cookies de sessão distintos). As abas do Playwright MCP usadas nesta sessão compartilham o mesmo contexto de navegador (mesmo cookie de sessão ASP.NET) — testar "concorrência" nessas condições produziria um resultado inválido: a própria SessionState do ASP.NET serializa requisições da mesma sessão por padrão, o que mascararia o comportamento real do BulkCopy (daria falso-negativo de serialização não relacionado ao fix). Existe um segundo usuário disponível (<code>ADMCIT</code>) para uma sessão realmente distinta, mas o login do CITWEB usa fluxo com redirecionamento (não replicável via requisição HTTP simples fora do browser) — abrir uma segunda sessão de fato independente exigiria um segundo contexto de navegador (perfil separado/incógnito), não suportado pela ferramenta MCP atual. <b>Recomendação:</b> executar manualmente com dois navegadores/perfis reais, ou aguardar suporte a contexto incógnito no MCP.</div>
+      <div class="result-box rep" id="result-RVI-009">
+        🛑 <b>REPROVADO — BUG CRÍTICO</b> em 16/07/2026 — executado com <b>duas sessões reais</b> do mesmo usuário (<code>FRED</code>/<code>DERF</code>), cada uma com login independente, upload próprio (100 registros cada, documentos/placas 100% distintos: Sessão A doc. 920000–920099/placa CCC, Sessão B doc. 930000–930099/placa DDD) e <strong>Converter</strong> concluído individualmente sem erro (100/101 cada, 1 rejeitado=cabeçalho). Ao clicar <strong>Processar</strong> nas duas sessões em sequência imediata (Sessão B primeiro, Sessão A logo em seguida): nenhum HTTP 500/timeout/deadlock ocorreu — mas a Sessão A <b>perdeu silenciosamente seus 100 registros</b>.
+        <br><br><b>Evidência (UI):</b> Sessão B reportou <code>"Conversão do arquivo concluído com sucesso!"</code> — 100 registros, <b>100 Averbações incluídas</b> (2026008211+), 0 erros. Sessão A reportou Total=200, <b>100 Averbações incluídas</b>, 100 rejeitadas por <code>"Documento já cadastrado para outra Averbação"</code> — porém <b>as próprias averbações "incluídas" e as "rejeitadas" na tela da Sessão A pertencem à Sessão B</b> (mesmos números de averbação 2026008211–2026008220, mesmas placas DDD0000+), não aos registros da Sessão A.
+        <br><br><b>Confirmação via SQL (banco HML AXA):</b> <code>tb_lay_out_cvr_tmp_act_int_cit</code> (staging) está vazia para o layout "QA" após o teste — os 100 registros da Sessão A (documento 920000–920099) não estão mais lá. <code>tb_mov_avb_int_cit</code> não contém <b>nenhuma</b> averbação para o range 920000–920099 (qualquer ramo) — <code>0 registros</code>, confirmado. Já o range 930000–930099 (Sessão B) tem exatamente 100 averbações, criadas por <code>n_usu_inc = CONV-FRED</code>.
+        <br><br><b>Causa raiz aparente:</b> a fila de processamento (<code>ProcessamentoAverbacoesRCTRVIController/Processar</code>) parece ser resolvida por <b>nome de layout</b> (e/ou usuário logado), sem isolar por upload/transação específica. Duas conversões concorrentes usando o <b>mesmo layout nomeado</b> (cenário plausível: mesmo operador com duas abas, ou dois operadores usando um layout compartilhado/padrão da equipe) fazem com que o segundo <code>Processar</code> reconsulte o mesmo pool e: (a) não encontre mais os próprios registros (já não estão na fila), e (b) exiba os registros/resultados da OUTRA sessão como se fossem seus, incluindo uma mensagem de sucesso — <b>falso-positivo de sucesso mascarando perda real de dados</b>.
+        <br><br><b>Impacto:</b> em produção, um operador cuja tela mostra "100 Averbações incluídas, 0 erros" acreditaria que seu lote foi processado corretamente, quando na verdade <b>seus 100 registros foram descartados sem qualquer erro visível</b> — pior que o HTTP 500 do CT-RVI-002/006, pois aqui não há sinal algum de falha.
+        <br><br><b>Ressalva metodológica:</b> as duas sessões usaram o mesmo usuário (<code>FRED</code>) em abas do mesmo contexto de navegador (Playwright MCP não isola cookies entre abas) — não é uma reprodução 100% fiel de dois usuários fisicamente distintos em máquinas/navegadores separados. Porém a causa raiz identificada via SQL (fila de staging keyed por <code>n_lay_out</code>/usuário, sem vínculo à transação de upload específica) é uma característica do servidor observada diretamente no banco, independente da limitação de cookies — o mesmo problema tende a se repetir com usuários genuinamente distintos caso compartilhem o mesmo layout nomeado e processem em janela de tempo próxima.
+        <br><br>⏸️ <b>Aguardando validação do Wesley antes de abrir Bug formal no AzDO</b> (regra de autorização ad-hoc).
+      </div>
+      <div class="ct-ev" style="margin-top:10px">
+        <img src="evidencias/ev_CT-RVI-009_01_sessaoB_100_100_0erros.png" style="max-width:100%;border:1px solid #2ea043;border-radius:4px" alt="EV1 — Sessão B: 100 registros, 100 averbações incluídas, 0 erros">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV1 — Sessão B (1º Processar clicado): "Conversão do arquivo concluído com sucesso!" — 100 Averbações incluídas, 0 erros</div>
+        <img src="evidencias/ev_CT-RVI-009_02_sessaoA_200_100_100erros.png" style="max-width:100%;border:1px solid #f85149;border-radius:4px;margin-top:8px" alt="EV2 — Sessão A: Total 200, 100 aceitas (na verdade da Sessão B), 100 rejeitadas por documento já cadastrado">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV2 — Sessão A (2º Processar clicado): Total=200, 100 "incluídas" + 100 "rejeitadas" — ambas listas mostram registros da Sessão B (placas DDD, averbações 2026008211+); os 100 registros próprios da Sessão A (placas CCC) não aparecem — confirmado ausentes no banco (0 em tb_mov_avb_int_cit para documento 920000–920099)</div>
+      </div>
     </div>
   </div>
 
@@ -853,7 +868,7 @@
       <tr><td>ConversorController ramo 32 — limpeza em lote (Fase 3)</td><td>CT-RVI-006</td><td><span class="badge badge-rep">REPROVADO (RETESTE 16/07 — causa distinta, ainda falha)</span></td></tr>
       <tr><td>Performance — arquivo mesma apólice: mínimo 0,5s/registro sem timeout</td><td>CT-RVI-007</td><td><span class="badge badge-ok">APROVADO (0,0128s/registro)</span></td></tr>
       <tr><td>Performance — arquivo múltiplas apólices: mínimo 1,6s/registro sem timeout</td><td>CT-RVI-008</td><td><span class="badge badge-ok">APROVADO (0,0103s/registro)</span></td></tr>
-      <tr><td>Processamento paralelo — dois usuários simultâneos sem serialização</td><td>CT-RVI-009</td><td><span class="badge badge-blk">NÃO EXECUTADO (limitação de tooling)</span></td></tr>
+      <tr><td>Processamento paralelo — dois usuários simultâneos sem serialização</td><td>CT-RVI-009</td><td><span class="badge badge-rep">REPROVADO (perda de dados)</span></td></tr>
       <tr><td>Motor de cálculo RCTR-VI: prêmio = IS × Taxa Total ÷ 100, tarifária ≥ comercial, mínimo, adicionais</td><td>CT-RVI-010</td><td><span class="badge badge-ok">APROVADO</span></td></tr>
       <tr><td>Motor de cálculo RCTR-VI: fluxo completo apólice → CC → subgrupo → averbação → fechamento</td><td>CT-RVI-011</td><td><span class="badge badge-blk">PARCIAL (16/07 — cálculo/impressão/prévia OK, fechamento bloqueado por dado cadastral)</span></td></tr>
     </table>
