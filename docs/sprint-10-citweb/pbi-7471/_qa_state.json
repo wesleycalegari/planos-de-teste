@@ -8,15 +8,15 @@
   "ct_results": {
     "CT-RVI-001": "APROVADO",
     "CT-RVI-002": "APROVADO:RETESTE-16-07-fix-confirmado",
-    "CT-RVI-003": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente",
-    "CT-RVI-004": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente",
+    "CT-RVI-003": "APROVADO:volume-real-7500-registros-96s",
+    "CT-RVI-004": "APROVADO:guard-axa-confirmado",
     "CT-RVI-005": "PARCIAL:modulo-existe-mesmo-build-com-bug",
     "CT-RVI-006": "REPROVADO:RETESTE-16-07-causa-distinta-ainda-falha",
-    "CT-RVI-007": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente",
-    "CT-RVI-008": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente",
-    "CT-RVI-009": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente",
+    "CT-RVI-007": "APROVADO:volume-real-7500-registros-0.0128s-por-registro",
+    "CT-RVI-008": "APROVADO:volume-real-7500-registros-multiplas-apolices-0.0103s-por-registro",
+    "CT-RVI-009": "NAO_EXECUTADO:limitacao-de-tooling-sessoes-independentes",
     "CT-RVI-010": "APROVADO",
-    "CT-RVI-011": "BLOQUEADO:desbloqueado-16-07-reexecucao-pendente"
+    "CT-RVI-011": "PARCIAL:calculo-impressao-previa-ok-fechamento-bloqueado-por-apolice-incompleta"
   },
   "bloqueio_principal": "ACHADO CRÍTICO 14/07/2026: botão Processar da tela 'Processa Averbações RCTR-VI' (AXA HML, build V 1.0.260707.1137) retorna HTTP 500 'Ocorreu um erro inesperado!' de forma reproduzível (3/3 tentativas) — tanto com arquivo sintético de 20 registros (apólice real 320413160839, vigente) quanto com lote real pré-existente de 1050 registros já convertidos. Isso é exatamente o núcleo do que este PBI mudou (refactor BulkCopy do processamento RCTR-VI) e bloqueia toda a cadeia de CTs que dependem de Processar concluir (003, 004, 007, 008, 009, 011). CT-RVI-006 (Exportação, controller separado) também retornou HTTP 500 no Converter (2/2), causa não isolada — pode ser dado de teste ou defeito relacionado, requer triagem do dev.",
   "ct001_observacoes": "Converter concluído sem erro: 21 registros lidos (20 dados + 1 cabeçalho), 20 convertidos, 1 rejeitado (cabeçalho, 'CONTEÚDO NÃO É NUMÉRICO' — esperado). Layout 'QA' já configurado mapeia corretamente as 16 colunas do arquivo gerado a partir da fixture real de produção.",
@@ -44,5 +44,15 @@
     "ct_rvi_006_resultado": "REPROVADO - mesmo arquivo/passos originais (apolice 10, layout NOVO 19122025, pais ESTADOS UNIDOS) reproduziu HTTP 500 em 2/2 tentativas no build ja corrigido; console confirmou 500 explicito em /Conversor/Conversor/Converter; causa raiz nao coberta pelo fix aplicado",
     "cts_desbloqueados_pendente_reexecucao": ["CT-RVI-003", "CT-RVI-004", "CT-RVI-007", "CT-RVI-008", "CT-RVI-009", "CT-RVI-011"],
     "proximos_passos": "Postar resultado no canal Teams e aguardar autorizacao do Wesley antes de comentar/mudar estado nas Tasks #7794 e #7795 no AzDO (regra ad-hoc de autorizacao)"
+  },
+  "volume_16_07_2026": {
+    "gatilho": "Wesley: 'desbloqueie os cenarios que estavam bloqueados, e faca o teste com mais de 7.000 embarques'",
+    "achado_massa_14_07": "lista original de 10 apolices multi-ramo (14/07) NAO tinha subgrupo cadastrado em ramo 32 - teria causado falso-negativo num teste de horas; corrigido via SQL antes de gerar arquivo (12 apolices reais verificadas: vigencia + subgrupo)",
+    "ct_rvi_003_007_resultado": "APROVADO - 7500 registros reais, mesma apolice 320413160839, documentos ineditos (800000-807499). Converter 7500/7501 OK. Processar: 7500 Averbacoes incluidas, 0 erros. Tempo: 96s = 0.0128s/registro (meta era 0.5s/registro, ~40x melhor)",
+    "ct_rvi_004_resultado": "APROVADO - confirmado via SQL: 7500 registros permanecem em tb_lay_out_cvr_tmp_act_int_cit apos processamento (guard AXA ativo)",
+    "ct_rvi_008_resultado": "APROVADO - 7500 registros reais, 12 apolices distintas reais e vigentes. Processar: 7500 Averbacoes incluidas, 0 erros. Tempo: 77s = 0.0103s/registro - mais rapido que mesma-apolice, contrariando expectativa de cache invalidation (achado positivo)",
+    "ct_rvi_009_resultado": "NAO EXECUTADO - exigiria duas sessoes de usuario genuinamente independentes (cookies distintos); tabs do Playwright MCP compartilham o mesmo contexto de navegador, o que produziria falso-negativo de serializacao por causa do ASP.NET SessionState, nao do codigo testado",
+    "ct_rvi_011_resultado": "PARCIAL - subgrupo 002 + CC (taxa 5%) + averbacao manual (2026000001) criados com sucesso; premio calculado corretamente (100,60 = 2000 x 5.03%); impressao e previa (Relacao+Resumo Embarques) validadas com arquivos reais baixados. Fechamento mensal bloqueado pela mensagem 'Dados da apolice incompletos, favor verificar' - pendencia cadastral pre-existente na apolice 320413160839, NAO e bug do PBI-7471",
+    "achado_business_rule": "apolices com agrupamento de subgrupos exigem que a Emissao seja solicitada pelo Subgrupo 001 (nao pelo subgrupo especifico) - regra de negocio, confirmada ao tentar fechar via subgrupo 002 e receber a mensagem 'Solicitar a Emissao de Fechamento atraves do Subgrupo 001'"
   }
 }

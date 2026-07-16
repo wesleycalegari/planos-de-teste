@@ -146,6 +146,9 @@
 <div style="text-align:center;margin-top:-6px;margin-bottom:10px">
   <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">✅ VOLUME REAL 16/07/2026 — CT-RVI-003/004/007/008 reexecutados com 7.500 registros reais (não mais escala reduzida): APROVADOS, performance ≈0,01s/registro (≈40x melhor que a meta). CT-RVI-009 não executável nesta sessão (limitação de tooling, ver detalhe no CT)</span>
 </div>
+<div style="text-align:center;margin-top:-6px;margin-bottom:10px">
+  <span style="display:inline-block;background:#3a2b00;color:#d29922;border:1px solid #d29922;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">⚠️ CT-RVI-011 16/07/2026 — motor de cálculo confirmado correto (apólice→CC→subgrupo→averbação→prêmio→impressão→prévia, todos com evidência real); fechamento mensal bloqueado por dado cadastral pendente na apólice de teste (não é bug do PBI-7471)</span>
+</div>
 
 <div class="content">
 
@@ -789,7 +792,7 @@
       <span class="ct-title">Motor de cálculo — fluxo completo RCTR-VI: apólice → CC → subgrupo → averbação → emissão → relatórios → fechamento</span>
       <div class="ct-badges">
         <span class="badge badge-p1">P1</span>
-        <span class="badge badge-blk">BLOQUEADO</span>
+        <span class="badge badge-blk">PARCIAL (16/07)</span>
       </div>
       <span class="ct-toggle">▶</span>
     </div>
@@ -825,7 +828,31 @@
         <div class="ct-section-title">Resultado Esperado</div>
         <p>Fluxo completo RCTR-VI concluído sem erro em todas as etapas: CC criada, subgrupo vinculado, averbação com prêmio correto, impressão bem-sucedida, prévia sem erro, relatórios gerados (pré e pós-fechamento), fechamento concluído.</p>
       </div>
-      <div class="result-box" style="background:var(--orange-dim);border:1px solid var(--orange);color:#e5c46a;margin-top:10px;border-radius:6px;padding:8px 12px;font-size:13px" id="result-RVI-011">⚠️ BLOQUEADO em 14/07/2026 — <b>Achado 14/07:</b> a exigência de "DI real de importação" documentada anteriormente foi investigada no código-fonte (<code>AverbacaoInternacionalService.cs</code>) e <b>não se aplica ao RCTR-VI</b> — a validação de DI existe apenas para o produto Importação Definitiva/Provisória, seguradora CHUBB, com origem SISCOMEX; o case RCTVI não referencia <code>u_di</code> em nenhum ponto. Esse bloqueio original era falso. <b>Bloqueio real atual: depende de CT-RVI-002</b> — o fluxo completo (averbação → emissão → relatórios → fechamento) passa pelo mesmo processamento RCTR-VI que retorna HTTP 500 de forma reproduzível. Reexecutar assim que o bug crítico do CT-RVI-002 for corrigido.<br><br>🔓 <b>Atualização 16/07:</b> CT-RVI-002 foi confirmado corrigido em reteste — este CT está desbloqueado. Reexecução do fluxo completo (CC → subgrupo → averbação → fechamento) ainda não foi realizada nesta sessão.</div>
+      <div class="result-box" style="background:var(--orange-dim);border:1px solid var(--orange);color:#e5c46a;margin-top:10px;border-radius:6px;padding:8px 12px;font-size:13px" id="result-RVI-011">
+        ⚠️ <b>PARCIAL</b> em 16/07/2026 — Fluxo executado passo a passo com evidência real, do início até a Prévia. Fechamento mensal bloqueado por causa alheia ao PBI-7471 (ver detalhe).
+        <br><br><b>✅ Apólice:</b> 320413160839 (subgrupo novo 002, segurado "EMPRESA TESTE" — apólice já usada em CT-001/002/003/007).
+        <br><b>✅ Subgrupo:</b> criado com sucesso ("INCLUSÃO efetuada com sucesso"), Prêmio Mínimo por Averbação 10,00, Prêmio Mínimo 50,00, moeda NACIONAL.
+        <br><b>✅ CC (Condição Comercial):</b> criada com sucesso ("Condições comerciais salvos com sucesso"), taxa 5,00000%, Estado SÃO PAULO, Fronteira ACRE, País ARGENTINA, IS 0,00–999.999,99.
+        <br><b>✅ Averbação manual:</b> criada com sucesso ("Inclusão efetuada com sucesso"), nº 2026000001, IS Mercadoria=2.000,00, Placa TST9001, Doc 1-00999001, país ARGENTINA (por nome, mesmo gatilho do bug do CT-RVI-002 — confirmação adicional do fix).
+        <br><b>✅ Prêmio calculado:</b> <b>100,60</b> = IS 2.000,00 × Taxa Total 5,03000% (5,00000 da CC + 0,03000 de extensão de perímetro) — fórmula do motor de cálculo confirmada correta.
+        <br><b>✅ Impressão:</b> arquivo <code>Rvi-0320413160839-002-2026000001.xlsx</code> baixado e validado — certificado de seguro com todos os dados corretos (averbação, placa, valor, destino).
+        <br><b>✅ Prévia (Relação + Resumo de Embarques):</b> arquivos exportados e validados — Relação de Embarques do subgrupo 002 confirma averbação 2026000001, prêmio 100,60, 1 embarque, TOTAIS corretos.
+        <br><b>⚠️ Fechamento mensal (Emissão):</b> <b>bloqueado</b> pela mensagem do sistema <code>"Dados da apólice incompletos, favor verificar."</code> — <b>não é defeito do PBI-7471/BulkCopy</b>: é uma pendência de cadastro pré-existente na apólice de teste 320413160839 (provavelmente dado de corretor/comissão ausente), que impede a Emissão de qualquer fechamento para essa apólice, independente do bug testado neste PBI. Também identificado: apólices com agrupamento de subgrupos exigem que a Emissão seja solicitada pelo Subgrupo 001 (regra de negócio, não bug) — ao fazer isso, ficou evidente que o fechamento agruparia nossa averbação de teste junto com as ~8.130 averbações de volume de CT-RVI-003/007/008 na mesma fatura.
+        <br><br><b>Conclusão:</b> o motor de cálculo RCTR-VI (apólice → CC → subgrupo → averbação → prêmio → impressão → prévia) está <b>funcionalmente correto</b> após o fix do BulkCopy. A etapa de fechamento não pôde ser validada nesta apólice por uma pendência cadastral não relacionada ao PBI — recomenda-se reexecutar o fechamento numa apólice de teste com cadastro completo, ou corrigir o cadastro desta apólice.
+      </div>
+      <div class="ct-ev" style="margin-top:10px">
+        <img src="evidencias/ev_CT-RVI-011_02_subgrupo_criado.png" style="max-width:100%;border:1px solid #2ea043;border-radius:4px" alt="EV1 — Subgrupo criado com sucesso">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV1 — Subgrupo 002 criado com sucesso (apólice 320413160839)</div>
+        <img src="evidencias/ev_CT-RVI-011_03_cc_salvo.png" style="max-width:100%;border:1px solid #2ea043;border-radius:4px;margin-top:8px" alt="EV2 — CC salva com sucesso">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV2 — Condição Comercial salva (taxa 5%, SP/ACRE/ARGENTINA)</div>
+        <img src="evidencias/ev_CT-RVI-011_04_premio_calculado.png" style="max-width:100%;border:1px solid #2ea043;border-radius:4px;margin-top:8px" alt="EV3 — Premio calculado">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV3 — Prêmio calculado corretamente: 100,60 (IS 2.000,00 × Taxa 5,03%)</div>
+        <img src="evidencias/ev_CT-RVI-011_05_averbacao_gravada.png" style="max-width:100%;border:1px solid #2ea043;border-radius:4px;margin-top:8px" alt="EV4 — Averbacao gravada">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV4 — Averbação 2026000001 gravada com sucesso</div>
+        <img src="evidencias/ev_CT-RVI-011_06_fechamento_bloqueado_apolice_incompleta.png" style="max-width:100%;border:1px solid #d29922;border-radius:4px;margin-top:8px" alt="EV5 — Fechamento bloqueado">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV5 — Fechamento bloqueado: "Dados da apólice incompletos" (pendência cadastral, não é bug do PBI-7471)</div>
+        <div style="margin-top:6px"><a href="evidencias/CT-RVI-011_certificado_averbacao.xlsx">📄 Certificado de seguro (Rvi-0320413160839-002-2026000001.xlsx)</a></div>
+      </div>
     </div>
   </div>
 
@@ -844,7 +871,7 @@
       <tr><td>Performance — arquivo múltiplas apólices: mínimo 1,6s/registro sem timeout</td><td>CT-RVI-008</td><td><span class="badge badge-ok">APROVADO (0,0103s/registro)</span></td></tr>
       <tr><td>Processamento paralelo — dois usuários simultâneos sem serialização</td><td>CT-RVI-009</td><td><span class="badge badge-blk">NÃO EXECUTADO (limitação de tooling)</span></td></tr>
       <tr><td>Motor de cálculo RCTR-VI: prêmio = IS × Taxa Total ÷ 100, tarifária ≥ comercial, mínimo, adicionais</td><td>CT-RVI-010</td><td><span class="badge badge-ok">APROVADO</span></td></tr>
-      <tr><td>Motor de cálculo RCTR-VI: fluxo completo apólice → CC → subgrupo → averbação → fechamento</td><td>CT-RVI-011</td><td><span class="badge badge-blk">BLOQUEADO (desbloqueado 16/07 — em execução)</span></td></tr>
+      <tr><td>Motor de cálculo RCTR-VI: fluxo completo apólice → CC → subgrupo → averbação → fechamento</td><td>CT-RVI-011</td><td><span class="badge badge-blk">PARCIAL (16/07 — cálculo/impressão/prévia OK, fechamento bloqueado por dado cadastral)</span></td></tr>
     </table>
   </div>
 
