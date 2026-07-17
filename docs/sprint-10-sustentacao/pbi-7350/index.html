@@ -169,13 +169,13 @@ pre.diff .ctx{color:var(--muted)}
   <div class="ct-block" id="ct-7350-001">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-ENQ-001</span>
-      <span class="ct-title">Conflito real (apólice atual + anterior, mesmo importador): DIs enquadradas por data de saída, respeitando a vigência</span>
+      <span class="ct-title">Processamento completo (EFETUAR CARGA) de pacote com conflito de vigência: DIs enquadradas por data de saída</span>
       <span class="badge badge-p1">P1</span>
       <span class="badge badge-ok" id="badge-7350-001">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Tipo</h4><p>Positivo — reproduz o CA Cenário 4 com um <b>conflito de vigência natural</b> presente no ambiente com o fix: um pacote cujo importador tem apólice <b>atual</b> e <b>anterior</b>, com DIs de datas de saída em ambas as janelas.</p></div>
+      <div class="ct-section"><h4>Tipo</h4><p>Positivo / end-to-end — <b>processamento total</b> (EFETUAR CARGA) de um pacote real cujo importador tem apólice <b>atual</b> e <b>anterior</b>, com declarações de datas de saída em ambas as janelas de vigência. É o CA Cenário 4 exercido no fluxo completo.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond">
         <li>CITWEB AXA HML <b>comum</b> · usuário <code>FRED</code> · módulo WI build <code>V 1.0.260717.1712</code> (com fix)</li>
         <li>Pacote <code>88037668000154</code> (Gladis, 30/01/2026) na fila DICarga — importador com apólice atual <code>5106220003349</code> (30/09/2025–30/09/2028) + anterior <code>5106220002017</code> (30/09/2023–30/09/2025)</li>
@@ -183,19 +183,20 @@ pre.diff .ctx{color:var(--muted)}
       <div class="ct-section"><h4>Passos</h4><ol>
         <li>Login → <b>Interface WI / Siscomex</b> → <b>Declarações Adições → Carga das Declarações do WI</b></li>
         <li><b>LISTAR PACOTES</b> — o sistema sinaliza o pacote com a mensagem de vigência (atual/anterior)</li>
-        <li>Após a carga, verificar no banco a apólice enquadrada (<code>u_apo_pnc</code>) de cada DI vs. sua data de saída (<code>d_sda_vgm</code>) e a vigência de cada apólice</li>
+        <li>Selecionar o pacote e <b>EFETUAR CARGA</b> (confirmar "Sim") — processar todas as declarações do pacote</li>
+        <li>Verificar no banco a apólice enquadrada (<code>u_apo_pnc</code>) de cada DI vs. sua data de saída (<code>d_sda_vgm</code>) e a vigência de cada apólice</li>
       </ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As DIs devem ser distribuídas entre as duas apólices <b>conforme a data de saída</b>: saída ≤ 30/09/2025 → apólice anterior; saída ≥ 30/09/2025 → apólice atual. Nenhuma DI fora da vigência da apólice em que foi enquadrada.</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Processamento conclui e distribui as DIs entre as duas apólices <b>conforme a data de saída</b>: saída ≤ 30/09/2025 → apólice anterior; saída ≥ 30/09/2025 → apólice atual. Nenhuma DI fora da vigência da apólice em que foi gravada.</div></div>
       <div class="ct-ev">
-        <div class="ev-ok">✓ APROVADO (17/07/2026, AXA HML comum, módulo WI build V 1.0.260717.1712). O próprio sistema exibe na fila: <i>"O enquadramento será realizado de acordo com a data de saída das DI's, respeitando a vigência da apólice — Atual 5106220003349 · Anterior 5106220002017"</i>. As <b>34 DIs</b> do pacote foram <b>separadas por data de saída</b>, cada uma na apólice cuja vigência a contém — <b>34 DENTRO · 0 FORA</b>. Comportamento impossível no bug (que enquadrava tudo numa única apólice por <code>order by cd_apolice desc</code>).</div>
+        <div class="ev-ok">✓ APROVADO (17/07/2026, AXA HML comum, módulo WI build V 1.0.260717.1712). <b>EFETUAR CARGA executado pelo QA (usuário FRED)</b> — o sistema processou o pacote (barra de progresso · "Processando Declaração nº 2600627943") exibindo o aviso <i>"O enquadramento será realizado de acordo com a data de saída das DI's, respeitando a vigência da apólice — Atual 5106220003349 · Anterior 5106220002017"</i>. As <b>34 DIs</b> do pacote (recarregadas nesta execução, 17/07 16:00) foram <b>separadas por data de saída</b>, cada uma na apólice cuja vigência a contém — <b>34 DENTRO · 0 FORA</b>. Comportamento impossível no bug (que gravava tudo numa única apólice por <code>order by cd_apolice desc</code>).</div>
         <table class="cols">
           <tr><th>Apólice</th><th>Vigência</th><th>Datas de saída das DIs</th><th>Qtd</th><th>Dentro</th><th>Fora</th></tr>
           <tr><td><code>5106220002017</code> (anterior)</td><td>30/09/2023–30/09/2025</td><td>29/09/2025</td><td>8</td><td class="new">8</td><td>0</td></tr>
           <tr><td><code>5106220003349</code> (atual)</td><td>30/09/2025–30/09/2028</td><td>09/10 a 15/12/2025</td><td>26</td><td class="new">26</td><td>0</td></tr>
           <tr><td><b>Total</b></td><td></td><td></td><td><b>34</b></td><td class="new"><b>34</b></td><td><b>0</b></td></tr>
         </table>
-        <img class="ev-img" src="evidencias/7350-04-comum-vigencia-atual-anterior.png" alt="Mensagem de vigência atual/anterior na fila DICarga (comum)"><div class="ev-cap">EV1 — Fila DICarga (AXA comum, build WI 260717.1712): pacote Gladis destacado + mensagem "enquadramento por data de saída respeitando a vigência" e apólices Atual 5106220003349 / Anterior 5106220002017</div>
-        <img class="ev-img" src="evidencias/7350-03-modulo-dicarga.png" alt="Módulo InterfaceSTREITI DICarga"><div class="ev-cap">EV2 — Módulo InterfaceSTREITI → Carga das Declarações do WI</div>
+        <img class="ev-img" src="evidencias/7350-05-comum-processamento-live.png" alt="Processamento em andamento (EFETUAR CARGA) por FRED"><div class="ev-cap">EV1 — Processamento em execução (EFETUAR CARGA por FRED, build WI 260717.1712): barra de progresso + "Processando Declaração nº 2600627943", com o aviso de vigência e apólices Atual 5106220003349 / Anterior 5106220002017</div>
+        <img class="ev-img" src="evidencias/7350-04-comum-vigencia-atual-anterior.png" alt="Mensagem de vigência atual/anterior na fila DICarga (comum)"><div class="ev-cap">EV2 — Fila DICarga: pacote Gladis destacado + mensagem "enquadramento por data de saída respeitando a vigência" (Atual 5106220003349 / Anterior 5106220002017)</div>
       </div>
     </div>
   </div>
@@ -308,7 +309,7 @@ pre.diff .ctx{color:var(--muted)}
       <div class="ct-section"><h4>Tipo</h4><p>Reprodução fiel — processar o pacote do despachante Schenker (CNPJ 43.823.079/0002-44) para o importador General Mills e conferir o enquadramento na apólice vigente <code>0106220002616</code>.</p></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">DUIMPs do pacote Schenker/General Mills enquadradas na apólice vigente <code>0106220002616</code>.</div></div>
       <div class="ct-ev">
-        <div class="ev-pend">⛔ BLOQUEADO (dependência externa — WI-Quorum). Motivos confirmados: (1) o pacote <code>PCK_43823079000244_20250702161234.AXA</code> anexado ao card é <b>binário criptografado</b> (formato proprietário <code>PCK12</code>) — não é possível parsear/injetar seu conteúdo; (2) o CITWEB <b>não oferece upload de pacote</b> pela UI (o único arquivo aceito na DICarga é o "arquivo de filtro"); (3) o pacote Schenker <b>não está na fila WI</b> do ambiente e a relação/subgrupo do CNPJ General Mills não estão cadastrados. A ingestão do pacote depende do WI-Quorum (sistema externo legado), fora do alcance do QA. <b>O CA (seleção por vigência) está integralmente coberto pelo CT-ENQ-001</b> — conflito real equivalente (apólice atual + anterior, mesmo importador) enquadrado corretamente por data de saída.</div>
+        <div class="ev-pend">⛔ BLOQUEADO (dependência externa — WI-Quorum). Motivos confirmados: (1) o pacote <code>PCK_43823079000244_20250702161234.AXA</code> anexado ao card é <b>binário criptografado</b> (formato proprietário <code>PCK12</code>) — não é possível parsear/injetar seu conteúdo; (2) o CITWEB <b>não oferece upload de pacote</b> pela UI (o único arquivo aceito na DICarga é o "arquivo de filtro"); (3) o pacote Schenker <b>não está na fila WI</b> do ambiente e a relação/subgrupo do CNPJ General Mills não estão cadastrados. A ingestão do pacote depende do WI-Quorum (sistema externo legado), fora do alcance do QA — o <code>.AXA</code> só é decodificado pelo próprio WI durante a carga. <b>O CA (seleção por vigência) está coberto pelo CT-ENQ-001</b> — processamento completo de um pacote de conflito equivalente (apólice atual + anterior, mesmo importador), gravado corretamente por data de saída. O método corrigido <code>ObtemApoliceImportadorConsignatario</code> é o <b>mesmo caminho de seleção de apólice usado para DI e para DUIMP</b>; validá-lo via DI exercita a mesma regra. <b>Ressalva:</b> o processamento do <b>pacote Schenker/GM específico (DUIMP)</b> só poderá ser homologado 1:1 quando o pacote for restaurado na fila do WI-Quorum.</div>
         <p class="ev-cap">Recomendação: para reproduzir o cenário idêntico, solicitar à equipe de integração/infra a restauração do pacote Schenker (<code>cd_estabel=43823079000244 / 2025-07-02 16:12:34</code>) na fila WI e o cadastro da relação/subgrupo do CNPJ GM.</p>
       </div>
     </div>
