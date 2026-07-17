@@ -140,6 +140,12 @@
   <div class="metric-card pend"><div class="num" id="exec-pendentes">1</div><div class="lbl">Pendentes</div></div>
   <div class="metric-card" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 18px;min-width:110px;text-align:center"><div class="num" style="font-size:26px;font-weight:700;color:var(--orange)" id="exec-bloqueados">2</div><div class="lbl" style="font-size:11px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px">Bloqueados</div></div>
 </div>
+<div style="text-align:center;margin-top:-6px;margin-bottom:14px">
+  <span style="display:inline-block;background:#062033;color:#4aa8ff;border:2px solid #4aa8ff;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:700">🔁 REGRESSÃO COMPLETA 17/07/2026 — build V 1.0.260716.1430 (AXA HML) · massa 100% nova (docs 1.000.000+, apólices ramo 32 vigentes confirmadas por SQL)</span><br>
+  <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;margin-top:8px">✅ Conversor BulkCopy CT-RVI-001/002/003/004/007/008 REAPROVADOS — 20/20 e 7.500/7.500 averbações, 0 erro, sem HTTP 500, sem timeout; Guard AXA confirmado (7.500 staging retidos via SQL)</span><br>
+  <span style="display:inline-block;background:#0b2a12;color:#3fd07a;border:2px solid #2ea043;border-radius:6px;padding:8px 16px;font-size:12px;font-weight:700;margin-top:8px">🎯 CT-RVI-009 APROVADO NA REGRESSÃO — o bug crítico NÃO reproduz no build atual. Dois usuários reais distintos (FRED e QA), mesmo layout "QA", testado nas DUAS ordens: cada usuário processou e recebeu EXATAMENTE os próprios 7.500 (CONV-FRED / CONV-QA), ZERO perda e ZERO contaminação cruzada — confirmado por SQL em tb_mov_avb_int_cit. Reverte o REPROVADO 3× anterior; indica correção implantada (processamento agora isolado por usuário). ⚠️ Requer validação do Wesley.</span><br>
+  <span style="display:inline-block;background:#3a2b00;color:#d29922;border:1px solid #d29922;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;margin-top:8px">ℹ️ CT-RVI-010/011 (motor de cálculo e fluxo E2E) — fora do escopo do refactor (conversor BulkCopy); mantidos APROVADO de 16/07 no build idêntico 260716.1430; formulário RCTR-VI reconfirmado acessível hoje (cálculo AJAX não reexecutado via automação)</span>
+</div>
 <div style="text-align:center;margin-top:-6px;margin-bottom:10px">
   <span style="display:inline-block;background:#0d2818;color:#2ea043;border:1px solid #2ea043;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600">✅ RETESTE 16/07/2026 — Bug crítico do Processar RCTR-VI (CT-RVI-002) CORRIGIDO e confirmado. CT-RVI-006 (Exportação) segue REPROVADO — causa distinta, não coberta pelo mesmo fix</span>
 </div>
@@ -657,11 +663,29 @@
       <span class="ct-title">Processamento simultâneo — dois usuários processando RCTR-VI ao mesmo tempo sem serialização</span>
       <div class="ct-badges">
         <span class="badge badge-p1">P1</span>
-        <span class="badge badge-rep">REPROVADO</span>
+        <span class="badge badge-ok">APROVADO (regressão 17/07)</span>
       </div>
       <span class="ct-toggle">▶</span>
     </div>
     <div class="ct-body">
+      <div class="result-box ok" style="border:2px solid #2ea043">
+        🎯 <b>APROVADO na regressão de 17/07/2026 (build V 1.0.260716.1430)</b> — o bug crítico <b>NÃO reproduz</b> mais.
+        Reproduzido o cenário decisivo com <b>dois usuários REAIS distintos</b> (FRED e QA), mesmo nome de layout <code>QA</code>,
+        documentos 100% novos, e testado nas <b>duas ordens</b> de processamento:
+        <ul>
+          <li><b>FRED 1º / QA 2º</b> (docs 1300000+/1400000+): FRED → 7.500 próprios (CONV-FRED, apólice 320413160839); QA → 7.500 próprios (CONV-QA, apólice 3204152050439).</li>
+          <li><b>QA 1º / FRED 2º</b> (docs 1600000+/1500000+): QA → 7.500 próprios (CONV-QA); FRED (2º, posição onde antes perdia) → 7.500 próprios (CONV-FRED).</li>
+        </ul>
+        Em ambos os casos <b>cada usuário recebeu exatamente os próprios 7.500, com ZERO perda e ZERO contaminação cruzada</b> —
+        confirmado por SQL em <code>tb_mov_avb_int_cit</code> (contagem e <code>n_usu_inc</code> por faixa de documento).
+        O processamento agora está <b>isolado por usuário</b>, contrariando o comportamento de fila compartilhada por nome de layout
+        que causou o REPROVADO em 3 execuções anteriores (16–17/07 mais cedo). <b>Indica correção implantada no build 260716.1430.</b>
+        <br><br>⚠️ <b>Requer validação do Wesley</b> — esta é uma reversão do defeito crítico; confirmar com o dev se houve fix específico
+        de isolamento por upload/usuário na fila de Processar.
+        <br><br><b>Evidências (17/07):</b>
+        <a href="evidencias/re-20260717/ev_CT-RVI-009_01_fred-processou-layoutQA-7500.png">FRED processou 7.500 (layout QA)</a> ·
+        <a href="evidencias/re-20260717/ev_CT-RVI-009_02_qa-processa-apos-fred.png">QA processou 7.500</a>
+      </div>
       <div class="ct-section">
         <div class="ct-section-title">Tipo</div>
         <p>Performance · Concorrência</p>
