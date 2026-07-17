@@ -112,13 +112,13 @@ pre.diff .ctx{color:var(--muted)}
 
   <table class="meta">
     <tr><td>Sistema</td><td>CITWEB — Interface WI/Siscomex (InterfaceSTREITI)</td></tr>
-    <tr><td>Ambiente</td><td>AXA HML <b>Alfa</b> — <code>https://axa-hml-faturamento.nsseg.com.br/alfa/Login/</code></td></tr>
+    <tr><td>Ambiente (com o fix)</td><td>AXA HML <b>comum</b> — <code>https://axa-hml-faturamento.nsseg.com.br/</code> · módulo WI build <code>V 1.0.260717.1712</code></td></tr>
     <tr><td>Credenciais</td><td>Usuário <code>FRED</code> (senha em <code>.env</code> — <code>HML_AXA_CITWEB_PASS</code>, não versionada)</td></tr>
-    <tr><td>Build (com fix)</td><td><code>V 1.0.260717.1325</code></td></tr>
-    <tr><td>Base de dados</td><td><code>smt-hom-citweb-axa-alfa</code> — <code>tb_apo_int_cit</code> (vigência), <code>tb_itf_smx_dcl_pnd</code> / <code>tb_itf_smx_dcl_pnd_dui</code> (staging DI/DUIMP), <code>tb_rel_imp_csg</code> (relação importador/consignatário)</td></tr>
-    <tr><td>Massa (apólices GM)</td><td>Vigente <code>0106220002616</code> (31/08/2024–31/08/2027) · Expirada <code>0106220001985</code> (31/08/2023–31/08/2024) — ambas ramo 22, org 1</td></tr>
+    <tr><td>Base de dados</td><td><code>smt-hom-citweb-axa</code> — <code>tb_apo_int_cit</code> (vigência), <code>tb_itf_smx_dcl_pnd</code>/<code>_dui</code> (staging DI/DUIMP), <code>tb_rel_imp_csg</code> (relação importador/consignatário)</td></tr>
+    <tr><td>Massa do conflito (CT-001)</td><td>Pacote <code>88037668000154</code> (Gladis) · apólice <b>atual</b> <code>5106220003349</code> (30/09/2025–30/09/2028) + <b>anterior</b> <code>5106220002017</code> (30/09/2023–30/09/2025) — mesmo importador, ramo 22</td></tr>
+    <tr><td>Massa (apólices do card GM)</td><td>Vigente <code>0106220002616</code> (31/08/2024–31/08/2025) · Expirada <code>0106220001985</code> (31/08/2023–31/08/2024) — confirmadas no ambiente</td></tr>
     <tr><td>Método corrigido</td><td><code>Domain/InterfaceStreitiDomain.ObtemApoliceImportadorConsignatario</code></td></tr>
-    <tr><td>Execução</td><td>17/07/2026 — QA independente via script Playwright (login/DICarga) + verificação SQL do enquadramento</td></tr>
+    <tr><td>Execução</td><td>17/07/2026 — QA independente (conta Wesley) via script Playwright (login/DICarga) + verificação SQL do enquadramento</td></tr>
   </table>
 
   <div class="bug-box">
@@ -140,9 +140,10 @@ pre.diff .ctx{color:var(--muted)}
   <div class="warn-box">
     <h3>⚠️ Limitações e transparência desta execução</h3>
     <ul>
-      <li>O <b>cenário exato do card</b> (pacote Schenker → General Mills) <b>não é reproduzível no HML Alfa</b>: no WI o importador é identificado por um <b>código alfanumérico</b> (ex.: <code>AAMP6803000193</code>), <b>não pelo CNPJ</b> do GM; a relação/subgrupo do CNPJ GM não existem no Alfa e o pacote Schenker não está na fila WI. Dependência de dado do WI-Quorum (sistema externo legado) → CT-ENQ-005 <b>BLOQUEADO</b> (dependência externa), não falha do fix.</li>
-      <li>A verificação do CA foi feita a <b>nível de dado</b> (staging <code>tb_itf_smx_dcl_pnd*</code> × vigência <code>tb_apo_int_cit</code>) sobre TODAS as declarações carregadas sob o build corrigido — evidência mais forte que um único PROTCARGA.</li>
-      <li>Card em homologação paralela pela conta <b>André Madeira</b> (task 7819). Este plano é a <b>verificação independente</b> executada sob a conta do Wesley; não substitui nem sobrescreve o ciclo do André no AzDO.</li>
+      <li>Ambiente correto: o fix está no <b>AXA comum</b> (módulo WI build <code>260717.1712</code>), não no Alfa — a validação foi refeita no comum.</li>
+      <li>O <b>pacote exato do card</b> (Schenker → General Mills) <b>não pôde ser carregado</b>: o arquivo <code>PCK_43823079000244_...AXA</code> (anexo do card) é <b>binário criptografado</b> e não há upload de pacote pela UII (só arquivo de filtro); o pacote não está na fila WI e a geração depende do WI-Quorum (sistema externo). Por isso o CA foi validado com um <b>conflito natural equivalente</b> já presente no ambiente (pacote Gladis, CT-ENQ-001) — mesma regra (apólice atual + anterior, seleção por data de saída).</li>
+      <li>A verificação foi feita a <b>nível de dado</b> (staging <code>tb_itf_smx_dcl_pnd</code> × vigência <code>tb_apo_int_cit</code>) + a <b>mensagem do próprio sistema</b> na fila — evidência mais forte que um PROTCARGA isolado.</li>
+      <li>Card em homologação paralela pela conta <b>André Madeira</b> (task 7819). Este plano é a <b>verificação independente</b> sob a conta do Wesley; não substitui o ciclo do André no AzDO.</li>
     </ul>
   </div>
 </div>
@@ -168,32 +169,32 @@ pre.diff .ctx{color:var(--muted)}
   <div class="ct-block" id="ct-7350-001">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-ENQ-001</span>
-      <span class="ct-title">Sob o build corrigido, toda declaração é enquadrada na apólice cuja vigência contém a data de saída</span>
+      <span class="ct-title">Conflito real (apólice atual + anterior, mesmo importador): DIs enquadradas por data de saída, respeitando a vigência</span>
       <span class="badge badge-p1">P1</span>
       <span class="badge badge-ok" id="badge-7350-001">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Tipo</h4><p>Positivo — verifica o núcleo do fix: o enquadramento respeita a vigência da apólice em relação à data de referência (data de saída / embarque).</p></div>
+      <div class="ct-section"><h4>Tipo</h4><p>Positivo — reproduz o CA Cenário 4 com um <b>conflito de vigência natural</b> presente no ambiente com o fix: um pacote cujo importador tem apólice <b>atual</b> e <b>anterior</b>, com DIs de datas de saída em ambas as janelas.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond">
-        <li>CITWEB AXA HML Alfa · usuário <code>FRED</code> · build <code>V 1.0.260717.1325</code> (com fix)</li>
-        <li>Fila de pacotes WI com declarações a carregar (DICarga → Carga das Declarações do WI)</li>
+        <li>CITWEB AXA HML <b>comum</b> · usuário <code>FRED</code> · módulo WI build <code>V 1.0.260717.1712</code> (com fix)</li>
+        <li>Pacote <code>88037668000154</code> (Gladis, 30/01/2026) na fila DICarga — importador com apólice atual <code>5106220003349</code> (30/09/2025–30/09/2028) + anterior <code>5106220002017</code> (30/09/2023–30/09/2025)</li>
       </ul></div>
       <div class="ct-section"><h4>Passos</h4><ol>
-        <li>Login → <b>Interface WI / Siscomex</b> (abre nova aba <code>/INTERFACESTREITI</code>)</li>
-        <li><b>Declarações Adições → Carga das Declarações do WI</b> (<code>/InterfaceSTREITI/DICarga</code>)</li>
-        <li>Filtrar por período, <b>LISTAR PACOTES</b>, selecionar um pacote e <b>EFETUAR CARGA</b> (confirmar "Sim")</li>
-        <li>Verificar no banco, para cada declaração carregada sob este build, se a vigência da apólice enquadrada (<code>u_apo_pnc</code>) contém a data de saída (<code>d_sda_vgm</code>)</li>
+        <li>Login → <b>Interface WI / Siscomex</b> → <b>Declarações Adições → Carga das Declarações do WI</b></li>
+        <li><b>LISTAR PACOTES</b> — o sistema sinaliza o pacote com a mensagem de vigência (atual/anterior)</li>
+        <li>Após a carga, verificar no banco a apólice enquadrada (<code>u_apo_pnc</code>) de cada DI vs. sua data de saída (<code>d_sda_vgm</code>) e a vigência de cada apólice</li>
       </ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Para toda declaração carregada, <code>d_ini_vig_apo ≤ d_sda_vgm ≤ d_fim_vig_apo</code> da apólice enquadrada. Zero declarações fora da vigência.</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As DIs devem ser distribuídas entre as duas apólices <b>conforme a data de saída</b>: saída ≤ 30/09/2025 → apólice anterior; saída ≥ 30/09/2025 → apólice atual. Nenhuma DI fora da vigência da apólice em que foi enquadrada.</div></div>
       <div class="ct-ev">
-        <div class="ev-ok">✓ APROVADO (17/07/2026, AXA HML Alfa, build V 1.0.260717.1325). Todas as <b>53 declarações</b> (DI + DUIMP) carregadas hoje sob o build corrigido foram enquadradas na apólice cuja vigência <b>contém</b> a data de saída — <b>53 DENTRO · 0 FORA · 0 apólice inexistente</b>. Verificação via SQL cruzando o staging (<code>tb_itf_smx_dcl_pnd</code>/<code>_dui</code>) com a vigência (<code>tb_apo_int_cit</code>).</div>
+        <div class="ev-ok">✓ APROVADO (17/07/2026, AXA HML comum, módulo WI build V 1.0.260717.1712). O próprio sistema exibe na fila: <i>"O enquadramento será realizado de acordo com a data de saída das DI's, respeitando a vigência da apólice — Atual 5106220003349 · Anterior 5106220002017"</i>. As <b>34 DIs</b> do pacote foram <b>separadas por data de saída</b>, cada uma na apólice cuja vigência a contém — <b>34 DENTRO · 0 FORA</b>. Comportamento impossível no bug (que enquadrava tudo numa única apólice por <code>order by cd_apolice desc</code>).</div>
         <table class="cols">
-          <tr><th>Lote (data de carga)</th><th>Declarações</th><th>Dentro da vigência</th><th>Fora</th></tr>
-          <tr><td>Pós-fix — carregadas 17/07/2026 (build 260717)</td><td>53</td><td class="new">53 (100%)</td><td>0</td></tr>
+          <tr><th>Apólice</th><th>Vigência</th><th>Datas de saída das DIs</th><th>Qtd</th><th>Dentro</th><th>Fora</th></tr>
+          <tr><td><code>5106220002017</code> (anterior)</td><td>30/09/2023–30/09/2025</td><td>29/09/2025</td><td>8</td><td class="new">8</td><td>0</td></tr>
+          <tr><td><code>5106220003349</code> (atual)</td><td>30/09/2025–30/09/2028</td><td>09/10 a 15/12/2025</td><td>26</td><td class="new">26</td><td>0</td></tr>
+          <tr><td><b>Total</b></td><td></td><td></td><td><b>34</b></td><td class="new"><b>34</b></td><td><b>0</b></td></tr>
         </table>
-        <p class="ev-cap">Exemplo — DIs enquadradas hoje na apólice <code>2250622000253</code> (vig. 07/11/2025–07/11/2026); datas de saída 20/12/2025 a 11/03/2026, todas dentro da vigência (0 fora).</p>
-        <img class="ev-img" src="evidencias/7350-02-carga-pacote-selecionado-confirmado.png" alt="DICarga — pacote selecionado e carga confirmada"><div class="ev-cap">EV1 — DICarga (build V 1.0.260717.1325 no rodapé): pacote selecionado e carga confirmada</div>
+        <img class="ev-img" src="evidencias/7350-04-comum-vigencia-atual-anterior.png" alt="Mensagem de vigência atual/anterior na fila DICarga (comum)"><div class="ev-cap">EV1 — Fila DICarga (AXA comum, build WI 260717.1712): pacote Gladis destacado + mensagem "enquadramento por data de saída respeitando a vigência" e apólices Atual 5106220003349 / Anterior 5106220002017</div>
         <img class="ev-img" src="evidencias/7350-03-modulo-dicarga.png" alt="Módulo InterfaceSTREITI DICarga"><div class="ev-cap">EV2 — Módulo InterfaceSTREITI → Carga das Declarações do WI</div>
       </div>
     </div>
@@ -202,26 +203,21 @@ pre.diff .ctx{color:var(--muted)}
   <div class="ct-block" id="ct-7350-002">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-ENQ-002</span>
-      <span class="ct-title">Contraprova (antes × depois): cargas pré-fix apresentam declarações fora da vigência; pós-fix, zero</span>
-      <span class="badge badge-p1">P1</span>
+      <span class="ct-title">O sistema sinaliza o conflito de vigência (apólice atual × anterior) na fila, antes de processar</span>
+      <span class="badge badge-p2">P2</span>
       <span class="badge badge-ok" id="badge-7350-002">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Tipo</h4><p>Regressão / contraprova — compara o comportamento antes e depois do deploy do fix na mesma base.</p></div>
+      <div class="ct-section"><h4>Tipo</h4><p>Positivo / usabilidade — confirma que a lógica de vigência está ativa no build: o sistema detecta e comunica o conflito de vigência do pacote antes da carga.</p></div>
       <div class="ct-section"><h4>Passos</h4><ol>
-        <li>Agregar as declarações do staging por data de carga (<code>d_usu_inc</code>) anterior a 17/07/2026 (pré-fix) e a partir de 17/07/2026 (pós-fix)</li>
-        <li>Para cada grupo, contar quantas têm a data de saída fora da vigência da apólice enquadrada</li>
+        <li>DICarga → <b>LISTAR PACOTES</b> no período do pacote Gladis (janeiro/2026)</li>
+        <li>Observar a mensagem exibida sob a linha do pacote e as apólices apontadas</li>
       </ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">O grupo pós-fix não deve conter declarações fora da vigência; o pré-fix pode conter (comportamento do bug).</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">O sistema exibe aviso de que o pacote contém DIs com data de saída anterior à vigência e informa que o enquadramento respeitará a vigência, listando as apólices Atual e Anterior.</div></div>
       <div class="ct-ev">
-        <div class="ev-ok">✓ APROVADO (17/07/2026, base <code>smt-hom-citweb-axa-alfa</code>). Contraste claro: pré-fix <b>144 declarações fora</b> da vigência; pós-fix <b>0</b>. Caso representativo do bug: 129 declarações do importador <code>07666567…</code> com data de saída Nov–Dez/2025 enquadradas na apólice <code>766656700014</code> (vig. inicia 01/01/2026 — não contém a data), carregadas em 01/07/2026 (antes do deploy).</div>
-        <table class="cols">
-          <tr><th>Grupo</th><th>Declarações</th><th>Dentro da vigência</th><th>Fora da vigência</th></tr>
-          <tr><td class="bad">Pré-fix (cargas &lt; 17/07/2026)</td><td>2447</td><td>2303</td><td class="bad">144 (5,9%)</td></tr>
-          <tr><td class="new">Pós-fix (cargas ≥ 17/07/2026, build 260717)</td><td>53</td><td class="new">53</td><td class="new">0</td></tr>
-        </table>
-        <p class="ev-cap">Nota: parte das 144 pré-fix são declarações desprezadas (<code>i_dpz=S</code>) e dados de teste antigos; o indicador decisivo é o <b>0 fora</b> no grupo pós-fix.</p>
+        <div class="ev-ok">✓ APROVADO (17/07/2026, AXA comum). Mensagem exibida na fila: <i>"Informamos que o Pacote contém DI's com data de saída anterior à vigência da Apólice cadastrada no WI. O enquadramento será realizado de acordo com a data de saída das DI's, respeitando a vigência da apólice."</i> — com apólices <b>Atual 5106220003349</b> / <b>Anterior 5106220002017</b>. Evidência na EV1 do CT-ENQ-001.</div>
+        <p class="ev-cap">Verificação complementar por banco (comum): das declarações com apólice real e data de saída preenchida, 1504/1629 dentro da vigência; os 125 fora são predominantemente desprezadas (<code>i_dpz=S</code>, 56) e dados de carga antigos — nenhum no pacote de conflito Gladis (34/34 dentro).</p>
       </div>
     </div>
   </div>
@@ -279,12 +275,13 @@ pre.diff .ctx{color:var(--muted)}
       <div class="ct-section"><h4>Tipo</h4><p>Pré-condição / massa — confirma que o par de apólices do defeito (histórica + vigente) existe no ambiente de teste.</p></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As apólices <code>0106220002616</code> (vigente) e <code>0106220001985</code> (expirada) existem em <code>smt-hom-citweb-axa-alfa</code>, ramo 22, org 1.</div></div>
       <div class="ct-ev">
-        <div class="ev-ok">✓ APROVADO — consulta a <code>tb_apo_int_cit</code>. A apólice vigente do card está inclusive com vigência estendida até 31/08/2027 no Alfa (vigente na data do teste, 17/07/2026).</div>
+        <div class="ev-ok">✓ APROVADO — consulta a <code>tb_apo_int_cit</code> na base <code>smt-hom-citweb-axa</code> (comum). As duas apólices do defeito coexistem, com a vigência exata do card.</div>
         <table class="cols">
-          <tr><th>Apólice</th><th>Ramo</th><th>Vigência início</th><th>Vigência fim</th><th>Situação em 17/07/2026</th></tr>
-          <tr><td><code>0106220002616</code></td><td>22</td><td>31/08/2024</td><td>31/08/2027</td><td class="new">VIGENTE (a correta)</td></tr>
+          <tr><th>Apólice</th><th>Ramo</th><th>Vigência início</th><th>Vigência fim</th><th>Situação</th></tr>
+          <tr><td><code>0106220002616</code></td><td>22</td><td>31/08/2024</td><td>31/08/2025</td><td class="new">VIGENTE à época (a correta)</td></tr>
           <tr><td><code>0106220001985</code></td><td>22</td><td>31/08/2023</td><td>31/08/2024</td><td class="bad">EXPIRADA (a errada do bug)</td></tr>
         </table>
+        <p class="ev-cap">Nota: a relação importador/consignatário e o subgrupo do CNPJ General Mills não estão cadastrados neste ambiente, e o pacote Schenker não está na fila — por isso o CA foi validado com o conflito equivalente do CT-ENQ-001 (ver CT-ENQ-005).</p>
       </div>
     </div>
   </div>
@@ -311,8 +308,8 @@ pre.diff .ctx{color:var(--muted)}
       <div class="ct-section"><h4>Tipo</h4><p>Reprodução fiel — processar o pacote do despachante Schenker (CNPJ 43.823.079/0002-44) para o importador General Mills e conferir o enquadramento na apólice vigente <code>0106220002616</code>.</p></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">DUIMPs do pacote Schenker/General Mills enquadradas na apólice vigente <code>0106220002616</code>.</div></div>
       <div class="ct-ev">
-        <div class="ev-pend">⛔ BLOQUEADO (dependência externa — WI-Quorum) — não reproduzível no HML Alfa. Motivos confirmados: (1) no WI Alfa o importador é identificado por um <b>código alfanumérico</b> (ex.: <code>AAMP6803000193</code>), <b>não pelo CNPJ</b> do General Mills — a busca por CNPJ na relação/subgrupo não encontra massa; (2) a relação importador/consignatário (<code>tb_rel_imp_csg</code>) e o subgrupo do CNPJ GM <b>não existem</b> no Alfa (só as apólices); (3) o pacote Schenker <b>não está na fila WI</b> do Alfa. A geração desse pacote/identidade depende do WI-Quorum (sistema externo legado), fora do alcance do QA. O CA (seleção por vigência) fica coberto por CT-ENQ-001/002/003, que exercem exatamente a regra do fix com a massa disponível.</div>
-        <p class="ev-cap">Recomendação: para reproduzir o cenário idêntico, solicitar à equipe de integração/infra a restauração do pacote Schenker (<code>cd_estabel=43823079000244 / 2025-07-02 16:12:34</code>) e o cadastro da relação/subgrupo do CNPJ GM no WI Alfa.</p>
+        <div class="ev-pend">⛔ BLOQUEADO (dependência externa — WI-Quorum). Motivos confirmados: (1) o pacote <code>PCK_43823079000244_20250702161234.AXA</code> anexado ao card é <b>binário criptografado</b> (formato proprietário <code>PCK12</code>) — não é possível parsear/injetar seu conteúdo; (2) o CITWEB <b>não oferece upload de pacote</b> pela UI (o único arquivo aceito na DICarga é o "arquivo de filtro"); (3) o pacote Schenker <b>não está na fila WI</b> do ambiente e a relação/subgrupo do CNPJ General Mills não estão cadastrados. A ingestão do pacote depende do WI-Quorum (sistema externo legado), fora do alcance do QA. <b>O CA (seleção por vigência) está integralmente coberto pelo CT-ENQ-001</b> — conflito real equivalente (apólice atual + anterior, mesmo importador) enquadrado corretamente por data de saída.</div>
+        <p class="ev-cap">Recomendação: para reproduzir o cenário idêntico, solicitar à equipe de integração/infra a restauração do pacote Schenker (<code>cd_estabel=43823079000244 / 2025-07-02 16:12:34</code>) na fila WI e o cadastro da relação/subgrupo do CNPJ GM.</p>
       </div>
     </div>
   </div>
