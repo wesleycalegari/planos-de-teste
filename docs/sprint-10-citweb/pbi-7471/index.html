@@ -118,7 +118,7 @@
 </div>
 
 <div class="banner reg">🔁 REGRESSÃO COMPLETA — 17/07/2026 · build V 1.0.260716.1430 · CITWEB HML AXA · massa 100% nova (docs 1.000.000+, apólices ramo 32 vigentes confirmadas por SQL). Conversor BulkCopy REAPROVADO (20/20 e 7.500/7.500 averbações, 0 erro, sem HTTP 500, sem timeout); Guard AXA confirmado via SQL.</div>
-<div class="banner finding">🎯 CT-RVI-009 APROVADO — o bug crítico de concorrência NÃO reproduz mais. Dois usuários reais distintos (FRED e QA), mesmo layout "QA", testado nas DUAS ordens: cada usuário processou e recebeu exatamente os próprios 7.500 (CONV-FRED / CONV-QA), ZERO perda e ZERO contaminação cruzada — confirmado por SQL. Reverte o REPROVADO anterior; indica correção implantada (processamento isolado por usuário). ⚠️ Requer validação do Wesley.</div>
+<div class="banner finding">🎯 CT-RVI-009 APROVADO — o bug crítico de concorrência NÃO reproduz mais. Dois usuários reais distintos (FRED e QA), apólices distintas, mesmo layout "QA" — testado com <b>processamento SIMULTÂNEO</b> (ambos clicando Processar no mesmo instante, 13:41:49) e também nas duas ordens sequenciais: cada usuário criou exatamente os próprios 7.500 (CONV-FRED / CONV-QA), ZERO perda, ZERO contaminação cruzada, sem timeout — confirmado por SQL. Tempos: conversão ≈41,5s · processamento 33,8s (FRED) / 35,6s (QA). Reverte o REPROVADO anterior; indica correção implantada (isolamento por usuário). ⚠️ Requer validação do Wesley.</div>
 
 <div class="content">
 
@@ -272,21 +272,21 @@
     <div class="ct-head"><span class="ct-id">CT-RVI-009</span><span class="ct-title">Processamento simultâneo — dois usuários processando RCTR-VI sem serialização</span><div class="ct-badges"><span class="badge badge-p2">P2</span><span class="badge badge-ok">APROVADO</span></div><span class="ct-toggle">▶</span></div>
     <div class="ct-body">
       <div class="ct-section"><div class="ct-section-title">Passos</div><ol>
-        <li>Sessão A (FRED) e Sessão B (QA) — usuários reais distintos — convertem cada um 7.500 registros (apólices distintas) sob o mesmo layout <code>QA</code>.</li>
-        <li>Cada usuário aciona <strong>Processar</strong>; verificar por SQL (por faixa de documento) que cada um cria apenas os próprios registros.</li>
-        <li>Repetir invertendo a ordem de quem processa primeiro.</li>
+        <li>Sessão A (FRED, apólice 320413160839) e Sessão B (QA, apólice 3204152050439) — usuários e apólices distintos — convertem cada um 7.500 registros sob o mesmo layout <code>QA</code> (em paralelo).</li>
+        <li>Ambos acionam <strong>Processar no mesmo instante</strong> (barreira de sincronização entre os dois processos — concorrência real, sem intervalo).</li>
+        <li>Medir tempo de conversão e de processamento; verificar por SQL (por faixa de documento) que cada um cria apenas os próprios registros.</li>
       </ol></div>
-      <div class="ct-section"><div class="ct-section-title">Resultado Esperado</div><p>Cada usuário processa e recebe <strong>exatamente os próprios</strong> registros, sem perda nem contaminação cruzada (processamento isolado por usuário/upload).</p></div>
-      <div class="result-box ok">🎯 <b>APROVADO</b> (17/07) — o bug crítico <b>NÃO reproduz</b> no build atual. Testado nas duas ordens:
+      <div class="ct-section"><div class="ct-section-title">Resultado Esperado</div><p>Sob processamento <strong>simultâneo</strong>, cada usuário recebe <strong>exatamente os próprios</strong> registros, sem perda, sem contaminação cruzada e sem timeout.</p></div>
+      <div class="result-box ok">🎯 <b>APROVADO</b> (17/07) — o bug crítico <b>NÃO reproduz</b> no build atual, inclusive sob <b>processamento genuinamente simultâneo</b>. FRED e QA (apólices distintas) clicaram <b>Processar no mesmo instante (13:41:49)</b>:
         <ul>
-          <li>FRED 1º / QA 2º (docs 1300000+/1400000+): FRED → 7.500 próprios (CONV-FRED); QA → 7.500 próprios (CONV-QA).</li>
-          <li>QA 1º / FRED 2º (docs 1600000+/1500000+): QA → 7.500 próprios; FRED (2º, posição onde antes perdia) → 7.500 próprios.</li>
+          <li><b>A · FRED</b> (apólice 320413160839, docs 1700000+): conversão 41,5s · processamento <b>33,8s</b> · <b>7.500 averbações, 0 erro</b> (CONV-FRED).</li>
+          <li><b>B · QA</b> (apólice 3204152050439, docs 1800000+): conversão 41,5s · processamento <b>35,6s</b> · <b>7.500 averbações, 0 erro</b> (CONV-QA).</li>
         </ul>
-        Em ambos, cada usuário recebeu exatamente os próprios 7.500, <b>ZERO perda e ZERO contaminação cruzada</b> — confirmado por SQL (contagem + <code>n_usu_inc</code> por faixa de documento). Reverte o REPROVADO 3× anterior; indica correção implantada (isolamento por usuário). <b>⚠️ Requer validação do Wesley.</b>
+        Cada usuário criou <b>exatamente os próprios 7.500</b> — <b>ZERO perda, ZERO contaminação cruzada, sem timeout</b> — confirmado por SQL (contagem + <code>n_usu_inc</code> por faixa de documento). Também validado antes nas duas ordens sequenciais. Reverte o REPROVADO 3× anterior; indica correção implantada (processamento isolado por usuário/upload). <b>⚠️ Requer validação do Wesley.</b>
       </div>
       <div class="ev-grid">
-        <figure><img src="evidencias/ev_CT-RVI-009_01_fred-processou-layoutQA-7500.png"><figcaption>EV1 — FRED processou 7.500 próprios (layout QA)</figcaption></figure>
-        <figure><img src="evidencias/ev_CT-RVI-009_02_qa-processa-apos-fred.png"><figcaption>EV2 — QA processou 7.500 próprios</figcaption></figure>
+        <figure><img src="evidencias/ev_CT-RVI-009_simult_A_FRED.png"><figcaption>EV1 — A (FRED): 7.500 averbações, 0 erro (Processar simultâneo, 33,8s)</figcaption></figure>
+        <figure><img src="evidencias/ev_CT-RVI-009_simult_B_QA.png"><figcaption>EV2 — B (QA): 7.500 averbações, 0 erro (Processar simultâneo, 35,6s)</figcaption></figure>
       </div>
     </div>
   </div>
