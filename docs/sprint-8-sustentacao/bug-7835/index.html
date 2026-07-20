@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7835 — CITNET (CHUBB): log gravava todo SQL + senha da conexão</title>
+<style>
+  :root { --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --border:#30363d; --text:#e6edf3; --text-muted:#8b949e;
+    --blue:#58a6ff; --blue-dim:#1f6feb; --blue-bg:#0a1628; --green:#3fb950; --green-bg:#061a0e;
+    --red:#f85149; --red-bg:#1a0505; --yellow:#d29922; --yellow-bg:#1a1200;
+    --ok:#3fb950; --pend:#d29922; --p1-color:#f85149; --p1-bg:rgba(248,81,73,.12); --p1-border:rgba(248,81,73,.35);
+    --p2-color:#e3963e; --p2-bg:rgba(227,150,62,.12); --p2-border:rgba(227,150,62,.35); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; font-size:14px; line-height:1.6; }
+  .topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:10px 24px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .topbar-logo { font-size:13px; font-weight:700; color:var(--blue); border:1px solid var(--blue-dim); padding:2px 8px; border-radius:4px; }
+  .topbar-title { color:var(--text-muted); font-size:13px; }
+  .topbar-tags { display:flex; gap:6px; margin-left:auto; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; }
+  .badge-bug{ background:var(--red-bg); color:var(--red); border:1px solid #5a1a1a; }
+  .badge-p1{ background:var(--p1-bg); color:var(--p1-color); border:1px solid var(--p1-border); }
+  .badge-p2{ background:var(--p2-bg); color:var(--p2-color); border:1px solid var(--p2-border); }
+  .badge-pend{ background:#1a1200; color:var(--yellow); border:1px solid #5a4000; }
+  .badge-citnet{ background:#1a1228; color:#c9a8f0; border:1px solid #4a3a6a; }
+  .badge-chubb{ background:#0a1a2a; color:#6ab4f0; border:1px solid #1a4a7a; }
+  .hero { background:linear-gradient(135deg,#0a1628 0%,#161b22 100%); border-bottom:2px solid var(--red); padding:24px 24px 18px; }
+  .hero-badges { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .hero h1 { font-size:21px; font-weight:700; line-height:1.3; }
+  .hero .meta { margin-top:10px; display:flex; flex-wrap:wrap; gap:18px; font-size:12px; color:var(--text-muted); }
+  .hero .meta span strong { color:var(--text); }
+  .metrics-strip { background:var(--bg2); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; gap:36px; flex-wrap:wrap; align-items:center; }
+  .metric .val { font-size:22px; font-weight:700; } .metric .lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+  .progress-bar { flex:1; min-width:200px; } .progress-bar .pb-label { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+  .progress-bar .pb-track { background:var(--bg3); border-radius:4px; height:6px; } .progress-bar .pb-fill { background:var(--yellow); border-radius:4px; height:6px; }
+  .content { max-width:1000px; margin:0 auto; padding:24px; }
+  .section { margin-bottom:28px; } .section-title { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:14px; }
+  .info-box { background:var(--blue-bg); border:1px solid var(--blue-dim); border-left:4px solid var(--blue); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .warn-box { background:var(--yellow-bg); border:1px solid #5a4000; border-left:4px solid var(--yellow); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .fail-box { background:var(--red-bg); border:1px solid #5a1a1a; border-left:4px solid var(--red); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .ok-box { background:var(--green-bg); border:1px solid #1a5c2e; border-left:4px solid var(--green); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:var(--bg3); color:var(--text-muted); text-align:left; padding:7px 12px; border:1px solid var(--border); font-size:11px; text-transform:uppercase; font-weight:600; }
+  td { padding:7px 12px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#0f1117; }
+  code { background:var(--bg3); padding:1px 6px; border-radius:3px; font-family:'Consolas',monospace; font-size:12px; color:#e3b341; }
+  .group-hd { padding:8px 16px; border-radius:6px 6px 0 0; font-weight:700; font-size:13px; margin-top:20px; color:#fff; }
+  .grp-bug{ background:#2a0808; } .grp-regr{ background:#2a1a00; }
+  .ct-block { background:var(--bg2); border:1px solid var(--border); border-radius:0 0 6px 6px; margin-bottom:2px; overflow:hidden; }
+  .ct-block.p1 { border-left:3px solid var(--p1-color); } .ct-block.p2 { border-left:3px solid var(--p2-color); }
+  .ct-head { padding:12px 16px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+  .ct-head:hover { background:var(--bg3); }
+  .ct-id { font-family:'Consolas',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+  .ct-title { flex:1; font-weight:600; font-size:13px; }
+  .ct-toggle { color:var(--text-muted); font-size:12px; transition:transform .2s; } .ct-block.expanded .ct-toggle { transform:rotate(90deg); }
+  .ct-body { display:none; border-top:1px solid var(--border); padding:16px; } .ct-block.expanded .ct-body { display:block; }
+  .ct-section { margin-bottom:14px; } .ct-section-lbl { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  ol.steps { padding-left:22px; } ol.steps li { margin-bottom:5px; font-size:13px; }
+  .ct-result { background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:8px 12px; font-size:13px; color:var(--text-muted); margin-top:8px; }
+  .ev-placeholder { color:var(--text-muted); font-size:12px; font-style:italic; }
+  .cov-pend{ color:var(--pend); font-weight:700; }
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-7835 — CITNET (CHUBB): log gravava todo SQL + senha da conexão</span>
+  <div class="topbar-tags">
+    <span class="badge badge-bug">BUG-7835</span><span class="badge badge-chubb">CHUBB</span><span class="badge badge-citnet">CITNET</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-bug">BUG-7835</span>
+    <span class="badge badge-p2">Severidade 3 — Média</span>
+    <span class="badge badge-chubb">CHUBB HML</span>
+    <span class="badge badge-citnet">CITNET</span>
+    <span class="badge badge-pend">PRONTO P/ HOMOLOGAÇÃO</span>
+  </div>
+  <h1>Logs do CITNET registravam todo comando SQL (+ senha da conexão) — ruído e risco de performance/disco</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET (todas as CIAs; reportado via CHUBB)</span>
+    <span><strong>Módulo:</strong> Logging — <code>DbUtility.Consultar()</code></span>
+    <span><strong>Epic:</strong> 7283</span>
+    <span><strong>Sprint:</strong> Sprint_8_Sustentacao</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 20/07/2026</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)">4</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">2</div><div class="lbl">P1</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">2</div><div class="lbl">P2</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)">4</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar"><div class="pb-label">0% executado — verificação por arquivo de log do servidor (ver Riscos)</div>
+    <div class="pb-track"><div class="pb-fill" style="width:0%"></div></div></div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="fail-box">
+      <strong>Bug reportado:</strong> os arquivos de log do CITNET (CHUBB) registravam <strong>todos os comandos SQL</strong> executados,
+      inflando os arquivos (centenas de MB), misturando ruído com os erros reais e criando risco de performance/disco.
+      Adicionalmente, o log gravava a <strong>connection string completa (senha em texto puro)</strong>.
+    </div>
+    <div class="ok-box">
+      <strong>Root cause (confirmado em código):</strong> <code>CitNetUtility/DbUtility.cs → Consultar()</code> (compartilhado por
+      TODAS as 24 CIAs) gravava incondicionalmente, a cada chamada: <code>GravarLogErro("Valor da sConexao: " + sConexao)</code>
+      (linha 157 — vazamento de senha), <code>"Iniciando consulta: " + strSql</code> (224) e <code>"Executando comando SQL: " + commandText</code> (279).
+      <strong>Fix:</strong> PR <strong>#1860</strong> — log de SQL vira <strong>opt-in</strong> via flag <code>habilitaLogSql</code> (default desligado),
+      remove o log da connection string/senha e mantém os logs de erro reais.
+    </div>
+    <div class="info-box">
+      <strong>Validação do dev (medição real):</strong> comparação antes/depois no <code>LogErro*.txt</code> do servidor CHUBB, mesma máquina/dia —
+      blocos de log <strong>208 → 29</strong>, ocorrências do padrão de ruído SQL <strong>132 (63%) → 0</strong>, e (local) linhas <strong>-92%</strong> / tamanho <strong>-94%</strong>.
+      Com <code>habilitaLogSql=S</code> o detalhado volta (opt-in). Senha "Valor da sConexao" não aparece em nenhum modo. Log de erro real intacto.
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Critérios de Aceite</div>
+    <ul style="padding-left:20px;font-size:13px;line-height:1.9">
+      <li><strong>CA1</strong> — Por padrão (sem <code>habilitaLogSql=S</code>), o log do CITNET <strong>NÃO registra</strong> os comandos SQL completos (<code>"Executando comando SQL:"</code> / <code>"Iniciando consulta:"</code>).</li>
+      <li><strong>CA2</strong> — O log <strong>NÃO registra</strong> a connection string / senha (<code>"Valor da sConexao:"</code>) em nenhum modo.</li>
+      <li><strong>CA3</strong> — Os <strong>logs de erro reais</strong> continuam sendo registrados de forma clara (rastreabilidade preservada).</li>
+      <li><strong>CA4</strong> — Com <code>habilitaLogSql=S</code> (opt-in), o log detalhado de SQL <strong>volta a aparecer</strong> (parametrização funciona).</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Pré-requisitos e Riscos de Execução</div>
+    <div class="warn-box">
+      ⚠️ <strong>Natureza do teste + bloqueios (destacados para o Wesley):</strong> este defeito se verifica no <strong>arquivo de log do
+      servidor</strong> (<code>LogErro&lt;data&gt;.txt</code>), não na UI. Para homologar via QA preciso de:
+      <ul style="padding-left:18px;margin-top:6px">
+        <li><strong>Credenciais CITNET CHUBB HML</strong> — ausentes no <code>.env</code> (mesmo bloqueio do #7834). Ambiente: <code>chubb-hml-faturamento.nsseg.com.br/citnet</code>.</li>
+        <li><strong>Acesso ao arquivo de log do servidor</strong> (ou o <code>LogErro*.txt</code> exportado, como o dev fez) — o QA não tem acesso direto ao filesystem do servidor CHUBB. Sem o arquivo, os CA1–CA4 não são verificáveis diretamente pelo QA.</li>
+      </ul>
+      Enquanto isso, a verificação substantiva possível é: (a) <strong>confirmação em código</strong> de que o SQL/senha não são mais gravados incondicionalmente (Passo 0c — root cause confirmado no snapshot pré-fix); (b) a <strong>medição real antes/depois</strong> do dev no log do servidor CHUBB (PR #1860). Recomendo tratar CA1–CA4 como <strong>BLOQUEADO por acesso ao log/servidor</strong> até obter o arquivo, valendo a evidência do dev.
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Ambiente</td><td><code>chubb-hml-faturamento.nsseg.com.br/citnet</code> · banco <code>smt-hom-citweb-chubb</code></td></tr>
+        <tr><td>Login</td><td>⚠️ a confirmar (CHUBB ausente no <code>.env</code>)</td></tr>
+        <tr><td>Artefato de evidência</td><td><code>LogErro&lt;data&gt;.txt</code> do servidor (a ser fornecido / acesso)</td></tr>
+        <tr><td>Flag de parametrização</td><td><code>habilitaLogSql</code> (S = log detalhado opt-in)</td></tr>
+        <tr><td>Fix</td><td>PR #1860 — <code>DbUtility.cs Consultar()</code></td></tr>
+        <tr><td>Abrangência</td><td>Código compartilhado — afeta todas as 24 CIAs (reportado via CHUBB)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <div class="group-hd grp-bug">🐛 Fix Verificado — log enxuto e sem segredo</div>
+
+    <div class="ct-block p1" id="ct-LOG-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-LOG-001</span><span class="badge badge-p1">P1</span>
+        <span class="ct-title">Log padrão não registra os comandos SQL (CA1)</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Com <code>habilitaLogSql</code> desligado (default), logar no CITNET CHUBB e exercitar uma ação que gere SQL (ex.: login + Conversor)</li>
+            <li>Coletar o <code>LogErro&lt;data&gt;.txt</code> do servidor referente à sessão</li>
+            <li>Buscar por <code>"Executando comando SQL:"</code> e <code>"Iniciando consulta:"</code></li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Nenhuma (ou drasticamente reduzida) ocorrência dos comandos SQL no log — alinhado à medição do dev (ruído SQL 132 → 0).</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result">⏳ Pendente — depende do acesso ao log/servidor + credenciais CHUBB. Evidência atual: medição real do dev (PR #1860).</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar (arquivo de log).</div></div>
+      </div>
+    </div>
+
+    <div class="ct-block p1" id="ct-LOG-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-LOG-002</span><span class="badge badge-p1">P1</span>
+        <span class="ct-title">Log não expõe a connection string / senha (CA2)</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>No mesmo <code>LogErro*.txt</code>, buscar por <code>"Valor da sConexao"</code> e por trechos da connection string (ex.: <code>Password=</code>, <code>User ID=</code>)</li>
+            <li>Repetir com <code>habilitaLogSql=S</code> (mesmo com debug ligado, a senha não deve aparecer)</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ <strong>Zero</strong> ocorrências de <code>"Valor da sConexao"</code> / senha em ambos os modos (vazamento eliminado).</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result">⏳ Pendente — depende do acesso ao log. Dev confirmou: senha não aparece em nenhum modo.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar (arquivo de log).</div></div>
+      </div>
+    </div>
+
+    <div class="group-hd grp-regr">🔁 Regressão / Parametrização</div>
+
+    <div class="ct-block p2" id="ct-LOG-003">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-LOG-003</span><span class="badge badge-p2">P2</span>
+        <span class="ct-title">Logs de erro reais continuam registrados (CA3)</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Forçar/observar um erro real de negócio ou de execução no CITNET CHUBB</li>
+            <li>Confirmar no <code>LogErro*.txt</code> que o erro foi registrado com mensagem clara (rastreabilidade)</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O erro real aparece no log com contexto suficiente para diagnóstico — o fix reduziu ruído, não a capacidade de auditar erros.</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result">⏳ Pendente — dev confirmou "log de erro real intacto".</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar (arquivo de log).</div></div>
+      </div>
+    </div>
+
+    <div class="ct-block p2" id="ct-LOG-004">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-LOG-004</span><span class="badge badge-p2">P2</span>
+        <span class="ct-title">habilitaLogSql=S reativa o log detalhado (CA4)</span>
+        <span class="badge badge-pend">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Ligar <code>habilitaLogSql=S</code> na configuração do ambiente</li>
+            <li>Exercitar a mesma ação e coletar o log</li>
+            <li>Confirmar que os comandos SQL voltam a ser registrados (debug opt-in)</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Com a flag ligada, o log detalhado de SQL reaparece (dev: 39 ocorrências) — a parametrização funciona; ainda sem a senha.</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result">⏳ Pendente — depende de acesso à config + log.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar (arquivo de log).</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">5. Rastreabilidade</div>
+    <table>
+      <thead><tr><th>Critério</th><th>CT</th><th>Prio.</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CA1 — SQL não logado por padrão</td><td>CT-LOG-001</td><td>P1</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA2 — senha não exposta</td><td>CT-LOG-002</td><td>P1</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA3 — erros reais preservados</td><td>CT-LOG-003</td><td>P2</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA4 — opt-in habilitaLogSql</td><td>CT-LOG-004</td><td>P2</td><td class="cov-pend">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">6. Riscos</div>
+    <table>
+      <thead><tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+      <tbody>
+        <tr><td>QA sem acesso ao arquivo de log do servidor CHUBB</td><td>Alta</td><td>Alto</td><td>Obter o <code>LogErro*.txt</code> exportado (como o dev fez) ou acesso; senão CA1–CA4 BLOQUEADOS, vale a medição do dev + confirmação em código</td></tr>
+        <tr><td>Credenciais CITNET CHUBB ausentes (.env)</td><td>Alta</td><td>Médio</td><td>Obter com o Wesley (mesmo bloqueio do #7834)</td></tr>
+        <tr><td>Fix afeta todas as CIAs (código compartilhado)</td><td>Baixa</td><td>Médio</td><td>Regressão amostral em outra CIA acessível (ex.: AXA) para confirmar que o log geral não quebrou</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>BUG-7835 · CITNET CHUBB HML · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Plano 20/07/2026 · Verificação por log de servidor — aguardando acesso</footer>
+
+<script>document.querySelectorAll('.ct-block').forEach(b => b.classList.add('expanded'));</script>
+</body>
+</html>
