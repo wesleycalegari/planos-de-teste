@@ -93,18 +93,18 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <p>O agrupamento é controlado pela flag <code>AgrupamentoAverbacaoHabilitado</code> (indicativo <code>Ind_DuimpAgrupamentoAverbacao</code>), <strong>desligada por padrão e ainda não disponível em HML</strong>. Enquanto off: 1 linha = 1 item, colunas novas em NULL.</p>
   <ul>
     <li><strong>Grupo A (flag OFF)</strong> — executável agora: regressão (comportamento atual mantido).</li>
-    <li><strong>Grupo B (flag ON)</strong> — <span class="tbd">diferido</span>: depende da migration + indicativo aplicados em HML AXA e do Worker gravando linhas agregadas (<code>c_nvl_avb</code> 'D'/'A'/'I', <code>q_itn_agp</code>&gt;1, <code>t_itn_org_agp</code> preenchido).</li>
+    <li><strong>Grupo B (flag ON)</strong> — <span class="tbd">diferido</span>: depende da migration + indicativo aplicados em HML AXA e do Worker gravando linhas agregadas (<code>c_nvl_avb</code> 'D'/'A'/'I', <code>q_itn_agp</code>&gt;1, <code>t_itn_org_agp</code> preenchido). <strong>Re-verificado por SQL em 20/07/2026:</strong> as colunas de agregação continuam <strong>ausentes</strong> na base <code>smt-hom-citweb-axa</code> — migration ainda não aplicada; CT-DAG-002 a 007 seguem bloqueados por dependência (aguardando dev/ops).</li>
     <li>Card <strong>com CA formal preenchido</strong> (DoR OK) — CTs derivados diretamente dos critérios de aceite.</li>
   </ul>
 </div>
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">7</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">7</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">6</div><div class="metric-lbl">Pendentes (Grupo B diferido)</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:14%"></div></div>
 
 <div class="container">
 
@@ -114,7 +114,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <p><strong>Out of scope:</strong> soma de valores monetários (PBI #7682); duplicidade (#7683); adaptação das telas/contadores em si (#7468) — aqui valida-se o <em>serviço</em> que elas consomem; geração das linhas agregadas (WorkerDUIMP).</p>
     <p><strong>Pré-requisitos:</strong></p>
     <ul>
-      <li>Ambiente: <strong>CITWEB HML AXA</strong> — <code>ROT_AUTO / T7Jjm6xF</code> (ou FRED/DERF); módulo <strong>Interface WI/Siscomex → Declarações Adições</strong></li>
+      <li>Ambiente: <strong>CITWEB HML AXA</strong> — <code>https://axa-hml-faturamento.nsseg.com.br</code>; usuário/senha HML AXA em <code>.env</code> (chaves <code>HML_AXA_CITWEB_USER</code> / <code>HML_AXA_CITWEB_PASS</code>) — nunca versionar credencial; módulo <strong>Interface WI/Siscomex → Declarações Adições</strong></li>
       <li>Cotação USD (código 220) vigente — Tabelas → Cadastros → Cotações de Moeda</li>
       <li>Grupo A: DUIMP no modo atual (colunas novas em NULL)</li>
       <li>Grupo B: migration + indicativo aplicados; DUIMP com linhas 'D'/'A'/'I', <code>q_itn_agp</code>&gt;1 e <code>t_itn_org_agp</code> preenchido <span class="tbd">[via Worker]</span></li>
@@ -124,11 +124,26 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-off">Grupo A — Regressão flag OFF (executável agora)</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-001</span><span class="ct-title">c_nvl_avb NULL — serviço trata como 1 linha = 1 item (regressão)</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block expanded"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-001</span><span class="ct-title">c_nvl_avb NULL — serviço trata como 1 linha = 1 item (regressão)</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> indicativo inativo; DUIMP no modo atual (c_nvl_avb NULL) em AXA HML.</div>
         <h4>Objetivo</h4><p>CA: com <code>c_nvl_avb</code> NULL o comportamento atual é mantido — o serviço deve tratar a linha como 1 item (não deve tentar expandir). Regressão zero.</p>
         <h4>Passos</h4><ol><li>Processar/consultar uma DUIMP existente (modo atual) em AXA HML</li><li>Observar as telas que consomem o serviço (Processamento — contadores; consulta de itens)</li><li>SQL: confirmar c_nvl_avb NULL / q_itn_agp NULL na <code>tb_itf_smx_dcl_pnd_dui</code></li><li>Confirmar que cada linha equivale a 1 item (nenhuma expansão), igual ao comportamento anterior à feature</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Serviço retorna a própria linha como 1 item quando c_nvl_avb é NULL; telas idênticas ao comportamento atual; regressão zero.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Serviço retorna a própria linha como 1 item quando c_nvl_avb é NULL; telas idênticas ao comportamento atual; regressão zero.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — Regressão zero: com as colunas de agregação ausentes (feature dormante), o serviço mantém 1 linha = 1 item e o WI/Siscomex processa/consulta normalmente, sem erro. · Ambiente: AXA HML · Build <code>V 1.0.260717.2050</code> · 20/07/2026 11:03
+          </div>
+          <div class="result-box" style="margin:0 0 10px;color:var(--text)">
+            <strong>Evidência SQL (base <code>smt-hom-citweb-axa</code>, 20/07/2026):</strong> as colunas <code>c_nvl_avb</code>, <code>q_itn_agp</code>, <code>t_itn_org_agp</code> <strong>NÃO existem</strong> em nenhuma tabela <code>tb_itf_smx_dcl%</code> (migration do agrupamento ainda não aplicada) → cenário flag-OFF por definição de schema. <code>tb_itf_smx_dcl_pnd_dui</code> = 1.370 linhas no modo atual.
+            <br><strong>Evidência UI:</strong> apólice <code>2501062203607</code> · mov <code>07/2026</code> · Processar DI's → <em>"Processamento efetuado com sucesso."</em> · contadores <strong>Lidas: 3 · Desprezadas: 2 · Inconsistentes: 1 · Incluídas: 0</strong> (idêntico ao comportamento pré-feature) · nenhuma exceção / "invalid column" na tela.
+          </div>
+          <img src="evidencias/CT-DAG-001/ev_DAG001_02_apolice_consultada_20260720-110310.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV1 — apólice 2501062203607 consultada, sem erro">
+          <div style="font-size:11px;color:#888;margin-top:3px">EV1 — Apólice consultada no modo atual (Declarações Adições → Processamento), sem erro de tela.</div>
+          <img src="evidencias/CT-DAG-001/ev_DAG001_03_form_criterio_DI_20260720-110310.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:10px" alt="EV2 — critério DI's marcado">
+          <div style="font-size:11px;color:#888;margin-top:3px">EV2 — Critério "Processar DI's" + Mês/Ano de Movimento 07/2026.</div>
+          <img src="evidencias/CT-DAG-001/ev_DAG001_04_resultado_contadores_20260720-110310.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:10px" alt="EV3 — processamento com sucesso, contadores 3/2/1/0">
+          <div style="font-size:11px;color:#888;margin-top:3px">EV3 — "Processamento efetuado com sucesso." + contadores 3/2/1/0 (regressão zero, sem expansão indevida).</div>
+        </div></div></div>
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-on">Grupo B — Interpretação/expansão com flag ON (diferido)</h2><span class="group-badge">6</span><span class="group-toggle">▼</span></div>
