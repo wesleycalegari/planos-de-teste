@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7834 — CHUBB CITNET: Conversor de Exportação estourava Index out of bounds</title>
+<style>
+  :root {
+    --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --border:#30363d; --text:#e6edf3; --text-muted:#8b949e;
+    --blue:#58a6ff; --blue-dim:#1f6feb; --blue-bg:#0a1628; --green:#3fb950; --green-bg:#061a0e;
+    --red:#f85149; --red-bg:#1a0505; --yellow:#d29922; --yellow-bg:#1a1200;
+    --ok:#3fb950; --fail:#f85149; --pend:#d29922; --block:#e3963e;
+    --p1-color:#f85149; --p1-bg:rgba(248,81,73,.12); --p1-border:rgba(248,81,73,.35);
+    --p2-color:#e3963e; --p2-bg:rgba(227,150,62,.12); --p2-border:rgba(227,150,62,.35);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',sans-serif; font-size:14px; line-height:1.6; }
+  .topbar { background:var(--bg2); border-bottom:1px solid var(--border); padding:10px 24px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .topbar-logo { font-size:13px; font-weight:700; color:var(--blue); border:1px solid var(--blue-dim); padding:2px 8px; border-radius:4px; }
+  .topbar-title { color:var(--text-muted); font-size:13px; }
+  .topbar-tags { display:flex; gap:6px; margin-left:auto; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700; }
+  .badge-bug{ background:var(--red-bg); color:var(--red); border:1px solid #5a1a1a; }
+  .badge-p1{ background:var(--p1-bg); color:var(--p1-color); border:1px solid var(--p1-border); }
+  .badge-p2{ background:var(--p2-bg); color:var(--p2-color); border:1px solid var(--p2-border); }
+  .badge-pend{ background:#1a1200; color:var(--yellow); border:1px solid #5a4000; }
+  .badge-pass{ background:var(--green-bg); color:var(--green); border:1px solid #1a5c2e; }
+  .badge-blk{ background:#1a1000; color:var(--block); border:1px solid #5a3800; }
+  .badge-citnet{ background:#1a1228; color:#c9a8f0; border:1px solid #4a3a6a; }
+  .badge-chubb{ background:#0a1a2a; color:#6ab4f0; border:1px solid #1a4a7a; }
+  .hero { background:linear-gradient(135deg,#0a1628 0%,#161b22 100%); border-bottom:2px solid var(--red); padding:24px 24px 18px; }
+  .hero-badges { display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .hero h1 { font-size:21px; font-weight:700; line-height:1.3; }
+  .hero .meta { margin-top:10px; display:flex; flex-wrap:wrap; gap:18px; font-size:12px; color:var(--text-muted); }
+  .hero .meta span strong { color:var(--text); }
+  .metrics-strip { background:var(--bg2); border-bottom:1px solid var(--border); padding:14px 24px; display:flex; gap:36px; flex-wrap:wrap; align-items:center; }
+  .metric .val { font-size:22px; font-weight:700; }
+  .metric .lbl { font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; }
+  .progress-bar { flex:1; min-width:200px; }
+  .progress-bar .pb-label { font-size:11px; color:var(--text-muted); margin-bottom:4px; }
+  .progress-bar .pb-track { background:var(--bg3); border-radius:4px; height:6px; }
+  .progress-bar .pb-fill { background:var(--yellow); border-radius:4px; height:6px; }
+  .content { max-width:1000px; margin:0 auto; padding:24px; }
+  .section { margin-bottom:28px; }
+  .section-title { font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid var(--border); padding-bottom:6px; margin-bottom:14px; }
+  .info-box { background:var(--blue-bg); border:1px solid var(--blue-dim); border-left:4px solid var(--blue); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .warn-box { background:var(--yellow-bg); border:1px solid #5a4000; border-left:4px solid var(--yellow); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .fail-box { background:var(--red-bg); border:1px solid #5a1a1a; border-left:4px solid var(--red); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  .ok-box { background:var(--green-bg); border:1px solid #1a5c2e; border-left:4px solid var(--green); border-radius:6px; padding:12px 16px; margin-bottom:10px; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:var(--bg3); color:var(--text-muted); text-align:left; padding:7px 12px; border:1px solid var(--border); font-size:11px; text-transform:uppercase; font-weight:600; }
+  td { padding:7px 12px; border:1px solid var(--border); vertical-align:top; }
+  tr:nth-child(even) td { background:#0f1117; }
+  code { background:var(--bg3); padding:1px 6px; border-radius:3px; font-family:'Consolas',monospace; font-size:12px; color:#e3b341; }
+  .group-hd { padding:8px 16px; border-radius:6px 6px 0 0; font-weight:700; font-size:13px; margin-top:20px; display:flex; align-items:center; gap:10px; color:#fff; }
+  .grp-bug{ background:#2a0808; } .grp-regr{ background:#2a1a00; }
+  .ct-block { background:var(--bg2); border:1px solid var(--border); border-radius:0 0 6px 6px; margin-bottom:2px; overflow:hidden; }
+  .ct-block.p1 { border-left:3px solid var(--p1-color); } .ct-block.p2 { border-left:3px solid var(--p2-color); }
+  .ct-head { padding:12px 16px; display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+  .ct-head:hover { background:var(--bg3); }
+  .ct-id { font-family:'Consolas',monospace; font-size:12px; color:var(--text-muted); white-space:nowrap; }
+  .ct-title { flex:1; font-weight:600; font-size:13px; }
+  .ct-toggle { color:var(--text-muted); font-size:12px; transition:transform .2s; }
+  .ct-block.expanded .ct-toggle { transform:rotate(90deg); }
+  .ct-body { display:none; border-top:1px solid var(--border); padding:16px; }
+  .ct-block.expanded .ct-body { display:block; }
+  .ct-section { margin-bottom:14px; }
+  .ct-section-lbl { font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  ol.steps { padding-left:22px; } ol.steps li { margin-bottom:5px; font-size:13px; }
+  .ct-result { background:var(--bg3); border:1px solid var(--border); border-radius:4px; padding:8px 12px; font-size:13px; color:var(--text-muted); margin-top:8px; }
+  .ev-placeholder { color:var(--text-muted); font-size:12px; font-style:italic; }
+  .cov-ok{ color:var(--ok); font-weight:700; } .cov-pend{ color:var(--pend); font-weight:700; }
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-7834 — CHUBB CITNET: Conversor de Exportação (Index out of bounds)</span>
+  <div class="topbar-tags">
+    <span class="badge badge-bug">BUG-7834</span>
+    <span class="badge badge-chubb">CHUBB</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-bug">BUG-7834</span>
+    <span class="badge badge-p2">Severidade 3 — Média</span>
+    <span class="badge badge-chubb">CHUBB HML</span>
+    <span class="badge badge-citnet">CITNET</span>
+    <span class="badge badge-pend">PRONTO P/ HOMOLOGAÇÃO</span>
+  </div>
+  <h1>Conversor de Exportação — <code>ConverterLinha</code> estourava "Index was outside the bounds of the array"</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET CHUBB HML</span>
+    <span><strong>Módulo:</strong> Conversor (Exportação · ramo 22)</span>
+    <span><strong>Epic:</strong> 7283 — Homologação CNPJ ALFA</span>
+    <span><strong>Sprint:</strong> Sprint_8_Sustentacao</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 20/07/2026</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)">3</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">1</div><div class="lbl">P1</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">2</div><div class="lbl">P2</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)">3</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label">0% executado — aguardando validação do plano + acesso CHUBB</div>
+    <div class="pb-track"><div class="pb-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="fail-box">
+      <strong>Bug reportado:</strong> No <strong>Conversor de Exportação</strong> do CITNET CHUBB, a conversão estourava
+      <code>ConversorController.Converter — Index was outside the bounds of the array. Documento vazia, preencha os dados corretamente e tente novamente!</code>
+      (versão 1.00.13, 17/07/2026). A funcionalidade de Exportação ficava indisponível / não gerava os arquivos.
+    </div>
+    <div class="ok-box">
+      <strong>Root cause (dev — Ivan):</strong> em <code>CitNetService/ConversorService.cs → ConverterLinha</code>, o acesso a
+      <code>colunasPlanilha[indice]</code> (layout mapeado por coluna de planilha) estourava <code>IndexOutOfRange</code> quando o índice
+      da coluna mapeada ultrapassava o número de colunas da linha (ou documento vazio). A exceção era capturada e reembrulhada na
+      mensagem genérica "... vazia, preencha os dados corretamente...". <strong>Fix:</strong> commit <code>22225c0b</code> / PR
+      <strong>#1859</strong> — adiciona bounds check em <code>colunasPlanilha[indice]</code>: campo tratado como vazio → linha
+      <strong>rejeitada com mensagem clara</strong> quando obrigatório, ou <strong>aceita</strong> quando não obrigatório.
+    </div>
+    <div class="info-box">
+      <strong>Validação do dev:</strong> RED→GREEN via harness de console contra o <code>CitNetService.dll</code> (config CHUBB, binário real) —
+      sem o fix reproduz a exceção idêntica ao card; com o fix trata o campo vazio. + fluxo geral de upload validado em 2 ambientes reais
+      (IIS local e HML <code>chubb-hml-faturamento.nsseg.com.br/citnet</code>, Filial 100 / Ramo 21 / upload .xlsx → grid populado, zero erros).
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Critérios de Aceite</div>
+    <ul style="padding-left:20px;font-size:13px;line-height:1.9">
+      <li><strong>CA1</strong> — Converter uma planilha de Exportação cujo layout mapeia uma coluna de Documento <strong>além dos limites da linha</strong> (ou com o documento vazio) <strong>não deve mais estourar</strong> <code>Index was outside the bounds of the array</code>. A linha deve ser <strong>rejeitada com mensagem de negócio clara</strong> (ex.: "CONTEÚDO NÃO ESTÁ PREENCHIDO") quando o campo é obrigatório, ou aceita quando não é.</li>
+      <li><strong>CA2</strong> — O <strong>fluxo geral do Conversor CHUBB</strong> (upload de planilha, importação) continua funcionando após o fix (sem regressão).</li>
+      <li><strong>CA3</strong> — (Desejável) Uma planilha de Exportação <strong>válida</strong> (documento preenchido) converte/processa com sucesso, gerando averbação.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Pré-requisitos e Riscos de Execução</div>
+    <div class="warn-box">
+      ⚠️ <strong>BLOQUEIOS A RESOLVER ANTES DA EXECUÇÃO (destacados para o Wesley):</strong>
+      <ul style="padding-left:18px;margin-top:6px">
+        <li><strong>Acesso CHUBB:</strong> não há credenciais CHUBB no <code>.env</code>. O dev acessou via "bypass de teste NSTECH". Ambiente: <code>chubb-hml-faturamento.nsseg.com.br/citnet</code> (não <code>/alfa/</code>). <strong>Preciso do usuário/senha CITNET CHUBB HML.</strong></li>
+        <li><strong>Layout de Exportação (o trecho corrigido):</strong> a ressalva do dev diz que o único layout disponível no ambiente de teste (NSTECH) é de <strong>largura fixa</strong> — não mapeado por coluna de planilha, que é <strong>exatamente</strong> a linha corrigida. Sem um <strong>layout de Exportação mapeado por planilha</strong>, o CA1 não é exercitável pela UI (o dev avaliou criar um de ~38 campos e descartou). <strong>Preciso do layout real de Exportação CHUBB (ou autorização para criá-lo).</strong></li>
+      </ul>
+      Enquanto os dois itens não forem resolvidos, o CA1 (linha exata do fix) fica <strong>BLOQUEADO por acesso/massa externa</strong>; a evidência primária permanece o RED→GREEN de console do dev. O CA2 (regressão do fluxo geral) é executável assim que houver acesso CHUBB.
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>URL CITNET</td><td><code>chubb-hml-faturamento.nsseg.com.br/citnet</code></td><td>Não usa <code>/alfa/</code> (404)</td></tr>
+        <tr><td>Login</td><td>⚠️ a confirmar (bypass NSTECH)</td><td>CHUBB ausente no <code>.env</code></td></tr>
+        <tr><td>Banco</td><td><code>smt-hom-citweb-chubb</code></td><td>Azure SQL</td></tr>
+        <tr><td>Ramo do bug</td><td><code>22 — Exportação</code></td><td>Fix em <code>ConverterLinha</code> (planilha)</td></tr>
+        <tr><td>Massa dev (fluxo geral)</td><td>Filial <code>100</code> · Ramo <code>21</code> · .xlsx</td><td>Usado na validação de regressão</td></tr>
+        <tr><td>Fix</td><td><code>22225c0b</code> / PR #1859</td><td><code>ConversorService.cs</code> ConverterLinha</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Casos de Teste</div>
+
+    <div class="group-hd grp-bug">🐛 Fix Verificado — bounds check em ConverterLinha</div>
+
+    <div class="ct-block p1" id="ct-CNV-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-001</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Converter Exportação com coluna de Documento fora dos limites → rejeita sem estourar (CA1)</span>
+        <span class="badge badge-pend" id="badge-CNV-001">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Tipo</div><p>Negativo / verificação de fix (linha exata corrigida)</p></div>
+        <div class="ct-section"><div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>Acesso ao CITNET CHUBB HML (⚠️ credenciais a confirmar)</li>
+            <li>Layout de <strong>Exportação mapeado por coluna de planilha</strong> (⚠️ a obter/criar — ver Riscos)</li>
+            <li>Planilha .xlsx com uma linha em que a coluna de Documento esteja vazia ou o layout mapeie coluna além do nº de colunas da linha</li>
+          </ul>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login no CITNET CHUBB → menu <strong>Conversor</strong></li>
+            <li>Selecionar Filial, Ramo <strong>22 (Exportação)</strong> e Segurado</li>
+            <li>Escolher a planilha e <strong>Importar</strong></li>
+            <li>Selecionar o layout de Exportação (planilha) → <strong>Converter</strong></li>
+            <li>Observar a mensagem/resultado da linha com Documento vazio</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ <strong>Nenhuma</strong> exceção "Index was outside the bounds of the array. Documento vazia...". A linha é <strong>rejeitada com mensagem de negócio clara</strong> (ex.: "CONTEÚDO NÃO ESTÁ PREENCHIDO") quando o Documento é obrigatório, ou aceita quando não é.</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-001">⏳ Pendente — depende do acesso CHUBB + layout de Exportação (ver Riscos). Evidência atual: RED→GREEN de console do dev.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar na execução (após acesso/layout).</div></div>
+      </div>
+    </div>
+
+    <div class="group-hd grp-regr">🔁 Regressão / Fluxo geral</div>
+
+    <div class="ct-block p2" id="ct-CNV-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-002</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="ct-title">Fluxo geral do Conversor CHUBB — upload de planilha popula o grid sem erros (CA2)</span>
+        <span class="badge badge-pend" id="badge-CNV-002">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Tipo</div><p>Regressão — o fix não quebrou o fluxo geral</p></div>
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Login no CITNET CHUBB → menu <strong>Conversor</strong></li>
+            <li>Selecionar Filial <code>100</code>, Ramo <code>21</code> e Segurado</li>
+            <li>Escolher planilha .xlsx válida e <strong>Importar</strong></li>
+            <li>Confirmar que o grid é populado, sem erros de console</li>
+            <li>Capturar screenshot</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Grid populado corretamente, sem exceção — reproduz o que o dev validou em HML CHUBB (2 linhas, zero erros).</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-002">⏳ Pendente — executável assim que houver acesso CHUBB.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar na execução.</div></div>
+      </div>
+    </div>
+
+    <div class="ct-block p2" id="ct-CNV-003">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-003</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="ct-title">Caminho feliz Exportação — planilha válida converte/processa (CA3, desejável)</span>
+        <span class="badge badge-pend" id="badge-CNV-003">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section"><div class="ct-section-lbl">Tipo</div><p>Positivo — caminho feliz Exportação (condicionado a layout disponível)</p></div>
+        <div class="ct-section"><div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Conversor CHUBB → Ramo 22 (Exportação) → layout de planilha → Importar planilha com todos os campos preenchidos</li>
+            <li><strong>Converter</strong> (informar linha inicial se solicitado) → <strong>Processar</strong></li>
+            <li>Confirmar conclusão com registro aceito</li>
+          </ol>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ Conversão/Processamento concluídos com ao menos 1 registro aceito, sem erro genérico.</div>
+        </div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-003">⏳ Pendente — depende de layout de Exportação + massa CHUBB ramo 22.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div><div class="ev-placeholder">A capturar na execução.</div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="section">
+    <div class="section-title">5. Rastreabilidade</div>
+    <table>
+      <thead><tr><th>Critério</th><th>CT</th><th>Prioridade</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CA1 — bounds check (linha exata do fix)</td><td>CT-CNV-001</td><td>P1</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA2 — regressão fluxo geral</td><td>CT-CNV-002</td><td>P2</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA3 — caminho feliz Exportação</td><td>CT-CNV-003</td><td>P2</td><td class="cov-pend">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">6. Riscos</div>
+    <table>
+      <thead><tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+      <tbody>
+        <tr><td>Credenciais CHUBB CITNET indisponíveis (ausentes no .env)</td><td>Alta</td><td>Alto</td><td>Obter usuário/senha com o Wesley; dev usou "bypass NSTECH"</td></tr>
+        <tr><td>Layout de Exportação mapeado por planilha inexistente no ambiente</td><td>Alta</td><td>Alto</td><td>Obter layout real CHUBB Exportação ou autorização p/ criar (~38 campos); senão CA1 fica BLOQUEADO e vale o RED→GREEN de console</td></tr>
+        <tr><td>Fix só reproduzível com o layout exato (planilha, não largura fixa)</td><td>Média</td><td>Médio</td><td>Documentado pela ressalva do dev; alinhar cobertura mínima com o Wesley</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<footer>BUG-7834 · CITNET CHUBB HML · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Plano 20/07/2026 · Aguardando validação + acesso CHUBB</footer>
+
+<script>
+  document.querySelectorAll('.ct-block').forEach(b => b.classList.add('expanded'));
+</script>
+</body>
+</html>
