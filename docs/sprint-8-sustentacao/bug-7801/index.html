@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7801 — CITNET AXA: Conversor limpa grid ao selecionar Layout e bloqueia Converter/Processar</title>
+<style>
+  :root {
+    --bg: #0d1117; --bg2: #161b22; --bg3: #21262d;
+    --border: #30363d; --text: #e6edf3; --text-muted: #8b949e;
+    --blue: #58a6ff; --blue-dim: #1f6feb; --blue-bg: #0a1628;
+    --green: #3fb950; --green-bg: #061a0e;
+    --red: #f85149; --red-bg: #1a0505;
+    --yellow: #d29922; --yellow-bg: #1a1200;
+    --ok: #3fb950; --fail: #f85149; --pend: #d29922; --block: #e3963e;
+    --p1-color: #f85149; --p1-bg: rgba(248,81,73,.12); --p1-border: rgba(248,81,73,.35);
+    --p2-color: #e3963e; --p2-bg: rgba(227,150,62,.12); --p2-border: rgba(227,150,62,.35);
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; }
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .topbar-logo { font-size: 13px; font-weight: 700; color: var(--blue); border: 1px solid var(--blue-dim); padding: 2px 8px; border-radius: 4px; }
+  .topbar-title { color: var(--text-muted); font-size: 13px; }
+  .topbar-tags { display: flex; gap: 6px; margin-left: auto; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+  .badge-bug   { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-p1    { background: var(--p1-bg); color: var(--p1-color); border: 1px solid var(--p1-border); }
+  .badge-p2    { background: var(--p2-bg); color: var(--p2-color); border: 1px solid var(--p2-border); }
+  .badge-pend  { background: #1a1200; color: var(--yellow); border: 1px solid #5a4000; }
+  .badge-pass  { background: var(--green-bg); color: var(--green); border: 1px solid #1a5c2e; }
+  .badge-fail  { background: var(--red-bg); color: var(--red); border: 1px solid #5a1a1a; }
+  .badge-citnet { background: #1a1228; color: #c9a8f0; border: 1px solid #4a3a6a; }
+  .badge-axa   { background: #0a1a2a; color: #6ab4f0; border: 1px solid #1a4a7a; }
+  .badge-blk   { background: #1a1000; color: var(--block); border: 1px solid #5a3800; }
+  .hero { background: linear-gradient(135deg, #0a1628 0%, #161b22 100%); border-bottom: 2px solid var(--red); padding: 24px 24px 18px; }
+  .hero-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .hero h1 { font-size: 21px; font-weight: 700; color: var(--text); line-height: 1.3; }
+  .hero .meta { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; font-size: 12px; color: var(--text-muted); }
+  .hero .meta span strong { color: var(--text); }
+  .metrics-strip { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; gap: 36px; flex-wrap: wrap; align-items: center; }
+  .metric .val { font-size: 22px; font-weight: 700; }
+  .metric .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .progress-bar { flex: 1; min-width: 200px; }
+  .progress-bar .pb-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .progress-bar .pb-track { background: var(--bg3); border-radius: 4px; height: 6px; }
+  .progress-bar .pb-fill { background: var(--blue); border-radius: 4px; height: 6px; transition: width .4s; }
+  .content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+  .section { margin-bottom: 28px; }
+  .section-title { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 14px; }
+  .info-box { background: var(--blue-bg); border: 1px solid var(--blue-dim); border-left: 4px solid var(--blue); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .warn-box { background: var(--yellow-bg); border: 1px solid #5a4000; border-left: 4px solid var(--yellow); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .fail-box { background: var(--red-bg); border: 1px solid #5a1a1a; border-left: 4px solid var(--red); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  .ok-box { background: var(--green-bg); border: 1px solid #1a5c2e; border-left: 4px solid var(--green); border-radius: 6px; padding: 12px 16px; margin-bottom: 10px; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg3); color: var(--text-muted); text-align: left; padding: 7px 12px; border: 1px solid var(--border); font-size: 11px; text-transform: uppercase; font-weight: 600; }
+  td { padding: 7px 12px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #0f1117; }
+  code { background: var(--bg3); padding: 1px 6px; border-radius: 3px; font-family: 'Consolas', monospace; font-size: 12px; color: #e3b341; }
+  .group-hd { padding: 8px 16px; border-radius: 6px 6px 0 0; font-weight: 700; font-size: 13px; margin-top: 20px; display: flex; align-items: center; gap: 10px; color: #fff; }
+  .grp-bug    { background: #2a0808; }
+  .grp-regr   { background: #2a1a00; }
+  .ct-block { background: var(--bg2); border: 1px solid var(--border); border-radius: 0 0 6px 6px; margin-bottom: 2px; overflow: hidden; }
+  .ct-block:not(:last-child) { border-radius: 0; }
+  .ct-block.p1 { border-left: 3px solid var(--p1-color); }
+  .ct-block.p2 { border-left: 3px solid var(--p2-color); }
+  .ct-head { padding: 12px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .ct-head:hover { background: var(--bg3); }
+  .ct-id { font-family: 'Consolas', monospace; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+  .ct-title { flex: 1; font-weight: 600; color: var(--text); font-size: 13px; }
+  .ct-toggle { color: var(--text-muted); font-size: 12px; transition: transform .2s; }
+  .ct-block.expanded .ct-toggle { transform: rotate(90deg); }
+  .ct-body { display: none; border-top: 1px solid var(--border); padding: 16px; }
+  .ct-block.expanded .ct-body { display: block; }
+  .ct-section { margin-bottom: 14px; }
+  .ct-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  ol.steps { padding-left: 22px; }
+  ol.steps li { margin-bottom: 5px; font-size: 13px; }
+  .ct-result { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); margin-top: 8px; }
+  .ev-section { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .ev-section-lbl { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .ev-grid { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+  .ev-item img { width: 100%; max-width: 420px; border-radius: 4px; border: 1px solid var(--border); cursor: pointer; }
+  .ev-item .ev-cap { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .ev-placeholder { color: var(--text-muted); font-size: 12px; font-style: italic; }
+  .cov-ok { color: var(--ok); font-weight: 700; }
+  .cov-fail { color: var(--fail); font-weight: 700; }
+  .cov-pend { color: var(--pend); font-weight: 700; }
+  #lb { display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:9999; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #lb.open { display:flex; }
+  #lb img { max-width:94vw; max-height:88vh; border-radius:6px; border:1px solid var(--border); }
+  #lb .lb-cap { color:#c9d1d9; font-size:13px; max-width:94vw; text-align:center; }
+  #lb .lb-close { position:fixed; top:14px; right:18px; font-size:28px; color:#c9d1d9; cursor:pointer; background:none; border:none; line-height:1; }
+  footer { text-align:center; color:var(--text-muted); font-size:12px; padding:24px; border-top:1px solid var(--border); margin-top:40px; }
+</style>
+</head>
+<body>
+<div id="lb">
+  <button class="lb-close" onclick="document.getElementById('lb').classList.remove('open')">✕</button>
+  <img id="lb-img" src=""><div class="lb-cap" id="lb-cap"></div>
+</div>
+
+<div class="topbar">
+  <span class="topbar-logo">QA</span>
+  <span class="topbar-title">Plano de Teste — BUG-7801 — CITNET AXA: Conversor limpa grid ao selecionar Layout</span>
+  <div class="topbar-tags">
+    <span class="badge badge-bug">BUG-7801</span>
+    <span class="badge badge-axa">AXA</span>
+    <span class="badge badge-citnet">CITNET</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-badges">
+    <span class="badge badge-bug">BUG-7801</span>
+    <span class="badge badge-p1">Severidade 2 — Alta</span>
+    <span class="badge badge-axa">AXA HML ALFA</span>
+    <span class="badge badge-citnet">CITNET</span>
+    <span class="badge badge-pend">PRONTO P/ HOMOLOGAÇÃO</span>
+  </div>
+  <h1>Conversor CITNET — selecionar Layout limpava os registros importados e bloqueava Converter/Processar</h1>
+  <div class="meta">
+    <span><strong>Sistema:</strong> CITNET AXA HML ALFA</span>
+    <span><strong>Módulo:</strong> Conversor</span>
+    <span><strong>Epic:</strong> 7283 — Homologação CNPJ ALFA</span>
+    <span><strong>Sprint:</strong> Sprint_8_Sustentacao</span>
+    <span><strong>QA:</strong> Wesley Moreira</span>
+    <span><strong>Data:</strong> 20/07/2026</span>
+  </div>
+</div>
+
+<div class="metrics-strip">
+  <div class="metric"><div class="val" style="color:var(--blue)" id="m-total">4</div><div class="lbl">Total CTs</div></div>
+  <div class="metric"><div class="val" style="color:var(--p1-color)">3</div><div class="lbl">P1 — Bloqueante</div></div>
+  <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2 — Importante</div></div>
+  <div class="metric"><div class="val" style="color:var(--green)" id="m-pass">0</div><div class="lbl">Aprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--red)" id="m-fail">0</div><div class="lbl">Reprovados</div></div>
+  <div class="metric"><div class="val" style="color:var(--yellow)" id="m-pend">4</div><div class="lbl">Pendentes</div></div>
+  <div class="progress-bar">
+    <div class="pb-label" id="pb-label">0% executado — aguardando execução do reteste</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%;background:var(--yellow)"></div></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="section">
+    <div class="section-title">1. Descrição</div>
+    <div class="fail-box">
+      <strong>Bug reportado:</strong> No <strong>Conversor do CITNET</strong> (AXA HML ALFA), depois de <strong>Importar</strong> um arquivo,
+      ao <strong>selecionar um Layout</strong> o grid de registros importados (<code>tbPlanilha</code>) <strong>zerava</strong> (0 linhas),
+      o botão Importar era desabilitado e o <strong>Converter virava no-op</strong> (nenhuma requisição de rede) — deixando o
+      <strong>Processar permanentemente bloqueado</strong>. Na ordem inversa (Layout antes do Importar), os registros apareciam mas
+      o Converter acusava <code>ATENÇÃO! Selecione um LayOut</code> (o valor do layout era descartado pelo Importar).
+      Em nenhuma das ordens era possível ter registros + layout ativos ao mesmo tempo → o Conversor ficava inoperante.
+    </div>
+    <div class="info-box">
+      <strong>Contexto:</strong> Achado de QA durante o reteste do <strong>BUG-7752</strong> (fix do <code>Processar</code>, CNPJ alfanumérico AXA),
+      em 15/07/2026. O #7801 <strong>bloqueou</strong> aquele reteste pela UI. Card filho do <strong>Epic #7283</strong> e <strong>Related ao #7752</strong>.
+      Tags <code>sem-gate2-po</code> + <code>sem-teams-notificacao</code> → fluxo de sustentação (sem gate de Produtos, sem notificação Teams).
+    </div>
+    <div class="info-box">
+      <strong>Ambiente:</strong> CITNET AXA HML ALFA · <code>axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code> (tela <code>/Conversor/Conversor</code>)
+      · Usuário <code>interno</code> (perfil INTERNO) — <strong>login direto</strong> no CITNET (o SSO do CITWEB retornava HTTP 500), sem selecionar filial ("Selecione...").
+    </div>
+    <div class="ok-box">
+      <strong>Root cause (análise do dev — Ivan):</strong> corrida de <em>timing</em> entre duas chamadas AJAX disparadas ao selecionar o Layout —
+      o re-import automático do arquivo (<code>LerPlanilhaUpLoad</code>, que popula o grid) e o <code>ConversorLayOut/ObterXPadrao</code>
+      (carga do mapeamento do layout, cujo <code>success</code> executa <code>$("#tbPlanilha").empty()</code>). Quando o <code>ObterXPadrao</code> respondia
+      <strong>depois</strong> do re-import, ele esvaziava o grid recém-populado → 0 linhas → Converter no-op.
+      <strong>Fix:</strong> commit <code>610759e9</code> (PR #1845) em <code>conversor.js</code> — serializa as chamadas, garantindo que os registros
+      importados permaneçam no grid após o mapeamento do layout carregar.
+      <strong>Validação do dev:</strong> local (5 cenários, padrão antigo reproduz / padrão novo mantém o grid) e <strong>em HML real pós-deploy</strong>
+      (upload real → grid com 2 linhas → seleciona Layout "Novo Layout de Entrada" → grid mantém as 2 linhas).
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">2. Critérios de Aceite</div>
+    <ul style="padding-left:20px;font-size:13px;line-height:1.9">
+      <li><strong>CA1</strong> — Após <strong>Importar</strong> o arquivo e selecionar um <strong>Layout salvo existente</strong>, os registros importados <strong>permanecem no grid</strong> (<code>tbPlanilha</code> não zera).</li>
+      <li><strong>CA2</strong> — Após Importar e selecionar <strong>"Novo Layout de Entrada"</strong>, os registros importados também <strong>permanecem no grid</strong>.</li>
+      <li><strong>CA3</strong> — Com registros + layout ativos, o botão <strong>Converter</strong> executa a conversão (dispara requisição de rede, exibe contadores) e <strong>libera o Processar</strong>.</li>
+      <li><strong>CA4</strong> — O <strong>Processar</strong> conclui o fluxo (averbação processada), sem o modal <code>Erro no processamento dos dados!</code> — desbloqueando o fluxo que o #7801 impedia.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <div class="section-title">3. Pré-requisitos e Massa de Dados</div>
+    <div class="warn-box">
+      ⚠️ Massa a <strong>confirmar in loco</strong> no início da execução (Playwright MCP). Valores abaixo vêm do card (reprodução original)
+      e da validação do dev em HML — o Segurado de teste foi criado pelo dev em <code>tb_cli</code> Filial 1 (base <code>smt-hom-citweb-axa</code>).
+    </div>
+    <table>
+      <thead><tr><th>Item</th><th>Valor</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>URL CITNET</td><td><code>axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code></td><td>Login direto (SSO CITWEB estava com HTTP 500)</td></tr>
+        <tr><td>Usuário</td><td><code>interno</code> (perfil INTERNO)</td><td>Senha via <code>.env</code> (<code>HML_AXA_CITNET_INTERNO_PASS</code>) — login <strong>sem selecionar filial</strong></td></tr>
+        <tr><td>Tela</td><td>Menu topo → <strong>Conversor</strong> (<code>/Conversor/Conversor</code>)</td><td>Navegação por clique</td></tr>
+        <tr><td>Filial</td><td><code>1 — SÃO PAULO</code></td><td>Selecionada no próprio Conversor (<code>#c_org_prd</code>)</td></tr>
+        <tr><td>Ramo</td><td><code>59 — RCV</code></td><td><code>#c_rmo</code> usa valor composto <code>59;CIT-AVB-RCV</code></td></tr>
+        <tr><td>Segurado</td><td><code>ITAMAR PRADO</code> (doc <code>79123025000132</code>) <em>ou</em> <code>11324123412412341234</code></td><td>Confirmar qual existe em <code>tb_cli</code> Filial 1 na execução</td></tr>
+        <tr><td>Layout</td><td><code>qa_rcv</code> (salvo) · <code>Novo Layout de Entrada</code></td><td>Cobrir os dois caminhos de seleção (CA1 e CA2)</td></tr>
+        <tr><td>Arquivo</td><td><code>rcv_ramo59_qa.xlsx</code> (≥1 linha)</td><td>Gerar via openpyxl se não existir · confirmar linha inicial = 2 (pular cabeçalho)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">4. Escopo</div>
+    <div class="info-box">
+      <strong>In scope:</strong> comportamento do grid ao selecionar Layout (salvo e novo) após Importar; disparo do Converter; liberação e execução do Processar — no Conversor CITNET AXA, ramo 59 RCV.<br>
+      <strong>Out of scope:</strong> regras de aceite/rejeição de averbação por CNPJ alfanumérico (escopo do #7752) — aqui só se valida que o Processar <strong>conclui</strong>, não os contadores de aceitos/rejeitados. Demais ramos/seguradoras do Conversor entram apenas como regressão amostral (CT-CNV-004).
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">5. Casos de Teste</div>
+
+    <!-- Grupo: Fix -->
+    <div class="group-hd grp-bug">🐛 Fix Verificado — grid retém registros e o fluxo Converter → Processar destrava</div>
+
+    <!-- CT-CNV-001 -->
+    <div class="ct-block p1" id="ct-CNV-001">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CNV-001</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Grid retém registros ao selecionar Layout salvo após Importar (CA1)</span>
+        <span class="badge badge-pend" id="badge-CNV-001">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Verificação de fix (comportamento core do bug)</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>Acesso ao CITNET AXA HML ALFA com usuário <code>interno</code></li>
+            <li>Arquivo <code>rcv_ramo59_qa.xlsx</code> (≥1 linha) e layout salvo <code>qa_rcv</code> disponíveis</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Acessar <code>axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code> e fazer login com usuário <code>interno</code> (sem selecionar filial)</li>
+            <li>No menu superior, clicar em <strong>Conversor</strong></li>
+            <li>Selecionar <strong>Filial</strong> <code>1 — SÃO PAULO</code></li>
+            <li>Selecionar <strong>Ramo</strong> <code>59 — RCV</code></li>
+            <li>Selecionar o <strong>Segurado</strong> de teste</li>
+            <li>Escolher o arquivo <code>rcv_ramo59_qa.xlsx</code> e clicar em <strong>Importar</strong> → confirmar que o grid é populado com N linhas</li>
+            <li>No campo <strong>Layout</strong>, selecionar <code>qa_rcv</code> (layout salvo)</li>
+            <li>Observar o grid <code>tbPlanilha</code> imediatamente após a seleção do layout</li>
+            <li>Capturar screenshot do grid</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O grid <strong>mantém as N linhas importadas</strong> (não zera) após selecionar o layout salvo. O botão <strong>Converter</strong> fica disponível. (Antes do fix: grid ia a 0 linhas / Converter no-op.)</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CNV-001">⏳ Pendente de execução.</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CNV-001"><span class="ev-placeholder">A capturar na execução: grid populado após Importar + grid preservado após seleção do layout.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-CNV-002 -->
+    <div class="ct-block p1" id="ct-CNV-002">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CNV-002</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Grid retém registros ao selecionar "Novo Layout de Entrada" após Importar (CA2)</span>
+        <span class="badge badge-pend" id="badge-CNV-002">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Segundo caminho de seleção de layout (cenário exato validado pelo dev em HML)</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>Mesmo ambiente/massa de CT-CNV-001</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>No Conversor (Filial 1 · Ramo 59 RCV · Segurado), escolher o arquivo <code>rcv_ramo59_qa.xlsx</code> e clicar em <strong>Importar</strong> (usar <strong>Novo</strong> antes, se vindo de outro teste)</li>
+            <li>Confirmar que o grid é populado com N linhas</li>
+            <li>No campo <strong>Layout</strong>, selecionar <strong>"Novo Layout de Entrada"</strong></li>
+            <li>Observar o grid <code>tbPlanilha</code> após a seleção</li>
+            <li>Capturar screenshot do grid</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O grid <strong>mantém as N linhas importadas</strong> após selecionar "Novo Layout de Entrada"; o painel de novo layout é exibido para o mapeamento. (Cenário reproduzido com sucesso pelo dev em HML: 2 linhas mantidas.)</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CNV-002">⏳ Pendente de execução.</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CNV-002"><span class="ev-placeholder">A capturar na execução: grid preservado após selecionar "Novo Layout de Entrada".</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CT-CNV-003 -->
+    <div class="ct-block p1" id="ct-CNV-003">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CNV-003</span>
+        <span class="badge badge-p1">P1</span>
+        <span class="ct-title">Converter dispara e libera o Processar (CA3)</span>
+        <span class="badge badge-pend" id="badge-CNV-003">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Positivo — Fluxo destravado pelo fix</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>CT-CNV-001 (ou 002) executado: grid com linhas + layout ativo</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Com o grid populado e layout ativo, clicar em <strong>Converter</strong></li>
+            <li>Se aparecer o modal <strong>"Informe a Linha Inicial"</strong>, informar <code>2</code> (pular cabeçalho) e confirmar</li>
+            <li>Observar a requisição de rede e a mensagem/contadores de resultado</li>
+            <li>Verificar se o botão <strong>Processar</strong> ficou habilitado</li>
+            <li>Capturar screenshot do resultado da conversão</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O Converter <strong>dispara</strong> a requisição (<code>POST /Conversor/Converter</code> → HTTP 200) e exibe <strong>"CONVERSÃO FINALIZADA"</strong> com contadores; o botão <strong>Processar</strong> fica habilitado. (Antes: Converter era no-op, sem requisição, Processar seguia desabilitado.)</div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CNV-003">⏳ Pendente de execução.</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CNV-003"><span class="ev-placeholder">A capturar na execução: modal de linha inicial, "CONVERSÃO FINALIZADA" com contadores, Processar habilitado.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Grupo: Regressão -->
+    <div class="group-hd grp-regr">🔁 Regressão / Fluxo completo</div>
+
+    <!-- CT-CNV-004 -->
+    <div class="ct-block p2" id="ct-CNV-004">
+      <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
+        <span class="ct-toggle">▶</span>
+        <span class="ct-id">CT-CNV-004</span>
+        <span class="badge badge-p2">P2</span>
+        <span class="ct-title">Processar conclui o fluxo end-to-end sem erro genérico (CA4 — desbloqueio do #7752)</span>
+        <span class="badge badge-pend" id="badge-CNV-004">PENDENTE</span>
+      </div>
+      <div class="ct-body">
+        <div class="ct-section">
+          <div class="ct-section-lbl">Tipo</div>
+          <p>Regressão — Fluxo completo Importar → Layout → Converter → Processar</p>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Pré-condições</div>
+          <ul style="padding-left:18px;font-size:13px">
+            <li>CT-CNV-003 executado (Converter concluído, Processar habilitado)</li>
+          </ul>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Passos</div>
+          <ol class="steps">
+            <li>Após a conversão, clicar em <strong>Processar</strong></li>
+            <li>Observar a mensagem/contadores do processamento</li>
+            <li>Confirmar que não aparece o modal <code>Erro no processamento dos dados!</code></li>
+            <li>Capturar screenshot do resultado do Processar</li>
+          </ol>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Esperado</div>
+          <div class="ok-box">✓ O Processar <strong>conclui</strong> exibindo <strong>"PROCESSAMENTO FINALIZADO"</strong> com contadores (Lidos/Aceitos/Rejeitados), sem o erro genérico. O fluxo que o #7801 bloqueava volta a funcionar (destrava o reteste do #7752). <em>Aceitos/rejeitados por CNPJ são escopo do #7752, não deste card.</em></div>
+        </div>
+        <div class="ct-section">
+          <div class="ct-section-lbl">Resultado Obtido</div>
+          <div class="ct-result" id="result-CNV-004">⏳ Pendente de execução.</div>
+        </div>
+        <div class="ev-section">
+          <div class="ev-section-lbl">Evidências</div>
+          <div class="ev-grid" id="ev-CNV-004"><span class="ev-placeholder">A capturar na execução: "PROCESSAMENTO FINALIZADO" com contadores, sem modal de erro genérico.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /section CTs -->
+
+  <div class="section">
+    <div class="section-title">6. Rastreabilidade</div>
+    <table>
+      <thead><tr><th>Critério de Aceite</th><th>CT(s)</th><th>Prioridade</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>CA1 — Grid retém registros (layout salvo)</td><td>CT-CNV-001</td><td>P1</td><td class="cov-pend" id="sum-CNV-001">PENDENTE</td></tr>
+        <tr><td>CA2 — Grid retém registros (novo layout)</td><td>CT-CNV-002</td><td>P1</td><td class="cov-pend" id="sum-CNV-002">PENDENTE</td></tr>
+        <tr><td>CA3 — Converter dispara e libera Processar</td><td>CT-CNV-003</td><td>P1</td><td class="cov-pend" id="sum-CNV-003">PENDENTE</td></tr>
+        <tr><td>CA4 — Processar conclui end-to-end</td><td>CT-CNV-004</td><td>P2</td><td class="cov-pend" id="sum-CNV-004">PENDENTE</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="section-title">7. Riscos</div>
+    <table>
+      <thead><tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr></thead>
+      <tbody>
+        <tr><td>Bug é corrida de timing — pode não reproduzir sempre em rede rápida</td><td>Média</td><td>Alto</td><td>Repetir o ciclo Importar→Layout algumas vezes; validar em condições reais de HML (o dev já reproduziu o antigo e validou o novo)</td></tr>
+        <tr><td>Segurado/massa de teste ausente na Filial 1</td><td>Média</td><td>Médio</td><td>Confirmar em <code>tb_cli</code> na execução; criar registro mínimo se necessário (como o dev fez)</td></tr>
+        <tr><td>SSO CITWEB→CITNET com HTTP 500</td><td>Baixa</td><td>Médio</td><td>Login direto <code>/alfa/citnet/</code> (autorizado)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div><!-- /content -->
+
+<footer>BUG-7801 · CITNET AXA HML ALFA · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Plano 20/07/2026 · Aguardando execução do reteste</footer>
+
+<script>
+  function openLB(src, cap) {
+    document.getElementById('lb-img').src = src;
+    document.getElementById('lb-cap').textContent = cap;
+    document.getElementById('lb').classList.add('open');
+  }
+  document.getElementById('lb').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+  // Auto-expandir todos os CTs
+  document.querySelectorAll('.ct-block').forEach(function(b){ b.classList.add('expanded'); });
+</script>
+</body>
+</html>
