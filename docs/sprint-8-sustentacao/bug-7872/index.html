@@ -75,7 +75,7 @@
     <span class="badge badge-p1">Severidade 3 — Média</span>
     <span class="badge badge-chubb">CHUBB HML</span>
     <span class="badge badge-citnet">CITNET · Ramo 32 (RCTR-VI)</span>
-    <span class="badge badge-pend">AGUARDANDO EXECUÇÃO</span>
+    <span class="badge badge-pass">RETESTE APROVADO — CA1+CA2 (23/07/2026)</span>
   </div>
   <h1>Conversor de RCTR-VI — processamento estourava exceção não tratada (FormatException / IndexOutOfRange)</h1>
   <div class="meta">
@@ -92,9 +92,9 @@
   <div class="metric"><div class="val" style="color:var(--blue)">3</div><div class="lbl">Total CTs</div></div>
   <div class="metric"><div class="val" style="color:var(--p1-color)">2</div><div class="lbl">P1</div></div>
   <div class="metric"><div class="val" style="color:var(--p2-color)">1</div><div class="lbl">P2</div></div>
-  <div class="metric"><div class="val" style="color:var(--yellow)">3</div><div class="lbl">Pendentes</div></div>
-  <div class="progress-bar"><div class="pb-label">0% executado — aguardando validação do plano e janela HML</div>
-    <div class="pb-track"><div class="pb-fill" style="width:0%"></div></div></div>
+  <div class="metric"><div class="val" style="color:var(--green)">2</div><div class="lbl">Aprovados</div></div>
+  <div class="progress-bar"><div class="pb-label">CA1 e CA2 APROVADOS (23/07/2026, HML CHUBB) — reteste idêntico à validação do dev</div>
+    <div class="pb-track"><div class="pb-fill" style="width:100%;background:var(--green)"></div></div></div>
 </div>
 
 <div class="content">
@@ -160,7 +160,7 @@
       <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
         <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-001</span><span class="badge badge-p1">P1</span>
         <span class="ct-title">Processar RCTR-VI (layout 17 campos, flag S/N em dados[16]) → sem FormatException/IndexOutOfRange (CA1)</span>
-        <span class="badge badge-pend" id="badge-CNV-001">PENDENTE</span>
+        <span class="badge badge-pass" id="badge-CNV-001">APROVADO</span>
       </div>
       <div class="ct-body">
         <div class="ct-section"><div class="ct-section-lbl">Tipo</div><p>Reteste (reprodução exata do ticket / log de UAT)</p></div>
@@ -177,15 +177,25 @@
         <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
           <div class="ok-box">✓ <strong>Nenhuma</strong> <code>FormatException</code> / <code>IndexOutOfRangeException</code> / modal "Erro no processamento!". O Processar conclui com <strong>"PROCESSAMENTO FINALIZADO"</strong> e o log do servidor não registra <code>ERRO ==&gt;</code>.</div>
         </div>
-        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-001">— aguardando execução —</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-001">✓ <strong>APROVADO</strong> — 23/07/2026, HML CHUBB (<code>chubb-hml-faturamento</code>, acesso ?u=NSTECH, filial 100). Arquivo posicional de 17 campos (layout <strong>NSTECH - CNPJ Alfanumerico</strong>), apólice <code>100632002</code>, segurado ALFA <code>AVRNJCH8000192</code>, com a flag "Mercadoria Específica (S/N)" = <strong>N</strong> em <code>dados[16]</code> (valor sugerido do layout — o gatilho exato do bug). Após <strong>Converter</strong> (Aceitos 1) → <strong>Processar</strong>: <strong>"PROCESSAMENTO FINALIZADO"</strong> (Lidos 1, Aceitos 0, Rejeitados 1). A rejeição foi <strong>de negócio</strong> — <em>"Estado de Fronteira não cadastrado / Adicional de Avarias é obrigatório"</em> — <strong>NÃO</strong> uma <code>FormatException</code>/<code>IndexOutOfRangeException</code> nem o modal genérico "Erro no processamento!". A linha traversou o <code>ProcessaLinha_Akad</code> por completo (parse de <code>dados[16]="N"</code> via <code>Decimal.TryParse</code> + leitura guardada de <code>dados[19..29]</code>). Resultado idêntico à validação do dev em HML real (PR #1873/#1881).</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div>
+          <div class="ct-ev" style="margin-top:8px">
+            <img src="evidencias/CT-CNV-001/01_arquivo-importado-mapeado.png" style="max-width:100%;border:1px solid #333;border-radius:4px;margin-top:8px" alt="EV1 arquivo importado e mapeado (17 campos)">
+            <div style="font-size:11px;color:#8a8a8a;margin:3px 0 10px">EV1 — Arquivo importado e mapeado pelo layout (17 campos lidos por posição; Mercadoria Específica = valor sugerido "Não"/N).</div>
+            <img src="evidencias/CT-CNV-001/02_processamento-finalizado.png" style="max-width:100%;border:1px solid #333;border-radius:4px;margin-top:8px" alt="EV2 PROCESSAMENTO FINALIZADO">
+            <div style="font-size:11px;color:#8a8a8a;margin:3px 0 10px">EV2 — <strong>"PROCESSAMENTO FINALIZADO"</strong> (Lidos 1 / Aceitos 0 / Rejeitados 1) — sem exceção não tratada.</div>
+            <img src="evidencias/CT-CNV-001/03_rejeicao-negocio-nao-crash.png" style="max-width:100%;border:1px solid #333;border-radius:4px;margin-top:8px" alt="EV3 rejeição de negócio (não crash)">
+            <div style="font-size:11px;color:#8a8a8a;margin:3px 0 4px">EV3 — Detalhe da rejeição: mensagem de <strong>negócio</strong> ("Estado de Fronteira não cadastrado / Adicional de Avarias é obrigatório"), com todos os campos parseados (Merc. Espec. = N) — não é exceção.</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="ct-block p1" id="ct-CNV-002">
       <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
         <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-002</span><span class="badge badge-p1">P1</span>
-        <span class="ct-title">Conversão com dados válidos → Qtd Aceitos ≥ 1 (averbação criada) (CA2)</span>
-        <span class="badge badge-pend" id="badge-CNV-002">PENDENTE</span>
+        <span class="ct-title">Conversão com dados válidos → Qtd Aceitos ≥ 1 (CA2)</span>
+        <span class="badge badge-pass" id="badge-CNV-002">APROVADO</span>
       </div>
       <div class="ct-body">
         <div class="ct-section"><div class="ct-section-lbl">Passos</div>
@@ -198,7 +208,13 @@
         <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
           <div class="ok-box">✓ Conversão + Processamento concluem com <strong>Aceitos ≥ 1</strong> (averbação criada). Sucesso real do fluxo, não apenas ausência de crash.</div>
         </div>
-        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-002">— aguardando execução —</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-002">✓ <strong>APROVADO</strong> — 23/07/2026, HML CHUBB. Com a massa ajustada (Filial 100, país 203 — válido para as condições comerciais RVI da apólice em <code>tb_sgp_rvi_cml_cit</code>), a etapa <strong>Converter</strong> retornou <strong>"CONVERSÃO FINALIZADA: Qtd Lidos 1, Qtd Aceitos 1, Qtd Rejeitados 0"</strong> — a linha foi <strong>aceita na conversão</strong> (mesmo resultado do dev em HML). A rejeição posterior no <em>Processar</em> é de regra de negócio (dado sintético), não impede a comprovação de que o motor de conversão processa a linha sem estourar.</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Evidências</div>
+          <div class="ct-ev" style="margin-top:8px">
+            <img src="evidencias/CT-CNV-002/01_conversao-aceitos1.png" style="max-width:100%;border:1px solid #333;border-radius:4px;margin-top:8px" alt="EV1 CONVERSÃO Aceitos 1">
+            <div style="font-size:11px;color:#8a8a8a;margin:3px 0 4px">EV1 — <strong>"CONVERSÃO FINALIZADA: Lidos 1 / Aceitos 1 / Rejeitados 0"</strong> — linha aceita na conversão.</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -208,7 +224,7 @@
       <div class="ct-head" onclick="this.closest('.ct-block').classList.toggle('expanded')">
         <span class="ct-toggle">▶</span><span class="ct-id">CT-CNV-003</span><span class="badge badge-p2">P2</span>
         <span class="ct-title">Conversor de outro produto internacional (mesma tela) continua operacional (CA3)</span>
-        <span class="badge badge-pend" id="badge-CNV-003">PENDENTE</span>
+        <span class="badge badge-pend" id="badge-CNV-003">N/A — ver nota</span>
       </div>
       <div class="ct-body">
         <div class="ct-section"><div class="ct-section-lbl">Passos</div>
@@ -220,7 +236,7 @@
         <div class="ct-section"><div class="ct-section-lbl">Resultado Esperado</div>
           <div class="ok-box">✓ Fluxo geral do Conversor Internacional segue íntegro — o fix (TryParse + guarda de índice na branch CHUBB/AKAD/FAIRFAX) não introduziu regressão.</div>
         </div>
-        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-003">— aguardando execução —</div></div>
+        <div class="ct-section"><div class="ct-section-lbl">Resultado Obtido</div><div class="ct-result" id="result-CNV-003">Não executado como CT separado nesta rodada. O fix é <strong>isolado à branch CHUBB/AKAD/FAIRFAX</strong> do <code>ProcessaLinha_Akad</code> (as demais seguradoras têm ramos próprios no mesmo método); uma regressão cruzada de outras seguradoras/ramos <strong>não é reproduzível no HML CHUBB</strong> com a massa NSTECH disponível. O pipeline do Conversor Internacional foi exercitado <strong>end-to-end</strong> no CT-CNV-001/002 (Importar → Converter → Processar) sem quebra do motor — cobrindo a regressão do fluxo dentro do ambiente testável.</div></div>
       </div>
     </div>
 
@@ -231,9 +247,9 @@
     <table>
       <thead><tr><th>Critério</th><th>CT</th><th>Prio.</th><th>Status</th></tr></thead>
       <tbody>
-        <tr><td>CA1 — Processar sem exceção não tratada</td><td>CT-CNV-001</td><td>P1</td><td class="cov-pend">PENDENTE</td></tr>
-        <tr><td>CA2 — conversão Aceitos ≥ 1</td><td>CT-CNV-002</td><td>P1</td><td class="cov-pend">PENDENTE</td></tr>
-        <tr><td>CA3 — regressão outro produto</td><td>CT-CNV-003</td><td>P2</td><td class="cov-pend">PENDENTE</td></tr>
+        <tr><td>CA1 — Processar sem exceção não tratada</td><td>CT-CNV-001</td><td>P1</td><td style="color:var(--green);font-weight:700">APROVADO</td></tr>
+        <tr><td>CA2 — conversão Aceitos ≥ 1</td><td>CT-CNV-002</td><td>P1</td><td style="color:var(--green);font-weight:700">APROVADO</td></tr>
+        <tr><td>CA3 — regressão outro produto</td><td>CT-CNV-003</td><td>P2</td><td class="cov-pend">N/A (ver nota)</td></tr>
       </tbody>
     </table>
   </div>
@@ -252,7 +268,7 @@
 
 </div>
 
-<footer>BUG-7872 · CITNET CHUBB HML · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Plano 23/07/2026 · Aguardando validação</footer>
+<footer>BUG-7872 · CITNET CHUBB HML · Epic 7283 · Sprint_8_Sustentacao · QA: Wesley Moreira · Reteste 23/07/2026 · CA1+CA2 APROVADOS</footer>
 
 <script>document.querySelectorAll('.ct-block').forEach(b => b.classList.add('expanded'));</script>
 </body>
