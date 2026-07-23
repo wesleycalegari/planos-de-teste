@@ -72,6 +72,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 .ct-title{flex:1;font-size:13px}
 .badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
 .badge-pendente{background:#21262d;color:var(--muted)}
+.badge-erro{background:#3d1418;color:#f1707a}
 .badge-novo{background:#2d1a4d;color:#c4b5fd;font-size:10px}
 .badge-rev{background:#1f1a0d;color:var(--yellow);font-size:10px}
 .badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
@@ -146,14 +147,19 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">10</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">10</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-rep"><div class="metric-val">1</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val">9</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
-<!-- marcadores ocultos de contagem para o dashboard (10 CTs pendentes) -->
+<div style="margin-top:16px;border:1px solid #d13438;border-left:4px solid #d13438;background:#3d1418;border-radius:6px;padding:12px 16px">
+  <div style="color:#f1707a;font-weight:700;font-size:14px">&#9940; Execução bloqueada por erro no Conversor — CT-CIM-001 REPROVADO (bug #7888)</div>
+  <p style="color:#f5c2c7;font-size:13px;margin-top:6px">Ao selecionar o layout no Conversor de Importação (AXA HML padrão, build V 1.0.260722.1142), a chamada <code>POST /Conversor/Conversor/SelecionaLayout</code> retorna <strong>HTTP 502</strong> e a tela vira página de erro. Reproduzido <strong>4×</strong> (2 sessões, arquivos com e sem cabeçalho); resposta imediata do origin (~200 ms, cloudflare, retry-after:60) — não é timeout de processamento. <strong>Toda a suíte fica bloqueada</strong> (não é possível Converter/Processar) até a correção. Defeito registrado na Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7888" style="color:#f1707a">#7888</a> (AssignedTo Andreia). Os demais CTs seguem PENDENTE e serão retomados quando o endpoint responder.</p>
+</div>
+
+<!-- marcadores ocultos de contagem para o dashboard (1 reprovado + 9 pendentes) -->
 <div style="display:none" aria-hidden="true">
-<span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span>
+<span class="ev-badge ev-reprovado"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span>
 </div>
 
 <div class="container">
@@ -164,10 +170,10 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <p><strong>Out of scope:</strong> validação em produção (só HML); implementação do agrupamento DUIMP (outros cards); refatorações fora do conversor de Importação.</p>
     <p><strong>Pré-requisitos:</strong></p>
     <ul>
-      <li>Ambiente: <strong>CITWEB HML AXA</strong> — usuário <code>FRED</code> / senha em <code>.env</code> (<code>HML_AXA_*</code>); 2º usuário p/ concorrência: <code>QA</code>. <span class="tbd">[confirmar /alfa/ vs padrão na Fase 0]</span></li>
+      <li>Ambiente: <strong>CITWEB HML AXA padrão</strong> (base <code>smt-hom-citweb-axa</code>) — usuário <code>FRED</code> / senha em <code>.env</code> (<code>HML_AXA_*</code>); 2º usuário p/ concorrência: <code>QA</code>. <em>(Fase 0 confirmada 23/07: ambiente padrão, não /alfa/ — a apólice 1910 é ramo 22 no padrão.)</em></li>
       <li>Fix deployado em HML (PR #1379 + #1381 — 20/07). Task #7748 = Done.</li>
       <li>Cotação USD (código 220) vigente — <strong>Tabelas → Cadastros → Cotações de Moeda</strong> (obrigatório p/ internacional).</li>
-      <li>Arquivo de Importação de teste com <strong>≥ 7.000 registros</strong> <span class="tbd">[massa a gerar]</span> + arquivo pequeno para smoke. Ver "Base de automação" abaixo.</li>
+      <li>Arquivo de Importação de teste com <strong>≥ 7.000 registros</strong> <em>(gerado: <code>cim_volume_7500.xlsx</code>, anexado ao PBI)</em> + arquivo pequeno para smoke (<code>cim_smoke_20.xlsx</code>). Gerador: <code>testes-automatizados/sprint-11/pbi-7681/gerar_arquivo_importacao.py</code>.</li>
       <li>Apólice(s) de Importação AXA (produto 25) vigente(s) para vincular as averbações.</li>
       <li>Acesso SQL HML (base <code>smt-hom-citweb-axa</code>) para conferir fila de pendentes, averbações gravadas e valores (prêmio, país/estado, navio, mercadoria).</li>
     </ul>
@@ -185,7 +191,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-001</span>
         <span class="ct-title">Conversão com cache de mercadoria — paridade de resultado do parsing</span>
-        <span class="badge badge-rev">REVISADO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-rev">REVISADO</span><span class="badge badge-p1">P1</span><span class="badge badge-erro">REPROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> HML AXA disponível; cotação USD vigente; arquivo de Importação com mercadorias variadas (incluindo nomes repetidos entre linhas).</div>
@@ -193,11 +199,27 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
         <h4>Passos</h4>
         <ol>
           <li>Logar no CITWEB HML AXA (por clique).</li>
-          <li>Navegar até o Conversor de Importação <span class="tbd">[caminho de menu a validar in loco na Fase 0]</span>.</li>
+          <li>Navegar até o Conversor de Importação: <strong>Conversor de Arquivos → Converte Arquivo → Importação</strong> (confirmado 23/07).</li>
           <li>Fazer upload do arquivo e executar a <strong>Conversão</strong>.</li>
           <li>Conferir na grade/pré-visualização (e via SQL nos pendentes convertidos) que os <strong>códigos de mercadoria</strong> resolvidos batem com os nomes do arquivo — inclusive para mercadorias que se repetem em linhas diferentes.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Conversão conclui sem erro; código de mercadoria correto por linha (mesmo com nomes repetidos); nenhuma divergência introduzida pelo cache. Cobre o bug "mercadoria incorreta" corrigido no caminho.</div>
+
+        <h4>Resultado Obtido</h4>
+        <div style="border:1px solid #d13438;border-left:3px solid #d13438;background:#3d1418;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#f1707a;font-weight:700;font-size:13px">&#10007; REPROVADO — 23/07/2026 · AXA HML padrão (smt-hom-citweb-axa) · build V 1.0.260722.1142 · usuário FRED</div>
+          <p style="color:#f5c2c7;font-size:12px;margin-top:6px">Fluxo executado por clique: <strong>Conversor de Arquivos → Converte Arquivo → Importação</strong>. Upload do arquivo e conversão para TXT funcionaram (modal "A planilha será convertida para TXT. Confirma?" → Sim). Ao <strong>selecionar o layout</strong> "CARD 7681 - REFATORAÇÃO IMPORTAÇÃO", a chamada <code>POST /Conversor/Conversor/SelecionaLayout</code> retornou <strong>HTTP 502 (Bad Gateway)</strong> e a tela virou página de erro — impossível seguir para Converter/Processar.</p>
+          <p style="color:#f5c2c7;font-size:12px;margin-top:6px"><strong>Reproduzido 4×:</strong> 2× na mesma sessão · 1× em sessão totalmente nova · 1× com arquivo <strong>sem cabeçalho</strong> (independe do arquivo). Resposta rápida do origin (~170–200 ms), <code>server: cloudflare</code>, <code>retry-after: 60</code> — não é timeout de processamento. Todo o resto do app responde normal (login, menus, Importar, conversão xlsx→TXT, render do mapeamento de 45 campos). Defeito na Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7888" style="color:#f1707a">#7888</a>.</p>
+          <div class="ev-section" id="ev-CT-CIM-001" style="margin-top:8px">
+            <img src="evidencias/CT-CIM-001/ev_CTCIM001_01_conversor-importacao-inicial_20260723.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV1 tela inicial do Conversor de Importação">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — Conversor de Importação (tela inicial: seletor de arquivo, Importar, orientação de 60 mil regs)</div>
+            <img src="evidencias/CT-CIM-001/ev_CTCIM001_BLOQUEIO_502_selecionalayout_20260723.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV2 502 com cabeçalho">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV2 — 502 ao selecionar o layout (arquivo COM cabeçalho)</div>
+            <img src="evidencias/CT-CIM-001/ev_CTCIM001_BUG_502_semcab_20260723.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV3 502 sem cabeçalho">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV3 — 502 ao selecionar o layout (arquivo SEM cabeçalho) — mesma falha</div>
+          </div>
+          <p style="color:var(--muted);font-size:11px;margin-top:6px">Arquivos usados (anexados à Task #7888): cim_smoke_20.xlsx e cim_smoke_20_sem_cab.xlsx. Massa: apólice 1910 / filial 1 / sgp 1, ramo 22, vigente 01/07/2026–01/07/2027.</p>
+        </div>
       </div>
     </div>
 
