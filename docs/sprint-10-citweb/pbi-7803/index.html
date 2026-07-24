@@ -83,8 +83,8 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
   </div>
   <div class="info-box">
     <h3>Contexto</h3>
-    <p>No processamento de DI's/DUIMP's, os contadores <code>lblDILida</code>, <code>lblDIDesprezada</code>, <code>lblDIInconsistente</code> e <code>lblDIIncluida</code> devem refletir a <strong>quantidade real de itens processados</strong>, e não a quantidade de <strong>linhas lidas</strong> — porque, com o agrupamento DUIMP, uma única <strong>linha agregada</strong> representa vários itens.</p>
-    <p><strong>CA:</strong> (1) o contador soma <code>q_itn_agp</code> da linha em vez de +1 por linha lida; (2) comportamento validado com a flag <strong>ligada e desligada</strong>, em <strong>SQL Server e Oracle</strong>; (3) atualização via SignalR continua em tempo real, sem degradação perceptível.</p>
+    <p>No processamento de DI's/DUIMP's, os contadores <code>lblDILida</code>, <code>lblDIDesprezada</code>, <code>lblDIInconsistente</code> e <code>lblDIIncluida</code> devem refletir o número de <strong>averbações</strong> processadas — <strong>não</strong> o número de itens contidos no agrupamento (regra definida pela Fabiola no Gate 2, confirmada pelo Wesley em 24/07 — ver box verde abaixo).</p>
+    <p><strong>CA original do card:</strong> (1) o contador soma <code>q_itn_agp</code> da linha em vez de +1 por linha lida; (2) comportamento validado com a flag <strong>ligada e desligada</strong>, em <strong>SQL Server e Oracle</strong>; (3) atualização via SignalR continua em tempo real, sem degradação perceptível. ⚠️ O item (1) do CA (somar <code>q_itn_agp</code> = itens) <strong>diverge</strong> da regra decidida pela PO (averbações) — ponto de atenção na execução do Grupo B.</p>
     <p>Backend: <code>DIProcessamentoController.Processar()</code>, broadcast via <code>DIProcessamentoHub.AtualizaContadoresDI()</code>. <strong>Depende do serviço de expansão de linha agregada DUIMP</strong> (PBI #7802 — "serviço único de expansão").</p>
   </div>
 </div>
@@ -99,11 +99,11 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
   </ul>
 </div>
 
-<div class="deploy-warn" style="border-left-color:#ca5010;background:#fff4ce;">
-  <h3>🟠 Gate 2 — apontamento da Fabiola (24/07/2026) · revalidação Wesley pendente</h3>
-  <p>Fabiola validou o plano, com <strong>2 pontos</strong>:</p>
+<div class="deploy-warn" style="border-left-color:#107c10;background:#dff6dd;">
+  <h3>🟢 Gate 2 — Fabiola validou (24/07/2026) · regra DECIDIDA pelo Wesley</h3>
+  <p>Fabiola validou o plano, com <strong>2 pontos</strong> — ambos já incorporados:</p>
   <ul>
-    <li><strong>(1) Regra do contador — a CONFIRMAR:</strong> segundo a Fabiola, <em>"os números exibidos em tela devem corresponder ao número de <strong>averbações</strong>, e não de itens contidos no agrupamento"</em>. ⚠️ Isso <strong>conflita</strong> com o CA/definição atual do plano (e da implementação), que soma <code>q_itn_agp</code> = <strong>itens</strong> (ver CT-CTD-002/003: "q_itn_agp=5 → contador soma 5, não 1"). Se a regra correta for <strong>averbações</strong>, o resultado esperado de CT-CTD-002/003 se inverte e o <code>AtualizaContadoresDIPorItens</code> (que soma <code>q_itn_agp</code>) pode estar contando errado. <strong>Escalado ao Wesley para decidir a regra antes de executar.</strong> Enquanto não houver decisão, CT-CTD-002/003 ficam com o resultado esperado <em>sob revisão</em>.</li>
+    <li><strong>(1) Regra do contador — DEFINIDA:</strong> os números exibidos em tela devem corresponder ao número de <strong>averbações</strong>, e <strong>não</strong> ao número de itens contidos no agrupamento. Wesley confirmou em 24/07 (Telegram): <em>"siga a orientação da Fabiola"</em>. ⚠️ <strong>Atenção na execução:</strong> a implementação atual (<code>AtualizaContadoresDIPorItens</code>) <strong>soma <code>q_itn_agp</code> = itens</strong> — isso <strong>contraria</strong> a regra decidida. Se, no Grupo B (flag ON), o contador exibir a soma de itens (ex.: 5) em vez do nº de averbações, o resultado é <strong>REPROVADO</strong> (bug de contagem do #7803). Resultado esperado dos CTs abaixo já ajustado para <strong>averbações</strong>.</li>
     <li><strong>(2) Novo cenário — usuários simultâneos:</strong> processar com usuários diferentes ao mesmo tempo; os processos devem rodar de forma independente, sem um impactar os números exibidos na tela do outro (isolamento por usuário — SignalR/userIdHub). Incorporado como <strong>CT-CTD-006</strong>.</li>
   </ul>
 </div>
@@ -154,17 +154,17 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
   <div class="ct-block" id="ct-CTD-002">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-CTD-002</span>
-      <span class="ct-title">Flag ON — linha agregada (q_itn_agp&gt;1): contador soma q_itn_agp, não +1</span>
+      <span class="ct-title">Flag ON — linha agregada (q_itn_agp&gt;1): contador reflete AVERBAÇÕES (não itens do agrupamento)</span>
       <span class="badge badge-p1">P1</span>
       <span class="badge badge-pendente" id="badge-CTD-002">PENDENTE</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>Núcleo do CA: com a flag ON e uma linha agregada representando vários itens (<code>q_itn_agp&gt;1</code>), o contador deve somar <code>q_itn_agp</code> — não incrementar +1 por linha.</p></div>
+      <div class="ct-section"><h4>Objetivo</h4><p>Núcleo do card: com a flag ON e uma linha agregada representando vários itens (<code>q_itn_agp&gt;1</code>), validar que o contador em tela reflete o nº de <b>averbações</b>, conforme regra decidida pela PO (24/07) — <b>não</b> a soma dos itens do agrupamento. (O CA original pedia somar <code>q_itn_agp</code>; a PO redefiniu para averbações — daí o ponto de atenção de possível bug de contagem.)</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Flag <code>AgrupamentoAverbacaoHabilitado</code> <b>ON</b> + migration aplicada + Worker gravando linhas agregadas em HML</li><li>Pacote DUIMP com ao menos 1 linha agregada com q_itn_agp &gt; 1 (ex.: 1 linha = 5 itens)</li><li>Serviço de expansão #7802 publicado</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o pacote DUIMP com linha(s) agregada(s)</li><li>Verificar lblDIIncluida ao fim: deve refletir a soma de q_itn_agp (itens reais), não o nº de linhas</li><li>Confirmar via SQL a soma de q_itn_agp das linhas processadas</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">⚠️ <b>Sob revisão (Gate 2 Fabiola 24/07):</b> definição atual = contador exibe a soma de <code>q_itn_agp</code> (itens reais), ex.: 1 linha agregada q_itn_agp=5 → soma 5. A Fabiola apontou que o número deve ser o de <b>averbações</b>, não de itens do agrupamento — se confirmado, o esperado passa a ser <b>1 por averbação</b> (não 5). Aguardando decisão do Wesley sobre a regra.</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido até flag ON + migration + Worker em HML (mesma condição do Grupo B do #7802). Resultado esperado a confirmar (averbações × itens).</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Regra decidida (Fabiola/Wesley 24/07): contador = nº de AVERBAÇÕES, não itens.</b> Ao processar uma linha agregada que representa vários itens (q_itn_agp&gt;1), o contador deve refletir a <b>averbação</b> correspondente — <b>não</b> somar os itens do agrupamento. Ex.: 1 linha agregada com q_itn_agp=5 → conta como a(s) averbação(ões) gerada(s), não 5 itens. ⚠️ Se a tela exibir a soma de itens (5), é <b>REPROVADO</b> (o <code>AtualizaContadoresDIPorItens</code> soma <code>q_itn_agp</code> = itens, o que contraria a regra).</div></div>
+      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido até flag ON + migration + Worker em HML (mesma condição do Grupo B do #7802).</div></div>
     </div>
   </div>
 
@@ -180,8 +180,8 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
       <div class="ct-section"><h4>Objetivo</h4><p>Verificar que TODOS os 4 contadores (lblDILida, lblDIDesprezada, lblDIInconsistente, lblDIIncluida) somam q_itn_agp, incluindo linhas desprezadas/inconsistentes agregadas.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Mesmas do CT-CTD-002</li><li>Pacote com linhas agregadas em cada categoria: incluída, desprezada, inconsistente</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o pacote com linhas agregadas nas 4 categorias</li><li>Verificar cada contador ao fim vs. a soma de q_itn_agp por categoria (via SQL)</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">⚠️ <b>Sob revisão (Gate 2 Fabiola 24/07):</b> definição atual = cada um dos 4 contadores reflete a soma de <code>q_itn_agp</code> da sua categoria (itens), não o nº de linhas. Se a regra for <b>averbações</b> (apontamento da Fabiola), passa a ser o nº de averbações por categoria. Aguardando decisão do Wesley.</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON em HML). Resultado esperado a confirmar (averbações × itens).</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Regra decidida (Fabiola/Wesley 24/07): cada um dos 4 contadores reflete o nº de AVERBAÇÕES da sua categoria (Lida/Desprezada/Inconsistente/Incluída), não a soma de itens do agrupamento.</b> ⚠️ Se exibir a soma de <code>q_itn_agp</code> (itens) por categoria, é REPROVADO.</div></div>
+      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON em HML).</div></div>
     </div>
   </div>
 
@@ -197,7 +197,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
       <div class="ct-section"><h4>Objetivo</h4><p>CA exige validação em SQL Server e Oracle. Verificar que os contadores produzem o mesmo resultado (soma de q_itn_agp) nos dois bancos.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Ambientes AXA HML em SQL Server e em Oracle disponíveis</li><li>Mesmo pacote DUIMP agregado processado em ambos</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o mesmo pacote agregado no ambiente SQL Server e no Oracle</li><li>Comparar os 4 contadores entre os dois bancos</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores idênticos em SQL Server e Oracle (soma de q_itn_agp), sem divergência por banco.</div></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores idênticos em SQL Server e Oracle (nº de averbações — regra decidida), sem divergência por banco.</div></div>
       <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON) + requer acesso aos dois bancos.</div></div>
     </div>
   </div>
