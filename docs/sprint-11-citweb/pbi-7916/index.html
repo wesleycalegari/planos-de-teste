@@ -169,6 +169,15 @@
     <div class="info-box">
       <strong>Contexto de negócio deste card (por que existe separado do #7470):</strong> o #7470 foi homologado em <strong>HML FAIRFAX</strong> (12 CTs, 23/07). Em 27/07 o dev alinhou com a Sandra, na daily, que era necessário <strong>reteste no ambiente AXA</strong> — é o único ambiente com <strong>CNPJ alfanumérico</strong> aplicado. O #7916 é essa validação na AXA, com critérios de aceite próprios e proposta técnica explicitada.
     </div>
+    <div class="fail-box">
+      <strong>⚠️ Achado de análise (pré-execução) — verificado no banco AXA em 28/07/2026, antes de qualquer CT</strong><br>
+      A query de descoberta do botão "Recalcular DDR" contém o predicado <code>AND MOV.u_cpf_cgc_emb &gt; 0</code>. Na AXA, <code>u_cpf_cgc_emb</code> é <code>varchar(14)</code> (migração de CNPJ alfanumérico) e a comparação com <code>0</code> força conversão implícita para <code>int</code>. Executando a <strong>query exata do botão</strong> contra a massa real da apólice de teste, o banco retorna:
+      <pre style="background:var(--surface);border:1px solid var(--fail);border-radius:4px;padding:8px 10px;margin-top:6px;color:#f8a49f;font-size:12px;overflow-x:auto">Msg 248, Level 16 — The conversion of the varchar value '40806257000150'
+overflowed an int column.</pre>
+      Isso atinge <strong>qualquer CNPJ de 14 dígitos</strong> (14 dígitos excedem o limite de <code>int</code>), não apenas os alfanuméricos — para estes o erro é <code>Msg 245 — Conversion failed when converting the varchar value 'D77L6VWV000150' to data type int</code>.<br>
+      A branch <strong>deployada</strong> (<code>origin/hml</code>, último commit 28/07) contém esse predicado sem alteração, e <strong>não há commit novo referente ao #7916</strong> — a entrega de hoje é o deploy da implementação do #7470 no ambiente AXA. Previsão a confirmar em tela: o botão deve falhar com erro de servidor sempre que o <code>INNER JOIN</code> com <code>tb_ddr_tom_cit</code> produzir linhas candidatas. Quando a apólice não tem DDR cadastrada, o join zera as linhas antes do predicado e a tela exibe apenas "Não existe movimento..." — foi o que ocorreu no teste da AXA no #7470, mascarando o problema.<br>
+      <strong>Isso é hipótese de análise, não veredito:</strong> o resultado oficial de cada CT sai da execução em tela (CT-DDA-002, 003 e 004).
+    </div>
     <div class="info-box" style="margin-bottom:0">
       <strong>Regra de negócio confirmada no código (passo 0c):</strong> o recálculo de DDR <strong>zera</strong> prêmio e IS da averbação — não aplica percentual.
       <ul style="padding-left:18px;margin-top:6px">
@@ -376,6 +385,9 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
               A averbação <code>202617785319</code> (CNPJ sem DDR) e as de CNPJ <code>0</code> permanecem inalteradas.
             </div>
           </div>
+          <div class="ct-field full"><label>Risco conhecido — hipótese a confirmar em tela (R1)</label>
+            <div class="fail-box" style="margin-bottom:0">Com a massa M1 criada, o <code>INNER JOIN</code> passa a produzir linhas candidatas e o predicado <code>MOV.u_cpf_cgc_emb &gt; 0</code> é avaliado — o que, no banco AXA, estoura o <code>int</code> (ver achado no topo do plano). Previsão: em vez da mensagem de sucesso, a tela pode exibir erro de servidor / "Erro ao tentar enviar os dados". Executar com o painel <strong>Network</strong> aberto e registrar o status HTTP. Se confirmado: <strong>REPROVADO</strong> + Task de defeito.</div>
+          </div>
         </div>
         <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
       </div>
@@ -424,7 +436,8 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
             <div class="fail-box" style="margin-bottom:0">
               Na AXA, <code>tb_ddr_tom_cit.u_cnpj_cpf</code> é <code>varchar(14)</code> e a raiz é gravada com <strong>8 caracteres</strong> (<code>'40806257'</code>). A comparação por raiz da query de descoberta é
               <code>LEFT(RIGHT(REPLICATE('0',14)+&lt;campo&gt;,14),8)</code>, que <strong>preenche a raiz com zeros à esquerda</strong> antes de recortar os 8 primeiros: <code>'40806257'</code> → <code>'00000040806257'</code> → <code>'00000040'</code>, enquanto o lado da averbação resulta em <code>'40806257'</code>. Nenhuma das duas condições do <code>OR</code> casaria, e o retorno seria <strong>"Não existe movimento para os critérios informados."</strong><br>
-              Nas seguradoras onde a coluna é <code>float</code> (FAIRFAX, EZZE, KOVR, MITSUI, ZURICH) a concatenação vira soma numérica e o match funciona — foi por isso que o #7470 passou em FAIRFAX. Se o comportamento acima se confirmar em tela: <strong>REPROVADO</strong> + abrir Task de defeito (impacto: 109 das 191 DDRs da AXA são por raiz).
+              Nas seguradoras onde a coluna é <code>float</code> (FAIRFAX, EZZE, KOVR, MITSUI, ZURICH) a concatenação vira soma numérica e o match funciona — foi por isso que o #7470 passou em FAIRFAX. Se o comportamento acima se confirmar em tela: <strong>REPROVADO</strong> + abrir Task de defeito (impacto: 109 das 191 DDRs da AXA são por raiz).<br>
+              <strong>Atenção ao mascaramento (R1):</strong> ao rodar a query exata do botão com esta massa, o banco falha antes com <code>Msg 248 — overflowed an int column</code> (predicado <code>u_cpf_cgc_emb &gt; 0</code>). Ou seja, a tela pode exibir <strong>erro de servidor</strong> em vez de "Não existe movimento...". Registrar qual dos dois ocorreu: erro de servidor confirma R1; "sem movimento" confirma R3 (raiz). Os dois são REPROVADO, mas com defeitos distintos.
             </div>
           </div>
         </div>
@@ -446,7 +459,7 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
           <div class="ct-field"><label>Tipo</label><p>Limite / Exceção — particularidade AXA</p></div>
           <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-01)</p></div>
           <div class="ct-field full"><label>Motivo deste CT</label>
-            <div class="info-box" style="margin-bottom:0">Este é o motivo declarado do reteste na AXA (dev, 27/07): a AXA é o único ambiente com <strong>CNPJ alfanumérico</strong> aplicado. A query de descoberta contém <code>AND MOV.u_cpf_cgc_emb &gt; 0</code> sobre uma coluna <code>varchar</code> — com valor alfanumérico a conversão implícita para número falha e a exceção sobe como erro de servidor.</div>
+            <div class="info-box" style="margin-bottom:0">Este é o motivo declarado do reteste na AXA (dev, 27/07): a AXA é o único ambiente com <strong>CNPJ alfanumérico</strong> aplicado. A query de descoberta contém <code>AND MOV.u_cpf_cgc_emb &gt; 0</code> sobre uma coluna <code>varchar</code> — com valor alfanumérico a conversão implícita falha (<code>Msg 245</code>, reproduzido no banco em 28/07). Nota: o mesmo predicado já estoura com CNPJ <strong>numérico</strong> de 14 dígitos (<code>Msg 248</code>, risco R1), portanto este CT é o subcaso alfanumérico de um problema mais amplo — reportar os dois juntos se ambos se confirmarem.</div>
           </div>
           <div class="ct-field full"><label>Pré-condições</label>
             <ul>
@@ -1117,16 +1130,22 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
       <thead><tr><th style="width:30%">Risco</th><th style="width:10%">Prob.</th><th style="width:10%">Impacto</th><th>Mitigação</th></tr></thead>
       <tbody>
         <tr>
-          <td>DDR cadastrada por <strong>raiz</strong> não é reconhecida na AXA: a coluna <code>u_cnpj_cpf</code> é <code>varchar</code> e o pad-para-14 da comparação transforma <code>'40806257'</code> em <code>'00000040'</code>. Afeta <strong>109 das 191</strong> linhas DDR da AXA</td>
+          <td><strong>R1 — Erro de servidor no botão para qualquer CNPJ de 14 dígitos.</strong> O predicado <code>MOV.u_cpf_cgc_emb &gt; 0</code> sobre coluna <code>varchar(14)</code> força conversão para <code>int</code> e estoura (<code>Msg 248 — overflowed an int column</code>). Reproduzido no banco AXA com a query exata do botão e a massa real, em 28/07, antes da execução. Presente na branch deployada <code>origin/hml</code></td>
           <td class="risk-high">Alta</td>
           <td class="risk-high">Alto</td>
-          <td>CT-DDA-003 dedicado, com contraprova em CNPJ total (CT-DDA-002) e em FAIRFAX (CT-DDA-019, coluna <code>float</code>). Se confirmado: Task de defeito com evidência dos dois caminhos</td>
+          <td>CT-DDA-002 (CNPJ total) e CT-DDA-003 (raiz) executados com o painel Network aberto para capturar o status HTTP e a mensagem em tela. Se confirmado: Task de defeito com a evidência de tela + o erro do banco. Contraprova em FAIRFAX (CT-DDA-019), onde a coluna é <code>float</code> e o predicado não estoura</td>
         </tr>
         <tr>
-          <td>CNPJ Tomador alfanumérico pode gerar <strong>erro 500</strong>: a query de descoberta usa <code>MOV.u_cpf_cgc_emb &gt; 0</code> sobre coluna <code>varchar</code>, e a conversão implícita falha em valor não numérico</td>
+          <td><strong>R2 — CNPJ alfanumérico.</strong> Mesmo predicado, erro distinto: <code>Msg 245 — Conversion failed when converting the varchar value 'D77L6VWV000150' to data type int</code>. É um subcaso de R1 e o motivo declarado do reteste na AXA</td>
           <td class="risk-high">Alta</td>
           <td class="risk-high">Alto</td>
-          <td>CT-DDA-004 com massa alfanumérica criada e inspeção do status HTTP no Network. É o motivo declarado do reteste na AXA</td>
+          <td>CT-DDA-004 com massa alfanumérica criada (M3) e inspeção do status HTTP no Network</td>
+        </tr>
+        <tr>
+          <td><strong>R3 — DDR por raiz não casa na AXA</strong> (defeito secundário, mascarado por R1): a coluna <code>u_cnpj_cpf</code> é <code>varchar</code> e o pad-para-14 transforma <code>'40806257'</code> em <code>'00000040'</code>, que nunca casa com <code>'40806257'</code> do lado da averbação. Afeta <strong>109 das 191</strong> linhas DDR da AXA</td>
+          <td class="risk-high">Alta</td>
+          <td class="risk-med">Médio</td>
+          <td>CT-DDA-003 dedicado, com contraprova em CNPJ total (CT-DDA-002) e em FAIRFAX (CT-DDA-019). Só observável isoladamente se R1 for corrigido primeiro — registrar essa dependência no reporte do defeito</td>
         </tr>
         <tr>
           <td>O recálculo é <strong>destrutivo</strong> (zera prêmio/IS) e não tem desfazer — massa consumida impede repetir CTs</td>
