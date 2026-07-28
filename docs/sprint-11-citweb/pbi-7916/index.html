@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste — PBI-7916</title>
+<style>
+  :root{
+    --bg:#0f1114;--surface:#1a1d23;--surface-2:#22262e;--border:#343a46;
+    --text:#c9d1d9;--text-muted:#8b949e;--text-dim:#6e7681;
+    --accent:#3b9eff;--ok:#3fb950;--fail:#f85149;--block:#d29922;--pend:#8b949e;
+    --warn-bg:rgba(210,153,34,.12);--info-bg:rgba(59,158,255,.1);
+    --p1:#f85149;--p2:#d29922;--p3:#8b949e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+  header{background:linear-gradient(135deg,#0a2744 0%,#152238 50%,var(--bg) 100%);padding:32px 24px 28px;border-bottom:1px solid var(--border)}
+  .pbi-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+  header h1{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+  header p{color:var(--text-muted);font-size:13px}
+
+  .dash{display:flex;flex-wrap:wrap;gap:10px;padding:20px 24px;border-bottom:1px solid var(--border)}
+  .dash-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;min-width:100px;text-align:center}
+  .dash-card .val{font-size:26px;font-weight:700;line-height:1}
+  .dash-card .lbl{font-size:11px;color:var(--text-muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .dash-wide{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;flex:1;min-width:220px}
+  .dash-wide .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .pb-track{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;background:var(--pend);border-radius:4px;width:0%;transition:width .4s}
+  .pb-pct{font-size:13px;color:var(--pend);font-weight:600;margin-top:6px}
+
+  .section{margin:20px 24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .section-header{padding:12px 16px;border-left:3px solid var(--accent);background:var(--surface-2);font-weight:600;font-size:13px;color:#e6edf3;text-transform:uppercase;letter-spacing:.5px}
+  .section-body{padding:16px}
+
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+  .info-item label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px}
+  .info-item span{font-size:13px;color:var(--text)}
+
+  .warn-box{background:var(--warn-bg);border-left:3px solid var(--block);border-radius:4px;padding:10px 14px;color:#e8c07d;font-size:13px;margin-bottom:10px}
+  .info-box{background:var(--info-bg);border-left:3px solid var(--accent);border-radius:4px;padding:10px 14px;color:#a9d3ff;font-size:13px;margin-bottom:10px}
+  .fail-box{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:10px 14px;color:#f8a49f;font-size:13px;margin-bottom:10px}
+
+  .matriz{width:100%;border-collapse:collapse;font-size:13px}
+  .matriz th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .matriz td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .matriz tr:last-child td{border-bottom:none}
+  .cov-ok{color:var(--ok);font-weight:600}
+  .cov-pend{color:var(--pend)}
+  .cov-fail{color:var(--fail);font-weight:600}
+  .cov-block{color:var(--block);font-weight:600}
+  .matriz code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+
+  .group-header{background:linear-gradient(90deg,#0a2744,#152238);border-left:4px solid var(--accent);padding:10px 16px;font-weight:700;font-size:13px;color:#e6edf3;letter-spacing:.5px;margin-bottom:2px;border-radius:4px;margin-top:14px}
+  .group-header:first-child{margin-top:0}
+  .group-sub{font-weight:400;color:var(--text-muted);font-size:12px;letter-spacing:0}
+
+  .ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden}
+  .ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-left:4px solid var(--pend);user-select:none;transition:background .15s}
+  .ct-bar:hover{background:var(--surface-2)}
+  [data-status="aprovado"]  .ct-bar{border-left-color:var(--ok)}
+  [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
+  [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
+  [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
+  [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
+  .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
+  .ct-bar-main{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .ct-id{font-size:11px;font-weight:700;color:var(--accent);font-family:monospace;white-space:nowrap}
+  .ct-prio{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;white-space:nowrap}
+  .p1{background:rgba(248,81,73,.2);color:var(--p1)}
+  .p2{background:rgba(210,153,34,.2);color:var(--p2)}
+  .p3{background:rgba(139,148,158,.2);color:var(--p3)}
+  .ct-title{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ct-status-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;margin-left:auto;flex-shrink:0}
+  .chip-pend{background:rgba(139,148,158,.15);color:var(--pend)}
+  .chip-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .chip-fail{background:rgba(248,81,73,.15);color:var(--fail)}
+  .chip-block{background:rgba(210,153,34,.15);color:var(--block)}
+
+  .ct-panel{padding:14px 16px;border-top:1px solid var(--border);background:var(--surface-2);display:none}
+  [data-expanded="true"] .ct-panel{display:block}
+  .ct-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ct-field label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+  .ct-field p,.ct-field ol,.ct-field ul{font-size:13px;color:var(--text)}
+  .ct-field ol,.ct-field ul{padding-left:18px}
+  .ct-field li{margin-bottom:3px}
+  .ct-field.full{grid-column:1/-1}
+  .ct-field code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .ct-field pre{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 12px;font-size:12px;color:#79c57e;overflow-x:auto;margin-top:4px}
+  .result-ok{background:rgba(63,185,80,.1);border-left:3px solid var(--ok);border-radius:4px;padding:8px 12px;color:#79c57e;font-size:13px}
+  .result-fail{background:rgba(248,81,73,.1);border-left:3px solid var(--fail);border-radius:4px;padding:8px 12px;color:#f85149;font-size:13px}
+
+  .ev-section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .ev-lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+  .ev-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:8px;display:inline-block}
+  .ev-pendente{background:rgba(139,148,158,.15);color:var(--pend)}
+  .ev-ok{background:rgba(63,185,80,.15);color:var(--ok)}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:8px}
+  .ev-item img{width:100%;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:opacity .15s}
+  .ev-item img:hover{opacity:.85}
+  .ev-item .ev-cap{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+  #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;align-items:center;justify-content:center;cursor:pointer}
+  #lb.open{display:flex}
+  #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
+  #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px}
+
+  .risks-table{width:100%;border-collapse:collapse;font-size:13px}
+  .risks-table th{background:var(--surface-2);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+  .risks-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  .risks-table tr:last-child td{border-bottom:none}
+  .risks-table code{background:var(--surface);border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+  .risk-high{color:var(--fail);font-weight:600}
+  .risk-med{color:var(--block);font-weight:600}
+  .risk-low{color:var(--ok);font-weight:600}
+  footer{padding:24px;color:var(--text-dim);font-size:12px;text-align:center;border-top:1px solid var(--border);margin-top:20px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="pbi-badge">PBI-7916 · Sprint 11</div>
+  <h1>[CITWEB] Recálculo de DDR — AXA</h1>
+  <p>Botão "Recalcular DDR" por indicativo + encadeamento automático no recálculo geral, validado na seguradora AXA (único ambiente com CNPJ alfanumérico aplicado) · Autor: QA Auto · 28/07/2026</p>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:var(--accent)">19</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:var(--ok)">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:var(--fail)">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:var(--block)">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:var(--pend)">19</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+    <div class="pb-pct" id="pb-pct">0% executado · plano aguardando Gate 1 (Wesley) e Gate 2 (Produtos)</div>
+  </div>
+</div>
+
+<!-- IDENTIFICAÇÃO -->
+<div class="section">
+  <div class="section-header">1. Identificação</div>
+  <div class="section-body">
+    <div class="info-grid">
+      <div class="info-item"><label>Card</label><span>PBI-7916</span></div>
+      <div class="info-item"><label>Sprint</label><span>CITWEB\Sprint_11_Citweb</span></div>
+      <div class="info-item"><label>Estado do card</label><span>Pronto para homologação</span></div>
+      <div class="info-item"><label>Sistema</label><span>CITWEB — Site Nacional</span></div>
+      <div class="info-item"><label>Seguradora</label><span>AXA (principal) · EZZE / FAIRFAX (regressão)</span></div>
+      <div class="info-item"><label>Ramos</label><span>54 (RCTR-C) e 55 (RC-DC) na AXA · 52 / 58-RCTAC por elegibilidade</span></div>
+      <div class="info-item"><label>Tags do card</label><span>AXA; citweb; CORE</span></div>
+      <div class="info-item"><label>Ticket origem</label><span>Movidesk 274325</span></div>
+      <div class="info-item"><label>Card irmão</label><span>PBI-7470 (mesma feature, homologada em FAIRFAX 23/07)</span></div>
+      <div class="info-item"><label>Autor / Data</label><span>QA Auto · Wesley Moreira · 28/07/2026</span></div>
+      <div class="info-item"><label>Prefixo de CT</label><span>CT-DDA (DDR AXA)</span></div>
+      <div class="info-item"><label>Build HML AXA</label><span>a capturar no rodapé na execução</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- DESCRIÇÃO -->
+<div class="section">
+  <div class="section-header">2. Descrição</div>
+  <div class="section-body">
+    <p style="margin-bottom:10px">O CIT legado (VB6 <code>TTFCN0M0</code> / <code>TTMCN000.Su_Recalcular_DDR</code> / <code>TTFCN080</code>) permitia recalcular DDR em averbações já realizadas que estivessem em <strong>movimento aberto</strong>. Essa funcionalidade não foi migrada por completo para o CITWEB, e a seguradora não conseguia fechar corretamente apólices com DDR vinculada.</p>
+    <p style="margin-bottom:10px">A entrega expõe o botão <strong>"Recalcular DDR"</strong> por indicativo (<code>Ind_Existe_tb_ddr_tom_cit</code>) em vez de restringir por seguradora, e encadeia o recálculo de DDR automaticamente ao final do <strong>recálculo geral</strong> para os ramos elegíveis (52, 54, 55 e 58-RCTAC). Seguradoras com particularidade de fechamento (grupo CHUBB/ACE/EZZE) ficam fora do encadeamento via <code>Ind_ExcecaoRecalculoDdrIntegrado</code>.</p>
+    <div class="info-box">
+      <strong>Contexto de negócio deste card (por que existe separado do #7470):</strong> o #7470 foi homologado em <strong>HML FAIRFAX</strong> (12 CTs, 23/07). Em 27/07 o dev alinhou com a Sandra, na daily, que era necessário <strong>reteste no ambiente AXA</strong> — é o único ambiente com <strong>CNPJ alfanumérico</strong> aplicado. O #7916 é essa validação na AXA, com critérios de aceite próprios e proposta técnica explicitada.
+    </div>
+    <div class="info-box" style="margin-bottom:0">
+      <strong>Regra de negócio confirmada no código (passo 0c):</strong> o recálculo de DDR <strong>zera</strong> prêmio e IS da averbação — não aplica percentual.
+      <ul style="padding-left:18px;margin-top:6px">
+        <li><code>i_opr_ddr = 'P'</code> (parcial) → zera <strong>somente</strong> a averbação do <strong>ramo 55</strong> (RC-DC, na apólice RCF vinculada <code>u_apo_rcf</code>), preservando o ramo 54.</li>
+        <li><code>i_opr_ddr = 'T'</code> / <code>'S'</code> (total / subcontratação) → zera o <strong>ramo 55 e o ramo 54</strong>.</li>
+        <li>Campos zerados: <code>v_is</code>, <code>v_is_cnn</code>, <code>v_cml_pmo_cnn</code>, <code>v_cml_pmo_seg</code>, <code>v_tar_pmo_vgm</code>, <code>v_cml_pmo_vgm</code>, <code>v_is_tar</code> — e <code>i_opr_ddr</code> passa a ser gravado na averbação.</li>
+        <li>Branch específico AXA: <code>empresa == "AXA"</code> → <code>v_is = 0.00</code> (demais seguradoras: <code>0.01</code>) — "Projeto AXA Transforma".</li>
+      </ul>
+      Fontes: <code>Domain/AverbacaoMovimentoAbertoNacionalDomain.cs</code> (<code>RecalcularAverbacaoBlocoDDR</code>, <code>DeveExecutarRecalculoDdrIntegrado</code>, <code>ExecutarRecalculoDdrIntegrado</code>), <code>Repository/AverbacaoMovimentoAbertoNacionalRepository.cs</code> (<code>ListarNumerosAverbacoesDDR</code>, <code>AtualizarPremioDDR*</code>), <code>Nacional/Views/RecalculoAverbacoes/Index.cshtml</code>.
+    </div>
+  </div>
+</div>
+
+<!-- ESCOPO -->
+<div class="section">
+  <div class="section-header">3. Escopo</div>
+  <div class="section-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">In scope</label>
+        <ul style="padding-left:18px">
+          <li>Botão dedicado "Recalcular DDR" na AXA — visibilidade por indicativo e execução sem erro</li>
+          <li>Match do CNPJ Tomador contra <code>tb_ddr_tom_cit</code>: CNPJ <strong>total</strong> (14 díg.) e <strong>raiz</strong> (8 díg.)</li>
+          <li>CNPJ Tomador <strong>alfanumérico</strong> (particularidade do ambiente AXA)</li>
+          <li>Semântica dos valores: DDR parcial (só ramo 55) vs total/subcontratação (55 + 54)</li>
+          <li>Restrição a averbações em <strong>movimento aberto</strong></li>
+          <li>Encadeamento automático do DDR no botão "Recalcular" (geral), ramos elegíveis</li>
+          <li>Reflexo em: tela de averbação, impressão da averbação, Relação de Embarques e Resumo de Embarques</li>
+          <li>Regressão: EZZE (exceção de encadeamento) e FAIRFAX (caminho aprovado no #7470)</li>
+        </ul>
+      </div>
+      <div>
+        <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px">Out of scope</label>
+        <ul style="padding-left:18px">
+          <li>CITNET — não afetado por esta feature (tela é do CITWEB Nacional)</li>
+          <li>CHUBB/ACE — usa caminho distinto (<code>Ind_UsaProcedureDedicadaDdr</code> → stored procedure dedicada) e acesso por bypass; risco registrado na seção 8</li>
+          <li>Ramos 52 e 55 como <em>origem</em> do recálculo — a AXA só tem DDR cadastrada no ramo 54 (191 linhas, todas <code>c_rmo=54</code>)</li>
+          <li>Testes de performance/carga do processamento em bloco</li>
+          <li>Cadastro de DDR em si (tela de DDR) — pré-condição, não objeto de teste</li>
+          <li>Reteste do #7470 em FAIRFAX além do CT de regressão (já homologado em 23/07)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PRÉ-REQUISITOS -->
+<div class="section">
+  <div class="section-header">4. Pré-requisitos e massa de dados</div>
+  <div class="section-body">
+
+    <div class="info-box">
+      <strong>Ambientes</strong><br>
+      AXA CITWEB — <code>https://axa-hml-faturamento.nsseg.com.br/login/</code> · usuário <code>FRED</code> (senha no <code>.env</code> — chaves <code>HML_AXA_CITWEB_USER</code> / <code>HML_AXA_CITWEB_PASS</code>)<br>
+      EZZE CITWEB — <code>https://ezze-hml-faturamento.nsseg.com.br/login/</code> · usuário <code>FRED</code> (<code>HML_EZZE_CITWEB_*</code>)<br>
+      FAIRFAX CITWEB — <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code> · usuário <code>ROT_AUTO</code> (<code>HML_FAIRFAX_CITWEB_*</code>)<br>
+      Banco: <code>smt-hom-citweb-axa</code> / <code>-ezze</code> / <code>-fairfax</code> em <code>smt-hom-citweb.database.windows.net</code> (credenciais <code>DB_*</code> no <code>.env</code>)
+    </div>
+
+    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin:14px 0 6px">4.1 Indicativos verificados em 28/07/2026 (<code>tb_ctl_sis_cit</code>)</label>
+    <table class="matriz">
+      <thead><tr><th>Indicativo</th><th>AXA</th><th>EZZE</th><th>FAIRFAX</th><th>Efeito</th></tr></thead>
+      <tbody>
+        <tr><td><code>Ind_Existe_tb_ddr_tom_cit</code></td><td class="cov-ok">S</td><td class="cov-ok">S</td><td class="cov-ok">S</td><td>Exibe o botão "Recalcular DDR" e habilita o encadeamento</td></tr>
+        <tr><td><code>Ind_ExcecaoRecalculoDdrIntegrado</code></td><td class="cov-pend">ausente</td><td class="cov-ok">S</td><td class="cov-pend">ausente</td><td>Quando ativo, <strong>bloqueia</strong> o encadeamento automático (EZZE fora)</td></tr>
+        <tr><td><code>Ind_UsaProcedureDedicadaDdr</code></td><td class="cov-pend">ausente</td><td class="cov-ok">S</td><td class="cov-pend">ausente</td><td>Quando ativo, usa stored procedure dedicada em vez do caminho genérico</td></tr>
+        <tr><td><code>Ind_Existe_tb_ddr_tom_cit_RCTAC</code></td><td class="cov-pend">ausente</td><td class="cov-pend">ausente</td><td class="cov-pend">ausente</td><td>Sem ele, ramo 58 (RCTA-C) <strong>não</strong> entra no encadeamento</td></tr>
+        <tr><td><code>Ind_Existe_i_opr_ddr</code></td><td class="cov-fail">N</td><td class="cov-ok">S</td><td class="cov-ok">S</td><td>Não afeta o recálculo (o <code>i_opr_ddr</code> vem de <code>tb_ddr_tom_cit</code>), mas afeta a coluna "DDR Aplicada?" dos relatórios</td></tr>
+      </tbody>
+    </table>
+    <div class="warn-box" style="margin-top:10px">Confirmar esses valores <strong>antes de cada rodada</strong>: no #7470 um seed de indicativo já foi revertido por deploy posterior.</div>
+
+    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin:14px 0 6px">4.2 Massa existente na AXA — confirmada por SQL em 28/07/2026</label>
+    <table class="matriz">
+      <thead><tr><th>Item</th><th>Valor confirmado</th></tr></thead>
+      <tbody>
+        <tr><td>Apólice de teste</td><td><code>1778531976824</code> · filial <code>1</code> · ramo <code>54</code> (RCTR-C) · subgrupo <code>1</code> · vigência <strong>01/05/2026 → 01/05/2027</strong> · não cancelada (<code>i_can_apo='N'</code>) · <code>e_tip_opc='S'</code></td></tr>
+        <tr><td>Apólice RCF vinculada</td><td><code>1778531976855</code> (<code>u_apo_rcf</code>) — <strong>hoje sem nenhuma averbação ramo 55</strong> (0 linhas)</td></tr>
+        <tr><td>DDR cadastrada (vigente)</td><td>1 linha: raiz <code>40806257</code> · <code>i_tpi_cnpj_cpf='R'</code> · <code>i_opr_ddr='P'</code> (parcial) · vigência <strong>01/05/2026 → 01/10/2026</strong> · <code>f_sgr_rct_cte</code> e <code>f_sgr_rcf_cte</code> = <strong>NULL</strong></td></tr>
+        <tr><td>Averbações em movimento aberto<br>(<code>tb_mov_avb_nac_cit</code>)</td><td>
+          <code>202617785324</code> — saída 04/06/2026 · CNPJ Tomador <code>40806257000150</code><br>
+          <code>202617785323</code> — saída 03/06/2026 · CNPJ <code>40806257000150</code><br>
+          <code>202617785321</code> — saída 01/07/2026 · CNPJ <code>40806257000150</code><br>
+          <code>202617785322</code> / <code>202617785320</code> — CNPJ <code>0</code> (não elegíveis)<br>
+          <code>202617785319</code> — saída 12/05/2026 · CNPJ <code>11222333000181</code> (sem DDR correspondente)
+        </td></tr>
+        <tr><td>Valores atuais (pré-recálculo)</td><td><code>v_is=50000</code> · <code>v_tar_pmo_vgm=20</code> · <code>v_cml_pmo_vgm=15</code> (ref 06/2026) ou <code>20</code> (ref 07/2026) · <code>v_is_tar=50000</code> · <code>i_opr_ddr</code> vazio</td></tr>
+        <tr><td>DDR na AXA — distribuição</td><td>191 linhas, todas ramo 54: <strong>109 por raiz</strong> (8 caracteres) e <strong>82 por total</strong> (14 caracteres)</td></tr>
+        <tr><td>CNPJ alfanumérico</td><td><code>u_cpf_cgc_emb</code> e <code>u_cnpj_cpf</code> já são <code>varchar(14)</code> na AXA, mas <strong>0 averbações alfanuméricas</strong> existem no ramo 54 (13.205 averbações, todas numéricas) → massa a criar</td></tr>
+      </tbody>
+    </table>
+
+    <label style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin:14px 0 6px">4.3 Massa a criar antes da execução</label>
+    <div class="warn-box">
+      <strong>M1 — DDR por CNPJ total</strong> (para CT-DDA-002 / 010): inserir linha em <code>tb_ddr_tom_cit</code> na base AXA para a apólice de teste, com CNPJ <strong>total</strong> e operação total/subcontratação.
+      <pre style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin-top:6px;color:#79c57e;font-size:12px;overflow-x:auto">-- base smt-hom-citweb-axa (registrar o SELECT de "antes" para permitir restauração)
+INSERT INTO tb_ddr_tom_cit (u_apo_pnc, c_rmo, c_org_prd, u_cnpj_cpf, i_tpi_cnpj_cpf,
+                            i_opr_ddr, d_ini_vig_ddr, d_fim_vig_ddr)
+VALUES (1778531976824, 54, 1, '40806257000150', 'T', 'S', '2026-05-01', '2026-10-01');</pre>
+    </div>
+    <div class="warn-box">
+      <strong>M2 — Averbação com RC-DC (ramo 55)</strong> (para CT-DDA-009): criar averbação RCTR-C na apólice <code>1778531976824</code> com o bloco <strong>RC-DC</strong> preenchido, para que exista a averbação espelho no ramo 55 na apólice RCF <code>1778531976855</code> — sem ela o caminho "DDR parcial" atualiza 0 linhas e não há efeito observável. Criar via CITWEB Nacional → Averbação → RCTR-C (Playwright MCP), com CNPJ Tomador <code>40806257000150</code> e data de saída dentro de 06/2026.
+    </div>
+    <div class="warn-box">
+      <strong>M3 — Averbação com CNPJ Tomador alfanumérico</strong> (para CT-DDA-004): criar averbação RCTR-C na mesma apólice com CNPJ Tomador alfanumérico (ex.: <code>D77L6VWV000150</code>) + linha DDR correspondente em <code>tb_ddr_tom_cit</code> (mesmo valor, <code>i_tpi_cnpj_cpf='T'</code>), data de saída dentro da vigência DDR.
+    </div>
+    <div class="warn-box">
+      <strong>M4 — Movimento fechado</strong> (para CT-DDA-008): identificar averbação da mesma apólice já em movimento <strong>fechado</strong> (fatura emitida) e registrar seus valores antes/depois para provar que o recálculo não a altera.
+    </div>
+    <div class="info-box" style="margin-bottom:0">
+      <strong>Snapshot obrigatório antes de cada CT que executa recálculo</strong> — o recálculo é destrutivo (zera valores) e não tem desfazer. Registrar o "antes" com:
+      <pre style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin-top:6px;color:#79c57e;font-size:12px;overflow-x:auto">SELECT u_avb, c_rmo, u_apo_pnc, d_sda_vgm, u_cpf_cgc_emb, v_is, v_is_cnn, v_cml_pmo_cnn,
+       v_cml_pmo_seg, v_tar_pmo_vgm, v_cml_pmo_vgm, v_is_tar, i_opr_ddr
+FROM tb_mov_avb_nac_cit
+WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
+    </div>
+  </div>
+</div>
+
+<!-- CASOS DE TESTE -->
+<div class="section">
+  <div class="section-header">5. Casos de teste — 19 CTs</div>
+  <div class="section-body">
+
+    <!-- GRUPO 1 -->
+    <div class="group-header">G1 — Botão dedicado "Recalcular DDR" na AXA <span class="group-sub">· CA-01 e CA-03 · 8 CTs</span></div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-001</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Botão "Recalcular DDR" visível para usuário AXA na tela Recálculo de Averbações</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — disponibilidade</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-01)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML AXA — <code>https://axa-hml-faturamento.nsseg.com.br/login/</code></li>
+              <li><code>Ind_Existe_tb_ddr_tom_cit = S</code> na base <code>smt-hom-citweb-axa</code> (confirmado 28/07)</li>
+              <li>Usuário <code>FRED</code> com acesso ao módulo Nacional</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Acessar <code>https://axa-hml-faturamento.nsseg.com.br/login/</code> e fazer login com <code>FRED</code> / •••• (senha no <code>.env</code> — <code>HML_AXA_CITWEB_PASS</code>)</li>
+              <li>No menu superior clicar em <strong>Nacional</strong></li>
+              <li>Clicar em <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Capturar o rodapé da tela e registrar o número de build (<code>V 1.0.xxxxxx.xxxx</code>)</li>
+              <li>Verificar os botões presentes na área de ação do formulário</li>
+              <li>Capturar screenshot com os botões legíveis</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Tela carrega sem erro (sem 500 / sem tela branca) e exibe <strong>3 botões</strong>: <strong>Novo</strong>, <strong>Recalcular</strong> e <strong>Recalcular DDR</strong>. O botão "Recalcular DDR" aponta para a action <code>RecalcularAverbacoesDDR</code> (id <code>btnRecalcularAverbacoesDDR</code>).</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-002</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Recálculo DDR com DDR cadastrada por CNPJ TOTAL (14 dígitos) — happy path</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — happy path</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-01, CA-04)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>M1</strong> criada (linha DDR com <code>u_cnpj_cpf='40806257000150'</code>, <code>i_tpi_cnpj_cpf='T'</code>, <code>i_opr_ddr='S'</code>, vigência 01/05→01/10/2026)</li>
+              <li>Snapshot "antes" registrado (seção 4.3)</li>
+              <li>Averbações <code>202617785323</code> e <code>202617785324</code> em movimento aberto, saída em 06/2026, CNPJ <code>40806257000150</code></li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Dados de entrada</label>
+            <p>Filial <code>1</code> · Ramo <code>54</code> (RCTR-C) · Apólice <code>1778531976824</code> · Subgrupo <code>1</code> · Referência <code>06/2026</code></p>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Login em HML AXA e navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher Filial = <code>1</code>, Ramo = <code>54</code>, Apólice = <code>1778531976824</code>, Subgrupo = <code>1</code>, Referência = <code>06/2026</code></li>
+              <li>Capturar screenshot do formulário preenchido</li>
+              <li>Clicar em <strong>Recalcular DDR</strong></li>
+              <li>Capturar o modal de confirmação com o texto e a quantidade exibida</li>
+              <li>Confirmar (<strong>Sim</strong>) e aguardar o fim do processamento</li>
+              <li>Capturar a mensagem de resultado com o texto legível</li>
+              <li>Executar o SELECT de verificação (seção 4.3) e comparar com o snapshot "antes"</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">
+              Modal de confirmação informando a quantidade de averbações a recalcular (<code>2</code>), seguido da mensagem <strong>"Foram recalculadas 2 averbações com sucesso!"</strong>.<br>
+              No banco, para as averbações <code>202617785323</code> e <code>202617785324</code>: <code>v_is = 0.00</code> (branch AXA), <code>v_cml_pmo_cnn = 0</code>, <code>v_cml_pmo_seg = 0</code>, <code>v_tar_pmo_vgm = 0</code>, <code>v_cml_pmo_vgm = 0</code>, <code>v_is_tar = 0.01</code> e <code>i_opr_ddr = 'S'</code> gravado.<br>
+              A averbação <code>202617785319</code> (CNPJ sem DDR) e as de CNPJ <code>0</code> permanecem inalteradas.
+            </div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-003</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Recálculo DDR com DDR cadastrada por RAIZ (8 dígitos) deve recalcular — risco alto na AXA</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — variação de match do CNPJ</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-01, CA-04)</p></div>
+          <div class="ct-field full"><label>Regra de negócio aplicada</label>
+            <div class="info-box" style="margin-bottom:0">A DDR se aplica quando o CNPJ do tomador consta em <code>tb_ddr_tom_cit</code> por <strong>CNPJ total OU por raiz</strong> (8 primeiros dígitos) — <code>i_tpi_cnpj_cpf</code> indica qual dos dois. Regra confirmada por Wesley em 17/07/2026.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>existente</strong> — nenhuma criação necessária: DDR raiz <code>40806257</code>, <code>i_tpi_cnpj_cpf='R'</code>, <code>i_opr_ddr='P'</code>, vigência 01/05→01/10/2026</li>
+              <li>Massa <strong>M1</strong> (CNPJ total) <strong>removida ou fora de vigência</strong> para isolar o caminho da raiz</li>
+              <li>Averbação <code>202617785321</code> em movimento aberto, saída 01/07/2026, CNPJ <code>40806257000150</code> (raiz coincide)</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Dados de entrada</label>
+            <p>Filial <code>1</code> · Ramo <code>54</code> · Apólice <code>1778531976824</code> · Subgrupo <code>1</code> · Referência <code>07/2026</code></p>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Confirmar por SQL que a única DDR vigente da apólice é a de <strong>raiz</strong> (<code>LEN(u_cnpj_cpf)=8</code>, <code>i_tpi_cnpj_cpf='R'</code>)</li>
+              <li>Registrar snapshot "antes" da averbação <code>202617785321</code></li>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher Filial = <code>1</code>, Ramo = <code>54</code>, Apólice = <code>1778531976824</code>, Subgrupo = <code>1</code>, Referência = <code>07/2026</code></li>
+              <li>Clicar em <strong>Recalcular DDR</strong> e capturar o retorno (modal ou mensagem)</li>
+              <li>Executar o SELECT de verificação e comparar com o snapshot</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">A averbação <code>202617785321</code> é reconhecida como elegível: modal de confirmação com <code>1</code> averbação e mensagem <strong>"Foi recalculada 1 averbação com sucesso!"</strong>, com os valores atualizados conforme <code>i_opr_ddr='P'</code> (ver CT-DDA-009).</div>
+          </div>
+          <div class="ct-field full"><label>Risco conhecido — hipótese a confirmar em tela</label>
+            <div class="fail-box" style="margin-bottom:0">
+              Na AXA, <code>tb_ddr_tom_cit.u_cnpj_cpf</code> é <code>varchar(14)</code> e a raiz é gravada com <strong>8 caracteres</strong> (<code>'40806257'</code>). A comparação por raiz da query de descoberta é
+              <code>LEFT(RIGHT(REPLICATE('0',14)+&lt;campo&gt;,14),8)</code>, que <strong>preenche a raiz com zeros à esquerda</strong> antes de recortar os 8 primeiros: <code>'40806257'</code> → <code>'00000040806257'</code> → <code>'00000040'</code>, enquanto o lado da averbação resulta em <code>'40806257'</code>. Nenhuma das duas condições do <code>OR</code> casaria, e o retorno seria <strong>"Não existe movimento para os critérios informados."</strong><br>
+              Nas seguradoras onde a coluna é <code>float</code> (FAIRFAX, EZZE, KOVR, MITSUI, ZURICH) a concatenação vira soma numérica e o match funciona — foi por isso que o #7470 passou em FAIRFAX. Se o comportamento acima se confirmar em tela: <strong>REPROVADO</strong> + abrir Task de defeito (impacto: 109 das 191 DDRs da AXA são por raiz).
+            </div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-004</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">CNPJ Tomador alfanumérico — Recalcular DDR não gera erro 500</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Limite / Exceção — particularidade AXA</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-01)</p></div>
+          <div class="ct-field full"><label>Motivo deste CT</label>
+            <div class="info-box" style="margin-bottom:0">Este é o motivo declarado do reteste na AXA (dev, 27/07): a AXA é o único ambiente com <strong>CNPJ alfanumérico</strong> aplicado. A query de descoberta contém <code>AND MOV.u_cpf_cgc_emb &gt; 0</code> sobre uma coluna <code>varchar</code> — com valor alfanumérico a conversão implícita para número falha e a exceção sobe como erro de servidor.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>M3</strong> criada: averbação RCTR-C em movimento aberto na apólice <code>1778531976824</code> com CNPJ Tomador alfanumérico (ex.: <code>D77L6VWV000150</code>), saída dentro da vigência DDR</li>
+              <li>Linha DDR correspondente em <code>tb_ddr_tom_cit</code> com o mesmo valor alfanumérico e <code>i_tpi_cnpj_cpf='T'</code></li>
+              <li>Snapshot "antes" registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Confirmar por SQL que a averbação criada tem <code>u_cpf_cgc_emb</code> alfanumérico (<code>TRY_CONVERT(bigint, u_cpf_cgc_emb) IS NULL</code>)</li>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher Filial <code>1</code>, Ramo <code>54</code>, Apólice <code>1778531976824</code>, Subgrupo <code>1</code>, Referência = mês da averbação criada</li>
+              <li>Abrir o painel Network do browser e clicar em <strong>Recalcular DDR</strong></li>
+              <li>Registrar o status HTTP da requisição e a mensagem exibida na tela</li>
+              <li>Verificar no banco se a averbação alfanumérica foi recalculada</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Requisição retorna <strong>HTTP 200</strong> (sem 500 e sem "Erro ao tentar enviar os dados") e a averbação com CNPJ alfanumérico é <strong>recalculada normalmente</strong>, com mensagem de sucesso e valores zerados no banco.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-005</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Averbação com CNPJ Tomador zerado não é recalculada — contraprova</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Negativo — filtro de elegibilidade</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-04, CA-05)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Averbações <code>202617785322</code> (saída 03/06/2026) e <code>202617785320</code> (saída 01/07/2026) com <code>u_cpf_cgc_emb = '0'</code></li>
+              <li>Snapshot "antes" dessas duas averbações registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Registrar os valores atuais das averbações <code>202617785322</code> e <code>202617785320</code> (esperado: <code>v_is=50000</code>, <code>v_is_tar=50000</code>)</li>
+              <li>Executar o recálculo de DDR da referência <code>06/2026</code> conforme CT-DDA-002</li>
+              <li>Após o sucesso, reconsultar as duas averbações no banco</li>
+              <li>Abrir a averbação <code>202617785322</code> na tela (<strong>Nacional</strong> → <strong>Averbação</strong> → <strong>RCTR-C</strong>) e capturar os valores</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">As averbações com CNPJ Tomador <code>0</code> <strong>não entram</strong> na contagem do modal e mantêm os valores originais (<code>v_is=50000</code>, <code>v_is_tar=50000</code>, <code>i_opr_ddr</code> vazio) — o filtro <code>u_cpf_cgc_emb &gt; 0</code> as exclui.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-006</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Referência sem movimento elegível retorna mensagem informativa (sem erro)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Negativo — mensagem de validação</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-01)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Referência <code>01/2026</code> — anterior à vigência da apólice (01/05/2026), portanto sem averbações</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher Filial <code>1</code>, Ramo <code>54</code>, Apólice <code>1778531976824</code>, Subgrupo <code>1</code>, Referência <code>01/2026</code></li>
+              <li>Clicar em <strong>Recalcular DDR</strong></li>
+              <li>Extrair o texto exato da mensagem via <code>browser_evaluate</code></li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Mensagem exata <strong>"Não existe movimento para os critérios informados."</strong>, sem erro 500 e sem alteração de dados.</div>
+          </div>
+          <div class="ct-field full"><label>Observação de método</label>
+            <div class="warn-box" style="margin-bottom:0">Este CT valida a <em>mensagem</em>, e é o único do plano em que "sem movimento" é resultado esperado. Nos demais CTs, "sem movimento" <strong>nunca</strong> conta como aprovação.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-007</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Averbação com data de saída fora da vigência da DDR não tem valores alterados</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Limite — vigência da DDR</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-03, CA-04)</p></div>
+          <div class="ct-field full"><label>Regra aplicada</label>
+            <div class="info-box" style="margin-bottom:0">A query de descoberta filtra apenas pelo mês de referência; o recorte por <strong>vigência da DDR</strong> (<code>d_sda_vgm</code> entre <code>d_ini_vig_ddr</code> e <code>d_fim_vig_ddr</code>) acontece no laço de atualização. Consequência esperada: a averbação pode ser <strong>contada no modal</strong> e ainda assim <strong>não ter valor alterado</strong>.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Criar (ou identificar) averbação na apólice de teste com data de saída <strong>posterior a 01/10/2026</strong> (fim da vigência DDR) e CNPJ <code>40806257000150</code></li>
+              <li>Snapshot "antes" registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Registrar valores da averbação fora da vigência</li>
+              <li>Executar <strong>Recalcular DDR</strong> para a referência dessa averbação</li>
+              <li>Capturar o modal (quantidade contada) e a mensagem final</li>
+              <li>Reconsultar a averbação no banco e comparar com o snapshot</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Prêmio e IS da averbação <strong>fora da vigência DDR permanecem inalterados</strong> e <code>i_opr_ddr</code> continua vazio, mesmo que a mensagem de sucesso a inclua na contagem. Divergência entre a quantidade informada e a quantidade efetivamente alterada deve ser registrada como observação de usabilidade.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-008</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Averbação em movimento FECHADO não é recalculada</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Negativo — restrição de escopo</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-03)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>M4</strong>: averbação da apólice de teste (ou de outra apólice AXA ramo 54 com DDR) já em <strong>movimento fechado</strong> — fatura emitida para o período</li>
+              <li>Snapshot "antes" dessa averbação registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Identificar por SQL a averbação em movimento fechado e registrar seus valores</li>
+              <li>Executar <strong>Recalcular DDR</strong> informando a referência do período <strong>já fechado</strong></li>
+              <li>Capturar a mensagem retornada</li>
+              <li>Reconsultar a averbação fechada e comparar com o snapshot</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">A averbação em movimento fechado <strong>não é alterada</strong> (prêmio, IS e <code>i_opr_ddr</code> idênticos ao snapshot). A tela informa que não há movimento elegível para a referência, sem erro.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <!-- GRUPO 2 -->
+    <div class="group-header">G2 — Semântica dos valores: DDR parcial vs total <span class="group-sub">· CA-04 · 2 CTs</span></div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-009</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">DDR Parcial ('P') zera somente a averbação do ramo 55 (RC-DC), preservando o ramo 54</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Cálculo — regra por tipo de operação DDR</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-04)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>M2</strong> criada: averbação RCTR-C com bloco <strong>RC-DC</strong> preenchido, gerando a averbação espelho no ramo 55 na apólice RCF <code>1778531976855</code></li>
+              <li>DDR vigente com <code>i_opr_ddr='P'</code> cobrindo a data de saída (a linha raiz existente atende, desde que o CT-DDA-003 confirme o match; caso contrário, criar linha DDR parcial com CNPJ total)</li>
+              <li>Snapshot "antes" das averbações dos ramos 54 e 55 registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Registrar valores das duas averbações (ramo 54 na apólice <code>1778531976824</code> e ramo 55 na apólice <code>1778531976855</code>, mesmo número de averbação)</li>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher os dados da apólice/referência da massa M2 e clicar em <strong>Recalcular DDR</strong></li>
+              <li>Confirmar o modal e capturar a mensagem de sucesso</li>
+              <li>Reconsultar as duas averbações e comparar campo a campo com o snapshot</li>
+              <li>Abrir a averbação na tela e capturar o bloco RC-DC com os valores</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">
+              <strong>Ramo 55 (RC-DC):</strong> <code>v_is=0</code>, <code>v_is_cnn=0</code>, <code>v_cml_pmo_cnn=0</code>, <code>v_cml_pmo_vgm=0</code>, <code>v_tar_pmo_vgm=0</code>, <code>v_is_tar=0</code> e <code>i_opr_ddr='P'</code>.<br>
+              <strong>Ramo 54 (RCTR-C):</strong> valores de prêmio e IS <strong>preservados</strong> (inalterados em relação ao snapshot) — a DDR parcial não dispensa o RCTR-C.
+            </div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-010</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">DDR Total/Subcontratação ('T'/'S') zera ramo 55 e ramo 54, com v_is = 0.00 (branch AXA)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Cálculo — regra por tipo de operação DDR</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-04)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa <strong>M1</strong> (DDR <code>i_opr_ddr='S'</code>, CNPJ total) e <strong>M2</strong> (averbação com RC-DC) criadas</li>
+              <li>Snapshot "antes" das averbações dos ramos 54 e 55 registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Registrar valores das averbações dos ramos 54 e 55</li>
+              <li>Executar <strong>Recalcular DDR</strong> para a apólice/referência da massa</li>
+              <li>Confirmar o modal e capturar a mensagem de sucesso</li>
+              <li>Reconsultar as duas averbações e comparar com o snapshot</li>
+              <li>Confirmar especificamente o valor de <code>v_is</code> na averbação do ramo 54</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">
+              <strong>Ramo 54:</strong> <code>v_is = 0.00</code> (branch <code>empresa == "AXA"</code> — nas demais seguradoras seria <code>0.01</code>), <code>v_cml_pmo_cnn=0</code>, <code>v_cml_pmo_seg=0</code>, <code>v_tar_pmo_vgm=0</code>, <code>v_cml_pmo_vgm=0</code>, <code>v_is_tar=0.01</code>, <code>i_opr_ddr='S'</code>.<br>
+              <strong>Ramo 55:</strong> igualmente zerado, conforme CT-DDA-009.
+            </div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <!-- GRUPO 3 -->
+    <div class="group-header">G3 — Encadeamento automático no recálculo geral <span class="group-sub">· CA-02 · 3 CTs</span></div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-011</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Botão "Recalcular" (geral) encadeia o DDR automaticamente no ramo 54 da AXA</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — integração entre os dois botões</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-02)</p></div>
+          <div class="ct-field full"><label>Regra aplicada</label>
+            <div class="info-box" style="margin-bottom:0">O encadeamento ocorre quando: <code>Ind_Existe_tb_ddr_tom_cit</code> ativo <strong>E</strong> <code>Ind_ExcecaoRecalculoDdrIntegrado</code> inativo <strong>E</strong> ramo ∈ {52, 54, 55} — ou ramo 58 com <code>Ind_Existe_tb_ddr_tom_cit_RCTAC</code> ativo. Na AXA (28/07) as três condições do ramo 54 são satisfeitas. O DDR encadeado roda <strong>sem nova confirmação</strong> e acrescenta seu texto à mensagem de sucesso do recálculo geral.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Massa com DDR elegível e averbações em movimento aberto (M1 + M2 ou massa existente, conforme resultado de CT-DDA-003)</li>
+              <li>Snapshot "antes" registrado · valores de prêmio restaurados/reconstruídos se um CT anterior já os zerou</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher Filial <code>1</code>, Ramo <code>54</code>, Apólice <code>1778531976824</code>, Subgrupo <code>1</code>, Referência da massa</li>
+              <li>Clicar em <strong>Recalcular</strong> (botão geral, <strong>não</strong> o "Recalcular DDR")</li>
+              <li>Responder à confirmação do recálculo geral e aguardar o fim do processamento</li>
+              <li>Capturar a mensagem completa exibida ao final</li>
+              <li>Verificar no banco se as averbações com DDR tiveram os valores zerados e <code>i_opr_ddr</code> gravado — sem que o botão dedicado tenha sido acionado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Mensagem do recálculo geral (<strong>"Foi recalculada 1 averbação com sucesso!"</strong> / <strong>"Foram recalculadas N averbações com sucesso!"</strong>) <strong>acrescida</strong> do complemento produzido pelo DDR encadeado, e valores de DDR aplicados no banco sem segunda confirmação. A mensagem <strong>não</strong> deve conter "Atenção: o recálculo do DDR integrado falhou e não foi processado".</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-012</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Ramo 58 (RCTA-C) na AXA não entra no encadeamento automático</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Limite — elegibilidade por ramo</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-02)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li><code>Ind_Existe_tb_ddr_tom_cit_RCTAC</code> <strong>ausente/inativo</strong> na AXA (confirmado 28/07)</li>
+              <li>Apólice AXA ramo <code>58</code> (RCTA-C) com averbações em movimento aberto — descobrir por SQL/UI antes do teste</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Confirmar por SQL o estado do indicativo <code>Ind_Existe_tb_ddr_tom_cit_RCTAC</code> na AXA</li>
+              <li>Descobrir apólice ramo 58 com movimento aberto e registrar o snapshot das averbações</li>
+              <li>Navegar até <strong>Recálculo de Averbações</strong>, preencher com Ramo <code>58</code> e a referência do movimento</li>
+              <li>Clicar em <strong>Recalcular</strong> (geral) e capturar a mensagem</li>
+              <li>Reconsultar as averbações e comparar com o snapshot</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Recálculo geral do ramo 58 conclui normalmente, <strong>sem</strong> complemento de DDR na mensagem e <strong>sem</strong> alteração de <code>i_opr_ddr</code> nas averbações — o encadeamento fica desabilitado por ausência do indicativo RCTAC.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-013</span><span class="ct-prio p3">P3</span>
+          <span class="ct-title">Regressão: recálculo geral em apólice sem DDR conclui sem erro e sem complemento</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Regressão — comportamento anterior do botão geral</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P3 — Desejável (CA-05)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Apólice AXA ramo 54 <strong>sem</strong> linha em <code>tb_ddr_tom_cit</code>, com averbações em movimento aberto — descobrir por SQL</li>
+              <li>Snapshot "antes" registrado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Descobrir por SQL apólice ramo 54 sem DDR e com movimento aberto na referência corrente</li>
+              <li>Navegar até <strong>Recálculo de Averbações</strong> e preencher com essa apólice</li>
+              <li>Clicar em <strong>Recalcular</strong> (geral), confirmar e aguardar</li>
+              <li>Capturar a mensagem e reconsultar as averbações</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Recálculo geral funciona como antes da feature: mensagem de sucesso <strong>sem</strong> complemento de DDR, sem mensagem de falha de encadeamento e sem erro 500.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <!-- GRUPO 4 -->
+    <div class="group-header">G4 — Reflexo do recálculo nas saídas <span class="group-sub">· CA-04 · 4 CTs</span></div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-014</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Tela de averbação exibe os valores zerados após o recálculo de DDR</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — reflexo em tela</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-04)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>CT-DDA-002 (ou 010) executado com sucesso — averbação já recalculada</li>
+              <li>Número da averbação recalculada anotado</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>RCTR-C</strong></li>
+              <li>Consultar a averbação recalculada (filial <code>1</code>, apólice <code>1778531976824</code>, número anotado)</li>
+              <li>Capturar o topo do formulário (cabeçalho e IS) com scroll até os campos ficarem legíveis</li>
+              <li>Capturar o rodapé (prêmio, RC-DC) com os valores legíveis</li>
+              <li>Extrair os valores dos campos via <code>browser_evaluate</code> e comparar com o banco</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">A tela exibe os valores <strong>zerados</strong> coerentes com o banco (IS e prêmio conforme o tipo de DDR aplicado). Divergência entre tela e banco = REPROVADO.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-015</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Relação de Embarques reflete o recálculo e traz "CNPJ Tomador" + "DDR Aplicada?"</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — relatório (evidência = arquivo)</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-04)</p></div>
+          <div class="ct-field full"><label>Contexto</label>
+            <div class="info-box" style="margin-bottom:0">As colunas <strong>"CNPJ Tomador"</strong> (col. U) e <strong>"DDR Aplicada?"</strong> (col. V) foram entregues no #7470 (CA-08) e ajustadas no #7878: o CNPJ Tomador <strong>sempre</strong> aparece; "DDR Aplicada?" é o indicador (Sim quando <code>i_opr_ddr</code> preenchido). Atenção: na AXA <code>Ind_Existe_i_opr_ddr = N</code> — confirmar como a coluna V se comporta neste tenant.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Averbação já recalculada por DDR (CT-DDA-002 / 010)</li>
+              <li>Movimento da referência ainda aberto (Prévia disponível)</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Prévia</strong></li>
+              <li>Selecionar Filial <code>1</code>, Ramo <strong>RCTR-C</strong>, Apólice <code>1778531976824</code>, Referência da massa</li>
+              <li>Marcar a opção <strong>Relação de Embarques</strong> e gerar/exportar</li>
+              <li>Aguardar o download e salvar o arquivo em <code>evidencias/CT-DDA-015/</code></li>
+              <li>Validar o arquivo: abrir com openpyxl, confirmar não-vazio, contar linhas, localizar as colunas "CNPJ Tomador" e "DDR Aplicada?"</li>
+              <li>Confirmar que a linha da averbação recalculada traz os valores zerados e o CNPJ Tomador íntegro</li>
+              <li>Registrar nome do arquivo, tamanho e nº de linhas no resultado do CT</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Arquivo XLSX gerado, não-vazio e legível, contendo a linha da averbação recalculada com prêmio/IS zerados, a coluna <strong>CNPJ Tomador</strong> preenchida com <code>40806257000150</code> (íntegro, sem perda de zeros) e a coluna <strong>DDR Aplicada?</strong> coerente com o <code>i_opr_ddr</code> gravado.</div>
+          </div>
+          <div class="ct-field full"><label>Regra de evidência</label>
+            <div class="warn-box" style="margin-bottom:0">CT de relatório/export: a evidência obrigatória é o <strong>arquivo baixado e validado</strong> (não basta screenshot nem HTTP 2xx). O arquivo é anexado ao card e referenciado neste plano.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-016</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Resumo de Embarques reflete o recálculo de DDR</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — relatório (evidência = arquivo)</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-04)</p></div>
+          <div class="ct-field full"><label>Nota de escopo</label>
+            <div class="warn-box" style="margin-bottom:0">No #7470 o equivalente (CA-09) foi reinterpretado como <strong>out-of-scope</strong> por decisão de Produtos (13/07), sob o argumento de que o Resumo é consolidado por rota e não exibe DDR. O card #7916 <strong>lista o Resumo de Embarques explicitamente no CA-04</strong>, portanto ele é testado aqui. Se o resultado confirmar que o Resumo não carrega o dado de DDR por natureza, o CT sobe para decisão de Produtos em vez de ser reprovado unilateralmente.</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul><li>Averbação já recalculada por DDR e movimento da referência aberto</li></ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Prévia</strong></li>
+              <li>Selecionar Filial <code>1</code>, Ramo <strong>RCTR-C</strong>, Apólice <code>1778531976824</code>, Referência da massa</li>
+              <li>Marcar <strong>Resumo de Embarques</strong> e exportar</li>
+              <li>Salvar o arquivo em <code>evidencias/CT-DDA-016/</code> e validar (não-vazio, formato, nº de linhas)</li>
+              <li>Confrontar os totais do Resumo com os valores zerados das averbações recalculadas</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Arquivo gerado e válido, com os totais consolidados <strong>coerentes com os prêmios zerados</strong> pelo recálculo de DDR (o embarque não deve contribuir com prêmio que a DDR dispensou).</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-017</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">Impressão da averbação reflete o recálculo de DDR</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Positivo — impressão (evidência = arquivo)</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-04)</p></div>
+          <div class="ct-field full"><label>Nota de escopo</label>
+            <div class="warn-box" style="margin-bottom:0">No #7470 o equivalente (CA-07) ficou <strong>out-of-scope</strong> porque o formulário e a impressão da averbação não possuem campo de DDR. Como o #7916 exige a impressão no CA-04, o CT verifica se os <strong>valores</strong> impressos refletem o recálculo (não a existência de um campo "DDR").</div>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul><li>Averbação já recalculada por DDR, número anotado</li></ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Navegar: <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>RCTR-C</strong> e consultar a averbação recalculada</li>
+              <li>Acionar <strong>Imprimir</strong></li>
+              <li>Aguardar o download, salvar em <code>evidencias/CT-DDA-017/</code> e registrar o nome real do arquivo</li>
+              <li>Validar o arquivo (não-vazio, formato válido) e localizar os campos de IS e prêmio</li>
+              <li>Comparar os valores impressos com os valores do banco pós-recálculo</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Arquivo de impressão gerado e válido, com IS e prêmio <strong>iguais aos valores zerados</strong> gravados pelo recálculo — sem valores residuais do estado anterior.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <!-- GRUPO 5 -->
+    <div class="group-header">G5 — Regressão nas demais seguradoras <span class="group-sub">· CA-05 · 2 CTs</span></div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-018</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">EZZE: recálculo geral NÃO encadeia DDR (exceção preservada)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Regressão — exceção por indicativo</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (CA-05)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML EZZE — <code>https://ezze-hml-faturamento.nsseg.com.br/login/</code> · usuário <code>FRED</code> (<code>.env</code>)</li>
+              <li>Indicativos confirmados na base <code>smt-hom-citweb-ezze</code> (28/07): <code>Ind_ExcecaoRecalculoDdrIntegrado=S</code> e <code>Ind_UsaProcedureDedicadaDdr=S</code></li>
+              <li>Apólice EZZE ramo elegível com movimento aberto — descobrir por SQL/UI</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Confirmar por SQL os dois indicativos na base EZZE</li>
+              <li>Login em HML EZZE e navegar até <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>Recálculo de Averbações</strong></li>
+              <li>Registrar quais botões aparecem na tela e capturar screenshot</li>
+              <li>Preencher a massa EZZE e clicar em <strong>Recalcular</strong> (geral)</li>
+              <li>Capturar a mensagem e verificar no banco se <code>i_opr_ddr</code> foi alterado em alguma averbação</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">O recálculo geral na EZZE conclui <strong>sem</strong> encadear o DDR (nenhum complemento de DDR na mensagem, nenhum <code>i_opr_ddr</code> gravado pelo botão geral) — comportamento anterior preservado pela exceção do grupo CHUBB/ACE/EZZE.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+    <div class="ct-block" data-status="pendente" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-019</span><span class="ct-prio p2">P2</span>
+          <span class="ct-title">FAIRFAX: caminho homologado no #7470 continua funcionando (sem regressão)</span>
+        </div>
+        <span class="ct-status-chip chip-pend">PENDENTE</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Regressão — tenant já homologado</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P2 — Importante (CA-05)</p></div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Ambiente: HML FAIRFAX — <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code> · usuário <code>ROT_AUTO</code> (<code>.env</code>)</li>
+              <li>Massa do #7470: apólice <code>1</code> · filial <code>1</code> · ramo <code>54</code> · DDR raiz vigente (coluna <code>u_cnpj_cpf</code> é <code>float</code> nesta base)</li>
+              <li>Confirmar por SQL se ainda há averbação elegível em movimento aberto; criar se necessário</li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Confirmar por SQL a massa DDR + averbação elegível na FAIRFAX</li>
+              <li>Login em HML FAIRFAX e navegar até <strong>Recálculo de Averbações</strong></li>
+              <li>Preencher a massa e clicar em <strong>Recalcular DDR</strong></li>
+              <li>Confirmar o modal e capturar a mensagem de sucesso</li>
+              <li>Verificar no banco os valores zerados e o <code>i_opr_ddr</code> gravado</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">Comportamento idêntico ao homologado em 23/07: modal com a quantidade, mensagem de sucesso e valores atualizados — inclusive para DDR cadastrada por <strong>raiz</strong>, que nesta base funciona.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div><span class="ev-badge ev-pendente">PENDENTE</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MATRIZ -->
+<div class="section">
+  <div class="section-header">6. Matriz de rastreabilidade</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead><tr><th style="width:34%">Critério de aceite (card #7916)</th><th style="width:36%">CTs que cobrem</th><th>Resultado</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>CA-01</strong> — Usuário AXA vê e usa o botão "Recalcular DDR" sem erro</td>
+          <td>CT-DDA-001, 002, 003, 004, 006</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td><strong>CA-02</strong> — Recálculo geral também aciona o DDR automaticamente quando a apólice/ramo é elegível</td>
+          <td>CT-DDA-011, 012, 013</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td><strong>CA-03</strong> — Recálculo de DDR só se aplica a averbações em movimento aberto</td>
+          <td>CT-DDA-008, 007</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td><strong>CA-04</strong> — Após o recálculo os valores refletem corretamente em: tela de averbação, impressão da averbação, Relação de Embarques e Resumo de Embarques</td>
+          <td>CT-DDA-009, 010 (valores) · 014 (tela) · 017 (impressão) · 015 (Relação) · 016 (Resumo)</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+        <tr>
+          <td><strong>CA-05</strong> — Demais seguradoras mantêm o comportamento anterior (sem regressão)</td>
+          <td>CT-DDA-018 (EZZE), 019 (FAIRFAX), 013 (apólice sem DDR), 005 (CNPJ não elegível)</td>
+          <td class="cov-pend">Pendente</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="info-box" style="margin-top:12px;margin-bottom:0">Cobertura de critérios de aceite: <strong>5/5 (100%)</strong> — nenhum CA sem CT associado.</div>
+  </div>
+</div>
+
+<!-- MÉTRICAS -->
+<div class="section">
+  <div class="section-header">7. Métricas</div>
+  <div class="section-body">
+    <table class="matriz">
+      <thead><tr><th>Indicador</th><th>Valor</th></tr></thead>
+      <tbody>
+        <tr><td>Total de CTs</td><td>19</td></tr>
+        <tr><td>P1 — Bloqueante</td><td>10 (CT-DDA-001, 002, 003, 004, 009, 010, 011, 014, 015, 018)</td></tr>
+        <tr><td>P2 — Importante</td><td>8 (CT-DDA-005, 006, 007, 008, 012, 016, 017, 019)</td></tr>
+        <tr><td>P3 — Desejável</td><td>1 (CT-DDA-013)</td></tr>
+        <tr><td>Cobertura dos critérios de aceite</td><td>5/5 — 100%</td></tr>
+        <tr><td>CTs de regressão</td><td>4 (CT-DDA-005, 013, 018, 019)</td></tr>
+        <tr><td>CTs com evidência = arquivo</td><td>3 (CT-DDA-015, 016, 017)</td></tr>
+        <tr><td>CTs que exigem criação de massa</td><td>5 (CT-DDA-002, 004, 008, 009, 010)</td></tr>
+        <tr><td>Executados</td><td>0 · Aprovados 0 · Reprovados 0 · Bloqueados 0</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- RISCOS -->
+<div class="section">
+  <div class="section-header">8. Riscos</div>
+  <div class="section-body">
+    <table class="risks-table">
+      <thead><tr><th style="width:30%">Risco</th><th style="width:10%">Prob.</th><th style="width:10%">Impacto</th><th>Mitigação</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>DDR cadastrada por <strong>raiz</strong> não é reconhecida na AXA: a coluna <code>u_cnpj_cpf</code> é <code>varchar</code> e o pad-para-14 da comparação transforma <code>'40806257'</code> em <code>'00000040'</code>. Afeta <strong>109 das 191</strong> linhas DDR da AXA</td>
+          <td class="risk-high">Alta</td>
+          <td class="risk-high">Alto</td>
+          <td>CT-DDA-003 dedicado, com contraprova em CNPJ total (CT-DDA-002) e em FAIRFAX (CT-DDA-019, coluna <code>float</code>). Se confirmado: Task de defeito com evidência dos dois caminhos</td>
+        </tr>
+        <tr>
+          <td>CNPJ Tomador alfanumérico pode gerar <strong>erro 500</strong>: a query de descoberta usa <code>MOV.u_cpf_cgc_emb &gt; 0</code> sobre coluna <code>varchar</code>, e a conversão implícita falha em valor não numérico</td>
+          <td class="risk-high">Alta</td>
+          <td class="risk-high">Alto</td>
+          <td>CT-DDA-004 com massa alfanumérica criada e inspeção do status HTTP no Network. É o motivo declarado do reteste na AXA</td>
+        </tr>
+        <tr>
+          <td>O recálculo é <strong>destrutivo</strong> (zera prêmio/IS) e não tem desfazer — massa consumida impede repetir CTs</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-med">Médio</td>
+          <td>Snapshot SQL obrigatório antes de cada CT (seção 4.3); usar apólice de teste dedicada; criar averbações novas em vez de reaproveitar quando o CT permitir</td>
+        </tr>
+        <tr>
+          <td>Apólice RCF <code>1778531976855</code> <strong>sem averbações ramo 55</strong> → caminho "DDR parcial" atualiza 0 linhas e o CT passaria sem efeito observável (falso positivo)</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-med">Médio</td>
+          <td>Massa <strong>M2</strong>: criar averbação com RC-DC antes de CT-DDA-009; validar por SQL que a linha do ramo 55 existe antes de executar</td>
+        </tr>
+        <tr>
+          <td>Percentuais <code>f_sgr_rct_cte</code> / <code>f_sgr_rcf_cte</code> estão <strong>NULL</strong> na linha DDR vigente da AXA</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-low">Baixo</td>
+          <td>O recálculo zera valores em vez de aplicar percentual, então NULL não deve afetar; confirmar em CT-DDA-002/009 e registrar se houver erro de conversão</td>
+        </tr>
+        <tr>
+          <td>Seed de indicativos revertido por deploy posterior (ocorreu no #7470 com a EZZE)</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-med">Médio</td>
+          <td>Reconferir a tabela da seção 4.1 por SQL <strong>antes de cada rodada</strong>; registrar o valor lido junto da evidência</td>
+        </tr>
+        <tr>
+          <td>CHUBB também tem <code>u_cnpj_cpf</code> <code>varchar</code> (249 linhas DDR) e pode compartilhar o risco da raiz, mas está fora do escopo (caminho por stored procedure dedicada e acesso por bypass)</td>
+          <td class="risk-med">Média</td>
+          <td class="risk-med">Médio</td>
+          <td>Registrar para triagem de Produtos/dev; se o CT-DDA-003 reprovar, incluir o CHUBB na análise de impacto do defeito</td>
+        </tr>
+        <tr>
+          <td>Divergência entre o card e o comentário do dev: a proposta técnica fala em liberar por <strong>indicativo</strong> (qualquer tenant), o comentário diz "implementado para a seguradora AXA"</td>
+          <td class="risk-low">Baixa</td>
+          <td class="risk-low">Baixo</td>
+          <td>O código confirma o gate por <code>Ind_Existe_tb_ddr_tom_cit</code> (não por nome de seguradora) — CT-DDA-001 (AXA) e CT-DDA-018 (EZZE) provam o comportamento por indicativo</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- REFERÊNCIAS -->
+<div class="section">
+  <div class="section-header">9. Referências</div>
+  <div class="section-body">
+    <ul style="padding-left:18px">
+      <li><strong>Card:</strong> <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7916" style="color:var(--accent)">PBI-7916</a> — descrição, proposta técnica e 5 critérios de aceite (a descrição do card é a fonte dos CAs; não há tasks filhas)</li>
+      <li><strong>Comentário do dev (28/07):</strong> "Desenvolvimento concluído... Ajuste já subiu para o ambiente de homologação e está disponível para testes."</li>
+      <li><strong>Card irmão:</strong> <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7470" style="color:var(--accent)">PBI-7470</a> — mesma feature homologada em FAIRFAX (12 CTs, 23/07) · <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-9-citweb/pbi-7470/" style="color:var(--accent)">plano do #7470</a></li>
+      <li><strong>Tasks relacionadas ao #7470:</strong> #7878 (colunas CNPJ Tomador / DDR Aplicada?), #7832 e #7820 (histórico da regra da coluna V)</li>
+      <li><strong>Código-fonte lido (passo 0c):</strong> <code>Nacional/Views/RecalculoAverbacoes/Index.cshtml</code> (gate do botão) · <code>Domain/AverbacaoMovimentoAbertoNacionalDomain.cs</code> (<code>RecalcularAverbacaoBlocoDDR</code>, <code>DeveExecutarRecalculoDdrIntegrado</code>, <code>ExecutarRecalculoDdrIntegrado</code>) · <code>Repository/AverbacaoMovimentoAbertoNacionalRepository.cs</code> (<code>ListarNumerosAverbacoesDDR</code>, <code>AtualizarPremioDDR</code>, <code>AtualizarPremioDDR_Ramo55/58/52</code>)</li>
+      <li><strong>Legado espelhado:</strong> VB6 <code>TTFCN0M0</code> / <code>TTMCN000.Su_Recalcular_DDR</code> / <code>TTFCN080</code></li>
+      <li><strong>Massa e indicativos:</strong> confirmados por SQL em 28/07/2026 nas bases <code>smt-hom-citweb-axa</code>, <code>-ezze</code> e <code>-fairfax</code></li>
+      <li><strong>Automação:</strong> nenhum script existente cobre Recálculo de Averbações / DDR (busca em <code>testes-automatizados/</code>, 142 scripts) → execução por Voidr MCP e, na falha, Playwright MCP; script Python a criar para cada CT aprovado</li>
+      <li><strong>features/:</strong> o fluxo "Recálculo de Averbações" ainda não está documentado — documentar durante a execução</li>
+    </ul>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lb" onclick="closeLb()">
+  <img id="lb-img" src="" alt="">
+  <div id="lb-cap"></div>
+</div>
+
+<footer>
+  PBI-7916 — [CITWEB] Recálculo de DDR (AXA) · Plano gerado em 28/07/2026 · QA Auto / Wesley Moreira · 19 CTs · aguardando Gate 1 (Wesley) e Gate 2 (Produtos)
+</footer>
+
+<script>
+function openLb(src, cap) {
+  document.getElementById('lb-img').src = src;
+  document.getElementById('lb-cap').textContent = cap;
+  document.getElementById('lb').classList.add('open');
+}
+function closeLb() {
+  document.getElementById('lb').classList.remove('open');
+}
+document.querySelectorAll('.ct-bar').forEach(bar => {
+  bar.addEventListener('click', () => {
+    const block = bar.closest('.ct-block');
+    const expanded = block.dataset.expanded === 'true';
+    block.dataset.expanded = expanded ? 'false' : 'true';
+  });
+});
+document.querySelectorAll('.ev-item img').forEach(img => {
+  img.onclick = (e) => { e.stopPropagation(); openLb(img.src, img.alt); };
+});
+</script>
+</body>
+</html>
