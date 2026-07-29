@@ -149,6 +149,53 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <p style="margin-top:10px"><strong>Regras confirmadas no código</strong> (<code>CitNetServiceNac/AverbacaoNacionalService.cs</code> e <code>CitNetAverbacaoNac/CLSNACCALC.cs</code>): a janela D+5 e a proibição de data retroativa valem para apólice com <code>e_avb = 'D'</code> (diária) — que é o caso de <strong>todas</strong> as 6.441 apólices RCV da filial 1 neste ambiente; o teto de 365 dias é geral; o prêmio RCV é calculado por tipo de CC — <code>PRFX</code> (valor fixo), <code>PRVCML</code> (por tipo de viagem: urbano / mesmo estado / estados vizinhos / não vizinhos) e <code>TPP</code> (<code>(DC + DM) × taxa/100</code>).</p>
   </div>
 
+  <div class="section-title">🧮 Subgrupo e conferência dos valores dos embarques (2ª rodada, 29/07)</div>
+  <div class="doc-box">
+    <p>A 1ª rodada usou <strong>apenas subgrupo 1</strong> (e 999 para testar rejeição) e aceitou os prêmios que o sistema gravou sem recalculá-los. Como a condição comercial do RCV é <strong>por subgrupo</strong>, foi executada uma 2ª rodada dirigida — arquivo de 6 linhas na <strong>apólice 2</strong>, que tem <code>sgp 1 = VKMCML</code> (faixas 0–1000 km = R$ 77,77 · 1001–20000 = R$ 88,88) e <code>sgp 2 = TPP</code> (limites DC 250.000 + DM 200.000) — comparando o prêmio gravado contra o cálculo da CC.</p>
+    <p><strong>Conversão: 6 lidos · 4 aceitos · 2 rejeitados · Processamento: 4 de 4 aceitos.</strong></p>
+    <table class="matriz">
+      <tr><th>#</th><th>Apólice / Subgrupo</th><th>Tipo de CC</th><th>Esperado pela CC</th><th>Gravado</th><th>Veredito</th></tr>
+      <tr><td>S1</td><td>2 / <strong>sgp 1</strong> · km 0</td><td>VKMCML</td><td>R$ 0,00 (sem km)</td><td>R$ 0,00</td><td class="ok">OK</td></tr>
+      <tr><td>S2</td><td>2 / <strong>sgp 1</strong> · <strong>km 500</strong></td><td>VKMCML</td><td><strong>R$ 77,77</strong> (faixa 0–1000)</td><td class="bad">R$ 0,00 · taxa 0</td><td class="bad">DIVERGE</td></tr>
+      <tr><td>S3</td><td>2 / <strong>sgp 2</strong></td><td>TPP</td><td>(250.000+200.000) × 0,99999/100 = <strong>R$ 4.499,96</strong></td><td>R$ 4.499,96</td><td class="ok">OK</td></tr>
+      <tr><td>S4</td><td>101059 / sgp 1 (controle)</td><td>TPP</td><td>(100.000+100.000) × 0,99999/100 = <strong>R$ 1.999,98</strong></td><td>R$ 1.999,98</td><td class="ok">OK</td></tr>
+      <tr><td>S5</td><td>2 / sgp 3 (inexistente)</td><td>—</td><td>rejeitar</td><td>rejeitado na conversão</td><td class="ok">OK</td></tr>
+      <tr><td>S6</td><td>2 / sgp em branco</td><td>—</td><td>rejeitar (obrigatório)</td><td>rejeitado na conversão</td><td class="ok">OK</td></tr>
+    </table>
+    <p style="margin-top:10px"><strong>O subgrupo é respeitado:</strong> a mesma apólice 2 gerou prêmios diferentes conforme o subgrupo (R$ 0,00 no sgp 1 × R$ 4.499,96 no sgp 2), e os limites de cobertura usados no cálculo são os da apólice correta (S3 usa 450.000; S4 usa 200.000). <strong>PRFX e TPP conferem na aritmética</strong> — PRFX devolve o <code>v_prm</code> cadastrado (R$ 150,00 na apólice 333) e TPP aplica <code>(DC + DM) × taxa/100</code>.</p>
+  </div>
+
+  <div class="div-block alto">
+    <div class="div-bar"><span class="div-id">C3</span><span class="div-title">CC <strong>VKMCML</strong> (prêmio por faixa de KM) grava prêmio <strong>R$ 0,00</strong> — no CITNET <em>atual</em></span><span class="sev sev-bloq">ALTO</span><span class="div-toggle">▶</span></div>
+    <div class="div-body">
+      <h4>Fato observado</h4>
+      <p>Averbação da apólice 2 / subgrupo 1, cuja CC define <strong>R$ 77,77 para a faixa 0–1000 km</strong>, informando <code>KM = 500</code> no arquivo: o km foi gravado (<code>u_km_vgm = 500</code>) mas o prêmio saiu <strong>R$ 0,00</strong> com <code>f_cml_bsc = 0</code>. Não é problema de integração de quilometragem — o km veio do próprio arquivo.</p>
+      <h4>Causa no código</h4>
+      <p><code>CLSNACCALC.CalcularPremioRCV</code> tem branch apenas para <strong>PRFX</strong>, <strong>PRVCML</strong> e <strong>TPP</strong> — <strong>não existe tratamento para VKMCML</strong>, então o método cai no <code>return 0</code> final. Reforçando: <code>ObterCondicaoComercialRCV</code> carrega as linhas da CC com <code>ORDER BY d_ini_vig DESC</code> em um <code>while</code> que <strong>sobrescreve</strong> o objeto a cada leitura e <strong>não filtra a faixa de KM</strong> — ou seja, mesmo que houvesse o branch, a faixa selecionada seria arbitrária.</p>
+      <h4>Dimensão nesta base</h4>
+      <ul>
+        <li><strong>62 apólice/subgrupo</strong> têm CC VKMCML com valor de prêmio cadastrado (<code>v_prm &gt; 0</code>).</li>
+        <li>Averbações RCV de subgrupos VKMCML na competência ≥ 202601: <strong>86 com prêmio zero</strong> contra <strong>2 com prêmio &gt; 0</strong>.</li>
+      </ul>
+      <p><strong>Este é um defeito do CITNET atual</strong>, não uma divergência entre os dois. Entra no comparativo porque define o alvo: se o novo copiar o comportamento, herda o prêmio zerado; se implementar o cálculo por faixa, vai divergir do atual — e a decisão de qual é o correto é de Produtos.</p>
+    </div>
+  </div>
+
+  <div class="div-block medio">
+    <div class="div-bar"><span class="div-id">C4</span><span class="div-title">CC <strong>PRVCML</strong>: os 4 tipos de viagem testam o campo errado no código (risco de prêmio zero)</span><span class="sev sev-medio">A CONFIRMAR</span><span class="div-toggle">▶</span></div>
+    <div class="div-body">
+      <h4>Fato observado no código</h4>
+      <p>Em <code>CalcularPremioRCV</code>, os quatro <code>case</code> do tipo de viagem testam sempre <code>v_vgm_urb</code>, mas retornam o campo do respectivo tipo:</p>
+      <div class="evid"><code>case "EST": return condicaoRcv.<strong>v_vgm_urb</strong> != null ? Convert.ToDecimal(condicaoRcv.v_vgm_uf_int) : 0;</code><br>
+      <code>case "VIZ": return condicaoRcv.<strong>v_vgm_urb</strong> != null ? Convert.ToDecimal(condicaoRcv.v_vgm_uf_viz) : 0;</code><br>
+      <code>case "NVZ": return condicaoRcv.<strong>v_vgm_urb</strong> != null ? Convert.ToDecimal(condicaoRcv.v_vgm_uf_nao_viz) : 0;</code></div>
+      <p>Consequência: se o subgrupo tem valor para "mesmo estado / vizinho / não vizinho" mas <strong>não</strong> tem valor urbano, o prêmio volta <strong>0</strong>.</p>
+      <h4>Status: risco identificado, ainda não comprovado em movimento</h4>
+      <p><strong>69 apólice/subgrupo</strong> desta base estão exatamente nessa configuração (<code>v_vgm_urb</code> nulo/zero e algum dos outros &gt; 0). Porém <strong>nenhuma averbação da competência ≥ 202601</strong> pertence a esses subgrupos, então não há movimento real para comprovar o efeito aqui. Requer massa dirigida (averbação PRVCML com percurso interestadual em subgrupo sem valor urbano) — está na lista do que falta.</p>
+      <p>Contexto de volume: PRVCML é o tipo de CC mais usado no RCV nesta base (<strong>299 apólice/subgrupo</strong>), e há <strong>1.255 averbações de 2026 com prêmio zero</strong> em subgrupos PRVCML — número que <em>sugere</em> o problema, mas que também pode se explicar por cadastro sem valores; por isso está como "a confirmar" e não como defeito comprovado.</p>
+    </div>
+  </div>
+
   <div class="section-title">✅ O motor de regras do novo está portado (verificação à parte)</div>
   <div class="doc-box">
     <p>Para separar "regra não existe" de "regra não é alcançada", a mesma linha L03 (data = hoje + 6, apólice 101059) foi lançada pela <strong>tela de averbação</strong> do novo:</p>
@@ -176,7 +223,8 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <h3>Bloqueado pelo C1 — só é testável no novo depois que o Conversor converter</h3>
     <ul>
       <li>Reexecutar a matriz de 15 casos no novo e comparar linha a linha (datas, duplicidade, cancelamento, suspensão, sem CC, obrigatórios, subgrupo, município).</li>
-      <li>Cálculo de prêmio pelo Conversor por tipo de CC: <strong>PRFX</strong> (R$ 150,00 no atual), <strong>TPP</strong> (R$ 1.999,98 no atual), <strong>PRVCML</strong> (urbano / mesmo estado / vizinho / não vizinho) e <strong>VKMCML</strong> (faixa de KM).</li>
+      <li>Cálculo de prêmio pelo Conversor por tipo de CC — valores de referência já medidos no atual: <strong>PRFX R$ 150,00</strong> · <strong>TPP R$ 1.999,98</strong> (200.000 de IS) e <strong>R$ 4.499,96</strong> (450.000 de IS) · <strong>VKMCML R$ 0,00</strong> (ver C3) · <strong>PRVCML</strong> a medir (ver C4).</li>
+      <li>Repetir a 2ª rodada (subgrupo) no novo: mesma apólice com <code>sgp 1</code> e <code>sgp 2</code> de CCs diferentes deve produzir prêmios diferentes; e subgrupo inexistente / em branco deve rejeitar.</li>
     </ul>
     <h3 style="margin-top:10px">Independente do C1 — próximo bloco, massa já mapeada</h3>
     <ul>
