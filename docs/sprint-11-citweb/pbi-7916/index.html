@@ -135,7 +135,7 @@
   <div class="dash-wide">
     <div class="lbl">Progresso</div>
     <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:26%;background:var(--fail)"></div></div>
-    <div class="pb-pct" id="pb-pct">5/19 executados · 2 aprovados · 2 REPROVADOS · 1 bloqueado · 14 pendentes — execução PAUSADA: defeito bloqueante confirmado (R1)</div>
+    <div class="pb-pct" id="pb-pct">5/19 executados · 2 aprovados · 2 REPROVADOS · 1 bloqueado · 14 pendentes — RETESTE 29/07 (build 260728.1908): R1 (overflow) CORRIGIDO ✅, mas R3 (DDR por raiz não casa) CONFIRMADO ❌ — recálculo segue inoperante para DDR-raiz</div>
   </div>
 </div>
 
@@ -172,6 +172,36 @@
     </div>
     <div class="warn-box" style="margin-bottom:0">
       <strong>14 CTs pendentes</strong> (CT-DDA-002, 004, 005, 007, 008, 009, 010, 012, 013, 014, 015, 016, 017, 018): retomar ap&oacute;s o fix. Os que dependem de um rec&aacute;lculo bem-sucedido (002, 004, 005, 007, 009, 010, 014, 015, 016, 017) n&atilde;o t&ecirc;m como passar hoje; 012, 013 e 018 s&atilde;o independentes e ficam para a pr&oacute;xima rodada junto do reteste.
+    </div>
+  </div>
+</div>
+
+<div class="section" style="border-color:#ca5010">
+  <div class="section-header" style="border-left-color:#ca5010">Resultado da execu&ccedil;&atilde;o &mdash; 2&ordf; rodada (RETESTE 29/07/2026, ap&oacute;s fix da Task #7920)</div>
+  <div class="section-body">
+    <div class="info-box">
+      <strong>Reteste ap&oacute;s deploy do Diego</strong> &mdash; a Task de defeito #7920 foi movida para "Pronto para homologa&ccedil;&atilde;o" (28/07 20:20). Reexecu&ccedil;&atilde;o do CT-DDA-003 em <strong>HML AXA &middot; build V 1.0.260728.1908</strong> (nova, vs. 260727.1709 da 1&ordf; rodada) &middot; usu&aacute;rio FRED &middot; 29/07/2026 12:45, via <code>testes-automatizados/sprint-11/pbi-7916/ct_dda_recalculo_ddr.py --tenant axa --cenario reteste-ddr</code>.
+    </div>
+    <div class="ok-box" style="background:#dff6dd;border-left:4px solid #107c10;padding:10px;border-radius:4px;margin:10px 0">
+      <strong>&#10003; R1 (overflow <code>int</code>) CORRIGIDO</strong> &mdash; a a&ccedil;&atilde;o RECALCULAR DDR <strong>n&atilde;o retorna mais "Ocorreu um erro inesperado!"</strong>. O <code>Msg 248</code> foi eliminado. O predicado <code>AND MOV.u_cpf_cgc_emb &gt; 0</code> deixou de estourar o <code>int</code>.
+    </div>
+    <div class="fail-box">
+      <strong>&#10007; R3 (DDR por raiz n&atilde;o casa) CONFIRMADO &mdash; CT-DDA-003 segue REPROVADO</strong><br>
+      Ap&oacute;s o fix do overflow, a tela agora retorna <strong>"N&atilde;o existe movimento para os crit&eacute;rios informados."</strong> mesmo havendo averba&ccedil;&atilde;o eleg&iacute;vel em movimento aberto. Isto era exatamente o discriminador previsto neste plano (R1 vs R3): "erro de servidor confirma R1; 'sem movimento' confirma R3 (raiz)".<br><br>
+      <strong>Prova SQL (banco AXA, 29/07):</strong>
+      <ul style="margin:6px 0;padding-left:18px">
+        <li>DDR da ap&oacute;lice 1778531976824 (<code>tb_ddr_tom_cit</code>): <code>u_cnpj_cpf=40806257</code> (<strong>8 d&iacute;gitos = RAIZ</strong>, <code>i_tpi_cnpj_cpf='R'</code>, <code>i_opr_ddr='P'</code>, vig&ecirc;ncia 01/05/2026&ndash;01/10/2026, cobre 07/2026)</li>
+        <li>Averba&ccedil;&atilde;o <code>202617785321</code> (<code>tb_mov_avb_nac_cit</code>): ref 202607, <code>u_fch_mes=0</code> (<strong>movimento ABERTO</strong>), <code>u_cpf_cgc_emb='40806257000150'</code> &mdash; <strong>raiz 40806257 == a raiz da DDR</strong></li>
+        <li>Logo existe massa eleg&iacute;vel casando pela raiz; ainda assim o rec&aacute;lculo n&atilde;o a encontra &rarr; o match por raiz est&aacute; quebrado (o pad-para-14 da raiz n&atilde;o bate com o CNPJ total da averba&ccedil;&atilde;o).</li>
+      </ul>
+      <strong>Impacto:</strong> 109 das 191 DDRs da AXA s&atilde;o por raiz (57%) &mdash; o rec&aacute;lculo de DDR segue inoperante para elas. Defeito R3 documentado na Task #7920 (reaberta) &mdash; o fix cobriu s&oacute; R1 (overflow), n&atilde;o R3 (match por raiz).
+    </div>
+    <div class="ct-ev" style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">
+      <div class="ev-item"><img src="evidencias/CT-DDA-003/ev_CTDDA003_01_form-preenchido_20260729-124550.png" alt="Reteste EV1 &mdash; formul&aacute;rio Rec&aacute;lculo de Averba&ccedil;&otilde;es: filial 1, RCTR-C, ap&oacute;lice 1778531976824, subgrupo 001, ref 07/2026" style="max-width:100%;border:1px solid #ccc"><div class="ev-cap">Reteste EV1 &mdash; formul&aacute;rio preenchido (build 260728.1908)</div></div>
+      <div class="ev-item"><img src="evidencias/CT-DDA-003/ev_CTDDA003_02_resultado_20260729-124552.png" alt="Reteste EV2 &mdash; 'N&atilde;o existe movimento para os crit&eacute;rios informados.' ap&oacute;s RECALCULAR DDR &mdash; sem mais 'erro inesperado'" style="max-width:100%;border:1px solid #ccc"><div class="ev-cap">Reteste EV2 &mdash; "N&atilde;o existe movimento..." (R1 corrigido, R3 exposto)</div></div>
+    </div>
+    <div class="warn-box" style="margin-bottom:0">
+      Veredito do reteste: <strong>CT-DDA-003 REPROVADO</strong> (agora por R3, n&atilde;o mais R1). Os 14 CTs dependentes de um rec&aacute;lculo bem-sucedido seguem <strong>bloqueados</strong> at&eacute; o fix do match por raiz. Card mantido em <code>#QA-EXEC-PRONTO</code> com a Task #7920 reaberta.
     </div>
   </div>
 </div>
