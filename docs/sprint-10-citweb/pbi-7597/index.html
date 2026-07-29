@@ -137,7 +137,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
     <li><strong>CT-DMC-001 · 002 · 005 APROVADOS</strong> — núcleo da regra DM/DC na integração validado (SQL + UI).</li>
     <li><strong>CT-DMC-002 destravado (29/07):</strong> como o limite do cadastro foi alterado para 150k/100k, a consulta da averbação exibe o <strong>gravado 50k/40k</strong> (≠ cadastro) — provando que não recalcula. Antes ficava impossível provar (cadastro == gravado).</li>
     <li><strong>CT-DMC-003 REPROVADO:</strong> 2ª metade (antigas mantêm histórico) validada; 1ª metade REPROVADA — a nova carga CargaCitNetNac foi executada no HML Mitsui mas <strong>não gerou averbação</strong> na apólice 6062026 → Task de defeito <strong>#7936</strong> (dev/José).</li>
-    <li><strong>CT-DMC-006 BLOQUEADO → BUG #7934:</strong> a tela de Recálculo de Averbações retorna HTTP 500 ("erro inesperado") no Mitsui — defeito <strong>alheio</strong> à regra DM/DC do #7597 (confirmado no código; não é a família do #7896). Bug #7934 aberto.</li>
+    <li><strong>CT-DMC-006 APROVADO (reteste 29/07):</strong> o HTTP 500 do Recálculo de Averbações foi corrigido (colunas <code>v_dm</code>/<code>v_dc</code> criadas no banco HML Mitsui). Reteste OK — "Foi recalculada 1 averbação com sucesso!". Bug <strong>#7934 → Done</strong>.</li>
     <li><strong>CT-DMC-004</strong> (regressivo manual): não executado.</li>
   </ul>
   <p style="margin-top:8px;color:#8b949e">Gate 1 (Wesley) + Gate 2 (Fabiola) aprovados. Núcleo do #7597 (snapshot DM/DC na integração) homologado; itens laterais (#7934 e nova carga) não bloqueiam o núcleo.</p>
@@ -145,9 +145,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val" id="m-total">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val" id="m-ok">3</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">4</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">1</div><div class="metric-lbl">Reprovado (#7936)</div></div>
-  <div class="metric m-bloq"><div class="metric-val" id="m-bloq" style="color:var(--yellow)">1</div><div class="metric-lbl">Bloqueado (#7934)</div></div>
+  <div class="metric m-bloq"><div class="metric-val" id="m-bloq" style="color:var(--yellow)">0</div><div class="metric-lbl">Bloqueado</div></div>
   <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendente</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar" id="progress" style="width:83%"></div></div>
@@ -420,19 +420,21 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
         <span class="ct-id">CT-DMC-006</span>
         <span class="ct-title">Recálculo após alteração do limite da apólice — DM e DC devem ser atualizados</span>
         <span class="badge badge-p1">P1</span>
-        <span class="badge badge-bloqueado" id="badge-006">⛔ BLOQUEADO → BUG #7934</span>
+        <span class="badge badge-ok" id="badge-006">✓ APROVADO (reteste #7934)</span>
         <span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="ct-ev" style="margin-bottom:14px">
-          <div style="background:var(--yel-bg);border:1px solid var(--yellow);border-radius:4px;padding:9px 13px;font-size:12px;color:var(--yellow)">
-            ⛔ <strong>BLOQUEADO (29/07/2026)</strong> — a tela de Recálculo de Averbações retorna <strong>HTTP 500 "erro inesperado"</strong> → <strong>BUG #7934</strong>. Causa <em>alheia</em> à regra DM/DC do #7597.
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:9px 13px;font-size:12px;color:#2ea043">
+            ✓ <strong>APROVADO no reteste (29/07/2026 16:26)</strong> — o HTTP 500 foi corrigido; o recálculo processa com sucesso. Bug <strong>#7934 → Done</strong>.
           </div>
           <div class="result-box" style="margin-top:10px;color:var(--text)">
-            Executado em HML Mitsui (Nacional › Averbação › Recálculo de Averbações, apólice 6062026, avb 2026000002): o POST <code>/Nacional/RecalculoAverbacoes/RecalcularAverbacoes</code> deu <strong>HTTP 500</strong> e a tela "Ocorreu um erro inesperado". <strong>Nada mutou</strong> (avb segue 50k/40k). Investigação de código: <code>RecalcularAverbacoes</code> → <code>RecalcularAverbacaoBloco</code> → <code>CalculaPremio.CalculaPremioNacional</code> — <strong>não invoca</strong> <code>ObtemPremioMinimoNacional</code>/<code>tb_pmo_min_apo_fch</code>, logo <strong>NÃO é a família do #7896</strong>. Exceção logada em arquivo no servidor (inacessível ao QA). Aberto <strong>Bug #7934</strong> (Related #7597, AssignedTo Diego) pedindo o log p/ a causa exata. Evidência <code>evidencias/CT-DMC-006/7597-CT006-recalculo-resultado.png</code>.
+            <strong>Bug original:</strong> o POST <code>/Nacional/RecalculoAverbacoes/RecalcularAverbacoes</code> retornava <strong>HTTP 500 "erro inesperado"</strong>. Causa-raiz (José): o novo cálculo TXUNICA do #7597 (<code>CLSNACCALC</code>) lê as colunas <code>v_dm</code>/<code>v_dc</code> em <code>tb_mov_avb_rcv_cit</code>, que <strong>não existiam no banco HML Mitsui</strong> — "Invalid column name" capturado pelo <code>catch{}</code>. Fix: <code>ALTER TABLE ... ADD v_dm float, v_dc float</code>.<br>
+            <strong>Reteste (29/07):</strong> refeitos os passos idênticos (apólice 6062026, avb 2026000002) → modal "Será recalculada 1 averbação. Confirma?" → Sim → <strong>"Foi recalculada 1 averbação com sucesso!"</strong> (sem 500). Contraprova SQL: <code>v_dm</code>/<code>v_dc</code> confirmadas na tabela; averbação 2026000002 com <code>d_usu_alt=2026-07-29 16:26</code> / <code>n_usu_alt=QA</code> (recálculo efetivou); <code>v_lmr_dm/v_lmr_dc</code> mantêm 50.000/40.000 (snapshot consistente).
           </div>
-          <div class="ct-ev" style="margin-top:10px">
-            <div class="ev-item"><img src="evidencias/CT-DMC-006/7597-CT006-recalculo-resultado.png" alt="Recalculo de Averbacoes: HTTP 500 erro inesperado" style="max-width:100%;border:1px solid #30363d"><div class="ev-cap" style="font-size:11px;color:var(--muted)">Recálculo → HTTP 500 "erro inesperado" (Bug #7934)</div></div>
+          <div class="ct-ev" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="ev-item"><img src="evidencias/CT-DMC-006/7597-CT006-recalculo-resultado.png" alt="Recalculo antes: HTTP 500" style="max-width:100%;border:1px solid #30363d"><div class="ev-cap" style="font-size:11px;color:var(--muted)">Antes: HTTP 500 "erro inesperado"</div></div>
+            <div class="ev-item"><img src="evidencias/CT-DMC-006/7934-reteste-02-sucesso-recalculo.png" alt="Reteste: recalculo com sucesso" style="max-width:100%;border:1px solid #30363d"><div class="ev-cap" style="font-size:11px;color:var(--muted)">Depois (reteste): "Foi recalculada 1 averbação com sucesso!"</div></div>
           </div>
         </div>
         <div class="precond-box">
