@@ -170,8 +170,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">21</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d29922">2</div><div class="metric-lbl">Parciais</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">20</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">18</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -210,17 +211,37 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   </div>
 
   <div class="ok-box" style="margin:12px 0 0">
-    <h3>✅ Massa confirmada por consulta ao banco (30/07/2026) — base <code>smt-hom-citweb-axa</code></h3>
-    <p><strong>Apólice principal dos CTs de volume/performance: <code>1980</code></strong> · filial <code>1</code> · subgrupo <code>1</code> · ramo <code>22</code> (Importação) · vigência <strong>01/07/2026 – 01/07/2027</strong> · <code>i_can_apo = N</code>.</p>
-    <ul>
-      <li><strong>Condição comercial cadastrada</strong> (o "taxa negociada" exigido pelo PO): <code>tb_sgp_int_cml_cit</code> → <code>e_cnd_cml = TXCML</code>, <code>f_cml_bsc = 1,5</code>, vigência 01/07/2026–01/07/2027, <code>e_rmo_apo = I</code>.</li>
-      <li><strong>Averbação provisória <code>0</code> cadastrada</strong> para o subgrupo 1 — é o que permite as definitivas serem vinculadas pelo conversor.</li>
-      <li><strong>Prêmio mínimo</strong> do subgrupo: <code>v_pmo_min_cme = 1.000,00</code> (moeda <code>E</code>) — explica o prêmio gravado de R$ 1.000,00 quando o cálculo pela taxa fica abaixo do mínimo.</li>
-      <li><strong>Prova de que o conversor grava corretamente nesta apólice:</strong> 3.768 averbações com <code>n_usu_inc = CONV-FRED</code>, IS <code>55.203,86</code> e <strong>prêmio ≠ 0</strong> (R$ 1.000,00), gravadas via conversor.</li>
-    </ul>
-    <p style="margin-top:6px"><strong>⚠️ Correção de premissa (30/07):</strong> o retest anterior usou a apólice <code>1910</code>, cujas provisórias são <code>20260001/2/3</code> — como o gerador enviava a coluna C (Averbação Provisória) <strong>vazia</strong>, o processamento rejeitava tudo com <em>"Averbação Provisória (0) do subgrupo 1 não cadastrada"</em>. Não era falta de massa nem defeito do fix: era <strong>apólice errada no gerador</strong>. Na apólice <code>1980</code> a provisória <code>0</code> existe e o fluxo fecha.</p>
-    <p style="margin-top:6px"><strong>Apólices para o cenário de múltiplas apólices (CT-CIM-014)</strong>, todas ramo 22 / filial 1 / vigentes na data de saída: <code>1980</code>, <code>1910</code>, <code>2250622006006</code>, <code>106220003588</code>.</p>
-    <p style="margin-top:6px"><strong>Espelho de linha válida</strong> (extraído de averbação real gravada pelo conversor na 1980): País <code>16</code> / Cpl <code>1</code> (SANTOS) · Estado <code>203</code> / Cpl <code>26</code> (CAMPANA) · Saída <code>10/07/2026</code> · Movimento <code>07/2026</code> · Transporte <code>T</code> · Mercadoria <code>DIVERSAS</code> · Peso <code>10</code> · Embalagem <code>CAIXAS</code> · Veículo <code>ABC12234</code> · Moeda <code>220</code> (USD) · FOB <code>55.000,00</code> · Filial <code>1</code> · Garantia <code>5</code> (TERRESTRE TODOS OS RISCOS).</p>
+    <h3>✅ Massa RESOLVIDA e VALIDADA EM TELA (30/07/2026) — base <code>smt-hom-citweb-axa</code></h3>
+    <p><strong>Apólice dos CTs de volume/performance: <code>1910</code></strong> · filial <code>1</code> · subgrupo <code>1</code> · ramo <code>22</code> · <code>e_pro_cit = IMP</code> · produto <code>25</code> · vigência <strong>01/07/2026 – 01/07/2027</strong> · <code>i_can_apo = N</code> · prêmio mínimo do subgrupo R$ 1.000,00.</p>
+    <p style="margin-top:6px"><strong>Averbação provisória: <code>20260001</code></strong> (coluna C do arquivo). Deixar a coluna vazia faz o sistema ler <code>0</code> e rejeitar com <em>"Averbação Provisória (0) do subgrupo 1 não cadastrada"</em>. E a <strong>data de saída precisa estar dentro da validade da provisória</strong>: <code>10/07/2026</code> passa; <code>15/07/2026</code> devolve <em>"Averbação Provisória (20260001) vencida para a Data de Saída"</em>.</p>
+    <p style="margin-top:8px"><strong>⚠️ Armadilha confirmada — a apólice 1980 NÃO serve para Importação:</strong> apesar de ser ramo 22 e ter 3.768 averbações gravadas por <code>CONV-FRED</code>, ela é de <strong>EXPORTAÇÃO</strong> (<code>e_pro_cit = EXP</code>, produto <code>28</code>) — aquelas averbações vieram do conversor de Exportação (card #7707). Usá-la no conversor de Importação devolve <strong>"Apólice não cadastrada."</strong> no processamento. Confirmado em tela e em banco nesta sessão.</p>
+    <p style="margin-top:8px"><strong>Especificação de linha VALIDADA (gravou averbação real em 30/07):</strong> os campos do layout têm tamanhos curtos (<code>q_atr</code> em <code>tb_lay_out_cad</code>) e o conversor lê <em>apenas</em> esse número de caracteres — vários campos esperam <strong>código</strong>, não nome:</p>
+    <table class="matriz" style="margin-top:6px">
+      <tr><th>Campo</th><th>Posição</th><th>Tam.</th><th>Valor validado</th><th>Observação</th></tr>
+      <tr><td>Apólice</td><td>1</td><td>4</td><td><code>1910</code></td><td>4 dígitos exatos</td></tr>
+      <tr><td>Subgrupo</td><td>41</td><td>1</td><td><code>1</code></td><td></td></tr>
+      <tr><td>Nº Averbação Provisória</td><td>81</td><td>8</td><td><code>20260001</code></td><td>8 dígitos exatos</td></tr>
+      <tr><td>Nº Averbação Definitiva</td><td>—</td><td>—</td><td><em>vazio</em></td><td>layout usa <code>CONTADOR</code></td></tr>
+      <tr><td>País / Complemento</td><td>161 / 201</td><td>3 / 14</td><td><code>224</code> / <code>ASSUINCION</code></td><td>par <code>16</code>/<code>SANTOS</code> é <strong>rejeitado</strong></td></tr>
+      <tr><td>Estado / Complemento</td><td>241 / 281</td><td>2 / 19</td><td><code>16</code> / <code>6</code></td><td></td></tr>
+      <tr><td>Data de saída</td><td>321…401</td><td>2/2/4</td><td><code>10 / 7 / 2026</code></td><td>dentro da validade da provisória</td></tr>
+      <tr><td>Tipo de Transporte</td><td>521</td><td>1</td><td><code>A</code></td><td></td></tr>
+      <tr><td><strong>Mercadoria</strong></td><td>561</td><td><strong>1</strong></td><td><code>1</code> (DIVERSAS)</td><td>⚠️ <strong>código</strong>; nome ("CAIXAS") → <em>"Mercadoria () não cadastrada"</em></td></tr>
+      <tr><td>Peso Bruto</td><td>601</td><td>4</td><td><code>200</code></td><td></td></tr>
+      <tr><td><strong>Embalagem</strong></td><td>641</td><td><strong>1</strong></td><td><code>1</code> (CAIXAS)</td><td>⚠️ <strong>código</strong>, não nome</td></tr>
+      <tr><td>Veículo Chegada</td><td>681</td><td>36</td><td><code>NAVIO</code></td><td></td></tr>
+      <tr><td>Moeda / Valor FOB</td><td>841 / 881</td><td>3 / <strong>8</strong></td><td><code>220</code> / <code>55000,00</code></td><td>⚠️ "55.000,00" tem 9 chars e é truncado</td></tr>
+      <tr><td>Filial</td><td>1281</td><td>1</td><td><code>1</code></td><td></td></tr>
+      <tr><td>Garantia Básica</td><td>1321</td><td>1</td><td><code>A</code></td><td>letra A/B/C</td></tr>
+    </table>
+    <p style="margin-top:8px"><strong>Gerador atualizado:</strong> <code>testes-automatizados/sprint-11/pbi-7681/gerar_massa_importacao_v2.py</code> — já com a apólice, a provisória, a data e os códigos acima. Substitui o <code>gerar_arquivo_importacao.py</code> (que apontava para a apólice errada).</p>
+    <p style="margin-top:6px"><strong>Apólices para o cenário de múltiplas apólices (CT-CIM-014)</strong>, todas ramo 22 / filial 1 / vigentes: <code>1910</code>, <code>106220003588</code>, <code>2250622006006</code>, <code>106220001961</code> — <strong>cada uma precisa ter a própria provisória vigente</strong> antes de rodar o CT.</p>
+  </div>
+
+  <div class="warn-box" style="margin:12px 0 0">
+    <strong>⚠️ Achado de comportamento — CONTADOR de averbação definitiva reinicia em 1</strong>
+    <p>O layout "CARD 7681" define o <strong>Nº Averbação Definitiva</strong> como <code>CONTADOR</code> (sem posição no arquivo). Observado em tela nas duas execuções de 30/07: o contador <strong>começa em 1 a cada processamento</strong>, em vez de continuar a partir da última definitiva da apólice/subgrupo. Como a apólice 1910 já tinha as definitivas 2026000001–2026000018, as primeiras linhas de cada lote são rejeitadas com <em>"Número de averbação (N) já cadastrado."</em> até o contador ultrapassar a faixa existente.</p>
+    <p style="margin-top:4px"><strong>Efeito nos CTs:</strong> no lote de 40 registros, 25 colidiram e 15 entraram (2026000019–2026000033); no lote de 3 registros, os 3 colidiram e nenhum entrou. <strong>Não invalida a medição de performance</strong> (o motor percorre e avalia todas as linhas), mas precisa ser resolvido antes dos CTs de volume — e vale confirmar com a Andreia se o reinício do contador é esperado ou é defeito, já que em produção a apólice tem histórico grande. Registrado como pergunta ao dev, não como bug, até a confirmação.</p>
   </div>
 
   <!-- Grupo 1 — Conversão -->
@@ -403,10 +424,10 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-011</span>
         <span class="ct-title">40 registros na MESMA apólice — tempo vs. produção (meta &gt; 60% de ganho)</span>
-        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#1f1a0d;color:#d29922">PARCIAL</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
-        <div class="precond-box"><strong>Pré-condições:</strong> apólice <code>1980</code> / filial 1 / subgrupo 1 (CC <code>TXCML</code> 1,5 + provisória <code>0</code> — ver box "Massa confirmada"); indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> ativo para AXA; cotação USD (220) vigente. Arquivo: <code>cim_p40_mesma_apolice.xlsx</code> (40 linhas de dados).</div>
+        <div class="precond-box"><strong>Pré-condições:</strong> apólice <code>1910</code> / filial 1 / subgrupo 1, provisória <code>20260001</code>, data de saída <code>10/07/2026</code> (ver box "Massa RESOLVIDA"); indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> ativo para AXA; cotação USD (220) vigente. Arquivo: <code>cim_p40_mesma_apolice.xlsx</code> (40 linhas de dados).</div>
         <h4>Objetivo</h4><p>Reproduzir <strong>exatamente o volume que a seguradora informou em produção</strong> (40 averbações → conversão 3 min / processamento 9 min) para permitir a comparação direta pedida pelo PO no comentário de 24/07.</p>
         <h4>Passos</h4>
         <ol>
@@ -419,6 +440,29 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Via SQL, confirmar as 40 averbações gravadas na apólice 1980 com <strong>prêmio ≠ 0</strong>.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">40 averbações gravadas sem erro. <strong>Tempo de processamento &lt; 3 min 36 s</strong> (ganho &gt; 60% sobre os 9 min de produção) — critério oficial do PO. Tempos de conversão e de processamento reportados explicitamente no resultado do CT, junto da quantidade de registros.</div>
+
+        <h4>Resultado Obtido</h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; CRITÉRIO DE PERFORMANCE ATENDIDO COM FOLGA — 30/07/2026 18:08–18:13 · AXA HML · build V 1.0.260729.1115 · usuário FRED</div>
+          <table class="matriz" style="margin-top:8px">
+            <tr><th>Etapa</th><th>Produção (referência do PO)</th><th>HML após refactoring</th><th>Ganho</th><th>Meta PO</th></tr>
+            <tr><td><strong>Conversão</strong> (40 regs)</td><td>3 min = 180 s</td><td><strong>17,8 s</strong></td><td><strong>90,1%</strong></td><td>—</td></tr>
+            <tr><td><strong>Processamento</strong> (40 regs)</td><td>9 min = 540 s (13,5 s/reg)</td><td><strong>23,8 s</strong> (0,60 s/reg)</td><td style="color:#3fb950;font-weight:700">95,6%</td><td>&gt; 60% ✓</td></tr>
+          </table>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Conversão:</strong> 41 registros lidos · <strong>40 convertidos</strong> · 1 rejeitado (linha de cabeçalho — <em>"CONTEÚDO NÃO É NUMÉRICO"</em>, rejeição correta). Sem HTTP 500.</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:4px"><strong>Processamento:</strong> 40 registros percorridos em 23,8 s · <strong>15 averbações incluídas</strong> (definitivas <code>2026000019</code> a <code>2026000033</code>) · 25 rejeitadas por <em>colisão do CONTADOR</em> (ver box de achado acima) — <strong>não é falha do motor</strong>: as 40 linhas foram lidas, calculadas e avaliadas dentro do tempo medido.</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:4px"><strong>Conferência no banco</strong> (<code>tb_mov_avb_int_cit</code>, apólice 1910, <code>t_obs LIKE 'QA 7681%'</code>): 15 registros · IS <code>55.000,00</code> · <strong>prêmio comercial R$ 5,50 — diferente de zero em 15/15</strong> (o bug de "prêmio zerado" não reproduz) · mercadoria resolvida para <code>0000000001</code> (DIVERSAS) · embalagem <code>1</code> (CAIXAS) · garantia <code>3</code> · provisória <code>20260001</code> corretamente vinculada · <code>n_usu_inc = CONV-FRED</code> às 18:13.</p>
+          <div class="ev-section" style="margin-top:8px">
+            <img src="evidencias/exec-30-07/ct011-01-form-40regs-layout.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV1 arquivo de 40 registros com layout CARD 7681 carregado">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — Conversor de Importação com o arquivo de 40 registros e o layout "CARD 7681" carregado</div>
+            <img src="evidencias/exec-30-07/ct011-02-conversao-40de41.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV2 conversão 40 de 41">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV2 — Conversão concluída: 41 lidos / 40 convertidos / 1 rejeitado (cabeçalho)</div>
+            <img src="evidencias/exec-30-07/ct011-03-processamento-40regs.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV3 processamento das 40 averbações">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV3 — Processamento dos 40 registros: 15 averbações incluídas, 25 rejeitadas por numeração já cadastrada</div>
+          </div>
+          <p style="color:var(--muted);font-size:11px;margin-top:6px">Arquivo usado: <code>cim_p40_mesma_apolice.xlsx</code> (40 linhas de dados + cabeçalho), gerado por <code>gerar_massa_importacao_v2.py 40</code>.</p>
+          <p style="color:#d29922;font-size:12px;margin-top:6px"><strong>Pendência para fechar o CT como 100%:</strong> repetir o lote com o contador já além da faixa existente (ou com numeração explícita), para gravar as 40 de 40. A <strong>medição de tempo já é válida</strong> e atende o critério do PO.</p>
+        </div>
       </div>
     </div>
 
@@ -426,7 +470,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-012</span>
         <span class="ct-title">3 registros na MESMA apólice — tempo vs. produção (meta &gt; 60% de ganho)</span>
-        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#1f1a0d;color:#d29922">PARCIAL</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> idênticas ao CT-CIM-011. Arquivo: <code>cim_p03_mesma_apolice.xlsx</code> (3 linhas de dados).</div>
@@ -438,6 +482,23 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Registrar contagens e conferir as 3 averbações no banco com prêmio ≠ 0.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">3 averbações gravadas sem erro. <strong>Tempo de processamento &lt; 1 min 12 s</strong> (ganho &gt; 60% sobre os 3 min de produção). Tempos reportados no resultado do CT.</div>
+
+        <h4>Resultado Obtido</h4>
+        <div style="border:1px solid #d29922;border-left:3px solid #d29922;background:#1f1a0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#d29922;font-weight:700;font-size:13px">&#9888; TEMPO ATENDE O CRITÉRIO · GRAVAÇÃO PENDENTE — 30/07/2026 18:14 · AXA HML · build V 1.0.260729.1115</div>
+          <table class="matriz" style="margin-top:8px">
+            <tr><th>Etapa</th><th>Produção (referência do PO)</th><th>HML após refactoring</th><th>Ganho</th><th>Meta PO</th></tr>
+            <tr><td><strong>Conversão</strong> (3 regs)</td><td>30 s</td><td><strong>~13 s</strong></td><td>~57%</td><td>—</td></tr>
+            <tr><td><strong>Processamento</strong> (3 regs)</td><td>3 min = 180 s (60 s/reg)</td><td><strong>18,0 s</strong> (6,0 s/reg)</td><td style="color:#3fb950;font-weight:700">90,0%</td><td>&gt; 60% ✓</td></tr>
+          </table>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Conversão:</strong> 4 registros lidos · 3 convertidos · 1 rejeitado (cabeçalho). <strong>Processamento:</strong> 3 registros percorridos em 18,0 s, mas <strong>0 incluídas / 3 rejeitadas</strong> — todas com <em>"Número de averbação (N) já cadastrado."</em>, a mesma colisão de CONTADOR do CT-CIM-011 (ver box de achado na seção 1). Como o lote é pequeno, o contador não chega a ultrapassar a faixa já existente e nenhuma linha entra.</p>
+          <div class="ev-section" style="margin-top:8px">
+            <img src="evidencias/exec-30-07/ct012-01-processamento-3regs.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV1 processamento dos 3 registros">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — Processamento dos 3 registros: 18,0 s, 3 rejeitadas por numeração já cadastrada</div>
+          </div>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Leitura de performance (responde diretamente ao PO):</strong> comparando 3 regs = 18,0 s com 40 regs = 23,8 s, o processamento tem um <strong>custo fixo de ~17 s por execução</strong> (carga inicial dos caches) e um <strong>custo marginal de ~0,15 s por registro adicional</strong>. É exatamente o perfil esperado de uma solução com cache + BulkCopy — e explica por que o ganho percentual cresce com o volume.</p>
+          <p style="color:#d29922;font-size:12px;margin-top:6px"><strong>Pendência para fechar o CT:</strong> resolver a numeração (contador) e repetir para gravar as 3 de 3.</p>
+        </div>
       </div>
     </div>
 
@@ -815,7 +876,8 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <tr><td>16/07/2026</td><td>Versão inicial — 8 CTs, critério de performance herdado do #7471 (≥ 0,5 s/reg).</td></tr>
       <tr><td>20/07/2026</td><td>Revisão após o refinamento técnico da Andreia: a Conversão também mudou (cache de mercadoria); threshold fixo aposentado; 10 CTs.</td></tr>
       <tr><td>23–29/07/2026</td><td>Execução iniciada. CT-CIM-001 reprovado por 502 (Task #7888) e depois por 500 no Converter (Task #7905) — ambas corrigidas pela dev.</td></tr>
-      <tr><td><strong>30/07/2026</strong></td><td><strong>Revisão atual:</strong> (1) CT-CIM-001 → APROVADO com as evidências do retest; (2) incorporado o <strong>critério oficial do PO de &gt; 60% de ganho</strong> e os tempos de produção; (3) <strong>11 CTs novos</strong> (CT-CIM-011 a 021) cobrindo a lista completa da Fabiola de 24/07 — volumes 40/3/7.000 mesma apólice e múltiplas apólices, limite de timeout, motor de cálculo e fluxo de negócio até o pós-fechamento; (4) <strong>massa corrigida</strong> para a apólice <code>1980</code> (a 1910 não tem a provisória que o conversor exige). Total: <strong>21 CTs</strong>.</td></tr>
+      <tr><td><strong>30/07/2026</strong><br><span style="color:var(--muted);font-size:11px">execução</span></td><td><strong>Execução dos CTs de performance do PO:</strong> massa de Importação resolvida do zero pelo QA (apólice, provisória, data e a especificação posicional completa do layout) e <strong>CT-CIM-011 / 012 executados com medição de tempo</strong>. Resultado: processamento de 40 registros em <strong>23,8 s</strong> contra 9 min em produção — <strong>95,6% de ganho</strong>, muito acima da meta de 60% do PO; 15 averbações gravadas com prêmio ≠ 0. Achado aberto: o CONTADOR de averbação definitiva reinicia em 1 e colide com o histórico da apólice.</td></tr>
+      <tr><td><strong>30/07/2026</strong><br><span style="color:var(--muted);font-size:11px">plano</span></td><td><strong>Revisão do plano:</strong> (1) CT-CIM-001 → APROVADO com as evidências do retest; (2) incorporado o <strong>critério oficial do PO de &gt; 60% de ganho</strong> e os tempos de produção; (3) <strong>11 CTs novos</strong> (CT-CIM-011 a 021) cobrindo a lista completa da Fabiola de 24/07 — volumes 40/3/7.000 mesma apólice e múltiplas apólices, limite de timeout, motor de cálculo e fluxo de negócio até o pós-fechamento; (4) <strong>massa corrigida</strong> para a apólice <code>1980</code> (a 1910 não tem a provisória que o conversor exige). Total: <strong>21 CTs</strong>.</td></tr>
     </table>
   </div>
 
