@@ -108,7 +108,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <span>🔌 Conversor Internacional IMPORTAÇÃO (produto 25)</span>
     <span>🏷️ AXA + multi-seguradora</span>
     <span>📅 Sprint_11_Citweb</span>
-    <span>🗓️ Atualizado 20/07/2026</span>
+    <span>🗓️ Atualizado 30/07/2026</span>
   </div>
   <div class="info-box">
     <h3>Contexto da implementação</h3>
@@ -141,14 +141,37 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <tr><td>Após dedup + cache de tarifa/GG</td><td>~3,1s/reg</td></tr>
     <tr><td>+ cache apólice/prêmio mínimo + CC/GG/navio</td><td><strong>~0,8s/reg</strong> quando a combinação já apareceu no lote · <strong>~2,5–2,9s/reg</strong> em combinação nova</td></tr>
   </table>
-  <p style="margin-top:6px"><strong>Critério de aprovação (pass/fail) deste plano:</strong> processar <strong>≥ 7.000 registros sem timeout</strong> + throughput <strong>melhor que o baseline linha-a-linha de produção</strong> (ramo 0622 Importação: 40 avb → conversão 3 min / processamento 9 min ≈ <strong>13,5s/reg</strong> só no processamento). Registrar a <strong>taxa de repetição real</strong> de combinações no arquivo medido — a Andreia sugere validar com o arquivo real de produção (~7.000 linhas) para medir a repetição efetiva e o tempo médio final.</p>
+  <p style="margin-top:6px">Registrar a <strong>taxa de repetição real</strong> de combinações no arquivo medido — a Andreia sugere validar com o arquivo real de produção (~7.000 linhas) para medir a repetição efetiva e o tempo médio final.</p>
+</div>
+
+<div class="info-box" style="margin:12px 24px 0;border-left-color:#7c3aed">
+  <h3 style="color:#a78bfa">Critério oficial de aprovação — Produtos / Fabiola Costa (comentário 24/07/2026)</h3>
+  <p><strong>Pass/fail definido pelo PO:</strong> <strong style="color:#3fb950">melhora de performance do processamento superior a 60%</strong> frente aos tempos que a seguradora obtém em <strong>produção</strong> (ramo 0622 Importação):</p>
+  <table class="matriz" style="margin-top:6px">
+    <tr><th>Apólice (produção)</th><th>Qtd averbações</th><th>Tempo de Conversão</th><th>Tempo de Processamento</th><th>Meta &gt; 60% (processamento)</th></tr>
+    <tr><td><code>4706220003658</code></td><td>40</td><td>3 min</td><td>9 min (13,5s/reg)</td><td><strong>&lt; 3 min 36 s</strong></td></tr>
+    <tr><td><code>4706220003446</code></td><td>3</td><td>30 s</td><td>3 min (60s/reg)</td><td><strong>&lt; 1 min 12 s</strong></td></tr>
+  </table>
+  <p style="margin-top:8px"><strong>Cenários exigidos explicitamente pelo PO</strong> (cada um deve retornar o tempo obtido e a quantidade de registros):</p>
+  <ol style="padding-left:20px;font-size:13px;margin-top:4px">
+    <li>Arquivo com registros para a <strong>mesma apólice</strong> — tempo + qtd. <em>(CT-CIM-011, 013)</em></li>
+    <li>Arquivo com registros para <strong>apólices distintas</strong> — tempo + qtd. <em>(CT-CIM-014)</em></li>
+    <li>Mesma quantidade que a seguradora compartilhou: <strong>40 registros</strong> e <strong>3 registros</strong>, reportando os tempos de ambos. <em>(CT-CIM-011, 012)</em></li>
+    <li><strong>7.000 registros</strong> com a mesma apólice <em>e</em> outro com mais de uma apólice — verificar se a performance cai ou se mantém. <em>(CT-CIM-013, 014)</em></li>
+    <li>A partir de <strong>quantos registros o sistema dá timeout</strong> — deixar claro no resultado. <em>(CT-CIM-015)</em></li>
+    <li><strong>Dois usuários da mesma companhia</strong> convertendo e processando simultaneamente — antes um bloqueava o outro; agora devem rodar em paralelo sem conflito. <em>(CT-CIM-005)</em></li>
+    <li><strong>Motor de cálculo do ramo IMPORTAÇÃO</strong> (otimizado para ganho de performance). <em>(CT-CIM-009, 017)</em></li>
+    <li>Fluxo de negócio completo: apólice IMPORTAÇÃO → <strong>condição comercial (taxa negociada)</strong> → subgrupo → averbação com conferência do <strong>prêmio na tela</strong> → <strong>prêmio na impressão</strong> → <strong>emissão da prévia</strong> + 5 relatórios → <strong>fechamento</strong> + os mesmos 5 relatórios. <em>(CT-CIM-016 a 021)</em></li>
+  </ol>
+  <p style="margin-top:8px"><strong>Observação do PO sobre cache:</strong> "um arquivo com uma única apólice repetida vai processar muito mais rápido no total, porque consulta a apólice uma vez e salva no cache. Já um arquivo com várias apólices misturadas vai ser mais lento não só por ter mais dados, mas porque cada troca de apólice reinicia esse processo de consulta e carregamento." — por isso CT-CIM-013 (mesma apólice) e CT-CIM-014 (múltiplas) são medidos e <strong>comparados entre si</strong>, não contra um número único.</p>
+  <p style="margin-top:6px;color:var(--muted);font-size:12px">Os 5 relatórios exigidos em prévia e pós-fechamento: <strong>Resumo de Embarques</strong>, <strong>Relação de Embarques</strong>, <strong>Relação de Embarques Simplificado</strong>, <strong>Análise de Produção</strong> (módulo Internacional <em>e</em> módulo Gestão) e <strong>Relatório de Produção</strong> (módulo Internacional <em>e</em> módulo Gestão) — validando <strong>Prêmio</strong> e <strong>Taxa</strong> em cada um.</p>
 </div>
 
 <div class="metrics" style="margin-top:16px">
-  <div class="metric m-total"><div class="metric-val">10</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-total"><div class="metric-val">21</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">9</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">20</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -160,12 +183,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <li><strong>500 (Converter / Task #7905) — RESOLVIDO:</strong> clicar <strong>Converter</strong> concluiu com <strong>20 convertidos / 1 rejeitado de 21</strong> (o rejeitado é a linha de cabeçalho — "CONTEÚDO NÃO É NUMÉRICO", correto), <strong>sem HTTP 500 / sem "erro inesperado"</strong>. Evidência: <code>7681-02</code>.</li>
     <li><strong>Processar (engine BulkCopy) — roda sem crash:</strong> a tela de processamento executou e produziu relatório (20 registros, 0 averbações incluídas, 20 rejeitadas). As rejeições são de <strong>pré-requisito de massa</strong> — <em>"Averbação Provisória (0) do subgrupo 1 não cadastrada"</em> (a massa smoke não traz as provisórias de importação para vincular as definitivas), <strong>não é defeito do fix</strong>. Evidência: <code>7681-03/04</code>.</li>
   </ul>
-  <p style="color:#c9d1d9;font-size:12.5px;margin-top:6px"><strong>Pendente para o processamento completo + performance (≥7.000):</strong> massa de Importação com as <strong>averbações provisórias cadastradas</strong> para apólice 1910/subgrupo 1 (ou apólice com provisórias vigentes), para as definitivas serem incluídas. Recomendação: Andreia/Wesley disponibilizar a massa com provisórias. Tasks #7888 e #7905 já estão Done — o retest confirma os fixes.</p>
+  <p style="color:#c9d1d9;font-size:12.5px;margin-top:6px"><strong>✅ Bloqueio de massa RESOLVIDO pelo QA (30/07, mesma sessão):</strong> as 20 rejeições acima (<em>"Averbação Provisória (0) do subgrupo 1 não cadastrada"</em>) eram consequência de a massa apontar para a apólice <strong>1910</strong>, cujas provisórias são <code>20260001/2/3</code> — com a coluna "Averbação Provisória" vazia, o processamento lê <code>0</code> e rejeita. A apólice <strong>1980</strong> (ramo 22, filial 1, subgrupo 1) <strong>tem a provisória <code>0</code> cadastrada, condição comercial <code>TXCML</code> 1,5 e prêmio mínimo R$ 1.000,00</strong> — e o próprio conversor já gravou <strong>3.768 averbações com prêmio ≠ 0</strong> nela. Não era falta de massa nem defeito do fix: era apólice errada no gerador. Ver box <strong>"Massa confirmada"</strong> na seção 1. Tasks #7888 e #7905 já estão Done — o retest confirma os fixes.</p>
 </div>
 
-<!-- marcadores ocultos de contagem para o dashboard (1 reprovado + 9 pendentes) -->
+<!-- marcadores ocultos de contagem para o dashboard (1 aprovado + 20 pendentes) -->
 <div style="display:none" aria-hidden="true">
-<span class="ev-badge ev-aprovado"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span>
+<span class="ev-badge ev-aprovado"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span>
 </div>
 
 <div class="container">
@@ -179,11 +202,25 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <li>Ambiente: <strong>CITWEB HML AXA padrão</strong> (base <code>smt-hom-citweb-axa</code>) — usuário <code>FRED</code> / senha em <code>.env</code> (<code>HML_AXA_*</code>); 2º usuário p/ concorrência: <code>QA</code>. <em>(Fase 0 confirmada 23/07: ambiente padrão, não /alfa/ — a apólice 1910 é ramo 22 no padrão.)</em></li>
       <li>Fix deployado em HML (PR #1379 + #1381 — 20/07). Task #7748 = Done.</li>
       <li>Cotação USD (código 220) vigente — <strong>Tabelas → Cadastros → Cotações de Moeda</strong> (obrigatório p/ internacional).</li>
-      <li>Arquivo de Importação de teste com <strong>≥ 7.000 registros</strong> <em>(gerado: <code>cim_volume_7500.xlsx</code>, anexado ao PBI)</em> + arquivo pequeno para smoke (<code>cim_smoke_20.xlsx</code>). Gerador: <code>testes-automatizados/sprint-11/pbi-7681/gerar_arquivo_importacao.py</code>.</li>
-      <li>Apólice(s) de Importação AXA (produto 25) vigente(s) para vincular as averbações.</li>
+      <li>Arquivo de Importação de teste com <strong>≥ 7.000 registros</strong> + arquivos de 40 e 3 registros (paridade com os volumes de produção informados pelo PO) + arquivo de múltiplas apólices. Gerador: <code>testes-automatizados/sprint-11/pbi-7681/gerar_arquivo_importacao.py</code>.</li>
+      <li>Apólice(s) de Importação AXA (produto 25) vigente(s) para vincular as averbações — <strong>ver box "Massa confirmada" abaixo</strong>.</li>
       <li>Acesso SQL HML (base <code>smt-hom-citweb-axa</code>) para conferir fila de pendentes, averbações gravadas e valores (prêmio, país/estado, navio, mercadoria).</li>
     </ul>
     <p style="margin-top:8px"><strong>Base de automação reaproveitável (Passo 0):</strong> a suíte do conversor irmão <code>testes-automatizados/pbi-7471/</code> (RCTR-VI) adapta direto: geração de volume (<code>gerar_arquivos_volume_7500.py</code>), processamento parametrizável (<code>proc_user.py</code>, <code>rodar_plano_7471.py</code>) e concorrência real com barrier (<code>ct009_simultaneo.py</code>). Features de importação: <code>Features/Internacional/averbacao/importacao/AverbacaoImportacao.feature</code>.</p>
+  </div>
+
+  <div class="ok-box" style="margin:12px 0 0">
+    <h3>✅ Massa confirmada por consulta ao banco (30/07/2026) — base <code>smt-hom-citweb-axa</code></h3>
+    <p><strong>Apólice principal dos CTs de volume/performance: <code>1980</code></strong> · filial <code>1</code> · subgrupo <code>1</code> · ramo <code>22</code> (Importação) · vigência <strong>01/07/2026 – 01/07/2027</strong> · <code>i_can_apo = N</code>.</p>
+    <ul>
+      <li><strong>Condição comercial cadastrada</strong> (o "taxa negociada" exigido pelo PO): <code>tb_sgp_int_cml_cit</code> → <code>e_cnd_cml = TXCML</code>, <code>f_cml_bsc = 1,5</code>, vigência 01/07/2026–01/07/2027, <code>e_rmo_apo = I</code>.</li>
+      <li><strong>Averbação provisória <code>0</code> cadastrada</strong> para o subgrupo 1 — é o que permite as definitivas serem vinculadas pelo conversor.</li>
+      <li><strong>Prêmio mínimo</strong> do subgrupo: <code>v_pmo_min_cme = 1.000,00</code> (moeda <code>E</code>) — explica o prêmio gravado de R$ 1.000,00 quando o cálculo pela taxa fica abaixo do mínimo.</li>
+      <li><strong>Prova de que o conversor grava corretamente nesta apólice:</strong> 3.768 averbações com <code>n_usu_inc = CONV-FRED</code>, IS <code>55.203,86</code> e <strong>prêmio ≠ 0</strong> (R$ 1.000,00), gravadas via conversor.</li>
+    </ul>
+    <p style="margin-top:6px"><strong>⚠️ Correção de premissa (30/07):</strong> o retest anterior usou a apólice <code>1910</code>, cujas provisórias são <code>20260001/2/3</code> — como o gerador enviava a coluna C (Averbação Provisória) <strong>vazia</strong>, o processamento rejeitava tudo com <em>"Averbação Provisória (0) do subgrupo 1 não cadastrada"</em>. Não era falta de massa nem defeito do fix: era <strong>apólice errada no gerador</strong>. Na apólice <code>1980</code> a provisória <code>0</code> existe e o fluxo fecha.</p>
+    <p style="margin-top:6px"><strong>Apólices para o cenário de múltiplas apólices (CT-CIM-014)</strong>, todas ramo 22 / filial 1 / vigentes na data de saída: <code>1980</code>, <code>1910</code>, <code>2250622006006</code>, <code>106220003588</code>.</p>
+    <p style="margin-top:6px"><strong>Espelho de linha válida</strong> (extraído de averbação real gravada pelo conversor na 1980): País <code>16</code> / Cpl <code>1</code> (SANTOS) · Estado <code>203</code> / Cpl <code>26</code> (CAMPANA) · Saída <code>10/07/2026</code> · Movimento <code>07/2026</code> · Transporte <code>T</code> · Mercadoria <code>DIVERSAS</code> · Peso <code>10</code> · Embalagem <code>CAIXAS</code> · Veículo <code>ABC12234</code> · Moeda <code>220</code> (USD) · FOB <code>55.000,00</code> · Filial <code>1</code> · Garantia <code>5</code> (TERRESTRE TODOS OS RISCOS).</p>
   </div>
 
   <!-- Grupo 1 — Conversão -->
@@ -212,8 +249,25 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
         <h4>Resultado Esperado</h4><div class="result-box">Conversão conclui sem erro; código de mercadoria correto por linha (mesmo com nomes repetidos); nenhuma divergência introduzida pelo cache. Cobre o bug "mercadoria incorreta" corrigido no caminho.</div>
 
         <h4>Resultado Obtido</h4>
-        <div style="border:1px solid #d13438;border-left:3px solid #d13438;background:#3d1418;border-radius:5px;padding:10px 12px;margin-top:8px">
-          <div style="color:#f1707a;font-weight:700;font-size:13px">&#10007; REPROVADO — 23/07/2026 · AXA HML padrão (smt-hom-citweb-axa) · build V 1.0.260722.1142 · usuário FRED</div>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 30/07/2026 · AXA HML padrão (smt-hom-citweb-axa) · build V 1.0.260729.1115</div>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:6px">Fluxo executado por clique (tile <strong>Conversor de Arquivos</strong> do menu → <strong>Converte Arquivo</strong> → <strong>Importação</strong>), arquivo <code>cim_smoke_20.xlsx</code>, layout <strong>"CARD 7681 - REFATORAÇÃO IMPORTAÇÃO"</strong>:</p>
+          <ul style="color:#c9d1d9;font-size:12px;margin-top:6px;padding-left:18px">
+            <li><strong>Importar + carga do layout sem 502</strong> — o mapeamento posicional completo é exibido (Apólice 1-4, Subgrupo 41, Nº Averbação Provisória 81-88, …). Bug <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7888" style="color:#3fb950">#7888</a> confirmado resolvido.</li>
+            <li><strong>Conversão concluída sem HTTP 500</strong> — <code>qtdTotalReg = 21</code> · <code>qtdConversaoIncluida = 20</code> · <code>qtdRegRejeitados = 1</code>. O único rejeitado é a <strong>linha de cabeçalho</strong> ("Apol" → <em>"CONTEÚDO NÃO É NUMÉRICO"</em>), rejeição correta. Bug <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7905" style="color:#3fb950">#7905</a> confirmado resolvido.</li>
+            <li><strong>Paridade do parsing com cache de mercadoria:</strong> a mercadoria informada por <strong>nome</strong> no arquivo foi resolvida para o código correto em todas as 20 linhas convertidas — inclusive nas linhas em que o mesmo nome se repete (caminho do cache). Nenhuma divergência introduzida por <code>MercadoriaConsultaCache.ObterCodigoPorNome</code>.</li>
+          </ul>
+          <div class="ev-section" style="margin-top:8px">
+            <img src="evidencias/retest-30-07/7681-01-importacao-form.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV1 formulário do Conversor de Importação preenchido">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — Conversor de Importação com filial/ramo/segurado/layout selecionados e arquivo carregado</div>
+            <img src="evidencias/retest-30-07/7681-02-converter-ok-20de21.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:6px" alt="EV2 conversão concluída 20 de 21">
+            <div style="font-size:11px;color:var(--muted);margin-top:2px">EV2 — Conversão concluída: 21 registros lidos, 20 convertidos, 1 rejeitado (cabeçalho) — sem HTTP 500</div>
+          </div>
+        </div>
+
+        <h4>Histórico — reprovação anterior (bug já corrigido)</h4>
+        <div style="border:1px solid #d13438;border-left:3px solid #d13438;background:#3d1418;border-radius:5px;padding:10px 12px;margin-top:8px;opacity:.85">
+          <div style="color:#f1707a;font-weight:700;font-size:13px">&#10007; REPROVADO — 23/07/2026 · AXA HML padrão (smt-hom-citweb-axa) · build V 1.0.260722.1142 · usuário FRED <span style="color:var(--muted);font-weight:400">(superado pelo retest de 30/07 acima)</span></div>
           <p style="color:#f5c2c7;font-size:12px;margin-top:6px">Fluxo executado por clique: <strong>Conversor de Arquivos → Converte Arquivo → Importação</strong>. Upload do arquivo e conversão para TXT funcionaram (modal "A planilha será convertida para TXT. Confirma?" → Sim). Ao <strong>selecionar o layout</strong> "CARD 7681 - REFATORAÇÃO IMPORTAÇÃO", a chamada <code>POST /Conversor/Conversor/SelecionaLayout</code> retornou <strong>HTTP 502 (Bad Gateway)</strong> e a tela virou página de erro — impossível seguir para Converter/Processar.</p>
           <p style="color:#f5c2c7;font-size:12px;margin-top:6px"><strong>Reproduzido 4×:</strong> 2× na mesma sessão · 1× em sessão totalmente nova · 1× com arquivo <strong>sem cabeçalho</strong> (independe do arquivo). Resposta rápida do origin (~170–200 ms), <code>server: cloudflare</code>, <code>retry-after: 60</code> — não é timeout de processamento. Todo o resto do app responde normal (login, menus, Importar, conversão xlsx→TXT, render do mapeamento de 45 campos). Defeito na Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7888" style="color:#f1707a">#7888</a>.</p>
           <div class="ev-section" id="ev-CT-CIM-001" style="margin-top:8px">
@@ -302,7 +356,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <!-- Grupo 3 — Performance -->
   <div class="group-header" onclick="toggleGroup(this)">
     <h2>Grupo 3 — Performance e concorrência</h2>
-    <span class="group-badge">2</span><span class="group-toggle">▼</span>
+    <span class="group-badge">7</span><span class="group-toggle">▼</span>
   </div>
   <div class="group-body">
 
@@ -341,7 +395,109 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Acompanhar a barra/percentual de progresso de cada sessão — confirmar que cada uma reflete só o próprio lote.</li>
           <li>Ao fim, via SQL, confirmar que cada usuário gravou exatamente as próprias averbações (faixa de documento por usuário), sem perda nem mistura.</li>
         </ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; progresso SignalR isolado por token (sem barra cruzada); resultados independentes e íntegros por sessão.</div>
+        <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; progresso SignalR isolado por token (sem barra cruzada); resultados independentes e íntegros por sessão. <strong>Cobre o item 6 da lista do PO (24/07):</strong> antes da alteração, enquanto um usuário não finalizasse o outro não conseguia rodar o mesmo processo.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-011">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-011</span>
+        <span class="ct-title">40 registros na MESMA apólice — tempo vs. produção (meta &gt; 60% de ganho)</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> apólice <code>1980</code> / filial 1 / subgrupo 1 (CC <code>TXCML</code> 1,5 + provisória <code>0</code> — ver box "Massa confirmada"); indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> ativo para AXA; cotação USD (220) vigente. Arquivo: <code>cim_p40_mesma_apolice.xlsx</code> (40 linhas de dados).</div>
+        <h4>Objetivo</h4><p>Reproduzir <strong>exatamente o volume que a seguradora informou em produção</strong> (40 averbações → conversão 3 min / processamento 9 min) para permitir a comparação direta pedida pelo PO no comentário de 24/07.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Logar no CITWEB HML AXA e entrar pelo tile <strong>Conversor de Arquivos</strong> (nova aba) → <strong>Converte Arquivo</strong> → <strong>Importação</strong>.</li>
+          <li>Selecionar filial <code>1</code>, ramo <code>22 (IMPORTAÇÃO)</code>, segurado e o layout <strong>"CARD 7681 - REFATORAÇÃO IMPORTAÇÃO"</strong>.</li>
+          <li>Fazer upload de <code>cim_p40_mesma_apolice.xlsx</code> → <strong>Importar</strong> → confirmar a conversão xlsx→TXT.</li>
+          <li><strong>Cronometrar a Conversão:</strong> marcar o instante do clique em <strong>Converter</strong> e o instante em que a tela retorna o resultado.</li>
+          <li><strong>Cronometrar o Processamento:</strong> marcar o instante do clique em <strong>Processar</strong> e o instante da conclusão (relatório final).</li>
+          <li>Registrar: nº de registros lidos / convertidos / rejeitados, averbações incluídas e rejeitadas.</li>
+          <li>Via SQL, confirmar as 40 averbações gravadas na apólice 1980 com <strong>prêmio ≠ 0</strong>.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">40 averbações gravadas sem erro. <strong>Tempo de processamento &lt; 3 min 36 s</strong> (ganho &gt; 60% sobre os 9 min de produção) — critério oficial do PO. Tempos de conversão e de processamento reportados explicitamente no resultado do CT, junto da quantidade de registros.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-012">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-012</span>
+        <span class="ct-title">3 registros na MESMA apólice — tempo vs. produção (meta &gt; 60% de ganho)</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> idênticas ao CT-CIM-011. Arquivo: <code>cim_p03_mesma_apolice.xlsx</code> (3 linhas de dados).</div>
+        <h4>Objetivo</h4><p>Segundo volume de referência informado pelo PO (3 averbações → conversão 30 s / processamento 3 min). Volume pequeno expõe o <strong>custo fixo</strong> da execução (carga inicial dos caches), que não é amortizado como no lote grande.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Mesmo caminho de navegação do CT-CIM-011, com o arquivo de 3 linhas.</li>
+          <li>Cronometrar Conversão e Processamento separadamente.</li>
+          <li>Registrar contagens e conferir as 3 averbações no banco com prêmio ≠ 0.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">3 averbações gravadas sem erro. <strong>Tempo de processamento &lt; 1 min 12 s</strong> (ganho &gt; 60% sobre os 3 min de produção). Tempos reportados no resultado do CT.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-013">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-013</span>
+        <span class="ct-title">7.000+ registros na MESMA apólice — tempo, throughput e ausência de timeout</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> arquivo <code>cim_7500_mesma_apolice.xlsx</code> (7.500 linhas, todas na apólice <code>1980</code>); indicativo ativo. Medir preferencialmente de dentro do HML para isolar latência de rede.</div>
+        <h4>Objetivo</h4><p>Cenário de <strong>cache máximo</strong>: apólice única repetida em todas as linhas — a apólice é consultada uma vez e reaproveitada (observação explícita do PO). É o melhor caso de throughput e a base de comparação para o CT-CIM-014.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Converter e processar o arquivo de 7.500 linhas da apólice 1980, cronometrando cada etapa.</li>
+          <li>Calcular <strong>tempo médio por registro</strong> = tempo total ÷ nº de registros, para conversão e para processamento.</li>
+          <li>Registrar a <strong>taxa de repetição</strong> da combinação mercadoria/garantia/data no arquivo.</li>
+          <li>Confirmar via SQL que todas as averbações válidas foram gravadas (nenhuma perda) e com prêmio ≠ 0.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Processa 7.500 registros <strong>sem timeout</strong>; tempo médio/registro no processamento <strong>muito abaixo</strong> do baseline de produção (13,5 s/reg) — meta &gt; 60% de ganho, referência da dev ~0,8 s/reg em combinação repetida. Tempo total, tempo/registro e taxa de repetição reportados.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-014">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-014</span>
+        <span class="ct-title">7.000+ registros em APÓLICES DISTINTAS — a performance cai ou se mantém?</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> arquivo <code>cim_7500_multi_apolice.xlsx</code> (7.500 linhas alternando entre <code>1980</code>, <code>1910</code>, <code>2250622006006</code>, <code>106220003588</code> — todas ramo 22 / filial 1 / vigentes na data de saída); indicativo ativo. <strong>Executar depois do CT-CIM-013</strong> para permitir a comparação.</div>
+        <h4>Objetivo</h4><p>Cenário de <strong>pior caso do cache</strong>: cada troca de apólice reinicia a consulta e o carregamento (observação do PO). Responder objetivamente à pergunta do PO: <em>"verificar se a performance cai ou se mantém a mesma"</em>.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Converter e processar o arquivo multi-apólice, cronometrando cada etapa.</li>
+          <li>Calcular tempo médio por registro e <strong>comparar lado a lado com o CT-CIM-013</strong> (mesma quantidade de registros, apólice única).</li>
+          <li>Registrar quantas apólices distintas o arquivo contém e a distribuição de linhas por apólice.</li>
+          <li>Confirmar via SQL que as averbações foram gravadas na apólice correta de cada linha (sem mistura entre apólices).</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Processa sem timeout. Tempo por registro <strong>pode ser maior</strong> que no CT-CIM-013 (esperado e explicado pelo reinício do cache a cada troca de apólice) mas ainda deve superar a meta de <strong>&gt; 60% de ganho</strong> sobre o baseline de produção. Cada averbação gravada na apólice correta. Delta percentual 013 vs. 014 documentado.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-015">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-015</span>
+        <span class="ct-title">Limite de timeout — a partir de quantos registros o sistema falha</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> CT-CIM-013 concluído (7.500 já validado como suportado). Arquivos incrementais gerados sob demanda: 15.000 → 30.000 → 60.000 linhas (a tela do Conversor orienta o limite de 60 mil registros).</div>
+        <h4>Objetivo</h4><p>Atender ao item 5 da lista do PO: <em>"Validar a partir de quantos registros o sistema dá timeout. Deixar claro no resultado dos testes."</em> — determinar e documentar o teto operacional real do conversor de Importação após o refactoring.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Partindo do maior volume já aprovado (7.500), dobrar o volume a cada rodada: 15.000 → 30.000 → 60.000.</li>
+          <li>Para cada rodada: registrar volume, tempo de conversão, tempo de processamento e desfecho (conclusão / timeout / erro).</li>
+          <li>Ao ocorrer a primeira falha, registrar o <strong>erro exato</strong> (timeout de requisição, 502, erro de aplicação) e o tempo até a falha.</li>
+          <li>Refinar entre o último volume que passou e o primeiro que falhou, para reportar uma faixa útil ao PO.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Teto operacional documentado com clareza: "conclui até N registros; a partir de M registros ocorre &lt;erro exato&gt;". Se nenhum volume até 60.000 falhar, registrar que <strong>não foi encontrado timeout dentro do limite orientado pela própria tela</strong> — esse também é um resultado válido para o PO.</div>
       </div>
     </div>
 
@@ -442,6 +598,151 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
   </div>
 
+  <!-- Grupo 6 — Fluxo de negócio exigido pelo PO -->
+  <div class="group-header" onclick="toggleGroup(this)">
+    <h2>Grupo 6 — Motor de cálculo e fluxo de negócio ponta a ponta (exigência do PO, 24/07)</h2>
+    <span class="group-badge">6</span><span class="group-toggle">▼</span>
+  </div>
+  <div class="group-body">
+
+    <div class="warn-box" style="margin:0 0 12px">
+      <strong>Por que este grupo existe</strong>
+      <p>O comentário da Fabiola de <strong>24/07/2026</strong> ampliou o escopo além da validação técnica do BulkCopy: o motor de cálculo do ramo IMPORTAÇÃO foi otimizado, então o <strong>valor final que chega ao cliente</strong> (prêmio e taxa na averbação, na impressão, nos relatórios de prévia e no fechamento) precisa ser conferido ponta a ponta. Estes CTs cobrem exatamente essa lista. Caminhos de menu validados em <code>features/Internacional/</code>.</p>
+    </div>
+
+    <div class="ct-block" id="ct-016">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-016</span>
+        <span class="ct-title">Apólice IMPORTAÇÃO + condição comercial (taxa negociada) + subgrupo cadastrados</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> CITWEB HML AXA; cotação USD (220) vigente em <strong>Tabelas → Cadastros → Cotações de Moeda</strong>.</div>
+        <h4>Objetivo</h4><p>Primeiros três itens do fluxo pedido pelo PO: <em>criar/selecionar apólice IMPORTAÇÃO</em>, <em>cadastrar condição comercial (taxa negociada)</em> e <em>cadastrar subgrupo</em>. Estabelece a base cujo prêmio será conferido nos CTs seguintes.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Menu superior: <strong>Internacional</strong> → <strong>Cadastros</strong> → <strong>Apólice</strong> → <strong>Importação</strong>.</li>
+          <li>Pesquisar a apólice <code>1980</code> / filial <code>1</code> e confirmar na tela: ramo 22 (Importação), vigência <strong>01/07/2026 – 01/07/2027</strong>, não cancelada.</li>
+          <li><strong>Internacional</strong> → <strong>Cadastros</strong> → <strong>SubGrupo</strong>: confirmar o subgrupo <code>1</code> da apólice, com <strong>prêmio mínimo R$ 1.000,00</strong>.</li>
+          <li>Na condição comercial da apólice, confirmar a <strong>taxa negociada</strong> cadastrada: tipo <code>TXCML</code>, taxa <strong>1,5</strong>, vigência 01/07/2026–01/07/2027.</li>
+          <li>Capturar screenshot de cada tela com os valores visíveis e legíveis.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Apólice de Importação vigente, subgrupo com prêmio mínimo e condição comercial de taxa negociada confirmados <strong>na tela</strong> (não apenas no banco). Base pronta para conferência de prêmio. Se algum item não existir, cadastrar via UI e registrar o valor criado.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-017">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-017</span>
+        <span class="ct-title">Motor de cálculo — lançar averbação e conferir o prêmio calculado na tela</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> CT-CIM-016 concluído. Provisória <code>0</code> disponível no subgrupo 1 da apólice 1980.</div>
+        <h4>Objetivo</h4><p>Item 7 da lista do PO — <em>"validar motor de cálculo do ramo IMPORTAÇÃO, porque foi necessário otimizar esse ponto"</em>. O prêmio calculado <strong>pela UI</strong> (caminho não-cacheado, uma averbação por vez) é a referência contra a qual o prêmio gravado pelo conversor (caminho cacheado) será comparado no CT-CIM-009.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li><strong>Internacional</strong> → <strong>Averbação</strong> → <strong>Importação</strong> → <strong>Definitiva</strong>.</li>
+          <li>Pesquisar a apólice <code>1980</code> na base; informar a provisória <code>0</code>; clicar em <strong>próxima averbação</strong>.</li>
+          <li>Preencher com os mesmos valores da massa do conversor: data de movimento <code>07/2026</code>, data de saída <code>10/07/2026</code>, FOB <strong>55.000,00</strong> moeda <code>220</code> (USD), origem/destino País <code>16</code>/Cpl <code>1</code> · Estado <code>203</code>/Cpl <code>26</code>, cobertura <strong>T;5</strong> (Terrestre Todos os Riscos), mercadoria <strong>DIVERSAS</strong>, peso <code>10</code>, embalagem <strong>CAIXAS</strong>, veículo <code>ABC12234</code>.</li>
+          <li>Antes de gravar: capturar screenshot com o <strong>campo de Prêmio calculado visível e legível</strong>, junto da <strong>Taxa</strong> aplicada e da IS.</li>
+          <li>Extrair via <code>browser_evaluate</code> o valor exato dos campos Prêmio, Taxa e IS.</li>
+          <li>Gravar e capturar a mensagem de sucesso; anotar o número da averbação definitiva gerada.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Averbação gravada com sucesso. Prêmio calculado <strong>&gt; 0</strong> e coerente com a regra: taxa comercial 1,5 aplicada sobre a IS, respeitando o <strong>prêmio mínimo de R$ 1.000,00</strong> do subgrupo (se o cálculo pela taxa ficar abaixo, o prêmio deve ser R$ 1.000,00). Valores de Prêmio, Taxa e IS registrados como <strong>referência não-cacheada</strong> para comparação com o conversor.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-018">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-018</span>
+        <span class="ct-title">Prêmio conferido na IMPRESSÃO da averbação</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> averbação do CT-CIM-017 gravada.</div>
+        <h4>Objetivo</h4><p>Item do PO: <em>"conferir prêmio na impressão da averbação"</em> — garantir que o valor exibido na tela é o mesmo impresso no documento entregue ao cliente.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li>Na averbação gravada no CT-CIM-017, acionar a <strong>impressão</strong> da averbação.</li>
+          <li><strong>Salvar o arquivo gerado</strong> (PDF) em <code>evidencias/CT-CIM-018/</code> e registrar nome e tamanho.</li>
+          <li>Abrir o arquivo e localizar o campo <strong>Prêmio</strong> (e a Taxa, quando impressa).</li>
+          <li>Comparar com o valor capturado na tela no CT-CIM-017.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">O documento é gerado (arquivo não-vazio, formato válido) e o <strong>Prêmio impresso é idêntico ao Prêmio exibido na tela</strong> no CT-CIM-017. <strong>A evidência obrigatória é o próprio arquivo</strong> — screenshot ou HTTP 2xx não substituem.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-019">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-019</span>
+        <span class="ct-title">Emissão da PRÉVIA — Prêmio e Taxa corretos nos 5 relatórios</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> averbações do CT-CIM-017 e do conversor (CT-CIM-011/013) gravadas na apólice 1980, referência <strong>07/2026</strong>, <strong>ainda não fechadas</strong>.</div>
+        <h4>Objetivo</h4><p>Item do PO: <em>"realizar a emissão da prévia e validar se os valores apresentados (Prêmio e Taxa) nos relatórios"</em> — cinco relatórios, dois deles em duas versões de módulo (Internacional e Gestão).</p>
+        <h4>Passos</h4>
+        <ol>
+          <li><strong>Internacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Prévia</strong>.</li>
+          <li>Pesquisar apólice <code>1980</code> / filial <code>1</code> / ramo <strong>Importação</strong>; informar mês/ano de referência <strong>07/2026</strong>.</li>
+          <li>Para cada relatório abaixo: selecionar, clicar em <strong>Exportar</strong>, <strong>salvar o arquivo</strong> em <code>evidencias/CT-CIM-019/</code> e validar Prêmio e Taxa no conteúdo:
+            <ul>
+              <li><strong>Resumo de Embarques</strong></li>
+              <li><strong>Relação de Embarques</strong></li>
+              <li><strong>Relação de Embarques Simplificado</strong></li>
+              <li><strong>Análise de Produção</strong> — módulo <strong>Internacional</strong> <em>e</em> módulo <strong>Gestão</strong></li>
+              <li><strong>Relatório de Produção</strong> — módulo <strong>Internacional</strong> <em>e</em> módulo <strong>Gestão</strong></li>
+            </ul>
+          </li>
+          <li>Conferir que o Prêmio somado dos relatórios bate com a soma das averbações do período no banco.</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Os 7 arquivos (5 relatórios, 2 deles em duas versões de módulo) são gerados, <strong>não-vazios</strong>, e apresentam <strong>Prêmio e Taxa corretos e consistentes entre si</strong> e com o banco. <strong>Evidência = os arquivos salvos e validados</strong>, não só screenshots. Divergência de valor entre relatórios do mesmo período é <strong>REPROVADO</strong>.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-020">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-020</span>
+        <span class="ct-title">Efetivar o FECHAMENTO — valores corretos na tela de Fechamento</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> CT-CIM-019 concluído e prévia conferida. <strong>⚠️ A emissão trava a prévia</strong> — executar somente após a prévia estar validada (o cancelamento do fechamento é autorizado em HML para reaproveitar a massa, se necessário).</div>
+        <h4>Objetivo</h4><p>Item do PO: <em>"efetivar o fechamento e conferir se os valores apresentados na tela Fechamento estão corretos"</em>.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li><strong>Internacional</strong> → <strong>Fechamento Mensal</strong> → efetivar o fechamento da apólice <code>1980</code> / filial <code>1</code> / referência <strong>07/2026</strong>.</li>
+          <li>Antes de confirmar: capturar screenshot dos valores apresentados (Prêmio total, IS, quantidade de averbações).</li>
+          <li>Confirmar a efetivação e capturar a <strong>mensagem de sucesso</strong>.</li>
+          <li>Comparar os valores da tela de Fechamento com os valores conferidos na prévia (CT-CIM-019).</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Fechamento efetivado com mensagem de sucesso. Valores na tela de Fechamento <strong>idênticos aos da prévia</strong> — Prêmio total, IS e quantidade de averbações. Qualquer divergência entre prévia e fechamento é <strong>REPROVADO</strong>.</div>
+      </div>
+    </div>
+
+    <div class="ct-block" id="ct-021">
+      <div class="ct-bar" onclick="toggleCT(this.parentElement)">
+        <span class="ct-id">CT-CIM-021</span>
+        <span class="ct-title">Pós-fechamento — os mesmos 5 relatórios continuam com Prêmio e Taxa corretos</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+      </div>
+      <div class="ct-body">
+        <div class="precond-box"><strong>Pré-condições:</strong> fechamento efetivado no CT-CIM-020.</div>
+        <h4>Objetivo</h4><p>Último item do PO: <em>"após o fechamento, conferir se os valores estão corretos no relatório"</em> — a mesma bateria de relatórios, agora pela via de <strong>Impressão</strong> (pós-fechamento), para garantir que o fechamento não alterou os valores.</p>
+        <h4>Passos</h4>
+        <ol>
+          <li><strong>Internacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Impressão</strong>.</li>
+          <li>Selecionar critério de filial, filial <code>1</code>, ramo <strong>Importação/Exportação</strong> → <strong>Selecionar</strong> → escolher a fatura do período fechado na grade.</li>
+          <li>Exportar, salvar em <code>evidencias/CT-CIM-021/</code> e validar Prêmio e Taxa nos mesmos relatórios do CT-CIM-019: <strong>Resumo de Embarques</strong>, <strong>Relação de Embarques</strong>, <strong>Relação de Embarques Simplificado</strong>, <strong>Análise de Produção</strong> (Internacional + Gestão), <strong>Relatório de Produção</strong> (Internacional + Gestão).</li>
+          <li>Comparar cada valor com o correspondente da prévia (CT-CIM-019) e da tela de Fechamento (CT-CIM-020).</li>
+        </ol>
+        <h4>Resultado Esperado</h4><div class="result-box">Todos os relatórios pós-fechamento gerados e com <strong>Prêmio e Taxa iguais aos da prévia e aos da tela de Fechamento</strong>. Evidência = arquivos salvos e validados. Tabela comparativa prévia × fechamento × pós-fechamento incluída no resultado do CT.</div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- Matriz -->
   <div class="section-title">2 · Matriz de rastreabilidade</div>
   <div class="doc-box">
@@ -458,6 +759,24 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <tr><td>Escalável / multi-seguradora sem código específico</td><td>CT-CIM-008</td></tr>
       <tr><td>Motor compartilhado (CLSINTCALC) não regride RCTR-VI/Exportação</td><td>CT-CIM-010</td></tr>
     </table>
+    <p style="margin-top:14px"><strong>Critérios adicionados pelo PO (Fabiola Costa, 24/07/2026)</strong> — cada item da lista mapeado ao CT que o cobre:</p>
+    <table class="matriz" style="margin-top:6px">
+      <tr><th>Exigência do PO</th><th>CT(s)</th></tr>
+      <tr><td>Melhora de performance do processamento <strong>&gt; 60%</strong> vs. produção</td><td>CT-CIM-011, 012, 013, 014</td></tr>
+      <tr><td>Arquivo com registros para a <strong>mesma apólice</strong> — tempo + qtd</td><td>CT-CIM-011, 013</td></tr>
+      <tr><td>Arquivo com registros para <strong>apólices distintas</strong> — tempo + qtd</td><td>CT-CIM-014</td></tr>
+      <tr><td>Mesma quantidade da seguradora: <strong>40</strong> e <strong>3</strong> registros, com tempos</td><td>CT-CIM-011, 012</td></tr>
+      <tr><td><strong>7.000</strong> mesma apólice × <strong>7.000</strong> múltiplas apólices — performance cai ou mantém?</td><td>CT-CIM-013 vs. 014</td></tr>
+      <tr><td>A partir de <strong>quantos registros dá timeout</strong></td><td>CT-CIM-015</td></tr>
+      <tr><td><strong>Dois usuários</strong> da mesma companhia convertendo/processando em paralelo</td><td>CT-CIM-005</td></tr>
+      <tr><td><strong>Motor de cálculo</strong> do ramo IMPORTAÇÃO</td><td>CT-CIM-009, 017</td></tr>
+      <tr><td>Apólice IMPORTAÇÃO + <strong>CC taxa negociada</strong> + subgrupo</td><td>CT-CIM-016</td></tr>
+      <tr><td>Averbação — <strong>prêmio na tela</strong></td><td>CT-CIM-017</td></tr>
+      <tr><td>Averbação — <strong>prêmio na impressão</strong></td><td>CT-CIM-018</td></tr>
+      <tr><td><strong>Prévia</strong> — Prêmio e Taxa nos 5 relatórios (Análise/Relatório de Produção em Internacional + Gestão)</td><td>CT-CIM-019</td></tr>
+      <tr><td><strong>Fechamento</strong> — valores corretos na tela</td><td>CT-CIM-020</td></tr>
+      <tr><td><strong>Pós-fechamento</strong> — mesmos 5 relatórios conferidos</td><td>CT-CIM-021</td></tr>
+    </table>
   </div>
 
   <!-- Riscos -->
@@ -469,7 +788,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <li><strong>Motor compartilhado CLSINTCALC (Alto):</strong> cache novo + parâmetro na cadeia compartilhada com RCTR-VI/Exportação. <em>Mitigação:</em> CT-CIM-010 (regressão dos irmãos) + parâmetro opcional default null por design.</li>
       <li><strong>Concorrência / progresso SignalR (Médio):</strong> isolamento por token foi corrigido; risco de contaminação de progresso/dados entre execuções simultâneas. <em>Mitigação:</em> CT-CIM-005 (2 processos, barrier).</li>
       <li><strong>Performance dependente de repetição (Médio):</strong> combinação nova ainda custa ~2,5–2,9s/reg; um arquivo real com baixa repetição pode não render o ganho esperado. <em>Mitigação:</em> medir a taxa de repetição real (CT-CIM-004) e validar com o arquivo de produção.</li>
-      <li><strong>Massa de ≥ 7.000 registros (Médio):</strong> depende de gerar arquivo grande. <em>Mitigação:</em> adaptar o gerador do #7471 (<code>gerar_arquivos_volume_7500.py</code>).</li>
+      <li><strong>Massa de ≥ 7.000 registros (Baixo — resolvido):</strong> apólice, CC, subgrupo e provisória confirmados no banco em 30/07 (apólice <code>1980</code>); gerador ajustado para a apólice correta. <em>Era</em> um risco alto enquanto a massa apontava para a apólice 1910 (provisória inexistente).</li>
+      <li><strong>Divergência de valor entre prévia e fechamento (Alto):</strong> o motor de cálculo de Importação foi otimizado; se o valor cacheado divergir em qualquer ponto da cadeia, o cliente recebe relatório com prêmio errado. <em>Mitigação:</em> CT-CIM-017 a 021 comparam o mesmo prêmio em tela → impressão → prévia → fechamento → pós-fechamento.</li>
+      <li><strong>Tempo de execução dos CTs de volume (Médio):</strong> 7.500 registros a ~0,8–2,9 s/reg significam de 1,5 h a 6 h por rodada de processamento. <em>Mitigação:</em> executar 40/3 registros primeiro (resposta rápida ao critério do PO) e os volumes grandes em sequência, reportando parcialmente.</li>
     </ul>
   </div>
 
@@ -479,15 +800,41 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <li>Comentário técnico da Andreia (20/07/2026) no #7681 — implementações e ganhos de performance (fonte primária deste plano).</li>
       <li>PRs <code>#1379</code> (feat) e <code>#1381</code> (fix) — merge em <code>hml</code> em 20/07/2026. Task filha <code>#7748</code> (Done).</li>
       <li>PBI #7471 (RCTR-VI, produto 30) — precedente da otimização BulkCopy; critério de perf. herdado (aposentado aqui) e suíte de automação reaproveitável.</li>
+      <li><strong>Comentário da Fabiola Costa (24/07/2026) no #7681</strong> — tempos de produção (ramo 0622), critério oficial de <strong>&gt; 60% de ganho no processamento</strong> e a lista de cenários exigidos: fonte primária do <strong>Grupo 3 ampliado</strong> (CT-CIM-011 a 015) e do <strong>Grupo 6</strong> (CT-CIM-016 a 021).</li>
       <li>Refinamento técnico da Andreia (07/07) e comentários de DoR (Wesley 06–10/07) no próprio #7681.</li>
+      <li>Tasks de defeito abertas e fechadas durante a homologação: <strong>#7888</strong> (502 no Selecionar Layout) e <strong>#7905</strong> (500 no Converter) — ambas Done e confirmadas por retest em 30/07.</li>
+      <li>Consulta ao banco <code>smt-hom-citweb-axa</code> em 30/07/2026 — <code>tb_apo_int_cit</code>, <code>tb_sgp_cit</code>, <code>tb_sgp_int_cml_cit</code>, <code>tb_mov_avb_int_cit</code>: origem do box "Massa confirmada".</li>
+      <li>Caminhos de menu validados em <code>features/Internacional/</code> — <code>Fechamento Mensal/Previa.feature</code>, <code>Fechamento Mensal/impressao.feature</code>, <code>averbacao/importacao/AverbacaoImportacao.feature</code>, <code>Cadastros/Apolice/importacao.feature</code>.</li>
     </ul>
   </div>
 
+  <div class="section-title">5 · Histórico de revisões do plano</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Data</th><th>O que mudou</th></tr>
+      <tr><td>16/07/2026</td><td>Versão inicial — 8 CTs, critério de performance herdado do #7471 (≥ 0,5 s/reg).</td></tr>
+      <tr><td>20/07/2026</td><td>Revisão após o refinamento técnico da Andreia: a Conversão também mudou (cache de mercadoria); threshold fixo aposentado; 10 CTs.</td></tr>
+      <tr><td>23–29/07/2026</td><td>Execução iniciada. CT-CIM-001 reprovado por 502 (Task #7888) e depois por 500 no Converter (Task #7905) — ambas corrigidas pela dev.</td></tr>
+      <tr><td><strong>30/07/2026</strong></td><td><strong>Revisão atual:</strong> (1) CT-CIM-001 → APROVADO com as evidências do retest; (2) incorporado o <strong>critério oficial do PO de &gt; 60% de ganho</strong> e os tempos de produção; (3) <strong>11 CTs novos</strong> (CT-CIM-011 a 021) cobrindo a lista completa da Fabiola de 24/07 — volumes 40/3/7.000 mesma apólice e múltiplas apólices, limite de timeout, motor de cálculo e fluxo de negócio até o pós-fechamento; (4) <strong>massa corrigida</strong> para a apólice <code>1980</code> (a 1910 não tem a provisória que o conversor exige). Total: <strong>21 CTs</strong>.</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<div id="lb" onclick="closeLb()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:999;align-items:center;justify-content:center;padding:20px;cursor:zoom-out">
+  <img id="lb-img" style="max-width:96%;max-height:94%;border:1px solid #30363d;border-radius:6px" alt="Evidência ampliada">
 </div>
 
 <script>
 function toggleGroup(h){h.classList.toggle('collapsed');const b=h.nextElementSibling;b.style.display=h.classList.contains('collapsed')?'none':'';}
 function toggleCT(b){b.classList.toggle('expanded');}
+function openLb(src){const lb=document.getElementById('lb');document.getElementById('lb-img').src=src;lb.style.display='flex';}
+function closeLb(){document.getElementById('lb').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
+document.querySelectorAll('.ev-section img').forEach(img=>{
+  img.style.cursor='zoom-in';
+  img.addEventListener('click',()=>openLb(img.getAttribute('src')));
+});
 </script>
 </body>
 </html>
