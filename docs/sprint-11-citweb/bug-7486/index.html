@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — BUG-7486 RCTA-C Prêmio Mínimo Proporcional (Suspensão Parcial)</title>
+<style>
+  :root{--azul:#0078d4;--vermelho:#b91c1c;--p1:#d13438;--p2:#ca5010;--p3:#605e5c;}
+  *{box-sizing:border-box}
+  body{font-family:'Segoe UI',Arial,sans-serif;margin:0;background:#f3f2f1;color:#201f1e;line-height:1.5}
+  .hero{background:var(--vermelho);color:#fff;padding:28px 32px}
+  .hero h1{margin:0 0 6px;font-size:20px}
+  .hero small{opacity:.9;font-size:13px}
+  .wrap{max-width:1040px;margin:0 auto;padding:24px 32px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:18px 0}
+  .info-grid .cell{background:#fff;border:1px solid #e1dfdd;border-radius:6px;padding:10px 14px}
+  .info-grid label{display:block;font-size:11px;text-transform:uppercase;color:#605e5c;letter-spacing:.4px}
+  .info-grid span{font-weight:600}
+  .metrics{display:flex;gap:12px;margin:16px 0}
+  .metrics .m{flex:1;background:#fff;border:1px solid #e1dfdd;border-radius:6px;padding:12px;text-align:center}
+  .metrics .m b{display:block;font-size:22px;color:var(--azul)}
+  .warn-box{background:#fff4ce;border:1px solid #f0c000;border-radius:6px;padding:12px 16px;margin:14px 0}
+  .info-box{background:#deecf9;border:1px solid var(--azul);border-radius:6px;padding:12px 16px;margin:14px 0}
+  h2{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:6px;margin-top:28px}
+  .ct-block{background:#fff;border:1px solid #e1dfdd;border-left:4px solid var(--azul);border-radius:6px;margin:12px 0}
+  .ct-head{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .ct-head .cid{font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1}
+  .ct-body{display:none;padding:0 16px 16px;border-top:1px solid #f0eff0}
+  .ct-block.expanded .ct-body{display:block}
+  .badge{font-size:11px;font-weight:700;color:#fff;border-radius:10px;padding:2px 8px}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .ev-badge{font-size:11px;font-weight:700;border-radius:10px;padding:2px 8px}
+  .ev-ok{background:#dff6dd;color:#107c10} .ev-falha{background:#fde7e9;color:#a4262c} .ev-pendente{background:#fff4ce;color:#8a6d00}
+  table.steps{width:100%;border-collapse:collapse;margin:8px 0}
+  table.steps th,table.steps td{border:1px solid #e1dfdd;padding:6px 10px;text-align:left;vertical-align:top;font-size:14px}
+  table.steps th{background:#f3f2f1}
+  .muted{color:#605e5c;font-size:13px}
+  code{background:#f3f2f1;padding:1px 5px;border-radius:4px;font-size:13px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <h1>Plano de Teste — BUG-7486 · RCTA-C Prévia XLSX: prêmio mínimo proporcional com suspensão parcial</h1>
+  <small>Evidências de Teste — BUG-7486 · CITWEB Nacional · Prêmio Mínimo / Suspensão · gerado shift-left (pré-fix)</small>
+</div>
+<div class="wrap">
+
+  <div class="info-grid">
+    <div class="cell"><label>Sistema</label><span>CITWEB</span></div>
+    <div class="cell"><label>Módulo</label><span>Fechamento → Prévia (XLSX)</span></div>
+    <div class="cell"><label>Ramo</label><span>RCTA-C (58)</span></div>
+    <div class="cell"><label>Tenant</label><span>NsTech (HML)</span></div>
+    <div class="cell"><label>Severidade</label><span>P2 — High</span></div>
+    <div class="cell"><label>Irmão</label><span>#7487 (RCTF-C)</span></div>
+  </div>
+
+  <div class="metrics">
+    <div class="m"><b>7</b>CTs planejados</div>
+    <div class="m"><b>2</b>P1 · <span class="muted">contraprova/regressão</span></div>
+    <div class="m"><b>6</b>critérios de aceite cobertos</div>
+  </div>
+
+  <div class="warn-box">
+    <b>⚠️ Plano shift-left (pré-fix).</b> Root cause é <b>hipótese principal a confirmar</b> (SQL na base <code>nstech</code> + dados de execução Voidr, ou reprodução em HML): a contagem de <b>dias ativos sob suspensão parcial</b> no cálculo do prêmio mínimo proporcional (<code>PremioDomain.cs:580/595</code>) colapsa o valor para ~1. Os CTs de cálculo (CT-PMS-001/002) ficam <b>“a confirmar pós-fix”</b>. Execução real é no Gate 3 (HML) após o deploy.
+  </div>
+
+  <div class="info-box">
+    <b>Sintoma:</b> prêmio mínimo proporcional com suspensão parcial → <b>esperado ≈ 633,33</b>, <b>obtido 1</b> (RCTA-C). Irmão #7487 (RCTF-C): esperado 633,33, obtido 0,04 → cálculo <b>compartilhado</b>. <b>Defeito relacionado</b> (blast radius, AXA): guard sempre-true em <code>ObtemPremioMinimoVigenciaProporcionalSuspensao:415</code> → ticket próprio.
+  </div>
+
+  <h2>Casos de Teste</h2>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-001</span>
+      <span class="ct-title">RCTA-C prévia XLSX com suspensão parcial → prêmio mínimo proporcional correto (contraprova)</span>
+      <span class="badge bloqueante">P1</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Cálculo / Contraprova · CA1 · a confirmar pós-fix</p>
+      <p><b>Pré-condições:</b> apólice RCTA-C (58) NsTech com PMM cadastrado e suspensão parcial no mês de referência (massa do teste RCTAC-50; descoberta via SQL/Voidr).</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Login CITWEB NsTech HML (credenciais via .env) → Nacional → Fechamento Mensal → Prévia</td><td>Tela carrega</td></tr>
+      <tr><td>2</td><td>Filial + Ramo RCTA-C (58) + apólice-massa + Referência (mês/ano com suspensão parcial)</td><td>Campos aceitos</td></tr>
+      <tr><td>3</td><td>Exportar → modal “Confirma a(s) impressão(ões)?” → Sim</td><td>XLSX baixado</td></tr>
+      <tr><td>4</td><td>Abrir o XLSX e localizar o prêmio mínimo</td><td>Valor proporcional correto (0 &lt; v &lt; cheio), coerente com os dias ativos; <b>não</b> ~1. Evidência = o arquivo.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-002</span>
+      <span class="ct-title">RCTF-C (irmão #7487) mesmo cenário → prêmio proporcional correto (não 0,04)</span>
+      <span class="badge bloqueante">P1</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Cálculo · CA2 · a confirmar pós-fix — prova que o fix cobre o cálculo compartilhado.</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Repetir CT-PMS-001 no ramo RCTF-C (38)</td><td>Prêmio mínimo proporcional correto; não 0,04</td></tr></table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-003</span>
+      <span class="ct-title">Mês cheio, sem suspensão → prêmio mínimo cheio (não-regressão)</span>
+      <span class="badge bloqueante">P1</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Regressão · CA3</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Prévia RCTA-C, apólice sem suspensão, mês inteiro em vigência</td><td>Prêmio mínimo = valor cheio do cadastro (comportamento inalterado)</td></tr></table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-004</span>
+      <span class="ct-title">Suspensão do mês inteiro → prêmio mínimo = 0</span>
+      <span class="badge importante">P2</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Limite · CA4 (<code>PremioDomain.cs:561-564</code>)</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Prévia RCTA-C, apólice suspensa o mês inteiro</td><td>Prêmio mínimo = 0</td></tr></table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-005</span>
+      <span class="ct-title">Vigência iniciando mid-month, sem suspensão → proporcional por vigência inalterado</span>
+      <span class="badge importante">P2</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Regressão · CA5 — garante que o fix da suspensão não afeta a proporção por vigência.</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Prévia RCTA-C, apólice com início de vigência no meio do mês, sem suspensão</td><td>Prêmio mínimo proporcional por vigência = valor de referência (inalterado)</td></tr></table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-006</span>
+      <span class="ct-title">Valor GRAVADO no fechamento reflete o prêmio mínimo correto (não só a prévia)</span>
+      <span class="badge bloqueante">P1</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Persistência · CA6</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Emitir o fechamento RCTA-C com suspensão parcial e consultar a conta mensal gravada (BD, read-only)</td><td>Prêmio mínimo persistido = valor proporcional correto (não ~1)</td></tr></table>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head" onclick="this.parentElement.classList.toggle('expanded')">
+      <span class="cid">CT-PMS-007</span>
+      <span class="ct-title">Outro ramo com PMM (RCTR-C 54), mês cheio → inalterado (regressão de blast radius)</span>
+      <span class="badge desejavel">P3</span><span class="ev-badge ev-pendente">PENDENTE</span>
+    </div>
+    <div class="ct-body">
+      <p class="muted">Tipo: Regressão · blast radius — o cálculo é compartilhado; garantir que ramos sem suspensão não mudam.</p>
+      <table class="steps"><tr><th>#</th><th>Action</th><th>Expected Result</th></tr>
+      <tr><td>1</td><td>Prévia RCTR-C (54), apólice sem suspensão, mês cheio</td><td>Prêmio mínimo inalterado vs. referência</td></tr></table>
+    </div>
+  </div>
+
+  <p class="muted" style="margin-top:24px">Artefatos NS Flow Kit: BugReport, ImpactReport e QA Plan em <code>.ns-flow/</code>. Execução real (Gate 3) em HML após deploy do fix. Root cause a confirmar antes do fix (SQL/Voidr/HML).</p>
+</div>
+</body>
+</html>
