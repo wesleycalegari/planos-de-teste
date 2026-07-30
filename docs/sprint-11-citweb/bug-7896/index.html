@@ -89,13 +89,13 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 </div>
 
 <div class="deploy-warn" style="border-color:#2ea043;background:#0d1f0d">
-  <h3 style="color:#3fb950">✅ EXECUTADO — 30/07/2026 · BUG CORRIGIDO (5/7 APROVADO · 0 reprovado)</h3>
+  <h3 style="color:#3fb950">✅ EXECUTADO — 30/07/2026 · BUG CORRIGIDO (6/7 APROVADO · 0 reprovado · 1 N/A)</h3>
   <p>Fix validado em HML: causa-raiz confirmada era o indicativo <code>Ind_tb_pmo_min_apo_fch</code> ativo sem a tabela <code>tb_pmo_min_apo_fch</code> existir na base Tokio (<code>PremioDomain.ObtemPremioMinimoNacional</code> → <code>Invalid object name</code> → "erro inesperado"). Desativado o indicativo, o Exportar do Resumo de Embarques voltou a funcionar.</p>
   <ul>
     <li><strong>CT-REM-001/002/003/004/006 APROVADO</strong> — reproduzido o cenário exato do Diego (Tokio · apólice 0000100659002 / sub 002 / ref 06-2026): antes lançava <code>Invalid object name 'tb_pmo_min_apo_fch'</code>, agora baixa <code>RESUMO-RCV-...xlsx</code> sem "erro inesperado".</li>
     <li><strong>3 cenários / 2 tenants, nenhum "erro inesperado":</strong> Tokio PMM proporcional (Prêmio Líquido 33,33) · Tokio PMM mínimo fixo (1.000,00) · AXA <strong>com movimento real</strong> (embarque SP→AM, DM 150.000, Prêmio Comercial 18,87 — arquivo com linhas de embarque, conteúdo coerente).</li>
     <li><strong>CT-REM-005</strong> — não-aplicável em Tokio (a Prévia dessa base só tem o ramo RCV configurado); o handler compartilhado <code>/RelatorioPrevia</code> foi confirmado sem regressão via AXA (cross-tenant).</li>
-    <li><strong>CT-REM-007 (CNPJ alfanumérico — "se possível" do Wesley)</strong> — pendente de massa: em HML só há CNPJ numérico; recomenda-se cobrir junto da massa alfanumérica do #7887. O relatório renderiza o CNPJ como texto (ex.: <code>CNPJ: 03.502.099/0001-18</code>), sem truncar.</li>
+    <li><strong>CT-REM-007 (CNPJ alfanumérico) APROVADO</strong> — massa criada pelo QA: apólice RCV alfa 0000270350001 (CNPJ <code>27.0RK.3G5/0001-69</code>) + averbação 2026000002 (SP→RJ). O Resumo baixou <code>RESUMO-RCV-0000270350001-001-07-2026.xlsx</code> com o CNPJ alfanumérico <strong>íntegro</strong> (Segurado/CNPJ/Corretor), sem truncar/converter/overflow. <strong>6/7 APROVADO, 0 reprovado</strong> (só CT-REM-005 N/A — Tokio só tem ramo RCV).</li>
   </ul>
 </div>
 
@@ -106,11 +106,11 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">7</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">5</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">6</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">N/A · Pend. massa</div></div>
+  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">N/A (Tokio só RCV)</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" style="width:71%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:86%"></div></div>
 
 <div class="container">
 
@@ -176,8 +176,8 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="group-header" onclick="toggleGroup(this)"><h2>Grupo 4 — CNPJ alfanumérico (direcionamento Wesley 27/07)</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-REM-007</span><span class="ct-title">Resumo de Embarques com massa de CNPJ alfanumérico — gera sem erro e CNPJ íntegro no arquivo</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#26221a;color:#e3b341">PENDENTE MASSA</span><span class="ct-toggle">▶</span></div>
-      <div class="ct-body"><div class="result-box" style="border-left:3px solid #d29922;color:#c9d1d9;margin-bottom:12px"><strong>Pendente de massa (30/07) — "se possível" do Wesley:</strong> nas bases HML disponíveis (Tokio/AXA) as apólices/embarques RCV têm apenas <strong>CNPJ numérico</strong> (ex.: <code>CNPJ: 03.502.099/0001-18</code>, <code>93.395.170/0001-01</code>). Criar averbação RCV com CNPJ alfanumérico pode esbarrar no tratamento <code>Int64</code> de CNPJ (tema do BUG #7887); recomenda-se cobrir este CT junto da <strong>massa alfanumérica do #7887</strong>. Observação positiva: o relatório já renderiza o CNPJ como <strong>texto</strong> no arquivo (não numérico), sem truncar — o risco de perda de integridade do CNPJ alfa no XLSX é baixo, mas falta a validação com massa real.</div><div class="precond-box"><strong>Pré-condições:</strong> apólice/embarque RCV ramo 59 na Prévia cujo <strong>CNPJ do segurado/tomador/embarcador seja alfanumérico</strong> (novo formato Receita, com letras). Localizar massa existente ou criar via CITWEB UI (liberdade total HML). Relacionado ao tema CNPJ alfanumérico de outros cards (ex.: #7887 RCTR-C).</div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-REM-007</span><span class="ct-title">Resumo de Embarques com massa de CNPJ alfanumérico — gera sem erro e CNPJ íntegro no arquivo</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span></div>
+      <div class="ct-body"><div class="result-box" style="border-left:3px solid #2ea043;color:#c9d1d9;margin-bottom:12px"><strong>✅ APROVADO (30/07) — massa alfanumérica criada por QA:</strong> apólice RCV alfa <code>0000270350001</code> (segurado/corretor CNPJ <strong>27.0RK.3G5/0001-69</strong> = <code>270RK3G5000169</code>, criada por Wesley) + <strong>averbação RCV criada pelo QA</strong> (nº 2026000002, SP→RJ, prêmio 4.000,00, DM 49.999,99 / DC 29.999,99 — fluxo completo Nacional → Averbação RCV, sem depender de terceiros). Prévia RCV → Resumo de Embarques → Exportar → Sim → baixou <code>RESUMO-RCV-0000270350001-001-07-2026.xlsx</code> (8.822 B). Validado via openpyxl: o CNPJ alfanumérico aparece <strong>ÍNTEGRO</strong> em três campos do arquivo — <em>Segurado: 27.0RK.3G5/0001-69</em>, <em>CNPJ: 27.0RK.3G5/0001-69</em>, <em>Corretor: 27.0RK.3G5/0001-69</em> — <strong>sem truncar, sem converter para número, sem o overflow Int64 do #7887</strong>. Embarques reais no arquivo (AC→SP + SP→RJ, TOTAIS 2 viagens / Prêmio 8.000,00). Evidências: <code>7896-11..16</code> + XLSX anexado ao card.</div><div class="precond-box"><strong>Pré-condições:</strong> apólice/embarque RCV ramo 59 na Prévia cujo <strong>CNPJ do segurado/tomador/embarcador seja alfanumérico</strong> (novo formato Receita, com letras). Localizar massa existente ou criar via CITWEB UI (liberdade total HML). Relacionado ao tema CNPJ alfanumérico de outros cards (ex.: #7887 RCTR-C).</div>
         <h4>Objetivo (direcionamento Wesley 27/07)</h4><p>Confirmar que o relatório Resumo de Embarques da Prévia RCV é gerado sem erro quando a massa contém CNPJ alfanumérico, e que o CNPJ aparece <strong>íntegro</strong> no arquivo (não truncado, não convertido para número, sem "erro inesperado").</p>
         <h4>Passos</h4><ol><li>Selecionar/criar apólice RCV 59 com embarque cujo CNPJ (segurado/tomador/embarcador) seja alfanumérico.</li><li>Prévia → marcar <strong>Resumo de Embarques</strong> → Exportar → confirmar (Sim).</li><li>Confirmar o download; abrir o arquivo e localizar o CNPJ alfanumérico.</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Relatório gerado/baixado sem erro; o <strong>CNPJ alfanumérico aparece íntegro</strong> no arquivo. Evidência: arquivo baixado + trecho com o CNPJ alfanumérico + screenshot.</div></div></div>
