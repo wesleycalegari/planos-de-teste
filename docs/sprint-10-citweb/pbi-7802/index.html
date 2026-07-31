@@ -93,18 +93,15 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <p>O agrupamento é controlado pela flag <code>AgrupamentoAverbacaoHabilitado</code> (indicativo <code>Ind_DuimpAgrupamentoAverbacao</code>), <strong>desligada por padrão e ainda não disponível em HML</strong>. Enquanto off: 1 linha = 1 item, colunas novas em NULL.</p>
   <ul>
     <li><strong>Grupo A (flag OFF)</strong> — executável agora: regressão (comportamento atual mantido).</li>
-    <li><strong>Grupo B (flag ON)</strong> — <span class="tbd">diferido</span>: depende da migration + indicativo aplicados em HML AXA e do Worker gravando linhas agregadas (<code>c_nvl_avb</code> 'D'/'A'/'I', <code>q_itn_agp</code>&gt;1, <code>t_itn_org_agp</code> preenchido). <strong>Re-verificado por SQL em 20/07/2026:</strong> as colunas de agregação continuam <strong>ausentes</strong> na base <code>smt-hom-citweb-axa</code> — migration ainda não aplicada; CT-DAG-002 a 007 seguem bloqueados por dependência (aguardando dev/ops).</li>
-    <li>Card <strong>com CA formal preenchido</strong> (DoR OK) — CTs derivados diretamente dos critérios de aceite.</li>
-  </ul>
-</div>
+    <li><strong>Grupo B (flag ON)</strong> — <span class="tbd">diferido</span>: depende da migration + indicativo aplicados em HML AXA e do Worker gravando linhas agregadas (<code>c_nvl_avb</code> 'D'/'A'/'I', <code>q_itn_agp</code>&gt;1, <code>t_itn_org_agp</code> preenchido). <strong><strong>Atualizado em 31/07/2026:</strong> a migration está aplicada e o WorkerDUIMP agregou <strong>46 declarações</strong> entre 11:34 e 12:23 (28 multi-item, <code>q_itn_agp</code> de 2 a 89) — <strong>todas no nível 'D'</strong>. Com isso <strong>CT-DAG-005 e CT-DAG-007 saíram do bloqueio e foram aprovados</strong>. CT-DAG-002/003 (nível 'I') e CT-DAG-004 (nível 'A') seguem sem massa porque o Worker não gerou esses níveis; CT-DAG-006 depende de duas telas consumidoras observáveis.</div>
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">7</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">3</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">6</div><div class="metric-lbl">Pendentes (Grupo B diferido)</div></div>
+  <div class="metric m-pend"><div class="metric-val">4</div><div class="metric-lbl">Pendentes (níveis I/A + telas)</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" style="width:14%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:43%"></div></div>
 
 <div class="container">
 
@@ -153,25 +150,127 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> linha DUIMP <code>c_nvl_avb='I'</code>, <code>q_itn_agp=1</code>; indicativo ativo.</div>
         <h4>Objetivo</h4><p>CA: nível 'I' com q_itn_agp=1 é tratado como <strong>item individual</strong> — o serviço retorna exatamente 1 item (a própria linha), sem expandir.</p>
         <h4>Passos</h4><ol><li>SQL: identificar linha 'I' com q_itn_agp=1</li><li>Acionar o serviço/tela que expande a linha</li><li>Confirmar que <code>ObterItensRepresentados</code> retorna 1 item</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Linha 'I' q_itn_agp=1 → 1 item individual; sem expansão indevida.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Linha 'I' q_itn_agp=1 → 1 item individual; sem expansão indevida.</div><div class="warn-box" style="margin-top:8px"><strong>Sem massa em 31/07/2026 — motivo atualizado.</strong>
+O bloqueio já <em>não</em> é a migration ausente (as colunas existem e estão populadas desde hoje): das
+<strong>46 declarações agregadas</strong> em AXA HML, <strong>46 estão no nível 'D'</strong> — o Worker não
+gerou nenhuma linha 'A' nem 'I'. Gerar essas linhas por SQL seria fabricar a própria saída sob teste, então
+este CT depende do WorkerDUIMP produzir os outros níveis. Pergunta objetiva para o dev: o nível de agregação
+é configurável (por DUIMP / por adição / por item) ou o Worker sempre consolida na DUIMP inteira?</div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-003</span><span class="ct-title">Nível 'I' com q_itn_agp ≥ 2 — agrupamento; expande itens de t_itn_org_agp</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> linha 'I' com <code>q_itn_agp≥2</code> e <code>t_itn_org_agp</code> com os itens originais; indicativo ativo.</div>
         <h4>Objetivo</h4><p>CA: nível 'I' com q_itn_agp≥2 é agrupamento de itens — o serviço deve <strong>expandir</strong> retornando os N itens virtuais a partir do JSON <code>t_itn_org_agp</code>.</p>
         <h4>Passos</h4><ol><li>SQL: identificar linha 'I' q_itn_agp=N (≥2) e ler <code>t_itn_org_agp</code> (ex.: <code>[{"adicao":"001","itens":[1,2]}]</code>)</li><li>Acionar o serviço de expansão</li><li>Confirmar que retorna exatamente N itens, correspondentes aos do JSON</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Serviço expande a linha 'I' agregada em N itens virtuais idênticos aos de <code>t_itn_org_agp</code>.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Serviço expande a linha 'I' agregada em N itens virtuais idênticos aos de <code>t_itn_org_agp</code>.</div><div class="warn-box" style="margin-top:8px"><strong>Sem massa em 31/07/2026 — motivo atualizado.</strong>
+O bloqueio já <em>não</em> é a migration ausente (as colunas existem e estão populadas desde hoje): das
+<strong>46 declarações agregadas</strong> em AXA HML, <strong>46 estão no nível 'D'</strong> — o Worker não
+gerou nenhuma linha 'A' nem 'I'. Gerar essas linhas por SQL seria fabricar a própria saída sob teste, então
+este CT depende do WorkerDUIMP produzir os outros níveis. Pergunta objetiva para o dev: o nível de agregação
+é configurável (por DUIMP / por adição / por item) ou o Worker sempre consolida na DUIMP inteira?</div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-004</span><span class="ct-title">Nível 'A' — adição inteira ou grupo de adições</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> linha <code>c_nvl_avb='A'</code> (adição/grupo de adições); indicativo ativo.</div>
         <h4>Objetivo</h4><p>CA: nível 'A' representa uma adição inteira (ou grupo de adições) — o serviço expande os itens da(s) adição(ões) representada(s), conforme <code>t_itn_org_agp</code>.</p>
         <h4>Passos</h4><ol><li>SQL: identificar linha 'A' e o JSON de adições/itens</li><li>Acionar a expansão</li><li>Confirmar que os itens retornados cobrem toda(s) a(s) adição(ões) representada(s)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Linha 'A' expande corretamente nos itens da adição inteira / grupo de adições.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Linha 'A' expande corretamente nos itens da adição inteira / grupo de adições.</div><div class="warn-box" style="margin-top:8px"><strong>Sem massa em 31/07/2026 — motivo atualizado.</strong>
+O bloqueio já <em>não</em> é a migration ausente (as colunas existem e estão populadas desde hoje): das
+<strong>46 declarações agregadas</strong> em AXA HML, <strong>46 estão no nível 'D'</strong> — o Worker não
+gerou nenhuma linha 'A' nem 'I'. Gerar essas linhas por SQL seria fabricar a própria saída sob teste, então
+este CT depende do WorkerDUIMP produzir os outros níveis. Pergunta objetiva para o dev: o nível de agregação
+é configurável (por DUIMP / por adição / por item) ou o Worker sempre consolida na DUIMP inteira?</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-005</span><span class="ct-title">Nível 'D' — DUIMP inteira; NCM = primeiro NCM (ordem do processo de DI)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-005</span><span class="ct-title">Nível 'D' — DUIMP inteira; NCM = primeiro NCM (ordem do processo de DI)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> linha <code>c_nvl_avb='D'</code> cobrindo adições com NCMs diferentes; indicativo ativo.</div>
         <h4>Objetivo</h4><p>CA: nível 'D' representa a DUIMP inteira — o serviço expande todos os itens; e o <strong>NCM exibido = primeiro NCM</strong> conforme a ordem do processo de DI (quando há NCMs diferentes entre adições).</p>
         <h4>Passos</h4><ol><li>SQL: identificar linha 'D' com adições de NCMs diferentes</li><li>Acionar a expansão + consultar o NCM exibido</li><li>Confirmar que expande todos os itens e o NCM da linha 'D' = primeiro NCM (ordem DI)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Linha 'D' expande em todos os itens da DUIMP; NCM exibido = primeiro NCM conforme ordem do processo de DI.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Linha 'D' expande em todos os itens da DUIMP; NCM exibido = primeiro NCM conforme ordem do processo de DI.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — a linha 'D' representa a DUIMP inteira sem perder nem duplicar item,
+            e o NCM da linha é o da <strong>adição 001</strong> (primeiro na ordem do processo de DI).
+            · Ambiente: AXA HML · Build <strong>V 1.0.260724.1910</strong> · 31/07/2026 14:14–14:25
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Destravado hoje.</strong> Em 20 e 28/07 este CT estava bloqueado porque as colunas de
+            agregação não existiam / vinham NULL em AXA HML. Em <strong>31/07 entre 11:34 e 12:23</strong> o
+            WorkerDUIMP agregou <strong>46 declarações</strong> (28 delas multi-item, <code>q_itn_agp</code> de
+            2 a 89), criando a massa deste CT. Cobertura atual: 46 de 423 declarações
+            (<strong>28 de 218</strong> multi-item), contra 1 em 28/07.
+          </div>
+          <table style="border-collapse:collapse;font-size:12px;margin-bottom:10px;width:100%">
+            <tr style="background:#161b22">
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Verificação do CA</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">26BR00000214583</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">26BR00000361284</th>
+            </tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">adições na fonte WI (<code>QT_ADICAO</code>)</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">5</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">22</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">NCMs <strong>distintos</strong> entre adições (pré-condição)</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">4</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">22</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">Σ <code>QT_ITEM</code> = <code>q_itn_agp</code> = itens no <code>t_itn_org_agp</code></td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">30 = 30 = 30 ✓</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">47 = 47 = 47 ✓</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">NCM da linha 'D'</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">84439932</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">82130000</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">NCM da <strong>adição 001</strong> (primeiro na ordem DI)</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">84439932 ✓</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">82130000 ✓</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px"><em>menor</em> NCM da declaração (hipótese alternativa)</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#d29922">37079021 — <strong>não</strong> é o exibido</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#d29922">39241000 — <strong>não</strong> é o exibido</td></tr>
+          </table>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Por que a regra é "primeiro" e não "menor".</strong> Nas duas declarações o NCM da linha
+            agregada é o da adição 001 e é <strong>diferente do menor NCM</strong> da declaração. Isso descarta
+            a hipótese de o campo estar sendo preenchido por ordenação de valor, que produziria o mesmo
+            resultado numa amostra só — e é o que dá confiança de que o CA foi atendido de fato.
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Metade de tela — o que foi observado e o que não existe.</strong> Processei a declaração
+            agregada no <em>Interface WI/Siscomex → Declarações Adições → Processamento</em> (filial 0001,
+            apólice 100622001, desembaraço 27/01/2026): <strong>Lidas 1 · Desprezadas 0 ·
+            Inconsistentes 0 · Incluídas 1</strong> para a declaração agregada, gerando a averbação
+            definitiva <strong>2026000089</strong> — <strong>uma</strong> averbação para a linha que
+            representa 30 itens, não 30 averbações. Não existe, hoje, tela no módulo WI que <em>imprima</em> o
+            NCM de uma declaração processada com sucesso: os 5 relatórios do módulo são todos de exceção
+            (não averbadas, inconsistentes, não localizadas, desprezadas, apólices não cadastradas). Isso é
+            coerente com o escopo deste PBI — a adaptação das telas é o <strong>#7468</strong>, declarado
+            <em>out of scope</em> aqui; o que se valida neste card é o serviço.
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Achado que corrobora o serviço (não pedido pelo CT).</strong> Em 29/07, antes da agregação,
+            a declaração 26BR00000361284 registrava erro de validação <strong>por item</strong> em
+            <code>tb_itf_smx_dcl_pnd_err</code> (adição 2, itens 15 e 17, entre outros). Ao reprocessá-la hoje
+            já agregada, o sistema registrou <strong>uma única</strong> linha de erro para a linha 'D' — ou
+            seja, a validação passou a tratar a linha agregada como uma unidade, que é o comportamento que o
+            serviço promete.
+          </div>
+          <div class="warn-box">
+            <strong>Massa: 45 das 46 declarações agregadas estão numa apólice sem provisória vigente.</strong>
+            Ao processar a 26BR00000361284 (apólice 3762900634322) o resultado foi
+            <strong>Inconsistentes 1 · Incluídas 0</strong>, com o motivo exato em
+            <code>tb_itf_smx_dcl_pnd_err</code>: <em>"Não há provisória vigente para a data de saída, para
+            Apol: 3762900634322 Filial: 3762"</em>. <strong>Não é defeito de agregação</strong> — é lacuna de
+            massa, e não altera o veredito deste CT (validado na declaração que processou limpa). Fica
+            registrado porque criar uma provisória vigente nessa apólice libera 45 declarações agregadas de
+            uma vez, o que interessa ao #7682 e ao #7683.
+          </div>
+          <div style="margin-top:10px">
+            <img src="evidencias/CT-DAG-005/ev_DAG005_03_criterio_DUIMP_20260731-141437.png" style="max-width:100%" alt="EV1 — critério Processar DUIMP's">
+            <div style="font-size:11px;color:#888;margin-top:3px">EV1 — critério de processamento: faixa de desembaraço restrita a 27/01/2026, apenas "Processar DUIMP's"</div>
+            <img src="evidencias/CT-DAG-005/ev_DAG005_04_contadores_processamento_20260731-141437.png" style="max-width:100%" alt="EV2 — contadores após processar">
+            <div style="font-size:11px;color:#888;margin-top:3px">EV2 — resultado: Lidas 2 · Desprezadas 0 · <strong>Inconsistentes 0</strong> · Incluídas 2 (a declaração agregada + 1 não agregada da mesma data)</div>
+            <img src="evidencias/CT-DAG-005/ev_DAG005_04_contadores_processamento_20260731-142344.png" style="max-width:100%" alt="EV3 — inconsistência por falta de provisória">
+            <div style="font-size:11px;color:#888;margin-top:3px">EV3 — apólice 3762900634322: Inconsistentes 1 · Incluídas 0 — lacuna de massa (sem provisória vigente), não defeito de agregação</div>
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:8px">
+            Script: <code>testes-automatizados/sprint-11/pbi-7802/ct_dag_005_nivel_d_ncm.py</code> — massa
+            descoberta dinamicamente por SQL (nenhuma apólice/DUIMP fixa).
+          </div>
+        </div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-006</span><span class="ct-title">Serviço único reutilizável — ObterItensRepresentados consumido pelas telas</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada; telas de Processamento/consulta/relatório disponíveis; indicativo ativo.</div>
@@ -179,11 +278,27 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
         <h4>Passos</h4><ol><li>Para a mesma DUIMP agregada, comparar a contagem/expansão de itens vista em telas distintas (Processamento — contadores; consulta de protocolo; relatório)</li><li>Confirmar que todas refletem o mesmo resultado do serviço (consistência entre telas)</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Todas as telas consumidoras retornam a mesma expansão de itens (fonte única); nenhuma divergência entre telas para a mesma linha.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-007</span><span class="ct-title">Consistência da contagem — itens expandidos = SUM(q_itn_agp)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-007</span><span class="ct-title">Consistência da contagem — itens expandidos = SUM(q_itn_agp)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com mistura de linhas 'D'/'A'/'I' e q_itn_agp variados.</div>
         <h4>Objetivo</h4><p>Consistência transversal: o total de itens expandidos pelo serviço deve bater com <code>SUM(COALESCE(q_itn_agp,1))</code> da DUIMP — alinhado com contadores (#7468) e soma de valores (#7682), sem duplicar nem perder itens.</p>
         <h4>Passos</h4><ol><li>SQL: calcular <code>SUM(COALESCE(q_itn_agp,1))</code> da DUIMP</li><li>Somar os itens retornados pelo serviço para todas as linhas da DUIMP</li><li>Confirmar igualdade (sem duplicidade por níveis sobrepostos)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Total de itens expandidos = SUM(q_itn_agp) da DUIMP; nenhuma duplicação/perda; base consistente para contadores e valores.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Total de itens expandidos = SUM(q_itn_agp) da DUIMP; nenhuma duplicação/perda; base consistente para contadores e valores.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — a contagem fecha nas duas declarações agregadas medidas, nas três
+            fontes independentes. · Ambiente: AXA HML · 31/07/2026
+          </div>
+          <div class="info-box">
+            Consistência transversal verificada comparando <strong>três</strong> origens do mesmo número:
+            a soma de <code>QT_ITEM</code> das adições no JSON da fonte WI, o <code>q_itn_agp</code> gravado
+            pelo Worker e a contagem de itens no mapa <code>t_itn_org_agp</code>.
+            <ul style="margin:6px 0 0 18px">
+              <li><strong>26BR00000214583</strong> — 30 = 30 = 30 (5 adições)</li>
+              <li><strong>26BR00000361284</strong> — 47 = 47 = 47 (22 adições)</li>
+            </ul>
+            Nenhum item perdido nem duplicado. Executado junto do CT-DAG-005, mesmo script.
+          </div>
+        </div></div></div>
 
   </div>
 
