@@ -107,9 +107,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">3</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">4</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">3</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -267,11 +267,83 @@ existe no produto e o CT deve ser reescrito, não ficar aguardando massa.</div><
           </div>
         </div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-006</span><span class="ct-title">q_itn_agp NULL tratado como 1 (limite)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-006</span><span class="ct-title">q_itn_agp NULL tratado como 1 (limite)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com linhas mistas — algumas com q_itn_agp NULL, outras &gt;1.</div>
         <h4>Objetivo</h4><p>Garantir que linhas com <code>q_itn_agp IS NULL</code> são tratadas como 1 item (compatibilidade com o modo antigo), mesmo com o indicativo ativo.</p>
         <h4>Passos</h4><ol><li>SQL: preparar/identificar linha com q_itn_agp NULL</li><li>Processar/consultar a DUIMP</li><li>Confirmar que a linha NULL conta como 1 item nos totais e na validação</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Linha com q_itn_agp NULL tratada como 1 item; totais e validação corretos na mistura com linhas agregadas.</div><div class="warn-box" style="margin-top:8px"><strong>Parcial em 31/07/2026.</strong> No mesmo
+        <h4>Resultado Esperado</h4><div class="result-box">Linha com q_itn_agp NULL tratada como 1 item; totais e validação corretos na mistura com linhas agregadas.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — <code>q_itn_agp</code> NULL é tratado como 1 item: 52 linhas não
+            agregadas geraram <strong>52 averbações</strong>, uma por linha. · AXA HML ·
+            build V 1.0.260724.1910 · 31/07/2026 15:18
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Por que este CT estava pendente e o que mudou.</strong> Em 31/07 às 14:41 eu deixei este
+            CT em pendente de propósito: a declaração de 1 item que processou junto do CT-DVM-002 tinha
+            valores corretos, mas <strong>não era possível afirmar</strong> se o <code>q_itn_agp</code> dela
+            era NULL ou 1 — a pendência é consumida no processamento e, das 46 declarações agregadas naquele
+            dia, <strong>18 tinham q_itn_agp = 1</strong>. Aprovar por semelhança seria aprovar sem provar o
+            limite. Agora medi uma declaração <strong>multi-item</strong> com agregação 100% NULL, onde o
+            comportamento esperado é inequívoco.
+          </div>
+          <table style="border-collapse:collapse;font-size:12px;margin-bottom:10px;width:100%">
+            <tr style="background:#161b22">
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Cenário</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Linhas na pendência</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Averbações geradas</th></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">CT-DVM-002 — linha <strong>agregada</strong>, <code>q_itn_agp</code> = 30</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">1</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043"><strong>1</strong> (valor não escalado)</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">CT-DVM-006 — linhas <strong>não agregadas</strong>, <code>q_itn_agp</code> NULL</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">52</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043"><strong>52</strong> (1 por item)</td></tr>
+          </table>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>O contraste é o que torna o CT conclusivo.</strong> Medir só o caso NULL isolado não
+            distinguiria "tratou como 1" de "não fez nada". Comparando com o caso agregado do CT-DVM-002 —
+            mesmo módulo, mesma tela, mesmo dia — fica provado que o serviço faz coisas diferentes e
+            corretas nos dois: expande quando há agregação e trata como unidade quando não há. Se ele
+            tentasse expandir uma linha NULL, a contagem de averbações não fecharia com 52.
+          </div>
+          <table style="border-collapse:collapse;font-size:12px;margin-bottom:10px;width:100%">
+            <tr style="background:#161b22"><th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Medição</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Valor</th></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">DUIMP</td>
+                <td style="border:1px solid #30363d;padding:5px 9px"><code>26BR00001363663</code> · apólice 123456 · filial 0001</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">Pré-condição verificada</td>
+                <td style="border:1px solid #30363d;padding:5px 9px"><code>q_itn_agp</code>, <code>c_nvl_avb</code> e <code>d_agp</code> NULL em <strong>52 de 52</strong> linhas</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">Averbações com número distinto</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">52</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">FOB por averbação</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">min 43,05 · max 11.434,40 · soma 38.557,08 — cada uma com o valor do seu próprio item</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">Pendências restantes da DUIMP</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">0 (todas consumidas)</td></tr>
+          </table>
+          <div class="warn-box" style="margin-bottom:10px">
+            <strong>Uma leitura que eu descartei antes de aprovar.</strong> A primeira execução caiu na
+            declaração <code>26BR00000609570</code> (83 linhas, apólice 3762900634322) e devolveu
+            <strong>Inconsistentes 83 · Incluídas 0</strong>. Isso <em>parecia</em> reprovação do CT. O motivo
+            real estava em <code>tb_itf_smx_dcl_pnd_err</code>, 83 vezes: <em>"Não há provisória vigente para
+            a data de saída, para Apol: 3762900634322 Filial: 3762 Subg: 3 e data: 24/12/2025"</em> — a mesma
+            lacuna de massa já registrada no #7802. <strong>Vigência da apólice não basta</strong>: o
+            processamento exige <strong>provisória</strong> vigente para a data de saída. O script passou a
+            excluir apólices que já registraram esse erro e a exigir apólice com averbação de DUIMP gerada
+            antes — prova prática de provisória boa.
+          </div>
+          <div class="info-box">
+            <strong>Observação lateral, relevante ao #7803 (contadores).</strong> Os contadores da tela
+            somam o <strong>lote inteiro</strong> da data de desembaraço selecionada, não só a declaração sob
+            teste: nesta execução marcaram <strong>Lidas 79 · Inconsistentes 4 · Incluídas 75</strong>,
+            enquanto a DUIMP em teste respondeu por 52 dessas averbações. Por isso a medição deste CT isola
+            a declaração por <code>u_di</code> no banco em vez de confiar no contador — e por isso não estou
+            afirmando que o lote todo passou limpo (4 inconsistentes pertencem a outras declarações).
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:8px">
+            Script: <code>testes-automatizados/sprint-11/pbi-7682/ct_dvm_006_qitn_null_como_1.py</code> —
+            massa dinâmica com o filtro de provisória descrito acima.
+          </div>
+        </div><div class="warn-box" style="margin-top:8px"><strong>Parcial em 31/07/2026.</strong> No mesmo
 processamento, a declaração <strong>26BR00000447499</strong> (1 adição / 1 item) gerou averbação com valores
 corretos — <code>v_fob_ori</code> 53.355,30 igual à fonte. Só que não consigo afirmar se o
 <code>q_itn_agp</code> dela era <strong>NULL</strong> ou <strong>1</strong>: a pendência é consumida no
