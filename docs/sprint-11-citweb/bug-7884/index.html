@@ -108,8 +108,8 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">9</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">6</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">3</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-rep"><div class="metric-val">1</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -226,7 +226,28 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-FMR-009</span><span class="ct-title">Prêmio Líquido correto reflete nos relatórios Resumo e Relação de Embarques (valores gravados) — TOKIO e KOVR</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">REEXEC PÓS-FIX</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> apólice RCV ramo 59 com Desconto por Qtd de Viagens, fechamento processado (após CT-FMR-004), nas bases <strong>TOKIO</strong> e <strong>KOVR</strong>.</div>
         <div class="warn-box" style="border-color:#d29922;background:#1c1908;margin-bottom:10px">◐ <strong>PARCIAL (30/07):</strong> mecanismo de reflexo validado na <strong>AXA</strong> — na tela Impressão do Fechamento (fonte da Relação/Resumo de Embarques), a fatura da apólice 8102025 (ref 07/2026, fech. 521) exibe <strong>Prêmio Líquido 555,53</strong> (com o desconto) e Prêmio Total 596,53, batendo com a tela/fatura (não o bruto 617,26). Confirma que o PL corrigido reflete nos relatórios. <strong>PENDENTE o escopo pedido pela Fabiola: TOKIO e KOVR</strong> (gerar o relatório nessas bases). Evidência: <code>7884-CT009-AXA-relatorio-grid-PL555.png</code>.</div>
-        <div class="warn-box" style="border-color:#d13438;background:#1f0d0d;margin-bottom:10px">⛔ <strong>KOVR e TOKIO BLOQUEADOS por deployment (30/07):</strong> a base <strong>KOVR HML</strong> está na build <strong>V 1.0.260706.1810 (06/07/2026)</strong> — <strong>23 dias anterior ao fix</strong> do #7884 (build 260729, 29/07). O fix <code>b14601ade</code> <strong>não está deployado em KOVR</strong>, então validar a correção nessa base não é possível até o deploy (testar o relatório sobre um fechamento pré-fix não valida o fix). <strong>TOKIO</strong> segue bloqueada pelo mesmo motivo — o fix específico da Tokio (TotPrTarfCos/RCV) foi <strong>revertido</strong> do #7884 (Diego 28/07). Responsável: deploy/dev (não QA). A massa KOVR existe (apólice <code>59281120251</code>, fech. 50, PL 3552 com desconto 288) e o relatório poderá ser gerado assim que o fix chegar em KOVR.</div>
+        <div class="warn-box" style="border-color:#d13438;background:#1f0d0d;margin-bottom:10px">✗ <strong>REPROVADO na TOKIO (30/07/2026, 00:20) — o fix NÃO chegou ao relatório exportado.</strong>
+        O bloqueio de deploy caiu: a build do Nacional da TOKIO é <strong>V 1.0.260730.1556</strong> (30/07 15:56), posterior ao fix <code>b14601ade</code> (260729.1801). Com o ambiente correto, o CT foi executado e <strong>reprovou</strong>.<br><br>
+        <strong>Massa:</strong> apólice <code>59001</code>, filial 1, subgrupo 004, ref 07/2026, fatura <strong>22001</strong> (fechamento 2001). Banco (<code>tb_cme_cit</code>): comercial <code>1.110,00</code> − desconto <code>83,25</code> → <strong>líquido 1.026,75</strong>, total <code>1.102,52</code>.<br><br>
+        <strong>Na tela está certo:</strong> a grid da Impressão exibe Prêmio Líquido <strong>1.026,75</strong> — igual ao banco.<br>
+        <strong>No arquivo exportado está errado:</strong> o <code>COM-RESUMO-0000000059001-004-07-2026-02001.xlsx</code> imprime
+        <code>Prêmio Comercial: 1.110,00</code> e <strong><code>Prêmio Líquido: 1.110,00</code></strong> (nas duas ocorrências, linhas 20 e 24) —
+        ou seja, o <strong>bruto no lugar do líquido</strong>, exatamente o sintoma do #7884. O arquivo <strong>não traz nenhuma linha de Desconto</strong>
+        e fecha com <code>Prêmio Total: 1.185,77</code> em vez de <code>1.102,52</code>.<br><br>
+        <strong>Conclusão:</strong> o fix corrigiu a tela/grid, mas a geração do relatório continua montando o Prêmio Líquido a partir do prêmio comercial.</div>
+        <div class="warn-box" style="border-color:#d29922;margin-bottom:10px">⚠ <strong>2º achado — Relação de Embarques sai VAZIA (TOKIO).</strong>
+        Na mesma fatura 22001, o <code>COM-EMB-…​.xlsx</code> vem com <strong>apenas o título</strong> (intervalo A1:A3, nenhuma linha de embarque),
+        mesmo sendo o único relatório marcado. Os dados existem — o Resumo da mesma fatura lista 6 embarques (MG→MG, MG→UB, RS→SP, SP→MG, SP→RJ).
+        É defeito separado do cálculo do Prêmio Líquido.</div>
+        <div class="warn-box" style="border-color:#d29922;margin-bottom:10px">⚠ <strong>3º achado — "Todas" dá HTTP 500 na TOKIO.</strong>
+        Na tela Impressão, com Tipo de Seleção <strong>Todas</strong>, o POST <code>/Nacional/RelatorioFechamento/Selecionar</code> responde
+        <strong>HTTP 500</strong> ("Ocorreu um erro inesperado"), reproduzido 2x com filial 1 + ramo 59 preenchidos. Na <strong>AXA</strong> o mesmo caminho
+        responde 302 e monta a grid com 10 linhas. Com "Apólice/Referência" a TOKIO funciona. Defeito de ambiente/tenant, separado do #7884.</div>
+        <div class="warn-box" style="margin-bottom:10px">◐ <strong>KOVR ainda não verificada:</strong> a checagem de build falhou por timeout ao abrir a aba do módulo Nacional
+        (nessa base o tile parece não abrir aba nova). A massa está pronta — apólice <code>59281120251</code>, fech. 50, comercial 3.840,00 − desconto 288,00 → líquido 3.552,00.
+        Reexecutar assim que a navegação da KOVR for resolvida.</div>
+        <div class="warn-box" style="margin-bottom:10px">Execução via script <code>testes-automatizados/sprint-11-citweb/bug-7884/ct_fmr_009_relatorios_fechamento.py</code>
+        (novo). Arquivos exportados e screenshots em <code>evidencias/CT-FMR-009/</code>.</div>
         <div class="ct-ev"><img src="evidencias/7884-CT009-AXA-relatorio-grid-PL555.png"><div class="cap">AXA (validado) — Impressão do Fechamento exibe Prêmio Líquido 555,53 (com desconto), batendo com a fatura</div><img src="evidencias/7884-CT009-KOVR-build-1810-prefix.png"><div class="cap">KOVR bloqueado — build 260706.1810 (06/07), anterior ao fix (29/07): o fix não está deployado</div></div>
         <h4>Objetivo (direção Fabiola/Wesley 28/07)</h4><p>Confirmar que o Prêmio Líquido corrigido (com o desconto) aparece <strong>gravado corretamente</strong> nos relatórios <strong>Resumo de Embarques</strong> e <strong>Relação de Embarques</strong> — não só na tela/fatura.</p>
         <h4>Passos</h4><ol><li>Após o fechamento da apólice (Prêmio Líquido correto), gerar o relatório <strong>Relação de Embarques</strong> (e <strong>Resumo de Embarques</strong>) do período.</li><li>Localizar a apólice/embarque no relatório e ler o valor de Prêmio Líquido gravado.</li><li>Comparar com o valor esperado (com desconto) da tela/fatura.</li><li>Repetir em <strong>TOKIO</strong> e <strong>KOVR</strong>.</li></ol>
