@@ -62,6 +62,18 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 .ct-body code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
 .ct-body .precond-box{background:#161b22;border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:5px;padding:10px 12px;font-size:12px;margin-bottom:10px}
 .tbd{color:var(--yellow);font-weight:600}
+
+.badge-ok{background:#0d1f0d;color:#79c57e;border:1px solid #2ea043}
+.badge-erro{background:#1f0d0d;color:#f1707a;border:1px solid #d13438}
+.badge-bloqueado{background:#1f1a0d;color:#e3b341;border:1px solid #d29922}
+.ct-ev{margin-top:14px}
+.ct-ev .ev-head{border-radius:5px;padding:9px 12px;font-size:12.5px;margin-bottom:10px;line-height:1.5}
+.ct-ev .ev-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.ct-ev img{width:100%;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:#fff}
+.ct-ev .cap{font-size:11px;color:var(--muted);margin-top:4px}
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99;padding:24px;overflow:auto}
+#lb img{max-width:100%;margin:0 auto;display:block;border-radius:6px}
+#lb .x{position:fixed;top:14px;right:22px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
 </style>
 </head>
 <body>
@@ -95,21 +107,25 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 </div>
 
 <div class="deploy-warn" style="border-color:#2ea043;background:#0d1f0d">
-  <h3 style="color:#3fb950">✅ EXECUTADO 30/07/2026 — reprovação do Converter (HTTP 500) RESOLVIDA · performance pendente de layout</h3>
-  <p>Retest do bloqueio CT-RVI-006 (Task #7795) em HML AXA, <strong>build V 1.0.260729.1115</strong> (posterior ao build 260716 da reprovação). Massa do Wesley anexada ao card: <code>exp_smoke_20_7707.xlsx</code> (20 reg, com <strong>país alfanumérico</strong> ARG/CHL/URY/DEU/CHN — cenário exato do bug) + <code>exp_volume_7500_7707.xlsx</code> (7.500 reg).</p>
+  <h3 style="color:#3fb950">✅ EXECUTADO 31/07/2026 no CITWEB — 6 aprovados · 1 reprovado · 1 bloqueado</h3>
+  <p><strong>Correção de rota:</strong> a execução de 30/07 foi feita no <strong>CITNET</strong> (<code>/citnet/Conversor/</code>); a dev confirmou no card que o refactor foi aplicado no <strong>CITWEB</strong>. Tudo foi reexecutado na rota correta — CITWEB → tile <em>Conversor de Arquivos</em> (<code>app=CONVERSOR</code>) → <em>Converte Arquivo / Processa Averbações</em> → <em>Exportação</em>, atingindo o controller <code>ProcessamentoAverbacoesExportacaoController.Processar</code>. Build <strong>V 1.0.260729.1115</strong>.</p>
   <ul>
-    <li><strong>✅ CT-RVI-006 (o 500) NÃO reproduz mais:</strong> na reprovação (14–17/07), clicar <strong>Converter</strong> no Conversor de Exportação com país alfanumérico caía em página de erro <em>"Ocorreu um erro inesperado!"</em> (HTTP 500 em <code>/Conversor/Conversor/Converter</code>). Agora, em 3 tentativas (layout <strong>NOVO 19122025</strong>, layout <strong>CARD 7707</strong> e com <em>Aceitar conteúdo sugerido = Sim</em>), o Converter retorna <strong>validação de negócio graciosa</strong> (<em>"Defina o lay-out de Dia de Saída"</em> / <em>"Defina o lay-out de Apólice"</em>) e <strong>permanece na tela</strong> — sem 500, sem página de erro. Confirmado na aba de rede: nenhuma resposta 500, o retorno vem via SignalR/validação. Causa-raiz (Andreia): defeito pré-existente onde o conversor assumia país sempre numérico — corrigido no refactor de Exportação (#7707).</li>
-    <li><strong>⏳ Conversão completa + performance (≥7.000): pendente de layout.</strong> Os layouts salvos em HML (NOVO 19122025, CARD 7707) não estão 100% mapeados para a massa fornecida (exigem mapear o campo <em>"Dia de Saída"</em> à coluna correspondente) — isto é configuração de layout, não defeito. Para rodar CT-CEX-002/003/004 (paridade, volume ≥7.000, performance) é preciso um <strong>layout de entrada completo para a massa exp_*_7707</strong>. Recomendação: Andreia/Wesley confirmar/disponibilizar o layout mapeado, ou completar o mapeamento do campo faltante.</li>
+    <li><strong>✅ CA principal atendido:</strong> 7.500 registros convertidos (148,7s) e processados (191,5s) <strong>sem timeout</strong> — 7.500 averbações incluídas, 0 erro, definitivas <code>2026003789–2026011288</code> conferidas no banco (IS R$ 414.028.950,00).</li>
+    <li><strong>✅ Performance:</strong> <strong>0,026 s/registro</strong> contra o critério de ≤ 0,5 s/registro (~19× de margem). Contraste medido na KOVR (indicativo inativo): 0,074 s/reg.</li>
+    <li><strong>✅ Atomicidade (CA crítico):</strong> numa falha real de processamento os 500 pendentes do lote <strong>permaneceram na fila</strong> com <strong>zero averbação gravada</strong>, e o reprocessamento recuperou 500/500 — nenhuma averbação perdida. 10.020 averbações no dia, <strong>zero definitiva duplicada</strong>.</li>
+    <li><strong>✗ CT-CEX-005 REPROVADO:</strong> com duas sessões processando <strong>ao mesmo tempo</strong>, a 2ª cai em <strong>HTTP 500</strong> em <code>ProcessamentoAverbacoesExportacao/Processar</code> (<em>"Ocorreu um erro inesperado!"</em>). Reproduzido 2 de 3 vezes; o mesmo lote isolado passa 500/500. Ver evidências e contraprova no CT.</li>
+    <li><strong>⚠ CT-CEX-008 bloqueado:</strong> exige ativar o indicativo numa 3ª seguradora — é appSettings de deploy, não existe nas bases HML; o QA não consegue ligar nem ler. Depende de informação da dev.</li>
+    <li><strong>Sobre os 2 pontos escalados em 30/07:</strong> ambos eram efeito do sistema errado. No CITWEB o layout <code>CARD 7707 - REFATORAÇÃO EXPORTAÇÃO</code> <strong>aparece normalmente</strong> para o usuário QA, e não foi preciso salvar layout novo. A massa antiga não servia (colunas desalinhadas do layout da dev) — foi gerada massa nova alinhada ao mapeamento lido de <code>tb_lay_out_cad</code>.</li>
   </ul>
 </div>
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">8</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">8</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-ok"><div class="metric-val">6</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val">1</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Bloqueados</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:75%"></div></div>
 
 <div class="container">
 
@@ -130,68 +146,122 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="group-header" onclick="toggleGroup(this)"><h2>Grupo 1 — Processamento BulkCopy (funcional)</h2><span class="group-badge">3</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-001</span><span class="ct-title">Smoke — conversor de Exportação acessível e conversão básica</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-001</span><span class="ct-title">Smoke — conversor de Exportação acessível e conversão básica</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> HML AXA disponível; cotação USD vigente; arquivo de Exportação pequeno.</div>
         <h4>Objetivo</h4><p>Garantir que a Conversão (não alterada) segue funcionando após o refactoring do Processamento.</p>
         <h4>Passos</h4><ol><li>Logar no CITWEB HML AXA</li><li>Navegar ao Conversor de Exportação <span class="tbd">[caminho a validar]</span></li><li>Upload do arquivo pequeno + Conversão</li><li>Confirmar conversão sem erro</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Conversão conclui normalmente; registros prontos para processamento.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Conversão conclui normalmente; registros prontos para processamento.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — Conversão 20/20 e 7.500/7.500 aceitos, 0 erros<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Banner <em>"Conversão do arquivo concluído com sucesso!"</em> · Total 20 / Conversões incluídas 20 / Registros com erro 0 (idem no lote de 7.500: 7500/7500/0). Layout <code>CARD 7707 - REFATORAÇÃO EXPORTAÇÃO</code>.</p><h4>Observação</h4><p style="color:var(--muted)">Rota correta: <strong>CITWEB</strong> → tile <em>Conversor de Arquivos</em> (<code>app=CONVERSOR</code>) → <em>Converte Arquivo</em> → <em>Exportação</em> (<code>/Conversor/Conversor?menu=ConversorExportacao</code>). O layout da dev aparece normalmente para o usuário QA neste sistema.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-001/axa_cvr20_04_tela_exportacao.png" alt="EV1 — tela de Exportação no Conversor do CITWEB" onclick="openLb('evidencias/CT-CEX-001/axa_cvr20_04_tela_exportacao.png')"><div class="cap">EV1 — tela de Exportação no Conversor do CITWEB</div></div>
+<div><img src="evidencias/CT-CEX-001/axa_cvr20_08_pos_importar.png" alt="EV2 — pós-Importar: grid do arquivo + tabela de layout" onclick="openLb('evidencias/CT-CEX-001/axa_cvr20_08_pos_importar.png')"><div class="cap">EV2 — pós-Importar: grid do arquivo + tabela de layout</div></div>
+<div><img src="evidencias/CT-CEX-001/axa_cvr20_10_pos_converter.png" alt="EV3 — Conversão concluída: 20 total / 20 incluídas / 0 erro" onclick="openLb('evidencias/CT-CEX-001/axa_cvr20_10_pos_converter.png')"><div class="cap">EV3 — Conversão concluída: 20 total / 20 incluídas / 0 erro</div></div>
+</div>
+</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-002</span><span class="ct-title">Processar com BulkCopy ativo — paridade funcional (Aceitas + Rejeitadas)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-002</span><span class="ct-title">Processar com BulkCopy ativo — paridade funcional (Aceitas + Rejeitadas)</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> indicativo ATIVO para AXA; arquivo convertido no CT-CEX-001.</div>
         <h4>Objetivo</h4><p>Verificar que o processamento BulkCopy produz o mesmo resultado do fluxo linha a linha.</p>
         <h4>Passos</h4><ol><li>Processar com indicativo ativo</li><li>Anotar Aceitas/Rejeitadas</li><li>Comparar com o mesmo arquivo em fluxo linha a linha (CT-CEX-007)</li><li>SQL: conferir averbações gravadas</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Contagem Aceitas + Rejeitadas idêntica ao fluxo linha a linha; nenhuma divergência funcional.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Contagem Aceitas + Rejeitadas idêntica ao fluxo linha a linha; nenhuma divergência funcional.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — Processamento 20/20 incluídas, 0 erro; averbações conferidas no banco<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Banner <em>"Processamento do arquivo concluído com sucesso!"</em> · Averbações incluídas 20 / Registros com erro 0. Aceitas + Rejeitadas = Total em todas as execuções. SQL: definitivas <code>2026003769–2026003788</code> gravadas em <code>tb_mov_avb_int_cit</code> (IS total R$ 1.104.077,20); fila de pendentes drenada a 0.</p><h4>Observação</h4><p style="color:var(--muted)">Controller exercitado: <code>ProcessamentoAverbacoesExportacao/Processar</code> — o alvo do refactor.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-002/axa_prc20_02_tela_processar.png" alt="EV1 — tela Processa averbações de Exportação" onclick="openLb('evidencias/CT-CEX-002/axa_prc20_02_tela_processar.png')"><div class="cap">EV1 — tela Processa averbações de Exportação</div></div>
+<div><img src="evidencias/CT-CEX-002/axa_prc20_04_pos_processar.png" alt="EV2 — 20 averbações incluídas, 0 erro, grid Aceitas" onclick="openLb('evidencias/CT-CEX-002/axa_prc20_04_pos_processar.png')"><div class="cap">EV2 — 20 averbações incluídas, 0 erro, grid Aceitas</div></div>
+</div>
+</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-003</span><span class="ct-title">Processar ≥ 7.000 registros sem timeout (CA principal)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-003</span><span class="ct-title">Processar ≥ 7.000 registros sem timeout (CA principal)</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> arquivo Exportação ≥ 7.000 registros; indicativo ativo.</div>
         <h4>Objetivo</h4><p>Validar processamento de grande volume sem timeout — objetivo central do refactoring.</p>
         <h4>Passos</h4><ol><li>Processar arquivo ≥ 7.000 registros</li><li>Cronometrar tempo total</li><li>Confirmar conclusão sem timeout + gravação das averbações válidas</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Processamento conclui sem timeout; todas as averbações válidas gravadas; tempo registrado para o CT de performance.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Processamento conclui sem timeout; todas as averbações válidas gravadas; tempo registrado para o CT de performance.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — 7.500 registros processados em 191,5s, sem timeout, 7.500 gravadas<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Conversão de 7.500 em <strong>148,7s</strong> (7500/7500, 0 erro) e Processamento em <strong>191,5s</strong> — <strong>Averbações incluídas 7.500 / Registros com erro 0</strong>, sem timeout e sem erro de servidor. SQL: 7.500 definitivas <code>2026003789–2026011288</code> gravadas, IS total R$ 414.028.950,00; fila de pendentes zerada.</p><h4>Observação</h4><p style="color:var(--muted)">Massa gerada pelo QA alinhada ao layout da dev: <code>exp_citweb_7500_7707.xlsx</code> (25 colunas A..Y, sem cabeçalho).</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-003/citweb_prc7500_04_pos_processar.png" alt="EV1 — 7.500 averbações incluídas, 0 erro" onclick="openLb('evidencias/CT-CEX-003/citweb_prc7500_04_pos_processar.png')"><div class="cap">EV1 — 7.500 averbações incluídas, 0 erro</div></div>
+</div>
+</div></div></div>
 
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2>Grupo 2 — Performance</h2><span class="group-badge">2</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-004</span><span class="ct-title">Performance — mesma apólice ≥ 0,5s/registro vs. baseline produção</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-004</span><span class="ct-title">Performance — mesma apólice ≥ 0,5s/registro vs. baseline produção</span><span class="badge badge-p2">P2</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> arquivo ≥ 7.000 registros da mesma apólice; indicativo ativo.</div>
         <h4>Objetivo</h4><p>Medir throughput e comparar com o critério herdado do RCTR-VI (≥ 0,5s/registro).</p>
         <h4>Passos</h4><ol><li>Processar (mesma apólice) e cronometrar</li><li>tempo médio/registro = total ÷ nº registros</li><li>Comparar com baseline produção Exportação e o critério</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Tempo/registro dentro do critério (≥ 0,5s) e melhor que o baseline linha a linha. <span class="tbd">[critério a confirmar p/ Exportação]</span></div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Tempo/registro dentro do critério (≥ 0,5s) e melhor que o baseline linha a linha. <span class="tbd">[critério a confirmar p/ Exportação]</span></div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — 0,026 s/registro — critério ≤ 0,5 s/registro atendido com folga (~19×)<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>191,5s ÷ 7.500 registros = <strong>0,026 s/registro</strong> na mesma apólice (1980). Critério herdado do #7471: ≤ 0,5 s/registro. Comparativo colhido na mesma sessão: 500 registros em 16–19s (0,032–0,038 s/reg) na AXA contra <strong>0,074 s/reg na KOVR</strong> (indicativo inativo, gravação linha a linha) — o ganho do BulkCopy é visível no throughput.</p><h4>Observação</h4><p style="color:var(--muted)">Tempo cronometrado no cliente, do clique em PROCESSAR até o banner de conclusão.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-004/citweb_prc7500_04_pos_processar.png" alt="EV1 — conclusão do lote de 7.500 (base do cronômetro)" onclick="openLb('evidencias/CT-CEX-004/citweb_prc7500_04_pos_processar.png')"><div class="cap">EV1 — conclusão do lote de 7.500 (base do cronômetro)</div></div>
+</div>
+</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-005</span><span class="ct-title">Processamento simultâneo — 2 sessões sem serialização</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-005</span><span class="ct-title">Processamento simultâneo — 2 sessões sem serialização</span><span class="badge badge-p2">P2</span><span class="badge badge-erro">REPROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> dois navegadores logados em HML AXA; dois arquivos/apólices distintos.</div>
         <h4>Objetivo</h4><p>Garantir que o BulkCopy não introduziu serialização/lock entre usuários (padrão CT-RVI-009).</p>
         <h4>Passos</h4><ol><li>[Sessão A] processar arquivo A</li><li>[Sessão B] processar arquivo B em paralelo</li><li>Confirmar que ambos concluem sem travar</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; resultados independentes.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; resultados independentes.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#1f0d0d;border:1px solid #d13438;color:#f1707a"><strong>✗ REPROVADO</strong> — 2ª sessão simultânea cai em HTTP 500 (reproduzido 2 de 3 tentativas)<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Com as duas sessões processando lotes distintos <strong>ao mesmo tempo</strong>, a Sessão A conclui normalmente (500/500, 0 erro) e a <strong>Sessão B falha com HTTP 500</strong> em <code>POST /Conversor/ProcessamentoAverbacoesExportacao/Processar</code>, exibindo a página <em>"Ocorreu um erro inesperado!"</em>. Reproduzido em 2 de 3 tentativas — falha sempre que os dois processos iniciam no mesmo instante; quando há alguns segundos de defasagem, ambos passam. <strong>Contraprova:</strong> o mesmo lote B, reprocessado isolado, conclui 500/500 em 17,4s — ou seja, o erro é específico da concorrência, não do lote nem do layout.</p><h4>Observação</h4><p style="color:var(--muted)">Esperado: ambas as sessões concluem sem travar nem falhar. Stack trace não acessível ao QA — fica no <code>LogErro31072026.txt</code> do servidor (a dev consegue ver). Cenário análogo ao CT-RVI-009 do #7471 (fila de Processar compartilhada por nome de layout).</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-005/citweb_conc_A_04_pos_processar.png" alt="EV1 — Sessão A simultânea: 500 incluídas, 0 erro" onclick="openLb('evidencias/CT-CEX-005/citweb_conc_A_04_pos_processar.png')"><div class="cap">EV1 — Sessão A simultânea: 500 incluídas, 0 erro</div></div>
+<div><img src="evidencias/CT-CEX-005/citweb_conc_B_04_pos_processar.png" alt="EV2 — Sessão B simultânea: "Ocorreu um erro inesperado!" (HTTP 500)" onclick="openLb('evidencias/CT-CEX-005/citweb_conc_B_04_pos_processar.png')"><div class="cap">EV2 — Sessão B simultânea: "Ocorreu um erro inesperado!" (HTTP 500)</div></div>
+<div><img src="evidencias/CT-CEX-005/7707_04_pos_processar.png" alt="EV3 — 2ª reprodução (início simultâneo forçado): Sessão B novamente em erro" onclick="openLb('evidencias/CT-CEX-005/7707_04_pos_processar.png')"><div class="cap">EV3 — 2ª reprodução (início simultâneo forçado): Sessão B novamente em erro</div></div>
+<div><img src="evidencias/CT-CEX-005/citweb_B_isolada_04_pos_processar.png" alt="EV4 — contraprova: o MESMO lote isolado conclui 500/500, 0 erro" onclick="openLb('evidencias/CT-CEX-005/citweb_B_isolada_04_pos_processar.png')"><div class="cap">EV4 — contraprova: o MESMO lote isolado conclui 500/500, 0 erro</div></div>
+</div>
+</div></div></div>
 
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2>Grupo 3 — Atomicidade / Integridade</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-006</span><span class="ct-title">Falha no BulkCopy não remove pendente sem insert persistido</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-006</span><span class="ct-title">Falha no BulkCopy não remove pendente sem insert persistido</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> cenário que force erro na gravação em lote <span class="tbd">[forma de forçar a validar]</span>.</div>
         <h4>Objetivo</h4><p>CA crítico: exclusão do pendente só após sucesso do BulkCopy — em falha, nenhum registro removido sem insert persistido.</p>
         <h4>Passos</h4><ol><li>SQL: anotar fila de pendentes antes</li><li>Processar lote que dispare falha</li><li>SQL: confirmar que os pendentes do lote permanecem (não excluídos)</li><li>Confirmar zero averbação perdida</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Em falha, pendentes do lote permanecem; atomicidade insert+delete preservada; nenhuma averbação perdida.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Em falha, pendentes do lote permanecem; atomicidade insert+delete preservada; nenhuma averbação perdida.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — Falha real preservou os 500 pendentes; nenhuma averbação perdida<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>O HTTP 500 do CT-CEX-005 forneceu a falha real (sem necessidade de injeção artificial). Estado imediatamente após a falha: <strong>os 500 registros do lote permaneceram na fila</strong> (<code>tb_lay_out_cvr_tmp_act_int_cit</code>) e <strong>zero averbação</strong> do lote foi gravada — exclusão do pendente não ocorreu sem insert persistido. Em seguida o mesmo lote foi reprocessado e concluiu <strong>500/500</strong>: recuperação integral, nenhuma averbação perdida. Integridade de numeração também confirmada: 10.020 averbações geradas no dia sem <strong>nenhuma</strong> definitiva duplicada.</p><h4>Observação</h4><p style="color:var(--muted)">Atomicidade insert+delete preservada — CA crítico atendido.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-006/citweb_conc_B_04_pos_processar.png" alt="EV1 — falha do processamento (origem do cenário)" onclick="openLb('evidencias/CT-CEX-006/citweb_conc_B_04_pos_processar.png')"><div class="cap">EV1 — falha do processamento (origem do cenário)</div></div>
+<div><img src="evidencias/CT-CEX-006/citweb_drenar_04_pos_processar.png" alt="EV2 — reprocessamento do mesmo lote: 500 incluídas, 0 erro" onclick="openLb('evidencias/CT-CEX-006/citweb_drenar_04_pos_processar.png')"><div class="cap">EV2 — reprocessamento do mesmo lote: 500 incluídas, 0 erro</div></div>
+</div>
+</div></div></div>
 
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2>Grupo 4 — Regressão</h2><span class="group-badge">2</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-007</span><span class="ct-title">Indicativo inativo — comportamento idêntico (regressão zero)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-007</span><span class="ct-title">Indicativo inativo — comportamento idêntico (regressão zero)</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> <strong>KOVR</strong> — seguradora com <code>Ind_Conversor_Processamento_BulkCopy</code> <strong>INATIVO</strong> (confirmado por comentário do dev no card; mesma seguradora usada na regressão do #7471). Login CITWEB KOVR HML: <code>ROT_AUTO / •••••• (senha no .env)</code>.</div>
         <h4>Objetivo</h4><p>Garantir que, numa seguradora com o indicativo desligado, o processamento mantém o fluxo linha a linha original — regressão zero. O teste é feito em <strong>outra seguradora naturalmente com o indicativo off</strong>, não desligando o indicativo da AXA.</p>
         <h4>Passos</h4><ol><li>Logar no CITWEB <strong>KOVR</strong> HML (<code>ROT_AUTO / •••••• (senha no .env)</code>) — seguradora com a flag desligada</li><li>Converter + processar um arquivo de Exportação</li><li>Confirmar resultado idêntico ao comportamento anterior à PBI (gravação linha a linha)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual com indicativo inativo; regressão zero.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual com indicativo inativo; regressão zero.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — KOVR (indicativo inativo): 500/500, 0 erro — regressão zero<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Em <strong>CITWEB KOVR HML</strong> (seguradora com <code>Ind_Conversor_Processamento_BulkCopy</code> inativo): conversão 500/500 e processamento <strong>500 averbações incluídas / 0 erro</strong> em 37,2s. SQL: definitivas <code>2026001787–2026002286</code> gravadas, fila zerada. Resultado funcional idêntico à AXA; throughput <strong>0,074 s/reg</strong> contra 0,032–0,038 s/reg na AXA para o mesmo volume — coerente com gravação linha a linha.</p><h4>Observação</h4><p style="color:var(--muted)">Massa e layout criados pelo QA na KOVR (apólice 206022026, layout <code>QA 7707 EXP KOVR</code>). Os DE/PARA da KOVR exigem valores cadastrados para Complemento do Estado, País, Complemento do País, Mercadoria e Embalagem — código direto é recusado na conversão.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-CEX-007/kovr_cvr500_10_pos_converter.png" alt="EV1 — KOVR: conversão 500/500, 0 erro" onclick="openLb('evidencias/CT-CEX-007/kovr_cvr500_10_pos_converter.png')"><div class="cap">EV1 — KOVR: conversão 500/500, 0 erro</div></div>
+<div><img src="evidencias/CT-CEX-007/kovr_prc500_04_pos_processar.png" alt="EV2 — KOVR: 500 averbações incluídas, 0 erro" onclick="openLb('evidencias/CT-CEX-007/kovr_prc500_04_pos_processar.png')"><div class="cap">EV2 — KOVR: 500 averbações incluídas, 0 erro</div></div>
+</div>
+</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-008</span><span class="ct-title">Multi-seguradora — funciona sem código específico</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-008</span><span class="ct-title">Multi-seguradora — funciona sem código específico</span><span class="badge badge-p2">P2</span><span class="badge badge-bloqueado">BLOQUEADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> outra seguradora que use o conversor de Exportação, indicativo ativo <span class="tbd">[quais seguradoras — a confirmar]</span>.</div>
         <h4>Objetivo</h4><p>Solução escalável: aplicada a outra seguradora deve funcionar sem código específico.</p>
         <h4>Passos</h4><ol><li>Ativar indicativo em outra seguradora com conversor de Exportação</li><li>Processar arquivo de Exportação</li><li>Confirmar paridade funcional sem ajuste de código</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">BulkCopy funciona em outra seguradora sem customização; solução multi-seguradora confirmada.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">BulkCopy funciona em outra seguradora sem customização; solução multi-seguradora confirmada.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#1f1a0d;border:1px solid #d29922;color:#e3b341"><strong>⚠ BLOQUEADO</strong> — Depende de ativar o indicativo em uma 3ª seguradora — config de deploy<br><span style="color:var(--muted)">Ambiente: CITWEB HML · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4><p>Não executado: o CT exige <em>ativar</em> o <code>Ind_Conversor_Processamento_BulkCopy</code> em outra seguradora com conversor de Exportação. O indicativo não está em nenhuma das bases HML (é appSettings/web.config por deploy), então o QA não consegue ligá-lo nem ler seu estado. <strong>Evidência parcial já obtida:</strong> o mesmo código rodou em duas seguradoras sem qualquer customização — AXA (indicativo ativo) e KOVR (inativo), ambas com paridade funcional, o que sustenta o CA de solução multi-seguradora.</p><h4>Observação</h4><p style="color:var(--muted)">Pendente de informação da dev: em quais seguradoras o indicativo está/será ativado. Assim que confirmado, o CT roda com os mesmos scripts (já multi-tenant).</p>
+
+</div></div></div>
 
   </div>
 
@@ -218,6 +288,10 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 <script>
 function toggleGroup(h){h.classList.toggle('collapsed');const b=h.nextElementSibling;b.style.display=h.classList.contains('collapsed')?'none':'';}
 function toggleCT(b){b.classList.toggle('expanded');}
+function openLb(s){document.getElementById('lbi').src=s;document.getElementById('lb').style.display='block';}
+function closeLb(){document.getElementById('lb').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
 </script>
+<div id="lb" onclick="closeLb()"><span class="x">&times;</span><img id="lbi" src=""></div>
 </body>
 </html>
