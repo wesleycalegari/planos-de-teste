@@ -121,8 +121,8 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">8</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">6</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric m-rep"><div class="metric-val">1</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">7</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
   <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Bloqueados</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar" style="width:75%"></div></div>
@@ -202,11 +202,82 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 </div>
 </div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-005</span><span class="ct-title">Processamento simultâneo — 2 sessões sem serialização</span><span class="badge badge-p2">P2</span><span class="badge badge-erro">REPROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-CEX-005</span><span class="ct-title">Processamento simultâneo — 2 sessões sem serialização</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> dois navegadores logados em HML AXA; dois arquivos/apólices distintos.</div>
         <h4>Objetivo</h4><p>Garantir que o BulkCopy não introduziu serialização/lock entre usuários (padrão CT-RVI-009).</p>
         <h4>Passos</h4><ol><li>[Sessão A] processar arquivo A</li><li>[Sessão B] processar arquivo B em paralelo</li><li>Confirmar que ambos concluem sem travar</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; resultados independentes.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO no reteste de 31/07/2026 16:15</strong> — 4 rodadas de 2 sessões × 500
+            registros, <strong>zero HTTP 500</strong>, 4.000 averbações criadas, conta de integridade
+            fechada em todas. · AXA HML
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Fix retestado.</strong> A Andreia registrou a causa-raiz no
+            <strong>#7960</strong>: <code>Obtem_Proxima_Averbacao_Exportacao</code> (e os métodos irmãos de
+            Importação e RCTR-VI) geravam o próximo número via <code>SELECT MAX(u_avb_dfv)+1</code>,
+            <strong>sem reserva atômica</strong> — e o BulkCopy introduzido neste mesmo card ampliou a janela
+            de corrida. Solução publicada em AXA e KOVR HML em 31/07 15:15.
+          </div>
+          <table style="border-collapse:collapse;font-size:12px;margin-bottom:10px;width:100%">
+            <tr style="background:#161b22">
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Rodada</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Sincronismo medido</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">HTTP 500</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Integridade (por layout)</th></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">1</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">—</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">nenhum</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">500 → 500 proc · 0 rjt · 0 sobra</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">2</td>
+                <td style="border:1px solid #30363d;padding:5px 9px"><strong>3 ms</strong> entre os cliques</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">nenhum</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">500 → 500 proc · 0 rjt · 0 sobra</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">3</td>
+                <td style="border:1px solid #30363d;padding:5px 9px"><strong>15 ms</strong> entre os cliques</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">nenhum</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">500 → 500 proc · 0 rjt · 0 sobra</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">4 <em>(métrica corrigida)</em></td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043"><strong>31 ms</strong> entre os POST · sobreposição <strong>~16,2 s</strong></td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043">nenhum</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">500 → 500 proc · 0 rjt · 0 sobra</td></tr>
+          </table>
+          <div class="warn-box" style="margin-bottom:10px">
+            <strong>Duas armadilhas de medição no meu próprio harness, uma dentro da outra.</strong> O
+            resultado de negócio era PASS desde a primeira rodada, mas a métrica que <em>prova
+            simultaneidade</em> estava errada — e sem ela o "zero HTTP 500" não valeria como evidência,
+            porque um teste dessincronizado simplesmente não exercita a corrida.
+            <ol style="margin:6px 0 0 18px">
+              <li>Só havia handler de <strong>resposta</strong>, e o número era rotulado "Δ entre os POST".
+              Media diferença de <strong>conclusão</strong>: 14.426 ms, que é exatamente
+              |dur A − dur B| (21,9 s vs 36,2 s).</li>
+              <li>Ao acrescentar o handler de <strong>requisição</strong>, peguei o <em>primeiro</em> POST
+              casando "Processa". Os <code>select_option</code> dos filtros fazem postback para o
+              <strong>mesmo</strong> controller — então esse primeiro POST é um postback de filtro. Na
+              sessão A o timestamp vinha <strong>21,9 s antes do próprio clique</strong>, e o "Δ" de
+              18.424 ms era defasagem entre filtros. Cheguei a interpretar isso como "o barrier não
+              funciona"; era o oposto.</li>
+            </ol>
+            Correção: guarda todos os POSTs e escolhe o primeiro <strong>após o clique</strong>; o relatório
+            passou a separar <em>Δ de partida</em> (mede sincronismo) de <em>Δ de conclusão</em> (não mede) e
+            a calcular a sobreposição efetiva. Os logs das rodadas 2 e 3 confirmam retroativamente: cliques
+            a 3 ms e 15 ms.
+          </div>
+          <div class="info-box">
+            <strong>Por que a conta de integridade importa aqui.</strong> Concorrência que não estoura pode
+            ainda assim <em>perder</em> registro. Em cada rodada a fila é zerada, converte-se 1 lote por
+            layout, e depois do disparo simultâneo mede-se
+            <code>pendentes_antes = processadas + rejeitadas + pendentes_que_sobraram</code>. Qualquer
+            registro fora dessas três contas seria perda silenciosa. Fechou em 8 de 8 conferências
+            (2 layouts × 4 rodadas).
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:8px">
+            Script: <code>testes-automatizados/sprint-10/pbi-7707/ct_cex_005_006_concorrencia_atomicidade.py</code>
+            (barrier ready/go por arquivo) + <code>ct_cex_002_processar_exportacao_citweb.py</code>
+            (instrumentação de rede).
+          </div>
+        </div>
 <div class="ct-ev"><div class="ev-head" style="background:#1f0d0d;border:1px solid #d13438;color:#f1707a"><strong>✗ REPROVADO</strong> — HTTP 500 em uma das sessões — reproduz 3/3 rodadas com disparo simultâneo<br><span style="color:var(--muted)">Ambiente: CITWEB HML AXA · build V 1.0.260729.1115 · 31/07/2026</span></div><h4>Obtido</h4>
 <p>Com <strong>duas sessões processando lotes distintos ao mesmo tempo</strong>,
 <strong>exatamente uma delas devolve HTTP 500</strong> em
