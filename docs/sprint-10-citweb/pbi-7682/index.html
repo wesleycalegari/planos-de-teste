@@ -107,9 +107,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">3</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">6</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">3</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -136,41 +136,149 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> <code>Ind_DuimpAgrupamentoAverbacao</code> inativo; DUIMP no modo atual em AXA HML.</div>
         <h4>Objetivo</h4><p>Garantir que, com o agrupamento desligado (colunas novas em NULL, q_itn_agp tratado como 1), os valores monetários da DUIMP continuam sendo lidos e somados corretamente — regressão zero.</p>
         <h4>Passos</h4><ol><li>Processar/consultar uma DUIMP existente em AXA HML</li><li>Conferir os valores monetários (FOB, impostos) exibidos vs. o JSON/origem</li><li>SQL: confirmar 1 linha = 1 item e colunas novas em NULL</li><li>Confirmar que os totais batem sem duplicação</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual; valores corretos por item; nenhuma regressão introduzida pelo suporte às colunas novas.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual; valores corretos por item; nenhuma regressão introduzida pelo suporte às colunas novas.</div><div class="warn-box" style="margin-top:8px"><strong>Atualização 31/07/2026 — este CT como escrito
+não é mais reproduzível.</strong> A pré-condição é <code>Ind_DuimpAgrupamentoAverbacao</code> <em>inativo</em>,
+e a flag passou a estar <strong>ativa</strong> em AXA HML (46 declarações agregadas hoje). O risco que o CT
+cobre — caminho não agregado continuar correto — está coberto pelo CT-DVM-006 com a flag ligada: no mesmo
+processamento, a declaração de 1 item gerou sua própria averbação com valores corretos
+(<code>v_fob_ori</code> 53.355,30 = fonte). Decisão de escopo para o PO: manter o CT como regressão histórica
+ou substituí-lo pelo CT-DVM-006. Não estou dando veredito num CT cuja pré-condição não existe mais.</div></div></div>
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-on">Grupo B — Valores agrupados (flag ON, diferido)</h2><span class="group-badge">5</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-002</span><span class="ct-title">Linha 'D' (DUIMP inteira) — valores lidos direto da coluna, sem multiplicar/dividir por nº de itens</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-002</span><span class="ct-title">Linha 'D' (DUIMP inteira) — valores lidos direto da coluna, sem multiplicar/dividir por nº de itens</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada nível 'D' (q_itn_agp&gt;1) em HML; indicativo ativo.</div>
         <h4>Objetivo</h4><p>Verificar que, numa linha nível 'D', o CITWEB usa os valores já somados pelo Worker diretamente, sem re-multiplicar ou dividir pelo nº de itens.</p>
         <h4>Passos</h4><ol><li>SQL: identificar a linha 'D' e anotar os valores (v_fob_ori_cnd_vda, v_icms_nac, v_ii_nac, v_ipi_nac, v_pis_nac, v_cof_nac e campos _dev)</li><li>Consultar/processar a DUIMP no CITWEB</li><li>Conferir que os valores exibidos = valores da coluna (sem operação por nº de itens)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Valores da linha 'D' exibidos exatamente como somados pelo Worker; sem multiplicação/divisão pelo nº de itens.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Valores da linha 'D' exibidos exatamente como somados pelo Worker; sem multiplicação/divisão pelo nº de itens.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — o valor da linha 'D' é usado <strong>direto</strong>: nem multiplicado
+            nem dividido pelos 30 itens que a linha representa. · AXA HML · 31/07/2026 14:16
+          </div>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Destravado hoje.</strong> Este CT estava sem massa desde 28/07 (o Worker não gravava linha
+            agregada). Em 31/07 o WorkerDUIMP agregou 46 declarações e o processamento de uma delas — feito no
+            CT-DAG-005 do <strong>#7802</strong> — gerou a averbação definitiva
+            <strong>2026000089</strong> (apólice 100622001, DUIMP 26BR00000214583, linha 'D' com
+            <code>q_itn_agp</code> = 30).
+          </div>
+          <table style="border-collapse:collapse;font-size:12px;margin-bottom:10px;width:100%">
+            <tr style="background:#161b22">
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Onde o número foi medido</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">FOB</th>
+              <th style="border:1px solid #30363d;padding:5px 9px;text-align:left">Peso líquido</th></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">(a) soma dos <strong>30 itens</strong>, um a um, no JSON da fonte WI</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">29.836,40</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">—</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">(b) soma das <strong>5 adições</strong> do mesmo JSON</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">29.836,40</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">1.782,27</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">(c) o que a <strong>averbação</strong> gravou (<code>v_fob</code>/<code>v_fob_ori</code>/<code>q_pso_mdr</code>)</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043"><strong>29.836,40</strong> ✓</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#2ea043"><strong>1.782,27</strong> ✓</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">se tivesse <em>multiplicado</em> por 30</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#d29922">895.092,00 — não é o gravado</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">—</td></tr>
+            <tr><td style="border:1px solid #30363d;padding:5px 9px">se tivesse <em>dividido</em> por 30</td>
+                <td style="border:1px solid #30363d;padding:5px 9px;color:#d29922">994,55 — não é o gravado</td>
+                <td style="border:1px solid #30363d;padding:5px 9px">—</td></tr>
+          </table>
+          <div class="info-box" style="margin-bottom:10px">
+            <strong>Por que medir em três níveis.</strong> Comparar só a averbação com o total da declaração
+            não distingue "usou o valor certo" de "recalculou e por sorte deu igual". Somando
+            <em>item a item</em> (a), depois <em>por adição</em> (b), e comparando com o gravado (c), os três
+            fecham no mesmo número — e os impostos também: II 368,57 · IPI 5.599,14 · PIS 3.466,35 ·
+            COFINS 15.928,58 · Mercadoria MN 157.771,91, todos com soma das adições igual ao total da
+            declaração, sem duplicação.
+          </div>
+          <div class="warn-box">
+            <strong>Armadilha de schema que quase inverteu este veredito.</strong>
+            <code>u_avb_dfv</code> <strong>não é único globalmente</strong> — a numeração da definitiva é por
+            apólice/processamento, e existem outras apólices com o mesmo número. Uma primeira consulta sem
+            filtrar <code>u_apo_pnc</code> devolveu a averbação de <em>outra</em> apólice (FOB 55.000,00 /
+            peso 200), o que parecia divergência grave e não era. O script já filtra por
+            (<code>u_apo_pnc</code>, <code>u_avb_dfv</code>) e escolhe a declaração agregada por um
+            discriminador comportamental — multi-item que gerou <strong>uma só</strong> averbação só pode ter
+            passado pelo caminho agregado.
+          </div>
+          <div style="font-size:11px;color:#888;margin-top:8px">
+            Script: <code>testes-automatizados/sprint-11/pbi-7682/ct_dvm_002_valores_linha_agregada.py</code>
+            — read-only, massa dinâmica. Log da execução em <code>evidencias/CT-DVM-002/</code>.
+          </div>
+        </div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-003</span><span class="ct-title">Não somar níveis sobrepostos — total da DUIMP sem duplicar linhas 'I' filhas de 'A'/'D'</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com linhas 'A'/'D' e linhas 'I' que compõem o mesmo agrupamento.</div>
         <h4>Objetivo</h4><p>Risco central da PBI: garantir que o CITWEB não some linhas de níveis diferentes que se sobrepõem (a soma de 'A'/'D' já é o total — somar também as 'I' filhas duplicaria os valores).</p>
         <h4>Passos</h4><ol><li>SQL: mapear os níveis da DUIMP e quais 'I' pertencem a cada 'A'/'D'</li><li>Consultar o total da DUIMP no CITWEB</li><li>Conferir que o total = soma do nível correto, sem contar 'I' filhas já representadas em 'A'/'D'</li><li>Comparar com o total esperado dos itens reais (sem duplicidade)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Total da DUIMP sem duplicação; níveis sobrepostos não são somados em conjunto; total bate com a realidade dos itens.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Total da DUIMP sem duplicação; níveis sobrepostos não são somados em conjunto; total bate com a realidade dos itens.</div><div class="warn-box" style="margin-top:8px"><strong>Sem massa em 31/07/2026 — motivo preciso.</strong>
+Este CT exige linhas <strong>'I' filhas de 'A'/'D'</strong> para verificar que níveis sobrepostos não são
+somados juntos. Das <strong>46 linhas agregadas</strong> em AXA HML, <strong>46 são nível 'D'</strong> — o
+WorkerDUIMP não gerou nenhuma 'A' nem 'I', então não existe sobreposição para testar. Gerar essas linhas por
+SQL seria fabricar a própria saída sob teste. Pergunta em aberto com o dev (registrada no #7802): o nível de
+agregação é configurável ou o Worker sempre consolida na DUIMP inteira? Se for sempre 'D', este cenário não
+existe no produto e o CT deve ser reescrito, não ficar aguardando massa.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-004</span><span class="ct-title">VerificaImpostosDI usa SUM(q_itn_agp) em vez de COUNT(*) — consistência pendente↔histórico</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-004</span><span class="ct-title">VerificaImpostosDI usa SUM(q_itn_agp) em vez de COUNT(*) — consistência pendente↔histórico</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada; validação de impostos acionada (processamento).</div>
         <h4>Objetivo</h4><p>Verificar que a validação interna de consistência de impostos conta o nº <em>real</em> de itens (<code>SUM(COALESCE(q_itn_agp,1))</code>), não o nº de linhas (<code>COUNT(*)</code>) — para o range de índices pendente↔histórico ficar correto.</p>
         <h4>Passos</h4><ol><li>Processar uma DUIMP com linhas agregadas (q_itn_agp&gt;1)</li><li>Confirmar que a validação de impostos passa (sem falso "inconsistente")</li><li>SQL: conferir que a contagem usada corresponde à soma de q_itn_agp, não ao nº de linhas</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Validação de consistência passa com linhas agregadas; contagem baseada em SUM(q_itn_agp); nenhum falso inconsistente por range errado.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Validação de consistência passa com linhas agregadas; contagem baseada em SUM(q_itn_agp); nenhum falso inconsistente por range errado.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — a validação de impostos <strong>não</strong> acusou falso
+            inconsistente com linha agregada. · AXA HML · 31/07/2026 14:16
+          </div>
+          <div class="info-box">
+            A declaração agregada (<strong>1 linha representando 30 itens</strong>) passou pelo processamento
+            com <strong>Inconsistentes 0 · Incluídas 1</strong> — é a parte observável do CA: nenhum falso
+            "inconsistente" por range errado entre pendente e histórico. É um resultado com significado,
+            porque a mesma declaração <em>antes</em> da agregação registrava erro de validação por item.
+            <br><br>
+            <strong>Ressalva explícita:</strong> o CA também descreve o <em>como</em> — contagem por
+            <code>SUM(COALESCE(q_itn_agp,1))</code> em vez de <code>COUNT(*)</code>. Isso é afirmação sobre o
+            código, não observável pela tela nem pelo banco; o que este CT prova é o efeito esperado (não há
+            falso inconsistente). Confirmar a implementação é revisão de código, não execução de teste.
+          </div>
+        </div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-005</span><span class="ct-title">FOB/impostos totais = soma dos itens, sem duplicidade (validação de negócio)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-005</span><span class="ct-title">FOB/impostos totais = soma dos itens, sem duplicidade (validação de negócio)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada com valores conhecidos.</div>
         <h4>Objetivo</h4><p>CA sugerido pelo Relay: quando linhas são agrupadas, o total de FOB deve ser igual à soma dos FOB individuais; impostos não podem ser duplicados em nenhuma circunstância.</p>
         <h4>Passos</h4><ol><li>Calcular manualmente (do JSON de origem) o FOB e os impostos totais dos itens</li><li>Comparar com os totais exibidos/validados pelo CITWEB para a DUIMP agregada</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">FOB total = soma dos FOB dos itens; impostos sem duplicação; consistência entre valor exibido e realidade.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">FOB total = soma dos FOB dos itens; impostos sem duplicação; consistência entre valor exibido e realidade.</div>
+        <div class="ct-ev" style="margin-top:12px">
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e">
+            ✓ <strong>APROVADO</strong> — total = soma dos itens, sem duplicação, em FOB e nos quatro impostos.
+            · AXA HML · 31/07/2026
+          </div>
+          <div class="info-box">
+            Somando <strong>item a item</strong> (30 itens) e <strong>por adição</strong> (5 adições) no JSON
+            da fonte WI, e comparando com o total da declaração e com o que a averbação gravou:
+            <ul style="margin:6px 0 0 18px">
+              <li>FOB — 29.836,40 nos três níveis</li>
+              <li>II 368,57 · IPI 5.599,14 · PIS 3.466,35 · COFINS 15.928,58 — soma das adições = total</li>
+              <li>Mercadoria (venda MN) — 157.771,91</li>
+            </ul>
+            Nenhum valor apareceu duas vezes e nenhum ficou de fora. Medido junto do CT-DVM-002, mesmo script.
+          </div>
+        </div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-006</span><span class="ct-title">q_itn_agp NULL tratado como 1 (limite)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com linhas mistas — algumas com q_itn_agp NULL, outras &gt;1.</div>
         <h4>Objetivo</h4><p>Garantir que linhas com <code>q_itn_agp IS NULL</code> são tratadas como 1 item (compatibilidade com o modo antigo), mesmo com o indicativo ativo.</p>
         <h4>Passos</h4><ol><li>SQL: preparar/identificar linha com q_itn_agp NULL</li><li>Processar/consultar a DUIMP</li><li>Confirmar que a linha NULL conta como 1 item nos totais e na validação</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Linha com q_itn_agp NULL tratada como 1 item; totais e validação corretos na mistura com linhas agregadas.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Linha com q_itn_agp NULL tratada como 1 item; totais e validação corretos na mistura com linhas agregadas.</div><div class="warn-box" style="margin-top:8px"><strong>Parcial em 31/07/2026.</strong> No mesmo
+processamento, a declaração <strong>26BR00000447499</strong> (1 adição / 1 item) gerou averbação com valores
+corretos — <code>v_fob_ori</code> 53.355,30 igual à fonte. Só que não consigo afirmar se o
+<code>q_itn_agp</code> dela era <strong>NULL</strong> ou <strong>1</strong>: a pendência é consumida no
+processamento, e das 46 declarações agregadas hoje <strong>18 tinham q_itn_agp = 1</strong> — ou seja,
+declaração de item único também é agregada com 1. Como o CA aqui é especificamente sobre o tratamento de
+<strong>NULL</strong>, fica PENDENTE em vez de aprovado por semelhança: precisa de uma declaração com
+<code>d_agp</code> NULL processada e conferida (existem 190 multi-item não agregadas disponíveis).</div></div></div>
 
   </div>
 
