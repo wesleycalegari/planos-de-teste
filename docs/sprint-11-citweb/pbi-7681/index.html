@@ -189,12 +189,35 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">21</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric"><div class="metric-val" style="color:#d29922">1</div><div class="metric-lbl">Parciais</div></div>
-  <div class="metric m-ok"><div class="metric-val">10</div><div class="metric-lbl">Aprovados</div></div>
-  <div class="metric m-rep"><div class="metric-val">1</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">9</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-ok"><div class="metric-val">16</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val">2</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d29922">2</div><div class="metric-lbl">Parciais</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d29922">1</div><div class="metric-lbl">Bloqueado</div></div>
+  <div class="metric m-pend"><div class="metric-val">0</div><div class="metric-lbl">Pendentes</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:100%"></div></div>
+
+<div style="margin-top:16px;border:1px solid #58a6ff;border-left:4px solid #58a6ff;background:#0d1a2b;border-radius:6px;padding:12px 16px">
+  <div style="color:#79c0ff;font-weight:700;font-size:14px">&#128260; RETESTE COMPLETO — 31/07 18:30 a 01/08 00:20 · AXA HML · build <code>V 1.0.260731.1945</code></div>
+  <p style="font-size:13px;color:#c9d1d9;margin-top:6px">Disparado pela publicação em HML da correção do <strong>#7955</strong> (upload devolvia HTTP 413 cru a partir de ~1&nbsp;MB). Foram <strong>reexecutados os 15 CTs técnicos</strong> do plano — do smoke de 20 registros aos 8.800, incluindo concorrência, atomicidade, indicativo inativo e regressão do motor compartilhado. Os 6 CTs do bloco de negócio (CT-CIM-016 a 021) mantêm o resultado de 30-31/07: a alteração é de validação de tamanho no upload e não os alcança.</p>
+  <table class="matriz" style="margin-top:10px">
+    <tr><th>O que o reteste confirmou</th><th>O que ficou em aberto</th></tr>
+    <tr>
+      <td style="vertical-align:top">
+        <strong style="color:#3fb950">Correção do #7955 funciona nas duas camadas.</strong> No clique de IMPORTAR o arquivo grande é barrado com mensagem de negócio (e, em TXT, com estimativa de registros); um POST direto ignorando o JS também é barrado, com HTTP 200 e a mesma mensagem — o 413 cru desapareceu.<br><br>
+        <strong style="color:#3fb950">Performance intacta.</strong> 7.500 em 177,8&nbsp;s, 8.800 em 186,7&nbsp;s, e o multi-apólice 34% mais rápido que a apólice única. Ganho de 98% a 99,8% sobre o baseline de produção.<br><br>
+        <strong style="color:#3fb950">Sem regressão</strong> em RCTR-VI, Exportação, atomicidade (20 = 10 gravadas + 10 rejeitadas + 0 pendentes) e concorrência (Δ de 4&nbsp;ms entre os dois POST, 300+300 gravadas sem mistura).
+      </td>
+      <td style="vertical-align:top">
+        <strong style="color:#f1707a">CT-CIM-002 / 009 — divergência de valor.</strong> Na mercadoria coberta mas sem tarifa na apólice, o BulkCopy grava prêmio R$&nbsp;0,01 e o fluxo linha a linha grava R$&nbsp;0,00. Controle cruzado (subgrupos trocados) prova que a variável é a flag.<br><br>
+        <strong style="color:#e3b341">CT-CIM-015 — a tela ainda orienta 60 mil registros</strong>, contra ~9.100 que o upload aceita em XLSX e ~726 em TXT.<br><br>
+        <strong style="color:#e3b341">CT-CIM-008 bloqueado por deploy:</strong> FAIRFAX e KOVR devolvem 502 no “Selecionar Layout” — builds de 03/07 e 30/07 contra 31/07 da AXA.<br><br>
+        <strong style="color:#f1707a">Achado novo (fora dos CTs):</strong> em 6 de 18 execuções o clique em PROCESSAR não dispara o POST e a tela fica indefinidamente em “Preparando processamento… 0%” (observado 25 min). Reclicar resolve.
+      </td>
+    </tr>
+  </table>
+</div>
+
 
 <div style="margin-top:16px;border:1px solid #2ea043;border-left:4px solid #2ea043;background:#0d1f0d;border-radius:6px;padding:12px 16px">
   <div style="color:#3fb950;font-weight:700;font-size:14px">&#9989; RETEST 30/07/2026 — bloqueios do Conversor RESOLVIDOS (502 #7888 + 500 #7905) · build V 1.0.260729.1115</div>
@@ -341,6 +364,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           </div>
           <p style="color:var(--muted);font-size:11px;margin-top:6px">Arquivos usados (anexados à Task #7888): cim_smoke_20.xlsx e cim_smoke_20_sem_cab.xlsx. Massa: apólice 1910 / filial 1 / sgp 1, ramo 22, vigente 01/07/2026–01/07/2027.</p>
         </div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 20 de 20 convertidas e gravadas, cache consistente</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Etapa</th><th>Tempo</th><th>Resultado</th></tr><tr><td>Conversão</td><td>3,1 s</td><td>20 lidos · 20 convertidos · 0 erros</td></tr><tr><td>Processamento</td><td>6,3 s</td><td>20 de 20 averbações incluídas · 0 erros</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Massa:</strong> apólice <code>1910</code> · subgrupo <code>2</code> · provisória <code>20260001</code> · saída 10/07/2026 · duas mercadorias alternadas (<code>0000000001</code> DIVERSAS e <code>0000000004</code> ACACIA), 10 repetições cada.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Prova do cache:</strong> conferência em banco mostra <strong>um único prêmio por combinação</strong> (mercadoria+garantia+data+FOB) nas 10 repetições — DIVERSAS R$ 5,50 em todas; ACACIA R$ 0,01 em todas. Nenhuma linha divergiu da primeira ocorrência calculada.</p>
+        </div>
       </div>
     </div>
 
@@ -357,7 +386,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-002</span>
         <span class="ct-title">BulkCopy ativo — paridade funcional (Aceitas + Rejeitadas)</span>
-        <span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-p1">P1</span><span class="badge badge-erro">REPROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> <code>Ind_Conversor_Processamento_BulkCopy</code> ATIVO para AXA; arquivo convertido no CT-CIM-001.</div>
@@ -370,6 +399,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Via SQL, conferir que as averbações aceitas foram gravadas (contagem e chaves).</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Contagem Aceitas + Rejeitadas idêntica ao fluxo linha a linha. Nenhuma divergência funcional introduzida pelo BulkCopy.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #d13438;border-left:3px solid #d13438;background:#1f0d0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#f1707a;font-weight:700;font-size:13px">&#10007; REPROVADO — contagens idênticas, mas o VALOR diverge entre BulkCopy e linha a linha</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px">Para isolar a variável, o <strong>mesmo arquivo</strong> de 20 registros foi processado na <strong>mesma apólice 1910</strong> em dois subgrupos de faixa livre, alternando o indicativo <code>Ind_Conversor_Processamento_BulkCopy</code> — e depois <strong>cruzando</strong> os subgrupos, para descartar que a diferença fosse característica do subgrupo:</p><table class="matriz" style="margin-top:8px"><tr><th>Subgrupo</th><th>Indicativo</th><th>Prêmio mercadoria 0000000001</th><th>Prêmio mercadoria 0000000004</th></tr><tr><td>sgp 3</td><td>S (BulkCopy)</td><td>R$ 5,50</td><td><strong style='color:#f1707a'>R$ 0,01</strong></td></tr><tr><td>sgp 7</td><td>N (linha a linha)</td><td>R$ 5,50</td><td><strong style='color:#f1707a'>R$ 0,00</strong></td></tr><tr><td>sgp 7</td><td>S (BulkCopy)</td><td>R$ 5,50</td><td><strong style='color:#f1707a'>R$ 0,01</strong></td></tr><tr><td>sgp 3</td><td>N (linha a linha)</td><td>R$ 5,50</td><td><strong style='color:#f1707a'>R$ 0,00</strong></td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Aceitas/Rejeitadas:</strong> 20/0 nos quatro cenários — a contagem tem paridade. <strong>Obtido:</strong> na mercadoria coberta mas <em>sem tarifa na apólice</em>, o caminho com BulkCopy grava <strong>R$ 0,01</strong> e o caminho linha a linha grava <strong>R$ 0,00</strong>. <strong>Esperado:</strong> nenhuma divergência funcional introduzida pelo BulkCopy. O controle cruzado prova que a variável é a flag, não o subgrupo.</p>
+        </div>
       </div>
     </div>
 
@@ -377,7 +412,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-003</span>
         <span class="ct-title">Processar ≥ 7.000 registros sem timeout (CA principal)</span>
-        <span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-p1">P1</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> arquivo de Importação com ≥ 7.000 registros; indicativo ativo.</div>
@@ -389,6 +424,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar que conclui sem timeout/erro e grava todas as averbações válidas (SQL).</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Processamento de ≥ 7.000 registros conclui sem timeout. Todas as averbações válidas gravadas; tempo medido registrado para o CT-CIM-004.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 7.500 de 7.500 gravadas, sem timeout</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Etapa</th><th>Tempo</th><th>Resultado</th></tr><tr><td>Conversão</td><td>112,3 s</td><td>7.500 convertidos · 0 erros</td></tr><tr><td>Processamento</td><td>177,8 s</td><td>7.500 averbações incluídas · 0 erros · 0,0237 s/registro</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Massa:</strong> apólice <code>1910</code> · subgrupo <code>8</code> (faixa de numeração livre) · 7.500 registros. Contagem confirmada em <code>tb_mov_avb_int_cit</code>: 7.500 averbações, faixa 2026000001–2026007500, prêmio R$ 5,50 em 100% delas.</p>
+        </div>
       </div>
     </div>
 
@@ -396,7 +437,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-009</span>
         <span class="ct-title">Corretude de valores nas averbações gravadas (prêmio ≠ 0 + campos)</span>
-        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-erro">REPROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> arquivo processado com BulkCopy ativo (CT-CIM-002/003); acesso SQL.</div>
@@ -409,6 +450,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Cruzar com o fluxo linha a linha (CT-CIM-007) para o mesmo arquivo.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Prêmio calculado corretamente (sem zerar) e campos país/estado/navio/mercadoria corretos; valores iguais entre linhas de mesma combinação (cache vs. 1ª ocorrência) e iguais ao fluxo linha a linha.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #d13438;border-left:3px solid #d13438;background:#1f0d0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#f1707a;font-weight:700;font-size:13px">&#10007; REPROVADO — prêmio zerado/simbólico em mercadoria coberta sem tarifa</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>O que está correto</strong> (7.500 averbações do CT-CIM-013 conferidas em banco): prêmio R$ 5,50 em 100% delas (<strong>nenhuma zerada</strong>), taxa 0,01, origem <code>224/1</code> (ASSUNCION), destino <code>16/34</code>, navio, mercadoria, embalagem e garantia corretos, e <strong>valores idênticos entre todas as linhas de mesma combinação</strong> — o cache não introduz variação.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>O que reprova:</strong> para a mercadoria <code>0000000004</code> (ACACIA), que tem cobertura (<code>i_cob_mdr='S'</code>) mas não tem tarifa nesta apólice, o sistema <strong>aceita a averbação e grava prêmio R$ 0,01 (BulkCopy) ou R$ 0,00 (linha a linha), com taxa 0,00</strong>. O critério do CT é explícito: <em>prêmio &gt; 0, nenhum zerado indevidamente</em>. Um prêmio de zero (ou de um centavo) numa averbação de IS R$ 55.000,00 não é um valor cobrável — ou a mercadoria deveria ser recusada, ou o prêmio mínimo do subgrupo (R$ 1.000,00) deveria valer.</p>
+        </div>
       </div>
     </div>
 
@@ -425,7 +472,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-004</span>
         <span class="ct-title">Throughput por taxa de repetição de combinação vs. baseline linha-a-linha</span>
-        <span class="badge badge-rev">REESCRITO</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-rev">REESCRITO</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> arquivo ≥ 7.000 registros (idealmente o arquivo real de produção); indicativo ativo. Medir preferencialmente de dentro do HML para isolar latência de rede.</div>
@@ -438,6 +485,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Comparar com o baseline de produção linha a linha (ramo 0622: ~13,5s/reg no processamento).</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Sem timeout em ≥ 7.000; tempo médio/registro <strong>substancialmente melhor</strong> que o baseline linha-a-linha (~13,5s/reg). Referência da dev: ~0,8s/reg em combinação repetida; ~2,5–2,9s/reg em combinação nova. Taxa de repetição documentada. <span class="tbd">[número-alvo final validado por Produtos com o arquivo real, se exigido]</span></div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — ganho de 98% a 99,8% sobre o baseline de produção</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Registros</th><th>Processamento</th><th>s/registro</th><th>Produção (PO)</th><th>Ganho</th></tr><tr><td>3</td><td>3,0 s</td><td>1,00</td><td>3 min</td><td><strong>98,3%</strong></td></tr><tr><td>40</td><td>8,8 s</td><td>0,2196</td><td>9 min</td><td><strong>98,4%</strong></td></tr><tr><td>7.500 (1 apólice)</td><td>177,8 s</td><td>0,0237</td><td>~28 h</td><td><strong>99,8%</strong></td></tr><tr><td>7.500 (4 apólices)</td><td>117,6 s</td><td>0,0157</td><td>~28 h</td><td><strong>99,9%</strong></td></tr><tr><td>8.800</td><td>186,7 s</td><td>0,0212</td><td>—</td><td>—</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Taxa de repetição de combinação:</strong> os arquivos de volume usam 1 combinação (7.500 na mesma apólice → 99,99% de reaproveitamento do cache) e 4 combinações no multi-apólice; o smoke usa 2 combinações × 10 repetições (90%). O baseline linha a linha informado pelo PO é de ~13,5 s/registro — a meta de &gt;60% é superada com folga em todos os volumes.</p>
+        </div>
       </div>
     </div>
 
@@ -445,7 +498,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-005</span>
         <span class="ct-title">2 processamentos concorrentes — sem serialização e com progresso isolado (SignalR)</span>
-        <span class="badge badge-rev">REFORÇADO</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-rev">REFORÇADO</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> dois usuários logados em HML AXA (<code>FRED</code> e <code>QA</code>); dois arquivos/apólices distintos. Rodar em <strong>2 processos separados</strong> (barrier) — ver <code>ct009_simultaneo.py</code> do #7471.</div>
@@ -457,6 +510,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Ao fim, via SQL, confirmar que cada usuário gravou exatamente as próprias averbações (faixa de documento por usuário), sem perda nem mistura.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Ambas as sessões processam em paralelo sem serialização/deadlock; progresso SignalR isolado por token (sem barra cruzada); resultados independentes e íntegros por sessão. <strong>Cobre o item 6 da lista do PO (24/07):</strong> antes da alteração, enquanto um usuário não finalizasse o outro não conseguia rodar o mesmo processo.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — duas sessões realmente simultâneas, sem serialização e sem mistura</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Sessão</th><th>Massa</th><th>Layout</th><th>Registros</th><th>Duração</th><th>Resultado</th></tr><tr><td>Sessão A</td><td>apólice 1 / sgp 7</td><td>CARD 7681</td><td>300</td><td>3,1 s</td><td>300 gravadas</td></tr><tr><td>Sessão B</td><td>apólice 777 / sgp 7</td><td>QA 7681 IMP B</td><td>300</td><td>3,1 s</td><td>300 gravadas</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Sincronismo medido com barrier por arquivo</strong> (cada sessão anuncia que está pronta no botão e só clica quando o orquestrador libera o <code>go</code>): <strong>Δ de 1 ms entre os cliques e 4 ms entre os POST <code>/Processar</code></strong> — as duas requisições saíram juntas, sem uma esperar pela outra. Cada sessão gravou exatamente as suas 300 averbações, na sua apólice, sem contaminação cruzada.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Ressalva:</strong> no modo <em>mesma apólice</em> a sessão A não chegou a importar (botão IMPORTAR desabilitado). O CT prevê dois usuários distintos (FRED e QA) e este reteste usou o mesmo usuário nas duas sessões — cenário a repetir com usuários separados.</p>
+        </div>
       </div>
     </div>
 
@@ -505,6 +564,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           </div>
           <p style="color:var(--muted);font-size:11px;margin-top:6px">Arquivo: <code>cim_p40_mesma_apolice.xlsx</code> · gerador <code>gerar_massa_importacao_v2.py 40</code>.</p>
         </div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 40 de 40 gravadas</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Etapa</th><th>Tempo</th><th>Resultado</th><th>Ganho</th></tr><tr><td>Conversão</td><td>3,1 s</td><td>40 convertidos · 0 erros</td><td>—</td></tr><tr><td>Processamento</td><td>8,8 s (0,2196 s/reg)</td><td>40 averbações · 0 erros</td><td><strong>98,4%</strong> vs. 9 min</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Massa:</strong> apólice <code>1910</code> · subgrupo <code>6</code> · provisória <code>20260001</code>. Arquivo sem linha de cabeçalho — o layout é posicional.</p>
+        </div>
       </div>
     </div>
 
@@ -545,6 +610,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
             <div style="font-size:11px;color:var(--muted);margin-top:2px">EV2 — Teste negativo: reprocessar no subgrupo que já tinha as definitivas 1–40 é bloqueado com "Número de averbação já cadastrado" (duplicidade — comportamento correto)</div>
           </div>
         </div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 3 de 3 gravadas</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Etapa</th><th>Tempo</th><th>Resultado</th><th>Ganho</th></tr><tr><td>Conversão</td><td>3,0 s</td><td>3 convertidos · 0 erros</td><td>—</td></tr><tr><td>Processamento</td><td>3,0 s</td><td>3 averbações · 0 erros</td><td><strong>98,3%</strong> vs. 3 min</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Massa:</strong> apólice <code>1910</code> · subgrupo <code>7</code>. Volume pequeno expõe o custo fixo do processamento: mesmo com 3 registros o tempo total é de 3 s contra 3 min em produção.</p>
+        </div>
       </div>
     </div>
 
@@ -565,6 +636,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar via SQL que todas as averbações válidas foram gravadas (nenhuma perda) e com prêmio ≠ 0.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Processa 7.500 registros <strong>sem timeout</strong>; tempo médio/registro no processamento <strong>muito abaixo</strong> do baseline de produção (13,5 s/reg) — meta &gt; 60% de ganho, referência da dev ~0,8 s/reg em combinação repetida. Tempo total, tempo/registro e taxa de repetição reportados.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — 7.500 de 7.500, 177,8 s, sem timeout</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px">Mesmo cenário do CT-CIM-003 (apólice <code>1910</code> / subgrupo <code>8</code>): conversão 112,3 s e processamento 177,8 s, <strong>7.500 averbações gravadas e 0 erros</strong>, 0,0237 s/registro. Resultado praticamente idêntico ao da execução original (183,8 s), confirmando que a correção do #7955 não afetou a performance.</p>
+        </div>
       </div>
     </div>
 
@@ -609,6 +686,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
             <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — 7.500 registros em 4 apólices distintas · 7.500 incluídas · 0 erros</div>
           </div>
         </div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — performance NÃO cai com múltiplas apólices; cai o tempo</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Cenário</th><th>Conversão</th><th>Processamento</th><th>s/registro</th></tr><tr><td>7.500 em 1 apólice</td><td>112,3 s</td><td>177,8 s</td><td>0,0237</td></tr><tr><td>7.500 em 4 apólices</td><td>99,4 s</td><td><strong>117,6 s</strong></td><td><strong>0,0157</strong></td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Massa:</strong> 7.500 linhas alternando <code>1910/sgp9</code>, <code>1/sgp8</code>, <code>7/sgp8</code> e <code>777/sgp8</code> — 7.500 de 7.500 gravadas, 0 erros, 1.875 em cada apólice. O multi-apólice ficou <strong>34% mais rápido</strong> que a apólice única: trocar de apólice no meio do arquivo não custa nada ao cache.</p>
+        </div>
       </div>
     </div>
 
@@ -616,7 +699,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-015</span>
         <span class="ct-title">Limite de timeout — a partir de quantos registros o sistema falha</span>
-        <span class="badge badge-novo">NOVO</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#3d1418;color:#f1707a">REPROVADO</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#332b12;color:#e3b341">PARCIAL</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> CT-CIM-013 concluído (7.500 já validado como suportado). Arquivos incrementais gerados sob demanda: 15.000 → 30.000 → 60.000 linhas (a tela do Conversor orienta o limite de 60 mil registros).</div>
@@ -657,6 +740,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
             <div style="font-size:11px;color:var(--muted);margin-top:2px">EV1 — "413 Request Entity Too Large" ao importar o arquivo de 10.000 registros (1,04 MB)</div>
           </div>
         </div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #d29922;border-left:3px solid #d29922;background:#1f1a08;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#e3b341;font-weight:700;font-size:13px">&#9888; PARCIAL — o 413 cru foi eliminado (fix OK), mas a tela continua orientando 60 mil registros</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>1) Bloqueio no cliente (o fix):</strong> ao clicar em IMPORTAR com um XLSX de 10.000 registros (1,04 MB) a tela devolve <em>“O arquivo selecionado (1.04 MB) excede o limite máximo de 0.95 MB suportado para importação. Reduza a quantidade de registros do arquivo e tente novamente.”</em> e <strong>nenhum POST é enviado</strong> — o usuário não vê mais a página crua de erro do servidor. Com um TXT de 1.000 linhas (1,31 MB) a mensagem ainda estima o volume: <em>“o limite estimado é de aproximadamente 726 registros”</em>.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>2) Defesa em profundidade (server-side):</strong> um POST direto em <code>/Conversor/Conversor/Importar/Importar</code> com 0,97 MB, ignorando o JS, responde <strong>HTTP 200 com a mesma mensagem de negócio</strong> — não 413. O limite configurado é <code>ConversorImportacaoTamanhoMaximoBytes = 1.000.000</code>.</p><table class="matriz" style="margin-top:8px"><tr><th>Volume</th><th>Tamanho</th><th>Upload</th><th>Conversão</th><th>Processamento</th></tr><tr><td>7.500</td><td>821.409 bytes</td><td>importa</td><td>112,3 s</td><td>177,8 s · 7.500/7.500</td></tr><tr><td>8.800</td><td>944.699 bytes</td><td>importa</td><td>115,4 s</td><td><strong>186,7 s · 8.800/8.800</strong></td></tr><tr><td>10.000</td><td>1.094.074 bytes</td><td>bloqueado com mensagem de negócio</td><td>—</td><td>—</td></tr><tr><td>15.000 (TXT 1.000 linhas)</td><td>1.377.000 bytes</td><td>bloqueado com estimativa de registros</td><td>—</td><td>—</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Teto operacional medido:</strong> <strong>8.800 registros</strong> passam ponta a ponta. O gargalo é o <em>upload</em>, não o motor — que processou 8.800 em 186,7 s.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Por que ainda é PARCIAL:</strong> a própria tela continua exibindo <em>“sugerimos o volume máximo de até 60 mil registros para o ramo de Importação”</em> — <strong>6,8× acima</strong> do que o upload aceita em XLSX (~9.100) e <strong>80× acima</strong> do que aceita em TXT (~726). O usuário que seguir a orientação da tela continua sendo barrado; agora com uma mensagem clara, mas barrado. A orientação precisa ser corrigida (ou o limite elevado) para o item 5 da lista do PO ficar respondido sem contradição.</p>
+        </div>
       </div>
     </div>
 
@@ -673,7 +762,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-006</span>
         <span class="ct-title">Falha no BulkCopy não remove pendente sem insert persistido (sem perda)</span>
-        <span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-p1">P1</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> cenário que force erro na gravação em lote (ex.: dado inválido no meio do lote) <span class="tbd">[forma de forçar a validar in loco]</span>.</div>
@@ -686,6 +775,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar que não há averbação "perdida" (excluída do pendente sem inserção correspondente).</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Em falha do BulkCopy, os pendentes do lote permanecem na fila; atomicidade insert+delete preservada; nenhuma averbação perdida.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — contabilidade fecha, nenhum registro perdido</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Medida</th><th>Valor</th></tr><tr><td>Pendentes antes</td><td>20</td></tr><tr><td>Averbações gravadas</td><td>10</td></tr><tr><td>Rejeitadas (“Número de averbação (N) já cadastrado”)</td><td>10</td></tr><tr><td>Pendentes remanescentes</td><td>0</td></tr><tr><td><strong>Conta</strong></td><td><strong>20 = 10 + 10 + 0 ✓</strong></td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Como a falha foi forçada:</strong> o lote de 20 foi processado num subgrupo cujos números 1 a 10 já estavam consumidos, de modo que <strong>metade do lote falha no meio da gravação</strong>. A falha parcial não impediu a gravação das outras 10 nem deixou pendente excluído sem insert correspondente — a atomicidade insert+delete se manteve.</p>
+        </div>
       </div>
     </div>
 
@@ -702,7 +797,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-007</span>
         <span class="ct-title">Indicativo inativo — comportamento idêntico ao atual (regressão zero)</span>
-        <span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-p1">P1</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> <strong>KOVR</strong> — seguradora com <code>Ind_Conversor_Processamento_BulkCopy</code> <strong>INATIVO</strong> (confirmado no #7471). Login CITWEB KOVR HML: <code>ROT_AUTO</code> / senha em <code>.env</code>.</div>
@@ -714,6 +809,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar que o resultado (Aceitas/Rejeitadas/averbações/valores) é idêntico ao comportamento anterior à PBI (gravação linha a linha).</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Com indicativo inativo, comportamento idêntico ao atual. Nenhuma regressão introduzida pelo código do BulkCopy.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO com desvio de plano — indicativo desligado na própria AXA (KOVR inacessível)</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Desvio de plano (registrado):</strong> o CT previa a KOVR, que tem o indicativo naturalmente desligado. Em 31/07 <strong>KOVR e FAIRFAX devolveram HTTP 502 no “Selecionar Layout”</strong> (reproduzido em 2 tentativas cada). Como a comparação exige o <em>mesmo build</em> para ser válida, o teste foi feito alternando o indicativo na própria AXA — o que é mais forte do que o previsto: compara os dois caminhos <strong>no mesmo código, mesma apólice e mesmo arquivo</strong>.</p><table class="matriz" style="margin-top:8px"><tr><th>Item comparado</th><th>BulkCopy (S)</th><th>Linha a linha (N)</th><th>Confere?</th></tr><tr><td>Aceitas / Rejeitadas</td><td>20 / 0</td><td>20 / 0</td><td>✓</td></tr><tr><td>País / Estado de origem-destino</td><td>224/1 · 16/34</td><td>224/1 · 16/34</td><td>✓</td></tr><tr><td>Navio, mercadoria, embalagem, garantia</td><td>iguais</td><td>iguais</td><td>✓</td></tr><tr><td>IS</td><td>55.000,00</td><td>55.000,00</td><td>✓</td></tr><tr><td>Prêmio mercadoria com tarifa</td><td>R$ 5,50</td><td>R$ 5,50</td><td>✓</td></tr><tr><td>Prêmio mercadoria sem tarifa</td><td>R$ 0,01</td><td>R$ 0,00</td><td><span style='color:#f1707a'>✗ ver CT-CIM-002</span></td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px">Fora o prêmio da mercadoria sem tarifa (tratado no CT-CIM-002), o comportamento com o indicativo inativo é idêntico — <strong>sem regressão</strong>. O indicativo foi restaurado para <code>S</code> ao final.</p>
+        </div>
       </div>
     </div>
 
@@ -721,7 +822,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-008</span>
         <span class="ct-title">Multi-seguradora — funciona sem código específico por seguradora</span>
-        <span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-p2">P2</span><span class="badge badge-bloqueado" style="background:#332b12;color:#e3b341">BLOQUEADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> outra seguradora que use o conversor de Importação, com indicativo ativo <span class="tbd">[quais seguradoras usam Importação — confirmar]</span>.</div>
@@ -733,6 +834,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar paridade funcional e gravação correta, sem ajuste de código específico.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">Processamento BulkCopy funciona em outra seguradora sem customização. Solução confirmada como multi-seguradora.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #d29922;border-left:3px solid #d29922;background:#1f1a08;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#e3b341;font-weight:700;font-size:13px">&#9888; BLOQUEADO — seguradora alvo está em build anterior à correção</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Seguradora</th><th>Build do Conversor</th><th>Ind_Conversor_Processamento_BulkCopy</th><th>Resultado</th></tr><tr><td>AXA</td><td>1.0.260731.1945</td><td>Ativo</td><td>OK</td></tr><tr><td>KOVR</td><td>1.0.260730.1545</td><td>Não cadastrado (inativo)</td><td><span style='color:#f1707a'>502 no Selecionar Layout</span></td></tr><tr><td>FAIRFAX</td><td>1.0.260703.1628</td><td>Ativo</td><td><span style='color:#f1707a'>502 no Selecionar Layout</span></td></tr><tr><td>STARR</td><td>1.0.260305.1229</td><td>Ativo</td><td>não testada (build de março)</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px">A FAIRFAX era a candidata natural (indicativo ativo e 21 apólices de Importação vigentes), mas o <strong>502 no “Selecionar Layout” é a assinatura do bug #7888</strong>, já corrigido na AXA — e o build da FAIRFAX é de <strong>03/07</strong>, anterior à correção. Bloqueio de <strong>deploy/infra, não do código sob teste</strong>.</p><p style="color:#c9d1d9;font-size:12px;margin-top:8px"><strong>Já preparado para quando a versão for promovida:</strong> layout <code>QA 7681 IMP FAIRFAX</code> (com o campo Apólice alargado para 13 chars, já que as apólices da FAIRFAX têm 10 dígitos) e as equivalências de DE/PARA de mercadoria, embalagem, país e estado.</p>
+        </div>
       </div>
     </div>
 
@@ -740,7 +847,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <div class="ct-bar" onclick="toggleCT(this.parentElement)">
         <span class="ct-id">CT-CIM-010</span>
         <span class="ct-title">Motor compartilhado CLSINTCALC — RCTR-VI (#7471) e Exportação intactos</span>
-        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span>
+        <span class="badge badge-novo">NOVO</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#1a3320;color:#3fb950">APROVADO</span><span class="ct-toggle">▶</span>
       </div>
       <div class="ct-body">
         <div class="precond-box"><strong>Pré-condições:</strong> massa RCTR-VI (produto 30) e Exportação disponíveis em HML AXA. Reuso: <code>rodar_plano_7471.py</code> (RCTR-VI).</div>
@@ -752,6 +859,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <li>Confirmar que nenhuma alteração de comportamento surgiu nos dois após o merge do #7681.</li>
         </ol>
         <h4>Resultado Esperado</h4><div class="result-box">RCTR-VI processa sem regressão (valores corretos); Exportação mantém o comportamento pré-#7681. O parâmetro de cache opcional não vazou para os fluxos que não o utilizam.</div>
+        <h4>Reteste 31/07–01/08/2026 <span style="font-weight:400;color:#8b949e;font-size:12px">— após a correção do #7955</span></h4>
+        <div style="border:1px solid #2ea043;border-left:3px solid #2ea043;background:#0d1f0d;border-radius:5px;padding:10px 12px;margin-top:8px">
+          <div style="color:#3fb950;font-weight:700;font-size:13px">&#10003; APROVADO — RCTR-VI e Exportação seguem íntegros no build do #7681</div>
+          <p style="color:#8b949e;font-size:11px;margin:4px 0 8px">31/07/2026 18:30–23:20 · AXA HML · build <code>V 1.0.260731.1945</code> · usuário FRED · execução automatizada (<code>ct_cim_e2e_importacao.py</code>)</p>
+          <table class="matriz" style="margin-top:8px"><tr><th>Fluxo</th><th>Conversão</th><th>Processamento</th><th>Incluídas / Total</th></tr><tr><td>RCTR-VI (produto 30)</td><td>2,1 s</td><td>9,3 s</td><td>20 / 20 · 0 erros</td></tr><tr><td>Exportação</td><td>5,2 s</td><td>5,1 s</td><td>20 / 20 · 0 erros</td></tr></table><p style="color:#c9d1d9;font-size:12px;margin-top:8px">Ambos rodaram no build <code>V 1.0.260731.1945</code> — o mesmo que recebeu a alteração da Importação. O parâmetro de cache opcional do <code>CLSINTCALC</code> não vazou para os fluxos que não o utilizam. Reuso de automação: <code>rodar_plano_7471.py</code> (RCTR-VI) e <code>ct_cex_001/002</code> (Exportação).</p>
+        </div>
       </div>
     </div>
 
