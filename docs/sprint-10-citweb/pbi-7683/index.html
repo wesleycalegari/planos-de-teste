@@ -151,11 +151,29 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <p style="margin:6px 0">Também confirmei no banco <em>por que</em> a listagem vem vazia: a
       <code>tb_itf_smx_ctl_pct_str</code> tem <strong>63 pacotes, todos com <code>e_itf_str = 'DI'</code></strong> —
       nenhum do tipo DUIMP. A tela não está quebrada; simplesmente não existe pacote DUIMP registrado.</p>
-      <p style="margin:6px 0"><strong>O que ainda não está provado:</strong> se o <code>ArquivoFiltro</code> importa o
-      <em>pacote</em> ou apenas um <em>filtro</em> de listagem, e se o NOVO do Controle de Pacotes gera pacote
-      carregável. Até isso ser verificado o CT segue sem execução — mas o motivo correto é
-      <em>"caminho de criação de massa ainda não validado"</em>, não <em>"dependência externa intransponível"</em>.
-      A diferença importa: o primeiro é trabalho de QA, o segundo terceiriza o bloqueio.</p>
+      <p style="margin:6px 0"><strong>Resolvido no mesmo dia, pelo código-fonte</strong> (mais confiável que inferir da UI):</p>
+      <ul style="margin:6px 0">
+        <li><code>ArquivoFiltro</code> <strong>não é o pacote</strong> — é um arquivo de <em>filtro</em>:
+        <code>DICargaController.cs:331</code> faz <code>ArquivoFiltro.SaveAs(... + @"\filtro\Dis.txt")</code>.</li>
+        <li><strong>De onde vêm os pacotes:</strong> <code>DICargaController.cs:171</code> consulta
+        <code>Select cd_estabel, cd_user_gera_in, dt_ho_gera_in, cd_tipo_interface from INTFC</code> <strong>no sistema
+        WI externo</strong>, via <code>objWIQuorum.Obter_Query_WI(...)</code> com token — não é tabela nossa. A janela padrão
+        é <code>DiasCargaWI</code> = 60 dias.</li>
+        <li><strong>Por que a lista vem vazia:</strong> linhas 230–237 — o pacote só é exibido se <em>não</em> constar em
+        <code>tb_itf_smx_ctl_pct_str</code>. Essa tabela é o registro de <strong>"já carregado"</strong>, e os 63 registros
+        dela são justamente os pacotes já consumidos.</li>
+      </ul>
+      <p style="margin:6px 0"><strong>⇒ O CT-DUP-001 é executável, e o caminho é pelas telas do próprio produto:</strong>
+      <em>Pacotes WI → Exclusão de Pacotes</em> remove o registro de controle
+      (<code>PacoteExclusaoController.Excluir</code> → <code>InterfaceSiscomexControlePacoteRecebidoRepository().Excluir</code>),
+      o pacote volta a ser listado na Carga, e o <strong>Efetuar Carga</strong> reprocessa as mesmas declarações — que é
+      exatamente o cenário do CT: recarregar e confirmar o desprezo por duplicidade.</p>
+      <p style="margin:6px 0"><strong>Por que ainda não executei:</strong> recarregar pacote escreve nas
+      <strong>1.520 linhas</strong> de <code>tb_itf_smx_dcl_pnd_dui</code>, que hoje são a massa de
+      <strong>#7802, #7683 e #7804</strong> — inclusive as <strong>45 linhas agregadas</strong> validadas em 03/08, que são o
+      único cenário de nível <code>'D'</code> existente. Vou executar escolhendo um pacote que <em>não</em> contenha essas 45
+      (elas pertencem ao pacote <code>59046788000110 op 19/02/20</code>). Isso é sequenciamento para não destruir massa de
+      outros cards, não bloqueio.</p>
     </div>
 
     <p style="margin-top:8px"><strong>Lacuna na evidência do dev (registro factual, não contestação):</strong> o comentário de
