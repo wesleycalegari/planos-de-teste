@@ -105,7 +105,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="metric m-total"><div class="metric-val">7</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">3</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Pendente (CT-DAG-006)</div></div>
+  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Bloqueado (CT-DAG-006)</div></div>
   <div class="metric"><div class="metric-val" style="color:#d29922">3</div><div class="metric-lbl">Cenário inexistente (níveis I/A)</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar" style="width:57%"></div></div>
@@ -307,8 +307,34 @@ este CT depende do WorkerDUIMP produzir os outros níveis. Pergunta objetiva par
           </div>
         </div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-006</span><span class="ct-title">Serviço único reutilizável — ObterItensRepresentados consumido pelas telas</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-006</span><span class="ct-title">Serviço único reutilizável — ObterItensRepresentados consumido pelas telas</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO · 1 só tela observável</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada; telas de Processamento/consulta/relatório disponíveis; indicativo ativo.</div>
+        <div class="warn-box" style="border-color:#e3b341;background:#2a2114;margin-bottom:10px">⛔ <strong>BLOQUEADO em 03/08/2026 — só existe UMA tela consumidora observável, e o CA é consistência ENTRE telas.</strong>
+        <p style="margin-top:6px">Levantei as três telas que o CT cita: <em>Processamento</em> só produz contadores <strong>ao processar</strong>
+        (mutaria a massa pendente de que #7683/#7682 dependem — não acionei de propósito); <em>Resultado das Cargas</em>
+        mostra apenas <code>DI=</code> / <code>Adi=</code> por pacote, sem expansão de item; sobra o <em>Relatório de
+        não Averbadas</em>. Com uma tela só não há o que comparar.</p></div>
+        <div class="warn-box" style="border-color:#58a6ff;background:#0d1a26;margin-bottom:10px">ℹ️ <strong>Observação medida na única tela disponível — pergunta para o dev/PO, não veredito.</strong>
+        <p style="margin-top:6px">O relatório <em>DI's/DUIMP's não Averbadas</em> lista <strong>1 linha por registro pendente
+        e não expande os grupos agregados</strong>. Na apólice <code>3762900634322</code> (dona das 45 linhas 'D'):</p>
+        <table style="margin-top:8px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-med">
+          <tr style="background:#161b22"><th>Grupo</th><th>Medição</th></tr>
+          <tr><td>Agregadas com <code>q_itn_agp</code> = 1</td><td><strong>18</strong> DUIMPs → 1 linha cada ✓ (coincide trivialmente)</td></tr>
+          <tr><td>Agregadas com <code>q_itn_agp</code> &gt; 1</td><td><strong>27</strong> DUIMPs → <strong>1 linha cada</strong>, não <code>q_itn_agp</code> linhas. A de <code>26BR00000875210</code> representa <strong>89 itens</strong> e aparece como <strong>1 linha</strong></td></tr>
+          <tr><td><strong>Controle</strong> — não agregadas</td><td>banco e relatório batem <strong>exatamente</strong>: 8=8 · 18=18 · 83=83 · 28=28 · 8=8 — é o que valida o método de comparação</td></tr>
+        </table>
+        <p style="margin-top:8px">Isso <strong>pode ser correto</strong>: um relatório de <em>pendências</em> talvez deva listar
+        os registros pendentes, e a linha agregada é um registro. A expansão importa para contagem/valor
+        (CT-DAG-007 e #7682), não necessariamente para uma listagem de pendência. <strong>Pergunta para o dev/PO:</strong>
+        o relatório de não averbadas deve refletir <em>itens representados</em>? Se sim, quem lê hoje entende 1 item pendente
+        onde há 89. Não estou classificando como defeito sem essa definição.</p>
+        <p style="margin-top:6px;font-size:12px;color:#8b949e"><em>Nota de método (duas leituras erradas antes de acertar):</em>
+        o relatório grava a DUIMP <strong>com separadores</strong> — <code>26/BR0000005315-6/0001/00001</code> (DUIMP + adição + item).
+        Buscar <code>26BR</code> literal devolve <strong>zero</strong> e levaria a concluir que as DUIMPs agregadas não aparecem no
+        relatório. Uma tentativa anterior também casou chaves indevidamente e acusou 27 "divergências" que não existiam
+        naquele formato. O grupo de controle acima é o que garante que a terceira leitura está certa.</p>
+        <p style="margin-top:6px">Evidência: <code>evidencias/CT-DAG-006/DINaoAverbadas-FRED-03082026-124221.xlsx</code>
+        (58.110 bytes · aba "RELAÇÃO DE PENDENTES" · A1:G1597 · 258 linhas desta apólice).</p></div>
         <h4>Objetivo</h4><p>CA: existe um serviço/método reutilizável (<code>ObterItensRepresentados(linha)</code>) exposto para as demais telas — a expansão deve vir da <strong>mesma fonte</strong>, sem cada tela reimplementar a lógica.</p>
         <h4>Passos</h4><ol><li>Para a mesma DUIMP agregada, comparar a contagem/expansão de itens vista em telas distintas (Processamento — contadores; consulta de protocolo; relatório)</li><li>Confirmar que todas refletem o mesmo resultado do serviço (consistência entre telas)</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Todas as telas consumidoras retornam a mesma expansão de itens (fonte única); nenhuma divergência entre telas para a mesma linha.</div></div></div>
