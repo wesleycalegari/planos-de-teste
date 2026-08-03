@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard gerencial — PBI #7792 · Refatoração RCV (paridade CITNET)</title>
+<style>
+:root{--bg:#0f1117;--elev:#161b22;--card:#1c2128;--text:#e6edf3;--muted:#8b949e;
+  --border:#30363d;--border2:#3d444d;--ok:#3fb950;--info:#4da3ff;--warn:#f0883e;--bad:#f85149;
+  --shadow:0 8px 24px rgba(0,0,0,.45)}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+header{background:linear-gradient(135deg,#0d1117 0%,#161b22 40%,#1a2332 100%);border-bottom:1px solid var(--border);padding:1.75rem 2rem;position:relative;overflow:hidden}
+header::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(77,163,255,.18),transparent),radial-gradient(ellipse 60% 50% at 90% 100%,rgba(179,146,240,.12),transparent);pointer-events:none}
+header h1{margin:0 0 .4rem;font-size:1.5rem;font-weight:600;position:relative}
+header p{margin:0;opacity:.85;font-size:.9rem;position:relative}
+header a{color:#79c0ff}
+.wrap{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem 2.5rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.85rem;margin-bottom:1.5rem}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.15rem;box-shadow:var(--shadow)}
+.kpi-val{font-size:1.9rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;margin-top:.3rem}
+.kpi.bad .kpi-val{color:var(--bad)} .kpi.warn .kpi-val{color:var(--warn)}
+.kpi.ok .kpi-val{color:var(--ok)} .kpi.info .kpi-val{color:var(--info)}
+h2.sec{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin:2rem 0 .75rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.15rem 1.25rem;box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border-bottom:1px solid var(--border);padding:.6rem .7rem;text-align:left;vertical-align:top}
+th{color:var(--info);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;background:#161b22;position:sticky;top:0}
+tr:hover td{background:#20262e}
+code{background:#0d1117;border:1px solid var(--border);border-radius:3px;padding:1px 5px;font-size:11.5px;color:#79c57e}
+a{color:#79c0ff}
+.det{color:var(--muted);font-size:12px;margin-top:.25rem}
+.sev,.pill-estado{display:inline-block;border:1px solid;border-radius:7px;padding:.1rem .5rem;font-size:11px;font-weight:700;white-space:nowrap}
+.pill-estado.ok{background:#0d1f0d;color:var(--ok);border-color:#2ea04355}
+.pill-estado.dev{background:#1f1a0d;color:var(--warn);border-color:#f0883e55}
+.sit{font-size:12px;font-weight:600}
+.muted{color:var(--muted)}
+.filters{display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:.85rem}
+.chip{border:1px solid var(--border2);background:var(--elev);color:var(--text);padding:.35rem .8rem;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .15s}
+.chip:hover{background:#252b33}
+.chip.active{background:#1f6feb33;border-color:#1f6feb;color:#79c0ff}
+ul.timeline{list-style:none;margin:0;padding:0}
+ul.timeline li{display:flex;gap:.85rem;align-items:baseline;padding:.55rem 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+ul.timeline li:last-child{border-bottom:none}
+ul.timeline .data{color:var(--info);font-weight:700;font-size:12px;min-width:92px}
+ul.timeline .res{color:var(--muted);font-size:12.5px;flex:1;min-width:240px}
+.alerta{border:1px solid var(--bad);background:#1f0d0d;border-radius:12px;padding:1rem 1.15rem;margin-bottom:1.5rem}
+.alerta h3{margin:0 0 .5rem;font-size:.95rem;color:#ff7b72}
+.alerta ul{margin:0;padding-left:1.1rem;font-size:13px}
+.alerta li{margin-bottom:.35rem}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<header>
+  <h1>PBI #7792 — [NSSEG] Refatoração RCV · paridade CITNET refatorado × legado</h1>
+  <p>Sprint_12_Citweb · atualizado em 03/08/2026 ·
+     <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7792" target="_blank">card no Azure DevOps</a> ·
+     <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-12-citweb/pbi-7792/" target="_blank">plano de teste consolidado (54 CTs)</a></p>
+</header>
+
+<div class="wrap">
+
+  <div class="kpis">
+    <div class="kpi info"><div class="kpi-val">7</div><div class="kpi-lbl">Tasks no PBI</div></div>
+    <div class="kpi ok"><div class="kpi-val">4</div><div class="kpi-lbl">Prontas p/ homologação</div></div>
+    <div class="kpi warn"><div class="kpi-val">3</div><div class="kpi-lbl">Ainda em dev</div></div>
+    <div class="kpi"><div class="kpi-val">54</div><div class="kpi-lbl">CTs planejados</div></div>
+    <div class="kpi info"><div class="kpi-val">31</div><div class="kpi-lbl">CTs P1</div></div>
+    <div class="kpi bad"><div class="kpi-val">3</div><div class="kpi-lbl">Bloqueante / grave / crítica</div></div>
+    <div class="kpi bad"><div class="kpi-val">5</div><div class="kpi-lbl">Apontamentos abertos</div></div>
+    <div class="kpi info"><div class="kpi-val">12</div><div class="kpi-lbl">Aguardando reteste</div></div>
+  </div>
+
+  <div class="alerta">
+    <h3>O que trava a homologação hoje</h3>
+    <ul>
+      <li><strong>C1 (BLOQUEANTE)</strong> — o Conversor RCV do refatorado converte <strong>0 de 16 linhas</strong> com
+      qualquer layout. Sem card próprio: <em>task de defeito a abrir no #7792</em>.</li>
+      <li><strong>A1 (GRAVE)</strong> — há um caminho de gravação que <strong>não valida nada</strong> e grava sem
+      protocolo; a massa irregular já entrou na competência 07/2026. Sem card próprio: <em>task de defeito a abrir</em>.</li>
+      <li><strong>P1 (CRÍTICA)</strong> — prêmio comercial da prévia divergente entre os dois sistemas
+      (R$ 100,00 × R$ 3.000,00 na mesma apólice). <strong>Depende de decisão de Produtos</strong>, não de código.</li>
+    </ul>
+  </div>
+
+  <h2 class="sec">Apontamentos rastreados (21)</h2>
+  <div class="card">
+    <div class="filters" id="filtros">
+      <button class="chip active" data-f="todos">Todos</button>
+      <button class="chip" data-f="aberto">Abertos</button>
+      <button class="chip" data-f="reteste">Aguardando reteste</button>
+      <button class="chip" data-f="decisao">Decisão de Produtos</button>
+      <button class="chip" data-f="critico">Bloqueante / grave / crítica</button>
+    </div>
+    <div class="scroll">
+      <table id="tab-apont">
+        <thead><tr><th>ID</th><th>Apontamento</th><th>Severidade</th><th>Origem</th><th>CT(s)</th><th>Situação</th></tr></thead>
+        <tbody>
+      <tr data-sev="BLOQUEANTE" data-sit="aberto">
+        <td><strong>C1</strong></td>
+        <td>Conversor RCV rejeita 100% das linhas (&quot;Filial / Sucursal está vazio&quot;) com qualquer layout<div class="det">Reteste em 31/07 confirmou o comportamento de 29/07. Nenhuma regra de negócio do Conversor é homologável enquanto durar.</div></td>
+        <td><span class="sev" style="background:#f8514920;color:#f85149;border-color:#f8514955">BLOQUEANTE</span></td>
+        <td>sem card — a ticketar</td>
+        <td><code>CT-CNV-001, CT-CNV-002, CT-CNV-005</code></td>
+        <td><span class="sit" style="color:#f85149">aberto</span></td>
+      </tr>
+      <tr data-sev="GRAVE" data-sit="aberto">
+        <td><strong>A1</strong></td>
+        <td>Caminho de gravação que ignora as validações de negócio (averbações sem protocolo)<div class="det">30/07 23:20–23:36 e 31/07 11:47: data fora da janela, apólice cancelada, apólice suspensa, documento duplicado e alfanumérico gravados com u_pcl NULL. Contamina a competência 07/2026.</div></td>
+        <td><span class="sev" style="background:#f8514920;color:#f85149;border-color:#f8514955">GRAVE</span></td>
+        <td>sem card — a ticketar</td>
+        <td><code>CT-ITG-001 a CT-ITG-004</code></td>
+        <td><span class="sit" style="color:#f85149">aberto</span></td>
+      </tr>
+      <tr data-sev="CRÍTICA" data-sit="aguardando decisão de Produtos">
+        <td><strong>P1</strong></td>
+        <td>Prêmio comercial da prévia: R$ 100,00 (mínimo, atual) × R$ 3.000,00 (soma, novo)<div class="det">Apólice 333 isola a causa: mesma contagem (21) e mesma IS (R$ 3.800,00) nos dois, prêmio divergente. É valor faturável — a regra oficial é decisão de Produtos.</div></td>
+        <td><span class="sev" style="background:#f8514920;color:#f85149;border-color:#f8514955">CRÍTICA</span></td>
+        <td>#7883</td>
+        <td><code>CT-PRV-001, CT-PRV-004</code></td>
+        <td><span class="sit" style="color:#d29922">aguardando decisão de Produtos</span></td>
+      </tr>
+      <tr data-sev="ALTO" data-sit="corrigido — aguardando reteste">
+        <td><strong>403 falso</strong></td>
+        <td>Resumo da fatura negava acesso a todas as seguradoras (i_fat_cit_net)<div class="det">A coluna i_fat_cit_net não existe em nenhum tenant; coluna ausente/null passou a permitir.</div></td>
+        <td><span class="sev" style="background:#f0883e20;color:#f0883e;border-color:#f0883e55">ALTO</span></td>
+        <td>#7883</td>
+        <td><code>CT-PRV-009</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="ALTO" data-sit="aberto">
+        <td><strong>C3</strong></td>
+        <td>Cálculo VKMCML pelo Conversor devolve zero no CITNET ATUAL<div class="det">O registro criado no novo (500 km) ficou com R$ 77,77 — valor correto da faixa 0–1000. Divergência a favor do refatorado; não pode ser replicada em nome da paridade.</div></td>
+        <td><span class="sev" style="background:#f0883e20;color:#f0883e;border-color:#f0883e55">ALTO</span></td>
+        <td>sem card — a ticketar</td>
+        <td><code>CT-CNV-004</code></td>
+        <td><span class="sit" style="color:#f85149">aberto</span></td>
+      </tr>
+      <tr data-sev="ALTO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D1</strong></td>
+        <td>Apólice CANCELADA listada e averbável no refatorado<div class="det">Causa-raiz: o SQL de validação procurava a coluna i_cnc_apo (inexistente) em vez de i_can_apo — o validador existia mas estava cego. PR #1461.</div></td>
+        <td><span class="sev" style="background:#f0883e20;color:#f0883e;border-color:#f0883e55">ALTO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-001</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="ALTO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D2</strong></td>
+        <td>d_usu_inc gravada em UTC (3h à frente) no deploy Ubuntu<div class="det">Criada a classe HoraOperacao (fuso explícito de Brasília) e aplicada em ~37 pontos de data de negócio — transversal, não só RC-V. Risco original: virada de dia após 21h BRT.</div></td>
+        <td><span class="sev" style="background:#f0883e20;color:#f0883e;border-color:#f0883e55">ALTO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-002, CT-REG-006</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="ALTO" data-sit="corrigido — aguardando reteste">
+        <td><strong>IDOR</strong></td>
+        <td>Endpoints de leitura sem gate de ownership por perfil (CWE-639)<div class="det">Fechado nos GETs da tela RC-V (rcv/detalhe, limites-dm-dc-rcv, tipo-doc-rcv) e nos 3 da Consulta (grid, gerar-zip, averbacao-pdf) — PRs #1423, #1427, #1448. Resíduo conhecido: /api/apolices/info.</div></td>
+        <td><span class="sev" style="background:#f0883e20;color:#f0883e;border-color:#f0883e55">ALTO</span></td>
+        <td>#7825/#7898</td>
+        <td><code>CT-RAV-014, CT-RCS-006, CT-RCS-009</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="aberto">
+        <td><strong>C2</strong></td>
+        <td>Conversor do novo não pergunta a linha inicial (cabeçalho)<div class="det">No atual, Converter abre o modal &quot;Informe a Linha Inicial&quot; — é assim que se pula o cabeçalho.</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>sem card — a ticketar</td>
+        <td><code>CT-CNV-003</code></td>
+        <td><span class="sit" style="color:#f85149">aberto</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D3</strong></td>
+        <td>Lista de apólices elegíveis: 218 a mais e 2 a menos que o legado<div class="det">Portada a regra real do legado (janela de 3 meses em vigência E cancelamento + e_ori_avb IN (CITNET,CTE)). Dev declara hash 400028559 idêntico nos dois.</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-003</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D4a/D4b</strong></td>
+        <td>Prêmio não calculado antes de gravar e crítica de KM não exibida<div class="det">Prêmio passa a ser calculado no change (R$ 1.999,98 antes de gravar) e a crítica de KM aparece como toast persistente (o legado usa modal).</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-004, CT-RAV-005</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D5</strong></td>
+        <td>Protocolo impresso sem texto legal e sem data/hora de emissão<div class="det">Impresso completado (razão comercial, data/hora, parágrafo legal, página limpa). O hash de autenticação já era idêntico — reconferir que não regrediu.</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-006, CT-REG-007</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="em desenvolvimento">
+        <td><strong>GAP-1</strong></td>
+        <td>Links por linha na prévia: Resumo (PDF da fatura) e Embarques (relação)<div class="det">Presentes no legado, ausentes no refatorado. Estimado em 12h pelo dev (geração de relatório).</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7883</td>
+        <td><code>CT-PRV-010</code></td>
+        <td><span class="sit" style="color:#f0883e">em desenvolvimento</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="corrigido — aguardando reteste">
+        <td><strong>GAP-3/GAP-6</strong></td>
+        <td>Mensagem específica do Processar e bloqueio indevido da competência corrente<div class="det">PR #1407: &gt;= trocado por &gt; (o legado só bloqueia competência futura) e o modal passa a exibir a mensagem específica do backend. Erro do Processar agora aparece dentro do modal (prop notice).</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7883</td>
+        <td><code>CT-PRV-009, CT-PRV-002</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="MÉDIO" data-sit="corrigido — aguardando reteste">
+        <td><strong>R1</strong></td>
+        <td>Consulta: mesmo filtro devolve conjuntos diferentes e Status só é preenchido no novo<div class="det">PR #1439 corrigiu a causa P0 (o relatório lia a tabela errada e vinha vazio; agora lê tb_mov_avb_rcv_cit). Falta decidir a regra da coluna Status e os filtros Status/Ramo.</div></td>
+        <td><span class="sev" style="background:#d2992220;color:#d29922;border-color:#d2992255">MÉDIO</span></td>
+        <td>#7898</td>
+        <td><code>CT-RCS-001, CT-RCS-002, CT-RCS-003</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="BAIXO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D6</strong></td>
+        <td>Combo Filial: 36 filiais no novo × 34 no legado, formato divergente<div class="det">O dispatch de tenant não reconhecia o code de HML e caía no escopo default. Hash 142818617 declarado idêntico + formato &quot;código - NOME&quot; em maiúsculas.</div></td>
+        <td><span class="sev" style="background:#8b949e20;color:#8b949e;border-color:#8b949e55">BAIXO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-007</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="BAIXO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D7</strong></td>
+        <td>URBANO (UB/UR) oferecido na UF de Origem<div class="det">UB/UR removidos só da origem (o destino mantém, definirUrbano depende) + gate de servidor.</div></td>
+        <td><span class="sev" style="background:#8b949e20;color:#8b949e;border-color:#8b949e55">BAIXO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-008</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="BAIXO" data-sit="corrigido — aguardando reteste">
+        <td><strong>D8.1–D8.7</strong></td>
+        <td>Sete diferenças de UX/comportamento do formulário<div class="det">Críticas agregadas numa mensagem só (lista idêntica, com as duplicatas do legado), data de saída vazia, Tipo Documento &quot;Selecione...&quot;, rótulo Cancelar/Excluir, mensagem no Consultar, Gravar habilitando como o legado.</div></td>
+        <td><span class="sev" style="background:#8b949e20;color:#8b949e;border-color:#8b949e55">BAIXO</span></td>
+        <td>#7825/#7913</td>
+        <td><code>CT-RAV-009</code></td>
+        <td><span class="sit" style="color:#4da3ff">corrigido — aguardando reteste</span></td>
+      </tr>
+      <tr data-sev="BAIXO" data-sit="em desenvolvimento">
+        <td><strong>R2</strong></td>
+        <td>Prévia: filtros e colunas diferentes (sem Subgrupo, Ramo só 59, sem Resumo/Embarques)<div class="det">Parcialmente intencional: o gating de ramo por indicativo (PR #1437) é fail-closed por design. O bloco de relatório do refatorado segue em desenvolvimento.</div></td>
+        <td><span class="sev" style="background:#8b949e20;color:#8b949e;border-color:#8b949e55">BAIXO</span></td>
+        <td>#7883</td>
+        <td><code>CT-PRV-008</code></td>
+        <td><span class="sit" style="color:#f0883e">em desenvolvimento</span></td>
+      </tr>
+      <tr data-sev="BAIXO" data-sit="aberto">
+        <td><strong>RCV_ONLY_MODE</strong></td>
+        <td>Flag hardcoded esconde o gating real de 2 combos nacionais<div class="det">Enquanto RCV_ONLY_MODE = true, Lista Averbação Nacional e Consulta Averbação (duplicata fora do menu) exibiriam TODOS os ramos sem gating quando a flag virar false.</div></td>
+        <td><span class="sev" style="background:#8b949e20;color:#8b949e;border-color:#8b949e55">BAIXO</span></td>
+        <td>#7883/#7898</td>
+        <td><code>CT-REG-008</code></td>
+        <td><span class="sit" style="color:#f85149">aberto</span></td>
+      </tr>
+      <tr data-sev="AUTORIZADO" data-sit="divergência autorizada pelo PO">
+        <td><strong>D-1–D-5</strong></td>
+        <td>Cinco divergências de UX/dado autorizadas pelo PO<div class="det">Badge &quot;Alterações não salvas&quot;, modal de confirmação, combo de UF unificado, filtro por nº de averbação, e f_cml_bsc preservada na alteração (o legado zera por defeito).</div></td>
+        <td><span class="sev" style="background:#3fb95020;color:#3fb950;border-color:#3fb95055">AUTORIZADO</span></td>
+        <td>#7913</td>
+        <td><code>CT-RAV-013</code></td>
+        <td><span class="sit" style="color:#3fb950">divergência autorizada pelo PO</span></td>
+      </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="sec">Tasks do PBI (Azure DevOps ao vivo)</h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th>ID</th><th>Tipo</th><th>Título</th><th>Estado</th><th>Responsável</th><th>Sprint</th><th>Alterada</th></tr></thead>
+      <tbody>
+      <tr data-estado="Pronto para homologação">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7825" target="_blank">#7825</a></td>
+        <td>Task</td>
+        <td>Ajustes tela de averbacao - RCV</td>
+        <td><span class="pill-estado ok">Pronto para homologação</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      <tr data-estado="New">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7858" target="_blank">#7858</a></td>
+        <td>Feature</td>
+        <td>RCV</td>
+        <td><span class="pill-estado dev">New</span></td>
+        <td>—</td>
+        <td>Sprint_11_Citweb</td>
+        <td>2026-07-20</td>
+      </tr>
+      <tr data-estado="Pronto para homologação">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7883" target="_blank">#7883</a></td>
+        <td>Task</td>
+        <td>Ajustes aprovação de prévias</td>
+        <td><span class="pill-estado ok">Pronto para homologação</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      <tr data-estado="Pronto para homologação">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7898" target="_blank">#7898</a></td>
+        <td>Task</td>
+        <td>Ajustes na tela de Relatórios Consulta</td>
+        <td><span class="pill-estado ok">Pronto para homologação</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      <tr data-estado="Pronto para homologação">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7913" target="_blank">#7913</a></td>
+        <td>Task</td>
+        <td>Análise apontamentos nos testes</td>
+        <td><span class="pill-estado ok">Pronto para homologação</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      <tr data-estado="In Progress">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7944" target="_blank">#7944</a></td>
+        <td>Task</td>
+        <td>Análise e ajustes Relatório Fatura Mensal Nacional</td>
+        <td><span class="pill-estado dev">In Progress</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      <tr data-estado="In Progress">
+        <td><a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7973" target="_blank">#7973</a></td>
+        <td>Task</td>
+        <td>Ajustes na tela de Relatorio Faturas</td>
+        <td><span class="pill-estado dev">In Progress</span></td>
+        <td>Fabiano Souza</td>
+        <td>Sprint_12_Citweb</td>
+        <td>2026-08-03</td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="sec">Placar do plano por frente</h2>
+  <div class="card scroll">
+    <table>
+      <thead><tr><th>Grupo</th><th>Frente</th><th style="text-align:center">CTs</th><th style="text-align:center">P1</th><th style="text-align:center">Aprov.</th><th style="text-align:center">Reprov.</th><th style="text-align:center">Pend.</th></tr></thead>
+      <tbody>
+      <tr>
+        <td><strong>G1</strong></td>
+        <td>Averbação RC-V — reteste dos apontamentos D1–D8</td>
+        <td style="text-align:center">14</td>
+        <td style="text-align:center">7</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">14</td>
+      </tr>
+      <tr>
+        <td><strong>G2</strong></td>
+        <td>Aprovação de Prévias — prêmio comercial e jornada</td>
+        <td style="text-align:center">11</td>
+        <td style="text-align:center">8</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">11</td>
+      </tr>
+      <tr>
+        <td><strong>G3</strong></td>
+        <td>Relatórios → Consulta de Averbações (RC-V)</td>
+        <td style="text-align:center">9</td>
+        <td style="text-align:center">5</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">9</td>
+      </tr>
+      <tr>
+        <td><strong>G4</strong></td>
+        <td>Conversor RCV — bloqueio C1 e a matriz de 15 casos</td>
+        <td style="text-align:center">5</td>
+        <td style="text-align:center">3</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">5</td>
+      </tr>
+      <tr>
+        <td><strong>G5</strong></td>
+        <td>Integridade de gravação — o caminho que ignorava as validações (A1)</td>
+        <td style="text-align:center">4</td>
+        <td style="text-align:center">2</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">4</td>
+      </tr>
+      <tr>
+        <td><strong>G6</strong></td>
+        <td>Regressão — o núcleo que já estava em paridade</td>
+        <td style="text-align:center">8</td>
+        <td style="text-align:center">4</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">8</td>
+      </tr>
+      <tr>
+        <td><strong>G7</strong></td>
+        <td>Multi-tenant — o refatorado não pode ser &quot;AXA-only&quot;</td>
+        <td style="text-align:center">3</td>
+        <td style="text-align:center">2</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">0</td>
+        <td style="text-align:center">3</td>
+      </tr>
+      </tbody>
+      <tfoot><tr><td colspan="2"><strong>Total</strong></td>
+        <td style="text-align:center"><strong>54</strong></td>
+        <td style="text-align:center"><strong>31</strong></td>
+        <td style="text-align:center"><strong>0</strong></td>
+        <td style="text-align:center"><strong>0</strong></td>
+        <td style="text-align:center"><strong>54</strong></td></tr></tfoot>
+    </table>
+  </div>
+
+  <h2 class="sec">Como chegamos aqui</h2>
+  <div class="card">
+    <ul class="timeline">
+      <li>
+        <span class="data">27/07/2026</span>
+        <strong>Paridade Averbação RC-V</strong>
+        <span class="res">10 CTs · 7 em paridade · 2 divergências ALTAS · 6 média/baixa</span>
+        <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-11-citweb/citnet-novo-paridade-rcv/" target="_blank">abrir →</a>
+      </li>
+      <li>
+        <span class="data">29/07/2026</span>
+        <strong>Paridade Conversor RCV</strong>
+        <span class="res">15 casos · atual 12→4 averbações · novo 0 convertidos (C1)</span>
+        <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-11-citweb/citnet-novo-paridade-conversor-rcv/" target="_blank">abrir →</a>
+      </li>
+      <li>
+        <span class="data">29/07/2026</span>
+        <strong>Resposta do dev aos apontamentos</strong>
+        <span class="res">PRs #1461 + #1462 · deploy HML verde · main 03fcb2a</span>
+        
+      </li>
+      <li>
+        <span class="data">31/07/2026</span>
+        <strong>Bateria de 3 telas</strong>
+        <span class="res">1 crítica (P1) · 1 grave (A1) · 3 média/baixa · C1 reaberto</span>
+        <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-11-citweb/citnet-novo-paridade-bateria-3telas/" target="_blank">abrir →</a>
+      </li>
+      <li>
+        <span class="data">03/08/2026</span>
+        <strong>Plano consolidado do PBI #7792</strong>
+        <span class="res">54 CTs · 7 grupos · 28 apontamentos rastreados</span>
+        <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-12-citweb/pbi-7792/" target="_blank">abrir →</a>
+      </li>
+    </ul>
+  </div>
+
+  <h2 class="sec">Método</h2>
+  <div class="card">
+    <p style="margin:0 0 .6rem"><strong>Os dois sistemas apontam para a mesma base</strong>
+    (<code>smt-hom-citweb-axa-alfa</code>) e os protocolos saem sequenciais entre eles. Isso permite gravar em um e
+    conferir no outro, e torna o <strong>diff coluna a coluna no banco</strong> — não a impressão de tela — a prova final
+    de paridade.</p>
+    <p style="margin:0 0 .6rem"><strong>Um plano, um placar.</strong> Cada task filha é uma tela em paridade, não um bug
+    isolado: o plano consolidado tem um grupo de CTs por tela e o PBI pai acumula o resultado. Um CT reprovado
+    reprova o apontamento nomeado que ele reteste, não a tela inteira.</p>
+    <p style="margin:0"><strong>Rito deste ciclo:</strong> Gate 1 (revisão do plano por Wesley) → execução → Gate 3, com
+    notificação no Teams a cada fechamento e <strong>sem Gate 2 de Produtos</strong> (tag <code>sem-gate2-po</code>) —
+    exceto o P1 do prêmio comercial, que <em>é</em> decisão de Produtos e está escalado como tal.</p>
+  </div>
+
+</div>
+
+<script>
+var MAP = {
+  aberto: function (tr) { return tr.dataset.sit === 'aberto'; },
+  reteste: function (tr) { return tr.dataset.sit.indexOf('reteste') >= 0; },
+  decisao: function (tr) { return tr.dataset.sit.indexOf('Produtos') >= 0; },
+  critico: function (tr) { return ['BLOQUEANTE', 'GRAVE', 'CRÍTICA'].indexOf(tr.dataset.sev) >= 0; },
+  todos: function () { return true; }
+};
+document.querySelectorAll('#filtros .chip').forEach(function (c) {
+  c.addEventListener('click', function () {
+    document.querySelectorAll('#filtros .chip').forEach(function (x) { x.classList.remove('active'); });
+    c.classList.add('active');
+    var f = MAP[c.dataset.f];
+    document.querySelectorAll('#tab-apont tbody tr').forEach(function (tr) {
+      tr.style.display = f(tr) ? '' : 'none';
+    });
+  });
+});
+</script>
+</body>
+</html>
