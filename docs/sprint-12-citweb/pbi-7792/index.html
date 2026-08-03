@@ -1,0 +1,1718 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste PBI #7792 — Paridade CITNET refatorado × legado (RCV / NSSEG)</title>
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;
+  --accent:#7c3aed;--accent2:#a78bfa;
+  --green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;
+  --yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.info-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid #0078d4;border-radius:6px;padding:14px 16px}
+.info-box h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#60a5fa;margin-bottom:8px}
+.info-box p{font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.5}
+.info-box code,.doc-box code,.warn-box code,.ok-box code,.ct-body code,table.matriz code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.warn-box{background:var(--yel-bg);border:1px solid var(--yellow);border-radius:6px;padding:12px 16px;margin:12px 24px 0}
+.warn-box strong{color:var(--yellow)}
+.warn-box p{font-size:13px;color:var(--text);margin-top:4px}
+.warn-box ul{padding-left:18px;font-size:13px;margin-top:6px}
+.warn-box li{margin-bottom:4px}
+.ok-box{background:var(--green-bg);border:1px solid var(--green);border-radius:6px;padding:12px 16px;margin:12px 24px 0}
+.ok-box h3{color:#3fb950;font-size:13px;font-weight:700;margin-bottom:6px}
+.ok-box p{font-size:12.5px;color:var(--text);margin-top:4px}
+.metrics{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}
+.m-ok .metric-val{color:#2ea043}
+.m-rep .metric-val{color:var(--red)}
+.m-pend .metric-val{color:var(--yellow)}
+.progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043)}
+.container{padding:0 24px 40px}
+.section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2);margin:28px 0 10px}
+.doc-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px}
+.doc-box p{font-size:13px;margin-bottom:8px}
+.doc-box ul{padding-left:18px;font-size:13px;margin-top:4px}
+.doc-box li{margin-bottom:4px}
+table.matriz{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+table.matriz th,table.matriz td{border:1px solid var(--border);padding:7px 9px;text-align:left;vertical-align:top}
+table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted);transition:transform .2s}
+.group-header.collapsed .group-toggle{transform:rotate(-90deg)}
+.group-body.hidden{display:none}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#3fb950}
+.badge-erro{background:#3d1418;color:#f1707a}
+.badge-novo{background:#2d1a4d;color:#c4b5fd;font-size:10px}
+.badge-rev{background:#1f1a0d;color:var(--yellow);font-size:10px}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.ct-toggle{color:var(--muted);transition:transform .2s;font-size:11px}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;border-top:1px solid var(--border);padding:16px}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:14px 0 6px}
+.ct-body h4:first-child{margin-top:0}
+.ct-body ol,.ct-body ul{padding-left:18px;font-size:13px}
+.ct-body li{margin-bottom:5px}
+.ct-body p{font-size:13px}
+.ct-body .result-box{background:#21262d;border:1px solid var(--border);border-radius:5px;padding:10px 12px;font-size:13px;color:var(--muted);margin-top:10px}
+.ct-body .precond-box{background:#161b22;border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:5px;padding:10px 12px;font-size:12px;margin-bottom:10px}
+.tbd{color:var(--yellow);font-weight:600}
+.amb{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.amb-card{flex:1;min-width:280px;background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:12px 14px}
+.amb-card h4{font-size:12px;color:var(--accent2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
+.amb-card p{font-size:12.5px;margin-bottom:3px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">PBI</span>
+  <span class="topbar-title">#7792 — [NSSEG] Refatoração RCV · paridade CITNET refatorado × legado</span>
+  <span class="topbar-sprint">Sprint_12_Citweb · tasks #7825 · #7883 · #7898 · #7913</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">Plano de Teste consolidado — PBI #7792</div>
+  <div class="hero-title" style="font-size:16px;font-weight:400;color:var(--muted);margin-top:4px">
+    Homologação da reescrita do CITNET (React + API, multi-tenant) contra o CITNET atual — frente RCV (ramo 59)
+  </div>
+  <div class="hero-sub" style="margin-top:12px">
+    <span>🆕 hmlcitfaturamento.atmtec.com.br</span>
+    <span>🗄️ axa-hml-faturamento.nsseg.com.br/alfa/citnet/</span>
+    <span>🏢 AXA - HML - ALFA · KOVR - HML - ALFA</span>
+    <span>👤 INTERNO + ASSESSORIA</span>
+    <span>📅 Sprint_12_Citweb</span>
+    <span>🗓️ Atualizado 03/08/2026</span>
+  </div>
+  <div class="info-box">
+    <h3>Por que este plano é consolidado</h3>
+    <p>O PBI #7792 não é uma correção pontual: é a <strong>substituição do CITNET</strong> por uma reescrita completa
+    (front React + API própria <code>/api/…</code>, multi-tenant com 17 ambientes no combo de login), que precisa ser
+    provada <strong>idêntica</strong> ao sistema atual antes de assumir o lugar dele. Cada task filha é uma <strong>tela em
+    paridade</strong>, não um bug isolado — por isso um plano só, com um grupo de CTs por tela e um placar único no card pai.</p>
+    <p style="margin-top:6px"><strong>Fato que sustenta o método:</strong> os dois sistemas apontam para a
+    <strong>mesma base</strong> (<code>smt-hom-citweb-axa-alfa</code>) — os protocolos saem sequenciais entre eles. Então dá
+    para gravar em um e conferir no outro, e o diff definitivo é <strong>coluna a coluna no banco</strong>, não impressão de tela.</p>
+    <p style="margin-top:6px"><strong>Este plano não começa do zero.</strong> Três rodadas de QA já mapearam os apontamentos
+    nominais (D1–D8, P1, A1, R1, R2, C1–C3) e o dev declarou correção para a maior parte deles. Cada CT aqui é o
+    <strong>reteste de um apontamento nomeado</strong> ou a cobertura de uma área ainda não varrida — o veredito do CT é o
+    veredito do apontamento.</p>
+  </div>
+</div>
+
+<div class="warn-box">
+  <strong>⚠️ Dois apontamentos sem card próprio — tasks de defeito a abrir no #7792</strong>
+  <ul>
+    <li><strong>C1 (BLOQUEANTE)</strong> — o Conversor RCV do refatorado rejeita <strong>100% das linhas</strong>
+    ("Atributo obrigatório 'Filial / Sucursal' está vazio") com qualquer layout, inclusive um pré-existente do time.
+    Reteste em 31/07 confirmou. Enquanto isso durar, <strong>nenhuma regra de negócio do Conversor é homologável</strong>.</li>
+    <li><strong>A1 (GRAVE)</strong> — existe um caminho de gravação que <strong>ignora as validações de negócio</strong>:
+    em 30 e 31/07 foram gravadas averbações sem protocolo (<code>u_pcl = NULL</code>) com data fora da janela, apólice
+    cancelada, apólice suspensa e documento duplicado — massa que contamina a competência 07/2026.</li>
+  </ul>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val">54</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d29922">0</div><div class="metric-lbl">Bloq./Parcial</div></div>
+  <div class="metric m-pend"><div class="metric-val">54</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric"><div class="metric-val" style="color:#60a5fa">31</div><div class="metric-lbl">P1 bloqueantes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+
+<!-- marcadores ocultos de contagem para o dashboard -->
+<div style="display:none" aria-hidden="true"><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span><span class="ev-badge ev-pendente"></span></div>
+
+<div class="container">
+
+  <div class="section-title">1 · Escopo</div>
+  <div class="doc-box">
+    <p><strong>In scope (execução neste ciclo):</strong> as 4 tasks em <em>Pronto para homologação</em> —
+    <strong>#7825</strong> (Averbação RC-V), <strong>#7883</strong> (Aprovação de Prévias), <strong>#7898</strong>
+    (Relatórios → Consulta) e <strong>#7913</strong> (análise dos apontamentos) — mais os dois achados sem card:
+    <strong>Conversor RCV (C1/C2/C3)</strong> e <strong>integridade de gravação (A1)</strong>. Cobertura por reteste
+    nominal dos apontamentos, prova de dados coluna a coluna no banco, segurança (IDOR por perfil), regressão do núcleo
+    já aprovado e verificação multi-tenant.</p>
+    <p><strong>Out of scope:</strong> tasks <strong>#7944</strong> (Relatório Fatura Mensal Nacional) e
+    <strong>#7973</strong> (Relatório Faturas) — ainda <em>In Progress</em>, entram em ciclo próprio quando o dev
+    liberar; telas do refatorado ainda não migradas (o Tracker da Migração declarava 21/31 em 27/07); validação em
+    produção; performance/carga.</p>
+    <p><strong>Ramo:</strong> 59 (RCV) — nacional. Os CTs de gating tocam os demais ramos nacionais apenas para provar
+    que <em>não</em> aparecem indevidamente.</p>
+    <p style="margin-bottom:0"><strong>Critério de saída:</strong> todo CT P1 aprovado ou com defeito ticketado e
+    aceito; nenhum apontamento ALTO/GRAVE em aberto sem card; C1 corrigido e a matriz do Conversor reexecutada; P1 do
+    prêmio comercial decidido por Produtos e os dois sistemas alinhados ao valor decidido.</p>
+  </div>
+
+  <div class="section-title">2 · Ambientes, credenciais e acesso</div>
+  <div class="doc-box">
+    <div class="amb">
+      <div class="amb-card">
+        <h4>🆕 CITNET refatorado (atmtec)</h4>
+        <p><strong>URL:</strong> <code>https://hmlcitfaturamento.atmtec.com.br/login</code></p>
+        <p><strong>Login:</strong> combo <strong>Ambiente</strong> (17 tenants) → usuário → senha → <strong>Entrar no nsseg</strong></p>
+        <p><strong>Tenants do plano:</strong> <code>AXA - HML - ALFA</code> (piloto RC-V) e <code>KOVR - HML - ALFA</code> (caminho genérico)</p>
+        <p><strong>Perfis:</strong> <code>INTERNO</code> (senha no <code>.env</code>, <code>HML_AXA_CITNET_INTERNO_*</code>) e <code>ASSESSORIA</code> (semeado pelo dev)</p>
+        <p><strong>Menu do INTERNO:</strong> Averbações → RCV · Relatórios → Consulta e Fatura Mensal · Conversor · Faturamento → Aprovação de Prévias · Manuais · Admin</p>
+      </div>
+      <div class="amb-card">
+        <h4>🗄️ CITNET atual (baseline)</h4>
+        <p><strong>URL:</strong> <code>https://axa-hml-faturamento.nsseg.com.br/alfa/citnet/</code></p>
+        <p><strong>Login:</strong> usuário <code>INTERNO</code> → senha → <strong>Acessar</strong></p>
+        <p><strong>Tela RCV:</strong> menu <strong>Averbações → RCV</strong> → botão <strong>Novo</strong> (o form inicia travado)</p>
+        <p><strong>Base:</strong> <code>smt-hom-citweb-axa-alfa</code> — <strong>a mesma do refatorado</strong></p>
+        <p><strong>Acesso SQL:</strong> credenciais <code>DB_*</code> no <code>.env</code> (nunca em texto no plano)</p>
+      </div>
+    </div>
+    <p style="margin-top:10px;margin-bottom:0"><strong>Navegação:</strong> sempre por clique no menu, a partir do login —
+    nenhum CT navega por URL interna. As rotas citadas (<code>/app/…</code>, <code>/api/…</code>) aparecem apenas como
+    referência técnica de conferência, não como atalho de execução.</p>
+  </div>
+
+  <div class="section-title">3 · Estado das entregas (DoD do dev)</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Task</th><th>Título</th><th>State</th><th>O que o dev declara entregue</th></tr>
+    <tr><td><strong>#7825</strong></td><td>Ajustes tela de averbação RCV</td><td><span style="color:#3fb950">Pronto para homologação</span></td><td>PRs #58/#59/#1392/#1393/#1394 (form RC-V dedicado, endpoints limites-dm-dc-rcv / tipo-doc-rcv / rcv/detalhe, validações G1..G10, alteração+exclusão, PremioEngine com as 5 CCs, multi-tenant schema-aware) — mergeados e deployados; engine responde <code>rcv-paridade-v1</code>.</td></tr>
+    <tr><td><strong>#7913</strong></td><td>Análise apontamentos nos testes</td><td><span style="color:#3fb950">Pronto para homologação</span></td><td>PRs #1461 (28 commits) + #1462 (hotfix CI) mergeados, deploy HML VERDE em 29/07 — main <code>03fcb2a</code>. Endereça D1–D8 do report de QA + 11 passadas do guardião de paridade.</td></tr>
+    <tr><td><strong>#7883</strong></td><td>Ajustes aprovação de prévias</td><td><span style="color:#3fb950">Pronto para homologação</span></td><td>PRs #1397 (commit 38a4d3f), #1407 (c944eb2), #1421 (9e69949), #1437 — resumo da fatura, 403 falso do <code>i_fat_cit_net</code>, prêmio mínimo sem movimento, notice do Processar, ciclo ASSESSORIA e gating de ramo por indicativo.</td></tr>
+    <tr><td><strong>#7898</strong></td><td>Ajustes na tela de Relatórios Consulta</td><td><span style="color:#3fb950">Pronto para homologação</span></td><td>PRs #1439 (f061f0f) + #1448 mergeados — reconstrução shape-first do grid, certificado RC-V + ZIP, identidade da seguradora do banco (<code>tb_cad_seg</code>), leitura corrigida para <code>tb_mov_avb_rcv_cit</code>, ASSESSORIA e anti-IDOR nos 3 endpoints.</td></tr>
+    <tr><td><strong>#7944</strong></td><td>Análise e ajustes Relatório Fatura Mensal Nacional</td><td><span style="color:#e3b341">In Progress</span></td><td>Em desenvolvimento — <strong>fora do escopo de execução</strong> deste ciclo; entra quando o dev mover para Pronto para homologação.</td></tr>
+    <tr><td><strong>#7973</strong></td><td>Ajustes na tela de Relatório Faturas</td><td><span style="color:#e3b341">In Progress</span></td><td>Em desenvolvimento — <strong>fora do escopo de execução</strong> deste ciclo.</td></tr>
+    </table>
+    <p style="margin-top:10px;margin-bottom:0">A engine do refatorado responde <code>rcv-paridade-v1</code> em
+    <code>hmlcitfaturamento.atmtec.com.br</code>. Antes de iniciar a execução, a Fase 0 confirma: ambiente no ar, login dos dois sistemas,
+    massa existente e build/commit em HML — um CT executado contra build anterior ao fix é evidência inválida.</p>
+  </div>
+
+  <div class="section-title">4 · Massa de dados — verificada no banco (axa-alfa)</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Apólice</th><th>Sgp</th><th>Condição comercial / PMM</th><th>Situação</th><th>Usada em</th></tr>
+      <tr><td><code>101059</code></td><td>1</td><td>TPP taxa <code>f_cml_bsc</code> 0,99999 · DC/DM 100.000/100.000 · Osasco/SP (<code>34401</code>) → Itaboraí/RJ (<code>1900</code>) = <strong>R$ 1.999,98</strong></td><td>vigente</td><td>CT-RAV-002/004/010/011/012, CT-RCS-001, CT-REG-001</td></tr>
+      <tr><td><code>2</code></td><td>1</td><td>VKMCML · faixas 0–1000 = <strong>R$ 77,77</strong> · 1001–20000 = R$ 88,88 · DC/DM 250.000/200.000</td><td>vigente · KM indisponível no HML</td><td>CT-RAV-005, CT-CNV-004, CT-REG-002</td></tr>
+      <tr><td><code>999</code></td><td>1</td><td>TPP · DC/DM 280.000/200.000</td><td><strong>CANCELADA</strong> (<code>i_can_apo='S'</code>)</td><td>CT-RAV-001</td></tr>
+      <tr><td><code>444</code></td><td>1</td><td>PMM R$ 100</td><td><strong>CANCELADA</strong> em 11/06/2026</td><td>CT-RAV-001, CT-PRV-007, CT-ITG-001</td></tr>
+      <tr><td><code>333</code></td><td>1</td><td>PMM R$ 100 · 21 averbações em 07/2026 · IS R$ 3.800,00 · soma dos prêmios R$ 3.000,00</td><td>vigente, sem suspensão</td><td>CT-PRV-001/004/007</td></tr>
+      <tr><td><code>567</code></td><td>1</td><td>PMM R$ 100 · vigência inicia 13/07/2026 → proporcional <strong>R$ 58,06</strong></td><td><strong>3 suspensões</strong> (13–14/07, 15–16/07, aberta desde 17/07)</td><td>CT-PRV-003/006, CT-ITG-001</td></tr>
+      <tr><td><code>123321</code></td><td>1</td><td>PMM R$ 100 · inicia 02/07 → proporcional <strong>R$ 93,55</strong></td><td>vigente</td><td>CT-PRV-003</td></tr>
+      <tr><td><code>765</code></td><td>1</td><td>PMM R$ 100</td><td>vigente</td><td>CT-PRV-005</td></tr>
+      <tr><td><code>5904…</code></td><td>1</td><td>PMM R$ 500 · sem movimento em 07/2026</td><td>vigente</td><td>CT-PRV-002</td></tr>
+      <tr><td><code>6062026</code></td><td>1</td><td>SEGURADO ALFA NOVO — usada pelo dev no side-by-side do gating</td><td>vigente</td><td>CT-PRV-008, CT-REG-008</td></tr>
+    </table>
+    <p style="margin-top:10px"><strong>Massa criada pelo dev no axa-alfa — não excluir sem avisar:</strong> apólice
+    <code>101059</code>: protocolos <code>3</code>, <code>4/5</code> (cancelados), <code>6</code>, <code>8/10</code>
+    (alteração), <code>9</code>, <code>11</code> (ativo), <code>13/14/15</code> (cancelados); apólice <code>2</code>:
+    <code>38/39</code>, <code>40/41</code> (cancelados). Documentos nas faixas <code>999xxxx</code>,
+    <code>9997xxx</code> e <code>9998xxx</code>.</p>
+    <p><strong>Conversor:</strong> cliente <code>1 — 11324123412412341234</code>, layout <strong>QA_PARIDADE_RCV</strong>
+    (<code>CIT-AVB-RCV</code>, 19 campos) e layout de controle <strong>itamar_RCV</strong> (pré-existente do time).
+    Arquivo e gerador versionados em
+    <code>testes-automatizados/sprint-11-citweb/conversor-rcv-paridade/</code>
+    (<code>gerar_massa_conversor_rcv.py</code> + planilhas de 29/07 e 31/07).</p>
+    <p><strong>Códigos de município são internos de 5 dígitos</strong> (não IBGE): São Paulo <code>50308</code>,
+    Osasco <code>34401</code>, Rio de Janeiro <code>4557</code>, Itaboraí <code>1900</code>.</p>
+    <p style="margin-bottom:0"><strong>Documentos do achado A1</strong> (a reprovar em todos os caminhos):
+    <code>31071003</code> (data hoje+6), <code>31071004</code> (retroativa), <code>31071007</code> (apólice cancelada),
+    <code>31071013</code> (apólice suspensa), <code>ABC31071014</code> (alfanumérico), <code>31071001</code> (duplicado).</p>
+  </div>
+
+  <div class="section-title">5 · Base de conhecimento reaproveitada (Passo 0)</div>
+  <div class="doc-box">
+    <ul>
+      <li><strong>Relatórios de paridade anteriores</strong> (baseline dos apontamentos):
+      <code>sprint-11-citweb/citnet-novo-paridade-rcv/</code> (10 CTs, 27/07),
+      <code>…/citnet-novo-paridade-bateria-3telas/</code> (31/07) e
+      <code>…/citnet-novo-paridade-conversor-rcv/</code> (29/07 + reteste 31/07).</li>
+      <li><strong>Feature validada in loco:</strong> <code>features/averbacao/rcv-citnet.md</code> — IDs dos campos dos
+      dois sistemas, caminhos de menu, mensagens exatas, tabela de persistência e cálculo por tipo de CC
+      (última validação 27/07/2026).</li>
+      <li><strong>Massa e gerador do Conversor:</strong>
+      <code>testes-automatizados/sprint-11-citweb/conversor-rcv-paridade/</code>.</li>
+      <li><strong>Evidência do dev:</strong> <code>.ns-flow/delivery/ADO-7898-resultados-side-by-side.md</code> e
+      <code>.ns-flow/analysis/ADO-7883-previa-assessoria-idor-evidencia-live.md</code> no repositório NSSEG_CITNET.</li>
+    </ul>
+    <p style="margin-bottom:0">Cada CT executado com sucesso por automação vira script em
+    <code>testes-automatizados/sprint-12-citweb/pbi-7792/</code> antes de o badge ser atualizado.</p>
+  </div>
+
+  <div class="section-title">6 · Casos de teste</div>
+
+  <div class="group-header">
+    <h2>G1 · Averbação RC-V — reteste dos apontamentos D1–D8</h2>
+    <span class="group-badge">14 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">Tasks #7825 + #7913 · tela Averbações → RCV · o report de 27/07 levantou 2 divergências ALTAS e 6 média/baixa; os PRs #1461/#1462 declaram todas endereçadas. Cada CT abaixo é o reteste de um apontamento nominal — o veredito do CT é o veredito do apontamento.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-001</span>
+      <span class="ct-title">Apólice CANCELADA não é oferecida no combo nem aceita gravação</span>
+      <span class="badge badge-novo">D1</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>999</code> (filial 1, ramo 59) com <code>i_can_apo='S'</code> na base <code>smt-hom-citweb-axa-alfa</code>. Confirmar antes: <code>SELECT u_apo_pnc,i_can_apo,d_can_apo FROM tb_apo_nac_cit WHERE u_apo_pnc IN (999,444) AND c_rmo=59</code>. Causa-raiz declarada pelo dev: o SQL de validação procurava <code>i_cnc_apo</code> (coluna inexistente) em vez de <code>i_can_apo</code>.<br>
+      <strong>Tipo:</strong> Negativo · dado gravado · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code>, combo <strong>Ambiente</strong> = <strong>AXA - HML - ALFA</strong>, usuário <strong>INTERNO</strong> (senha no <code>.env</code>) → <strong>Entrar no nsseg</strong></li>
+      <li>Menu <strong>Averbações</strong> → <strong>RCV</strong> → botão <strong>Novo Protocolo</strong></li>
+      <li>Selecionar <strong>Filial</strong> = <code>SAO PAULO - 1</code></li>
+      <li>No combo <strong>Apólice</strong> (busca "Buscar por número ou segurado…") digitar <code>999</code> e conferir se a opção aparece na lista</li>
+      <li>Repetir a busca com <code>444</code> (cancelada em 11/06/2026)</li>
+      <li>Contraprova: buscar <code>101059</code> (vigente, não cancelada) e confirmar que <strong>aparece</strong></li>
+      <li>Se a apólice cancelada ainda aparecer: selecioná-la, preencher o formulário completo (CTE + documento novo, data de hoje, placa <code>ABC1234</code>, Osasco/SP → Itaboraí/RJ) e clicar <strong>Gravar</strong> — o gate de servidor tem de recusar mesmo com a UI permitindo</li>
+      <li>ATUAL: repetir a busca da apólice 999 em <code>/alfa/citnet/</code> → <strong>Averbações → RCV</strong> → <strong>Novo</strong> → Filial 1 (baseline: não é listada entre as opções)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> As apólices <code>999</code> e <code>444</code> <strong>não aparecem</strong> no combo do novo (igual ao atual) e a <code>101059</code> aparece. Se por qualquer via a gravação for tentada, o servidor recusa com mensagem de negócio e <strong>nenhuma linha é criada</strong> em <code>tb_mov_avb_rcv_cit</code> para a apólice cancelada.</div>
+      <div class="ev-section" id="ev-CT-RAV-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-002</span>
+      <span class="ct-title">d_usu_inc gravada no fuso de Brasília (não em UTC)</span>
+      <span class="badge badge-novo">D2</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Fix declarado: classe <code>HoraOperacao</code> (fuso explícito de Brasília) aplicada em ~37 pontos de data de negócio. O defeito original era o deploy Ubuntu gravar UTC (3h à frente).<br>
+      <strong>Tipo:</strong> Positivo · dado gravado · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D2</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Anotar a hora local de Brasília no momento do teste (relógio da máquina)</li>
+      <li>NOVO: <strong>Averbações → RCV → Novo Protocolo</strong> → apólice <code>101059</code> subgrupo <code>1</code> → Tipo Documento <strong>CTE</strong>, documento novo (faixa <code>9998xxx</code>), data de saída = hoje, placa <code>ABC1234</code>, Osasco/SP → Itaboraí/RJ → <strong>Gravar</strong></li>
+      <li>Anotar o protocolo devolvido</li>
+      <li>Conferir no banco: <code>SELECT u_pcl,n_usu_inc,d_usu_inc,GETUTCDATE() utc,GETDATE() srv FROM tb_mov_avb_rcv_cit WHERE u_apo_pnc=101059 ORDER BY u_pcl DESC</code></li>
+      <li>Repetir a mesma gravação no ATUAL e comparar <code>d_usu_inc</code> dos dois registros</li>
+      <li>Cenário de borda (executar se a janela permitir): repetir a gravação <strong>após 21h BRT</strong> — em UTC isso viraria o dia; confirmar que <code>d_usu_inc</code> e <code>d_ano_mes_ref</code> ficam no dia correto</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> <code>d_usu_inc</code> do novo == hora de Brasília (diferença de minutos, não de 3h) e equivalente à do atual para a mesma operação. Após 21h BRT a data <strong>não</strong> avança para o dia seguinte.</div>
+      <div class="ev-section" id="ev-CT-RAV-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-003</span>
+      <span class="ct-title">Lista de apólices elegíveis idêntica ao legado (hash 400028559)</span>
+      <span class="badge badge-novo">D3</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline do report: 6.406 opções no novo × 6.190 no atual (218 a mais, 2 a menos). Fix declarado: portada a regra real do legado — janela de 3 meses em vigência <em>e</em> cancelamento + <code>e_ori_avb IN ('CITNET','CTE')</code>. O dev declara <strong>hash 400028559 idêntico</strong> nos dois.<br>
+      <strong>Tipo:</strong> Positivo · paridade de conjunto · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D3</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: na tela de averbação RC-V, com Filial <code>1</code> selecionada, capturar a lista completa do combo Apólice (a API é <code>GET /api/apolices/lookup?filial=1&ramos=59&vigencia=V&take=20000</code>)</li>
+      <li>ATUAL: capturar a lista do <code>#u_apo_pnc</code> após <code>CarregaApolice()</code> concluir (leva 5–8 s)</li>
+      <li>Ordenar as duas listas e calcular a contagem + o hash agregado dos números de apólice</li>
+      <li>Comparar contagem, hash e — em caso de diferença — o diff nominal (quais apólices sobram/faltam)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesma contagem e mesmo hash (<code>400028559</code>) nos dois sistemas. Qualquer apólice presente em um e ausente no outro é reprovação, com o número identificado.</div>
+      <div class="ev-section" id="ev-CT-RAV-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-004</span>
+      <span class="ct-title">Prêmio calculado e exibido ANTES de gravar (CC TPP = R$ 1.999,98)</span>
+      <span class="badge badge-novo">D4a</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>101059</code> subgrupo <code>1</code>, CC <strong>TPP</strong> taxa <code>f_cml_bsc</code> 0,99999, limites DC/DM 100.000/100.000. Referência conhecida: Osasco/SP (<code>34401</code>) → Itaboraí/RJ (<code>1900</code>) = <strong>R$ 1.999,98</strong>. Baseline do report: o novo só mostrava o prêmio depois de gravar.<br>
+      <strong>Tipo:</strong> Positivo · cálculo · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D4a</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: <strong>Averbações → RCV → Novo Protocolo</strong> → Filial 1 → apólice <code>101059</code> → subgrupo 1</li>
+      <li>Preencher documento/CTE, data de saída = hoje, placa <code>ABC1234</code></li>
+      <li>Preencher <strong>UF/Município de Origem</strong> = SP / Osasco e <strong>UF/Município de Destino</strong> = RJ / Itaboraí</li>
+      <li><strong>Sem clicar em Gravar</strong>, conferir o bloco <strong>Resultado do Cálculo</strong>: campos Prêmio, Danos Corporais e Danos Materiais</li>
+      <li>Comparar com o ATUAL, onde o preenchimento do município dispara <code>CalcularPremio()</code> e preenche <code>#v_cml_pmo</code></li>
+      <li>Gravar e confirmar que o prêmio persistido (<code>v_cml_pmo</code>) é o mesmo que a tela exibiu</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Prêmio <strong>R$ 1.999,98</strong> exibido no formulário antes de gravar, com DC/DM 100.000,00/100.000,00, idêntico ao atual — e igual ao valor gravado em <code>v_cml_pmo</code>.</div>
+      <div class="ev-section" id="ev-CT-RAV-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-005</span>
+      <span class="ct-title">Falha de quilometragem (CC VKMCML) é exibida ao usuário</span>
+      <span class="badge badge-novo">D4b</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>2</code> subgrupo <code>1</code>, CC <strong>VKMCML</strong> (0–1000 km = R$ 77,77 · 1001–20000 = R$ 88,88). A integração de KM está indisponível no HML — os DOIS sistemas gravam com prêmio 0,00; o que se testa é a <strong>crítica visível</strong>. Mensagem do atual: <em>"ATENÇÃO! Erro ao calcular o prêmio de RCV: Não foi possível obter a quilometragem da viagem. Verifique os municípios e tente novamente."</em><br>
+      <strong>Tipo:</strong> Exceção · mensagem · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D4b</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: montar averbação na apólice <code>2</code> subgrupo <code>1</code> com percurso válido e documento novo</li>
+      <li>Observar se a crítica de quilometragem aparece (toast persistente) antes/durante o cálculo</li>
+      <li>ATUAL: repetir e capturar o modal com o texto acima</li>
+      <li>Gravar nos dois e conferir <code>v_cml_pmo</code> e <code>u_km_vgm</code> no banco</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> O novo exibe a crítica de quilometragem de forma persistente (equivalente ao modal do atual) e grava com prêmio 0,00 — mesmo comportamento de dado do atual, sem falha silenciosa.</div>
+      <div class="ev-section" id="ev-CT-RAV-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-006</span>
+      <span class="ct-title">Protocolo impresso completo (razão comercial, data/hora, parágrafo legal)</span>
+      <span class="badge badge-novo">D5</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Protocolo ativo na apólice <code>101059</code> (a massa do dev tem o protocolo <code>11</code> ativo). O report de 27/07 já provou que o <strong>hash de autenticação</strong> do protocolo impresso é idêntico nos dois.<br>
+      <strong>Tipo:</strong> Positivo · relatório · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D5</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir a averbação (Consulta → clicar na linha) → botão <strong>Imprimir</strong></li>
+      <li>Salvar o PDF/página gerada como evidência (o arquivo é a evidência, não só o screenshot)</li>
+      <li>ATUAL: <strong>Imprimir</strong> (<code>#btImprimir</code>) no mesmo protocolo equivalente → salvar</li>
+      <li>Comparar item a item: razão comercial da seguradora, data/hora de emissão, parágrafo legal, hash de autenticação, limpeza da página</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> O impresso do novo contém razão comercial, data/hora de emissão e parágrafo legal, com hash de autenticação idêntico ao do atual. Os dois arquivos ficam anexados como evidência.</div>
+      <div class="ev-section" id="ev-CT-RAV-006"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-007</span>
+      <span class="ct-title">Combo Filial: mesma lista e formato "código - NOME" (hash 142818617)</span>
+      <span class="badge badge-novo">D6</span>
+      <span class="badge badge-p2">P3</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline: 36 filiais no novo × 34 no atual (sobravam MATRIZ-2, TESTE MANUAL-1408, FILIAL TESTE-9999). Fix: o dispatch de tenant não reconhecia o code de HML e caía no escopo default; dev declara hash <code>142818617</code> idêntico e formato em maiúsculas.<br>
+      <strong>Tipo:</strong> Positivo · paridade de conjunto · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D6</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: capturar todas as opções do combo <strong>Filial</strong> na tela de averbação RC-V</li>
+      <li>ATUAL: capturar as opções de <code>#c_org_prd</code></li>
+      <li>Comparar contagem, ordem, texto exato (<code>SAO PAULO - 1</code> vs <code>1 - SAO PAULO</code>) e hash agregado</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesma quantidade de filiais, mesmo texto e mesmo hash (<code>142818617</code>). MATRIZ-2, TESTE MANUAL-1408 e FILIAL TESTE-9999 não aparecem mais no novo.</div>
+      <div class="ev-section" id="ev-CT-RAV-007"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-008</span>
+      <span class="ct-title">URBANO (UB/UR) fora da ORIGEM, mantido no Destino, com gate de servidor</span>
+      <span class="badge badge-novo">D7</span>
+      <span class="badge badge-p2">P3</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> No atual, só o <strong>Destino</strong> (<code>#n_dst</code>, 33 opções) tem <code>UB URBANO</code>; a origem tem 32. Especiais em ambos: ZZ, BC, BR, CU, FN. A função <code>definirUrbano</code> depende disso (origem=destino → UF <code>UB</code> + Tipo <code>O</code>).<br>
+      <strong>Tipo:</strong> Negativo · regra de domínio · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D7</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir os combos de <strong>UF de Origem</strong> e <strong>UF de Destino</strong> e listar as opções</li>
+      <li>Confirmar ausência de UB/UR na origem e presença de UB no destino</li>
+      <li>Testar o comportamento urbano: origem e destino no mesmo município → conferir se grava <code>s_uf_dst='UB'</code></li>
+      <li>Gate de servidor: submeter a gravação com <code>s_uf_ori='UB'</code> forçado na requisição e confirmar recusa</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Origem sem UB/UR (paridade com as 32 opções do atual), destino com UB, <code>definirUrbano</code> funcionando e o servidor recusando UB na origem mesmo se a UI for contornada.</div>
+      <div class="ev-section" id="ev-CT-RAV-008"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-009</span>
+      <span class="ct-title">Sete itens de UX/comportamento do formulário alinhados ao legado</span>
+      <span class="badge badge-novo">D8.1–D8.7</span>
+      <span class="badge badge-p2">P3</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Itens declarados corrigidos: críticas agregadas numa mensagem só (lista idêntica à do atual, inclusive as duplicatas), data de saída nasce vazia, Tipo Documento com "Selecione...", rótulo Cancelar/Excluir, mensagem visível no Consultar, Gravar habilitando como no legado.<br>
+      <strong>Tipo:</strong> Positivo · UX · <strong>Origem:</strong> task #7825/#7913 · <strong>Apontamento:</strong> D8.1–D8.7</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir <strong>Novo Protocolo</strong> e clicar <strong>Gravar</strong> com o formulário vazio → capturar a mensagem completa</li>
+      <li>Comparar com a mensagem única do atual: <em>"Informe a Data da Saída - Informe a Placa - Selecione a Origem - Selecione o Destino - Selecione o Municipio de Origem - Selecione o Municipio de Destino Informe o Id Viagem (somente números) - Informe o Documento"</em></li>
+      <li>Conferir que a <strong>Data de Saída nasce vazia</strong> (o baseline vinha preenchida com hoje)</li>
+      <li>Conferir que <strong>Tipo Documento</strong> tem a opção "Selecione..." e as opções por apólice (<code>montarTipoDoc</code>: Estipulação+NFe → só NFe; senão CTE+Outros)</li>
+      <li>Conferir o rótulo do 4º botão antes e depois de gravar (Excluir → Cancelar, como o atual)</li>
+      <li>Consulta sem apólice selecionada: confirmar que agora <strong>avisa</strong> (baseline: não fazia nada e não avisava)</li>
+      <li>Conferir o estado inicial do botão Gravar (habilitação igual à do legado)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Os 7 itens conferem com o legado, com destaque para a mensagem agregada idêntica e para o aviso na Consulta sem apólice.</div>
+      <div class="ev-section" id="ev-CT-RAV-009"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-010</span>
+      <span class="ct-title">Inclusão — diff coluna a coluna nas duas tabelas RCV</span>
+      <span class="badge badge-novo">prova de dados</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Mesma operação executada nos dois sistemas com o mesmo input. Tabelas: <code>tb_cit_net_mov_pcl_rcv</code> (32 colunas) e <code>tb_mov_avb_rcv_cit</code> (31 colunas). Exceções esperadas: nº de protocolo/averbação, nº de documento (precisa ser distinto) e o minuto.<br>
+      <strong>Tipo:</strong> Positivo · persistência · <strong>Origem:</strong> task #7913 · <strong>Apontamento:</strong> prova de dados</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Gravar a MESMA averbação no ATUAL e no NOVO (apólice 101059, CC TPP, percurso Osasco→Itaboraí, documentos distintos da faixa <code>9998xxx</code>)</li>
+      <li><code>SELECT * FROM tb_cit_net_mov_pcl_rcv WHERE u_pcl IN (&lt;atual&gt;,&lt;novo&gt;)</code> — diff coluna a coluna</li>
+      <li><code>SELECT * FROM tb_mov_avb_rcv_cit WHERE u_pcl IN (&lt;atual&gt;,&lt;novo&gt;)</code> — diff coluna a coluna</li>
+      <li>Registrar no plano a tabela de diff com as colunas divergentes e a justificativa de cada uma</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Todas as colunas idênticas, exceto as chaves sequenciais, o documento e o minuto. Qualquer outra diferença é reprovação nominal.</div>
+      <div class="ev-section" id="ev-CT-RAV-010"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-011</span>
+      <span class="ct-title">Alteração (operação A) sem duplicar + gate SITUACAO_NAO_PERMITE_ALTERACAO no servidor</span>
+      <span class="badge badge-novo">G1..G10 / gate</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Massa do dev na apólice <code>101059</code>: protocolos <code>8/10</code> usados em alteração; <code>4/5</code>, <code>13/14/15</code> cancelados. O guardião apontou que a guarda de situação só existia no cliente — virou gate de servidor.<br>
+      <strong>Tipo:</strong> Positivo + Negativo · persistência · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> G1..G10 / gate</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: Consulta → clicar na linha de um protocolo ativo → confirmar que a chave fica travada (edit mode)</li>
+      <li>Alterar um campo permitido (ex.: observação / placa de reboque) → <strong>Gravar</strong></li>
+      <li>Conferir no banco que <strong>não</strong> houve nova linha (operação A) e que <code>n_usu_alt</code>/<code>d_usu_alt</code> foram preenchidos</li>
+      <li>Tentar alterar um protocolo <strong>cancelado</strong> (ex.: 13/14/15) — pela UI e, depois, submetendo a requisição diretamente</li>
+      <li>Repetir a alteração equivalente no ATUAL e comparar as 4 tabelas RCV</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Alteração não duplica registro e replica o legado nas 4 tabelas; protocolo cancelado é recusado com <code>SITUACAO_NAO_PERMITE_ALTERACAO</code> (422) mesmo contornando a UI.</div>
+      <div class="ev-section" id="ev-CT-RAV-011"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-012</span>
+      <span class="ct-title">Exclusão soft (i_sit='E') com histórico e auditoria</span>
+      <span class="badge badge-novo">exclusão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Protocolo ativo criado para este CT. No atual: <em>"Confirma Cancelamento?"</em> → <em>"Cancelamento efetuada com sucesso!"</em>. No novo: modal <em>"Tem certeza que deseja excluir o protocolo N?"</em>.<br>
+      <strong>Tipo:</strong> Positivo · persistência · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> exclusão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir o protocolo → <strong>Excluir</strong> → confirmar no modal</li>
+      <li>Conferir no banco: <code>i_sit='E'</code>, linha de histórico criada, campos de auditoria preenchidos e registro de averbação removido conforme o legado</li>
+      <li>Confirmar que a averbação excluída deixa de contar na consulta e na competência</li>
+      <li>Repetir no ATUAL e comparar as 4 tabelas</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Exclusão marca <code>i_sit='E'</code> + histórico + auditoria, idêntico ao atual nas 4 tabelas, sem exclusão física indevida.</div>
+      <div class="ev-section" id="ev-CT-RAV-012"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-013</span>
+      <span class="ct-title">Divergências AUTORIZADAS pelo PO continuam sendo as únicas divergências de UX</span>
+      <span class="badge badge-novo">D-1..D-5 (PO)</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> 5 decisões registradas: D-1 badge "Alterações não salvas" (design system SIL), D-2 modal de confirmação Não/Sim, D-3 combo de UF unificado ("SP — SÃO PAULO"), D-4 filtro por nº de averbação entregue na consulta (atalho no form deferido), D-5 <code>f_cml_bsc</code> preservada na alteração (o legado zera por defeito).<br>
+      <strong>Tipo:</strong> Confirmação · não é defeito · <strong>Origem:</strong> task #7913 · <strong>Apontamento:</strong> D-1..D-5 (PO)</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Percorrer a tela do novo confirmando cada uma das 5 decisões como <strong>presente e intencional</strong></li>
+      <li>D-5 (dado): alterar uma averbação e conferir <code>f_cml_bsc</code> preservada no novo × zerada no atual</li>
+      <li>Conferir o impacto declarado: coluna <code>f_cml_bsc_vgm</code> do Excel mostra a taxa certa nas averbações alteradas</li>
+      <li>Registrar cada item como divergência autorizada — não como defeito</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> As 5 decisões estão implementadas como descrito, e nenhuma outra divergência de UX aparece fora dessa lista.</div>
+      <div class="ev-section" id="ev-CT-RAV-013"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RAV-014</span>
+      <span class="ct-title">Perfil ASSESSORIA: cascata correta e anti-IDOR nos 3 GETs da tela</span>
+      <span class="badge badge-novo">IDOR / ASSESSORIA</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Gate incondicional declarado nos endpoints <code>rcv/detalhe</code>, <code>limites-dm-dc-rcv</code> e <code>tipo-doc-rcv</code>: só INTERNO vê tudo; ASSESSORIA/CORRETOR/SEGURADO só a própria carteira → 403. Precisa de usuário ASSESSORIA semeado no axa-alfa (o dev semeou para os PRs #1423/#1427).<br>
+      <strong>Tipo:</strong> Negativo · segurança · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> IDOR / ASSESSORIA</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Logar no NOVO com usuário <strong>ASSESSORIA</strong> no tenant AXA - HML - ALFA</li>
+      <li>Averbação RC-V: confirmar combo <strong>Corretor</strong> + cascata corretor → segurado → apólice, filial única auto-selecionada e escondida, e <strong>Gravar nascendo desabilitado</strong></li>
+      <li>Chamar os 3 GETs com uma apólice <strong>fora</strong> da carteira do usuário → esperado 403</li>
+      <li>Repetir os mesmos GETs com apólice da própria carteira → esperado 200</li>
+      <li>Logar como INTERNO e confirmar o bypass (acesso amplo, paridade com <code>ApoliceAccessUtility.cs</code> case "INTERNO")</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> 403 nos 3 endpoints fora da carteira, 200 dentro dela, INTERNO com acesso amplo e a cascata ASSESSORIA idêntica à do legado (<code>_FilialApolice</code>).</div>
+      <div class="ev-section" id="ev-CT-RAV-014"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G2 · Aprovação de Prévias — prêmio comercial e jornada</h2>
+    <span class="group-badge">11 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">Task #7883 · tela Faturamento → Aprovação de Prévias. A bateria de 31/07 achou uma divergência CRÍTICA de valor faturável (P1) que depende de decisão de Produtos, além dos gaps de filtro/coluna. Os CTs de PMM abaixo usam a massa já mapeada.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-001</span>
+      <span class="ct-title">Prêmio comercial da prévia: prêmio mínimo × soma dos prêmios (apólice 333)</span>
+      <span class="badge badge-novo">P1 (crítica)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> ⚠️ <strong>Depende de decisão de Produtos.</strong> Baseline (31/07): apólice <code>333</code>, PMM R$ 100, sem suspensão, 21 averbações, competência <code>07/2026</code> → atual devolve <strong>R$ 100,00</strong> (o PMM) e novo devolve <strong>R$ 3.000,00</strong> (soma das averbações), com quantidade (21) e IS (R$ 3.800,00) idênticas nos dois. Regra do código: <code>deveAplicarPremioMinimo = q_avb_cme == 0 || v_pmo_cml &lt;= 0 || v_pmo_cml &lt;= premioMinimoProporcional</code>.<br>
+      <strong>Tipo:</strong> Cálculo · valor faturável · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> P1 (crítica)</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: <strong>Faturamento</strong> → <strong>Aprovação de Prévias</strong> → Filial 1 → filtrar por <strong>Ramo/Apólice</strong> → ramo <code>59 - RCV</code> → apólice <code>333</code> → competência <code>07/2026</code> → <strong>Consultar</strong></li>
+      <li>Registrar do grid: Qtde Averbações, Moeda, Importância Segurada e Prêmio Comercial</li>
+      <li>Abrir <strong>Aprovar</strong> → conferir o breakdown do <strong>Resumo da Fatura</strong> (Qtd, IS, Prêmio Comercial, %/Valor Desc-Agravo, Líquido, Mínimo, Manutenção, Ajuste, Juros, Custo, IOF, Prêmio Total, Vencimento) — <strong>sem processar</strong></li>
+      <li>ATUAL: mesma consulta em <code>/alfa/citnet/</code> → registrar os mesmos campos</li>
+      <li>Conferir no banco a soma dos prêmios da competência e o PMM do subgrupo</li>
+      <li>Registrar os dois valores no plano e escalar a definição da regra a Produtos antes de dar veredito</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Após a decisão de Produtos: o valor do novo == valor do atual == regra definida. Enquanto a regra não for decidida, o CT fica <strong>bloqueado por decisão de negócio</strong> com os dois valores documentados (nunca aprovado por semelhança).</div>
+      <div class="ev-section" id="ev-CT-PRV-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-002</span>
+      <span class="ct-title">PMM — competência sem embarque cobra o prêmio mínimo integral</span>
+      <span class="badge badge-novo">PMM</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólices <code>5904…</code> (PMM R$ 500) sem movimento em <code>07/2026</code>. Fix declarado: o resumo zerava tudo sem movimento; agora calcula e cobra o mínimo (paridade <code>FechamentoCitNetNacionalService</code>).<br>
+      <strong>Tipo:</strong> Cálculo · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> PMM</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: Aprovação de Prévias → apólice <code>5904…</code> → competência <code>07/2026</code> → Consultar</li>
+      <li>Abrir o Resumo da Fatura e registrar Prêmio Comercial e Mínimo</li>
+      <li>Clicar <strong>Processar</strong> e confirmar que o fechamento ocorre (não rejeita por ausência de movimento)</li>
+      <li>ATUAL: repetir e comparar os valores e o comportamento</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Sem movimento na competência, os dois sistemas cobram o <strong>PMM integral (R$ 500,00)</strong> e o Processar conclui. Nada de tela zerada nem rejeição.</div>
+      <div class="ev-section" id="ev-CT-PRV-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-003</span>
+      <span class="ct-title">PMM proporcional — vigência inicia no meio do mês (R$ 58,06 e R$ 93,55)</span>
+      <span class="badge badge-novo">PMM</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Fórmula do código: <code>(PMM ÷ dias do mês) × dias vigentes</code>, PMM integral quando a vigência inicia no dia 1º. Massa: apólice <code>567</code> (PMM 100, vigência inicia 13/07/2026 → esperado <strong>R$ 58,06</strong>) e apólice <code>123321</code> (PMM 100, inicia 02/07 → <strong>R$ 93,55</strong>).<br>
+      <strong>Tipo:</strong> Cálculo · limite · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> PMM</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar a apólice <code>123321</code> na competência <code>07/2026</code> → registrar o prêmio mínimo aplicado</li>
+      <li>Repetir para a apólice <code>567</code></li>
+      <li>ATUAL: repetir as duas consultas e comparar</li>
+      <li>Conferir a conta: 100 ÷ 31 × dias vigentes, com os dias contados como o código conta</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> R$ 93,55 para a <code>123321</code> e R$ 58,06 para a <code>567</code> nos dois sistemas, com a mesma contagem de dias.</div>
+      <div class="ev-section" id="ev-CT-PRV-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-004</span>
+      <span class="ct-title">PMM — prêmio das averbações MAIOR que o mínimo prevalece</span>
+      <span class="badge badge-novo">PMM</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>333</code>: PMM R$ 100 com prêmio das averbações R$ 2.400/3.000. Este é o cenário-espelho do CT-PRV-001 — depende da mesma decisão de Produtos.<br>
+      <strong>Tipo:</strong> Cálculo · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> PMM</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar a apólice <code>333</code> em <code>07/2026</code> e registrar o prêmio comercial</li>
+      <li>ATUAL: mesma consulta, mesmo registro</li>
+      <li>Conferir no banco a soma dos prêmios (<code>v_pmo_cml</code>) das averbações da competência</li>
+      <li>Confrontar com a regra decidida por Produtos</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Quando o prêmio calculado supera o mínimo, prevalece o calculado — mesmo valor nos dois sistemas.</div>
+      <div class="ev-section" id="ev-CT-PRV-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-005</span>
+      <span class="ct-title">PMM — prêmio das averbações MENOR que o mínimo aplica o mínimo</span>
+      <span class="badge badge-novo">PMM</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>765</code> (PMM 100). Montar/usar competência em que a soma dos prêmios das averbações fique abaixo do PMM.<br>
+      <strong>Tipo:</strong> Cálculo · limite · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> PMM</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Levantar no banco a competência da apólice <code>765</code> cuja soma de prêmios &lt; 100</li>
+      <li>NOVO: consultar essa apólice/competência e registrar o prêmio comercial</li>
+      <li>ATUAL: repetir e comparar</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Os dois sistemas aplicam o prêmio mínimo (R$ 100,00) quando a soma das averbações é menor.</div>
+      <div class="ev-section" id="ev-CT-PRV-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-006</span>
+      <span class="ct-title">Suspensão parcial × total na prévia (apólice 567, 3 suspensões)</span>
+      <span class="badge badge-novo">suspensão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>567</code> tem 3 suspensões: 13–14/07, 15–16/07 e <strong>aberta desde 17/07</strong>. O código zera o prêmio comercial da prévia quando há suspensão no período (<code>if (suspensaoApolice) fecha.v_pmo_cml = 0</code>) e proporcionaliza o PMM pelos dias vigentes. Baseline divergente: atual devolveu 0 averbações, novo devolveu 3 (8 existem na competência).<br>
+      <strong>Tipo:</strong> Cálculo · regra de negócio · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> suspensão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar a apólice <code>567</code> em <code>07/2026</code> → registrar Qtde Averbações, IS e Prêmio Comercial</li>
+      <li>ATUAL: repetir e registrar</li>
+      <li>Conferir no banco quantas averbações existem na competência e quantas caem em dias suspensos</li>
+      <li>Confirmar a regra: embarques em dias suspensos não entram; prêmio comercial zerado; PMM proporcional aos dias vigentes</li>
+      <li>Testar também suspensão de mês inteiro (desde o dia 1º) — a fatura não deve ser emitida</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesma contagem de averbações e mesmo prêmio nos dois sistemas, com embarques de dias suspensos excluídos e PMM proporcionalizado. Suspensão total do mês → sem fatura.</div>
+      <div class="ev-section" id="ev-CT-PRV-006"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-007</span>
+      <span class="ct-title">Cancelamento de apólice encurta a vigência no cálculo do PMM (R$ 36,67)</span>
+      <span class="badge badge-novo">cancelamento</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>444</code> cancelada em 11/06/2026 contra a <code>333</code> (mesma vigência, não cancelada). No cálculo do PMM o fim de vigência passa a ser <code>d_can_apo</code> → competência <code>06/2026</code>, proporcional esperado <strong>R$ 36,67</strong>.<br>
+      <strong>Tipo:</strong> Cálculo · limite · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> cancelamento</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar a apólice <code>444</code> na competência <code>06/2026</code> → registrar o prêmio mínimo aplicado</li>
+      <li>Comparar com a apólice <code>333</code> na mesma competência (não cancelada)</li>
+      <li>ATUAL: repetir as duas consultas</li>
+      <li>Conferir a conta: 100 ÷ 30 × 11 dias = R$ 36,67</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> R$ 36,67 na apólice cancelada nos dois sistemas; a não cancelada mantém o valor integral do período.</div>
+      <div class="ev-section" id="ev-CT-PRV-007"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-008</span>
+      <span class="ct-title">Filtros e colunas da prévia: Subgrupo, Ramo gateado e colunas Resumo/Embarques</span>
+      <span class="badge badge-novo">R2</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline: o novo não tinha filtro <strong>Subgrupo</strong>, o Ramo era fixo em 59 e faltavam as colunas <strong>Resumo</strong> e <strong>Embarques</strong>. O PR #1437 implementou gating de ramo por indicativo (<code>TELA_AVB_NAC_RCV</code>): nenhum ramo é "sempre"; ramo sem flag → oculto (fail-closed).<br>
+      <strong>Tipo:</strong> Paridade de tela · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> R2</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir Aprovação de Prévias e inventariar filtros (Filial, radios, Ramo, Apólice, Subgrupo, Competência) e colunas do grid</li>
+      <li>ATUAL: inventariar os mesmos itens (10 opções de ramo, filtro Subgrupo, colunas Resumo/Embarques/NumeroFechamento/PreviaAutomatica)</li>
+      <li>Conferir o gating: com só <code>TELA_AVB_NAC_RCV</code> ligada, o combo mostra apenas <code>RCV - 59</code></li>
+      <li>Modo <strong>Segurado</strong>: confirmar que a consulta ampla traz ramo 59 no grid (merge RC-V que o legado não faz)</li>
+      <li>Documentar cada ausência como GAP com severidade (o bloco de relatório do novo está em desenvolvimento)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Diferenças de filtro/coluna documentadas item a item; o gating por indicativo funciona nos dois sentidos (ramo sem flag não aparece) e o merge RC-V na consulta por Segurado é intencional.</div>
+      <div class="ev-section" id="ev-CT-PRV-008"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-009</span>
+      <span class="ct-title">Resumo da fatura acessível (fim do 403 falso) e erro do Processar visível</span>
+      <span class="badge badge-novo">403 falso / notice</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Dois fixes declarados: (a) a coluna <code>i_fat_cit_net</code> não existe em nenhum tenant e o resumo devolvia "Apólice sem permissão" para todas as seguradoras — coluna ausente/null agora permite; (b) a mensagem de erro do Processar ia para um toast ATRÁS do overlay do modal — nova prop <code>notice</code> no <code>PageModal</code> (faixa fixa acima dos botões).<br>
+      <strong>Tipo:</strong> Negativo → positivo · regressão de fix · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> 403 falso / notice</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: abrir o Resumo da Fatura em pelo menos 2 tenants (AXA - HML - ALFA e KOVR - HML - ALFA) e confirmar que não há "Apólice sem permissão"</li>
+      <li>Forçar um erro no Processar (ex.: vencimento fora do intervalo permitido) e confirmar que a mensagem aparece <strong>dentro do modal</strong>, legível, sem ficar atrás do overlay</li>
+      <li>Conferir as validações de vencimento mínimo e máximo, comparando a janela com a do atual (<code>ExibirMensagem</code>)</li>
+      <li>Sucesso do Aprovar: confirmar que a linha permanece marcada "Aprovada com sucesso" sem re-consultar</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Resumo abre nos dois tenants, o erro do Processar é visível dentro do modal com o texto específico, e o sucesso mantém a linha marcada — paridade com <code>autorizacao-previa.js</code>.</div>
+      <div class="ev-section" id="ev-CT-PRV-009"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-010</span>
+      <span class="ct-title">GAP-1 — links por linha: Resumo (PDF da fatura) e Embarques (relação)</span>
+      <span class="badge badge-novo">GAP-1</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> GAP-1 declarado P1/12h pelo dev, ainda em desenvolvimento. No atual, a lupa chama <code>GerarResumo(...)</code> → POST <code>/citnet/Relatorio/FaturaReportPdf</code> (<code>optFatura=R</code>, <code>hdAgrupaFatura=A</code>) → PDF em nova aba.<br>
+      <strong>Tipo:</strong> Lacuna · relatório · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> GAP-1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>ATUAL: gerar o Resumo (PDF) e a Relação de Embarques de uma linha da prévia e salvar os arquivos</li>
+      <li>NOVO: verificar se os links por linha existem; se não, registrar como GAP aberto com a evidência do atual como referência do que falta</li>
+      <li>Se existirem: gerar os dois relatórios no novo, salvar e comparar conteúdo com os do atual (cabeçalho, totais, nº de linhas)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Se implementado: os dois relatórios do novo batem com os do atual, com os arquivos anexados como evidência. Se não: GAP-1 documentado como pendência de desenvolvimento, sem reprovar a tela.</div>
+      <div class="ev-section" id="ev-CT-PRV-010"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-PRV-011</span>
+      <span class="ct-title">Perfil ASSESSORIA na prévia: combo Corretor + cascata até a apólice</span>
+      <span class="badge badge-novo">ASSESSORIA</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> PR #1421 (commit 9e69949) — combo Corretor + cascata corretor → segurado → apólice para o perfil ASSESSORIA, validado pelo dev no axa-alfa. Filtros Segurado e Apólice viraram combos (paridade <code>CarregaSegurado</code>/<code>CarregaApolice</code>); default do radio "Filtrar por" = Segurado para KOVR.<br>
+      <strong>Tipo:</strong> Positivo · permissão · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> ASSESSORIA</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Logar no NOVO como ASSESSORIA → Aprovação de Prévias</li>
+      <li>Confirmar o combo <strong>Corretor</strong> (obrigatório) e a cascata corretor → segurado → apólice</li>
+      <li>Comparar a lista de corretores com o banco (<code>ListaCorretorAssessoria</code>)</li>
+      <li>Confirmar o default do radio "Filtrar por" no tenant KOVR</li>
+      <li>ATUAL: repetir a jornada ASSESSORIA e comparar as listas</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmos corretores e segurados do legado, cascata funcional, Corretor obrigatório e default do radio correto por tenant.</div>
+      <div class="ev-section" id="ev-CT-PRV-011"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G3 · Relatórios → Consulta de Averbações (RC-V)</h2>
+    <span class="group-badge">9 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">Task #7898 · a bateria de 31/07 achou divergência no conjunto retornado e na coluna Status (R1). Os PRs #1439/#1448 reconstruíram a tela (shape-first), corrigiram a tabela lida, adicionaram certificado + ZIP, ASSESSORIA e anti-IDOR.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-001</span>
+      <span class="ct-title">Mesmo filtro devolve o mesmo conjunto de averbações</span>
+      <span class="badge badge-novo">R1</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline (31/07): filtro filial <code>1</code> · apólice <code>101059</code> · <code>01/07/2026</code> a <code>31/07/2026</code> → atual devolveu <strong>10 linhas</strong> (sem paginação) e o novo <strong>25 por página, "Página 1 de 2"</strong>. Correção P0 do PR #1439: o relatório lia a tabela errada e vinha vazio; agora lê <code>tb_mov_avb_rcv_cit</code> (+ excluídas).<br>
+      <strong>Tipo:</strong> Paridade de conjunto · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> R1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: <strong>Relatórios</strong> → <strong>Consulta</strong> → Filial <code>1</code> → Apólice <code>101059</code> → período <code>01/07/2026</code>–<code>31/07/2026</code> → <strong>Consultar</strong></li>
+      <li>Registrar o total de linhas e paginar até o fim, coletando todos os protocolos</li>
+      <li>ATUAL: mesma consulta → coletar todos os protocolos</li>
+      <li>Conferir no banco: <code>SELECT u_pcl,u_avb,i_sit FROM tb_mov_avb_rcv_cit WHERE u_apo_pnc=101059 AND d_sda_vgm BETWEEN '2026-07-01' AND '2026-07-31'</code></li>
+      <li>Diff dos três conjuntos (novo × atual × banco) e explicar cada linha que só aparece em um</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> O conjunto do novo (somando as páginas) é igual ao do atual e ao do banco. Diferença de paginação é apresentação; diferença de <strong>conjunto</strong> é reprovação com os protocolos nominados.</div>
+      <div class="ev-section" id="ev-CT-RCS-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-002</span>
+      <span class="ct-title">Coluna Status: regra de preenchimento definida e igual nos dois</span>
+      <span class="badge badge-novo">R1</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline: Status <strong>vazio em todas as linhas</strong> do atual e preenchido no novo ("Processado", "Excluída pela Seguradora", "—"). Precisa de definição: o correto é preencher (novo) ou deixar vazio (atual)?<br>
+      <strong>Tipo:</strong> Paridade de dado · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> R1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: registrar o valor de Status de cada linha do resultado</li>
+      <li>ATUAL: registrar o mesmo</li>
+      <li>Mapear cada valor exibido para a coluna de origem no banco (<code>i_sit</code>, <code>u_fch_mes</code>)</li>
+      <li>Confirmar a regra com o dev/Produtos e documentar qual comportamento é o oficial</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Regra de Status documentada e o comportamento do novo coerente com ela — inclusive para averbações excluídas pela seguradora.</div>
+      <div class="ev-section" id="ev-CT-RCS-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-003</span>
+      <span class="ct-title">Filtros Status e Ramo: ausência no novo é gating ou lacuna?</span>
+      <span class="badge badge-novo">R1</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> O atual tem filtro <strong>Status</strong> e Ramo com <strong>6 opções</strong> (21, 52, 54, 56, 59…); o novo não tem filtro de Status e o Ramo é fixo em <code>59 - RCV</code>. O PR do gating declara que os combos nacionais passam a mostrar só ramos com flag <code>TELA_AVB_NAC_*</code> ativa — coerente com a migração parcial, mas não é paridade.<br>
+      <strong>Tipo:</strong> Paridade de tela · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> R1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Inventariar os filtros das duas telas lado a lado</li>
+      <li>Conferir se o Ramo fixo decorre do gating por indicativo (ligar/desligar flag de outro ramo nacional no tenant e observar o combo)</li>
+      <li>Registrar a ausência do filtro Status como GAP com severidade</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Ramo restrito explicado pelo gating (comportamento intencional, fail-closed); ausência do filtro Status classificada como GAP documentado.</div>
+      <div class="ev-section" id="ev-CT-RCS-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-004</span>
+      <span class="ct-title">Dados do relatório conferem com o banco (regressão do relatório vazio)</span>
+      <span class="badge badge-novo">P0 do PR #1439</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> O relatório RC-V vinha <strong>sempre vazio</strong> (lia a tabela errada). Validado pelo dev no AXA e KOVR após o fix.<br>
+      <strong>Tipo:</strong> Regressão · dado · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> P0 do PR #1439</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar um período com movimento conhecido e conferir linha a linha contra <code>tb_mov_avb_rcv_cit</code></li>
+      <li>Repetir em um segundo tenant (KOVR - HML - ALFA)</li>
+      <li>Conferir os valores exibidos (IS, prêmio) contra o banco, incluindo formatação</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Grid com dados corretos nos dois tenants, batendo com o banco linha a linha — sem tela vazia.</div>
+      <div class="ev-section" id="ev-CT-RCS-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-005</span>
+      <span class="ct-title">Certificado RC-V por linha, Marcar Tudo e Gerar Todos (ZIP) com identidade do tenant</span>
+      <span class="badge badge-novo">certificado</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Identidade da seguradora vem do banco por tenant (<code>tb_cad_seg</code>: razão <code>n_seg</code>, CNPJ <code>cnpj_seg</code>, código SUSEP <code>c_seg_ssp</code>). Validado pelo dev: <strong>AXA SUSEP 2852</strong> e <strong>KOVR SUSEP 6921</strong>. Layout fiel ao RDLC (faixa navy, logo, blocos Seguradora/Corretora, coberturas, objetivo).<br>
+      <strong>Tipo:</strong> Positivo · relatório · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> certificado</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: gerar o certificado de uma linha → <strong>salvar o arquivo</strong></li>
+      <li>Usar <strong>Marcar Tudo</strong> + <strong>Gerar Todos (ZIP)</strong> → salvar o ZIP e abrir o conteúdo</li>
+      <li>Conferir no PDF: razão social, CNPJ e código SUSEP contra <code>tb_cad_seg</code> do tenant</li>
+      <li>Repetir no tenant KOVR e confirmar SUSEP 6921</li>
+      <li>ATUAL: gerar o certificado equivalente e comparar layout e dados</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Certificado e ZIP gerados, com razão/CNPJ/SUSEP corretos por tenant e layout fiel ao RDLC. Os arquivos ficam anexados como evidência (screenshot não basta).</div>
+      <div class="ev-section" id="ev-CT-RCS-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-006</span>
+      <span class="ct-title">Anti-IDOR nos 3 endpoints da Consulta</span>
+      <span class="badge badge-novo">IDOR (CWE-639)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> PR #1448: grid de conhecimentos, <code>certificados/gerar-zip</code> e <code>relatorios/averbacao-pdf</code> passaram a exigir ownership (<code>AutorizarApoliceIncondicional</code>) — perfil restrito só vê a própria carteira; INTERNO faz bypass. Evidência do dev: 403 nos 3 com JWT ASSESSORIA real.<br>
+      <strong>Tipo:</strong> Negativo · segurança · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> IDOR (CWE-639)</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Obter token de um usuário <strong>ASSESSORIA</strong> do axa-alfa</li>
+      <li>Chamar os 3 endpoints com apólice fora da carteira → esperado <strong>403</strong> nos três</li>
+      <li>Chamar com apólice da própria carteira → esperado 200 com dados</li>
+      <li>Repetir como INTERNO → acesso amplo</li>
+      <li>Registrar requisição e resposta de cada tentativa como evidência</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> 403 nos 3 endpoints fora da carteira, 200 dentro, INTERNO com bypass — sem vazamento de dados de outra carteira em nenhuma das vias.</div>
+      <div class="ev-section" id="ev-CT-RCS-006"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-007</span>
+      <span class="ct-title">Período obrigatório em Consultar e em Imprimir/PDF, com mensagem visível</span>
+      <span class="badge badge-novo">período obrigatório</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Paridade com o legado: Consultar E Imprimir/PDF exigem Data Inicial + Final, com mensagem antes de chamar o servidor.<br>
+      <strong>Tipo:</strong> Negativo · validação · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> período obrigatório</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: clicar <strong>Consultar</strong> sem preencher o período → capturar a mensagem</li>
+      <li>Clicar <strong>Imprimir/PDF</strong> sem período → capturar a mensagem</li>
+      <li>Confirmar que nenhuma requisição é disparada ao servidor nesses dois casos</li>
+      <li>ATUAL: repetir e comparar os textos</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> As duas ações bloqueiam sem período, com mensagem visível e sem chamada ao servidor — texto equivalente ao do atual.</div>
+      <div class="ev-section" id="ev-CT-RCS-007"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-008</span>
+      <span class="ct-title">PDF do Imprimir com as 9 colunas do RDLC</span>
+      <span class="badge badge-novo">PDF RDLC</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> O PR #1439 declara o PDF do Imprimir com as 9 colunas do RDLC do legado.<br>
+      <strong>Tipo:</strong> Positivo · relatório · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> PDF RDLC</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: consultar um período com movimento → <strong>Imprimir/PDF</strong> → salvar o arquivo</li>
+      <li>ATUAL: gerar o PDF equivalente → salvar</li>
+      <li>Comparar colunas (nome e ordem), totais e nº de linhas dos dois arquivos</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> 9 colunas na mesma ordem, mesmos totais e mesmo nº de linhas do PDF do atual. Arquivos anexados.</div>
+      <div class="ev-section" id="ev-CT-RCS-008"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-RCS-009</span>
+      <span class="ct-title">ASSESSORIA: Corretor obrigatório, cascata e layout sem célula vazia</span>
+      <span class="badge badge-novo">ASSESSORIA</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> PR #1448: combos Corretor (obrigatório) + Segurado em cascata até a Apólice, só para ASSESSORIA (paridade <code>_FilialApolice</code>); filial escondida não deixa célula vazia no grid. Evidência do dev: 6 corretores + 2 segurados idênticos ao legado.<br>
+      <strong>Tipo:</strong> Positivo · permissão · <strong>Origem:</strong> task #7898 · <strong>Apontamento:</strong> ASSESSORIA</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: logar como ASSESSORIA → Relatórios → Consulta</li>
+      <li>Confirmar Corretor obrigatório, cascata Corretor → Segurado → Apólice e a contagem de corretores (6) e segurados (2) contra o banco</li>
+      <li>Confirmar que o grid não tem célula vazia onde a filial foi escondida</li>
+      <li>ATUAL: repetir e comparar</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmos 6 corretores e 2 segurados do legado, Corretor obrigatório, cascata correta e grid sem célula órfã.</div>
+      <div class="ev-section" id="ev-CT-RCS-009"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G4 · Conversor RCV — bloqueio C1 e a matriz de 15 casos</h2>
+    <span class="group-badge">5 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">Sem task própria hoje (defeito a ticketar). Em 29/07 e no reteste de 31/07 o Conversor do novo rejeitou 100% das linhas com "Atributo obrigatório 'Filial / Sucursal' está vazio", com qualquer layout — inclusive um pré-existente do time. Enquanto C1 estiver aberto, nenhuma regra de negócio do Conversor é homologável.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-CNV-001</span>
+      <span class="ct-title">Conversão aplica o mapeamento DE/PARA do layout (fim do 100% rejeitado)</span>
+      <span class="badge badge-novo">C1 (bloqueante)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Massa versionada: <code>testes-automatizados/sprint-11-citweb/conversor-rcv-paridade/</code> (gerador <code>gerar_massa_conversor_rcv.py</code> + planilhas de 29/07 e 31/07). Cliente <code>1 — 11324123412412341234</code>, layout <strong>QA_PARIDADE_RCV</strong> (<code>CIT-AVB-RCV</code>, 19 campos); layout de controle pré-existente do time: <strong>itamar_RCV</strong>. Baseline: atual converteu 12/15; novo 0/16.<br>
+      <strong>Tipo:</strong> Positivo · bloqueio · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> C1 (bloqueante)</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: menu <strong>Conversor</strong> → Filial <code>1 — SAO PAULO</code> → Ramo-Produto <code>59 — RCV</code> → enviar o arquivo da matriz</li>
+      <li>Bloco "Converter arquivo": Cliente <code>1</code>, Layout <strong>QA_PARIDADE_RCV</strong>, Upload = arquivo enviado → <strong>Converter</strong></li>
+      <li>Registrar lidos / aceitos / rejeitados e a mensagem de cada rejeição</li>
+      <li>Repetir com o layout <strong>itamar_RCV</strong> (controle: descarta problema do layout de teste)</li>
+      <li>ATUAL: converter o mesmo arquivo (baseline 15 lidos · 12 aceitos · 3 rejeitados)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> O novo aceita as <strong>12 linhas válidas</strong> da matriz e rejeita as 3 com o mesmo motivo do atual. Nenhuma rejeição de "Filial / Sucursal está vazio" em linha com filial preenchida.</div>
+      <div class="ev-section" id="ev-CT-CNV-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-CNV-002</span>
+      <span class="ct-title">Processamento: 15 regras de aceite/rejeição com o motivo correto</span>
+      <span class="badge badge-novo">matriz L01–L15</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Só executável depois de C1 corrigido (CT-CNV-001). Baseline do atual: 12 lidos → <strong>4 averbações</strong> aceitas + 8 rejeitadas, todas com motivo de negócio correto. Casos: L01 data hoje · L02 hoje+5 · L03 hoje+6 (rejeitar) · L04 retroativa (rejeitar) · L05 01/01/2020 (rejeitar) · L06 documento duplicado · L07 apólice cancelada · L08 apólice sem CC · L09 placa em branco · L10 estado de origem em branco · L11 subgrupo 999 inexistente · L12 município de origem inexistente · L13 apólice suspensa · L14 documento alfanumérico · L15 controle positivo (CC PRFX).<br>
+      <strong>Tipo:</strong> Matriz · regras de negócio · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> matriz L01–L15</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Após a conversão do CT-CNV-001, clicar <strong>Processar</strong> no novo</li>
+      <li>Registrar, por linha, aceite/rejeição e o texto exato do motivo</li>
+      <li>Conferir no banco as averbações geradas (protocolo, prêmio, competência)</li>
+      <li>ATUAL: processar o mesmo arquivo e montar a tabela comparativa linha a linha</li>
+      <li>Confirmar que as mensagens de negócio batem com as da tela de averbação (ex.: <em>"Data de saída deve ser igual ou maior que data atual (limitado a 5 dias);"</em>)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmo veredito por linha nos dois sistemas (4 aceitas / 8 rejeitadas na base atual), com motivos de rejeição equivalentes e averbações gravadas com prêmio correto.</div>
+      <div class="ev-section" id="ev-CT-CNV-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-CNV-003</span>
+      <span class="ct-title">C2 — confirmação da linha inicial (ou detecção de cabeçalho)</span>
+      <span class="badge badge-novo">C2</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> No atual, Converter abre o modal <em>"Informe a Linha Inicial"</em> (<code>#txtQtdLinha</code>/<code>#cmbLinhas</code> + <code>#btOkLinha</code>) — é assim que se pula o cabeçalho. O novo não pergunta.<br>
+      <strong>Tipo:</strong> Lacuna · funcional · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> C2</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>NOVO: converter um arquivo <strong>com cabeçalho</strong> e observar se há pergunta de linha inicial ou detecção automática</li>
+      <li>Conferir se a linha de cabeçalho é rejeitada com motivo claro (o atual rejeita como "conteúdo não é numérico")</li>
+      <li>ATUAL: repetir com o modal de linha inicial em 2 e comparar o resultado</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> O novo trata o cabeçalho de forma equivalente — perguntando a linha inicial ou detectando e rejeitando com motivo claro, sem contaminar a contagem de aceitas.</div>
+      <div class="ev-section" id="ev-CT-CNV-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-CNV-004</span>
+      <span class="ct-title">C3 — cálculo VKMCML pelo Conversor: qual dos dois está correto</span>
+      <span class="badge badge-novo">C3</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Achado C3: o cálculo VKMCML do <strong>ATUAL</strong> devolve zero, enquanto o registro criado no novo (protocolo 44, doc 29307322, km 500) ficou com <strong>R$ 77,77</strong> — o valor correto da faixa 0–1000 km da apólice <code>2</code>. Divergência a favor do novo, mas precisa de decisão.<br>
+      <strong>Tipo:</strong> Cálculo · divergência alta · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> C3</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Levantar no banco os registros VKMCML recentes da apólice <code>2</code> e o prêmio de cada um</li>
+      <li>ATUAL: converter+processar uma linha VKMCML com km conhecido dentro da faixa 0–1000 e registrar o prêmio</li>
+      <li>NOVO: idem, após C1 corrigido</li>
+      <li>Confrontar com a tabela de faixas (<code>v_ini_km</code>/<code>v_fim_km</code>/<code>v_prm</code> em <code>tb_sgp_rcv_cml_cit</code>): esperado R$ 77,77 (0–1000) e R$ 88,88 (1001–20000)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Os dois sistemas aplicam a faixa correta (R$ 77,77 para 500 km). Prêmio zero no atual é defeito do legado a reportar — e não pode ser replicado no novo em nome da paridade.</div>
+      <div class="ev-section" id="ev-CT-CNV-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-CNV-005</span>
+      <span class="ct-title">Contadores da conversão e do processamento idênticos lado a lado</span>
+      <span class="badge badge-novo">paridade de contagem</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Mesma massa, mesmo layout, mesma base. Baseline atual: conversão 15 lidos/12 aceitos/3 rejeitados; processamento 12 lidos/4 aceitos/8 rejeitados.<br>
+      <strong>Tipo:</strong> Paridade de tela · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> paridade de contagem</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Executar a conversão e o processamento nos dois sistemas com o mesmo arquivo, na mesma janela</li>
+      <li>Capturar os contadores das duas telas (lidos/aceitos/rejeitados em cada etapa)</li>
+      <li>Conferir no banco a quantidade de averbações efetivamente criadas por cada sistema</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Contadores iguais nas duas etapas e quantidade de averbações no banco igual à declarada em tela nos dois sistemas.</div>
+      <div class="ev-section" id="ev-CT-CNV-005"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G5 · Integridade de gravação — o caminho que ignorava as validações (A1)</h2>
+    <span class="group-badge">4 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">Sem task própria hoje (defeito a ticketar). Em 30 e 31/07 apareceram averbações gravadas SEM protocolo (<code>u_pcl = NULL</code>), usuário INTERNO, usando exatamente os documentos do arquivo de paridade — inclusive linhas que o processamento interativo REJEITA. Convivem dois caminhos: um que valida e numera protocolo, outro que grava tudo.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-ITG-001</span>
+      <span class="ct-title">Os 6 cenários inválidos são rejeitados por TODOS os caminhos de gravação</span>
+      <span class="badge badge-novo">A1 (grave)</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Documentos e cenários observados: <code>31071003</code> (data hoje+6 → gravou com prêmio R$ 1.999,98), <code>31071004</code> (retroativa → gravou), <code>31071007</code> (apólice 444 cancelada → gravou R$ 1.500,00), <code>31071013</code> (apólice 567 suspensa → gravou R$ 1.000,00), <code>ABC31071014</code> (documento alfanumérico → gravou), <code>31071001</code> (duplicado → gravou 2×).<br>
+      <strong>Tipo:</strong> Negativo · integridade · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> A1 (grave)</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Para cada um dos 6 cenários, tentar gravar pela <strong>tela</strong> do novo → esperado: recusa com mensagem de negócio</li>
+      <li>Repetir cada cenário chamando <code>POST /api/averbacao-nacional/gravar</code> <strong>diretamente</strong> (contornando o front) → esperado: 422 com o código da validação (G1..G10)</li>
+      <li>Repetir pelo <strong>Conversor</strong> (após C1 corrigido) → esperado: rejeição na conversão ou no processamento</li>
+      <li>Conferir no banco que nenhuma linha nova foi criada para os 6 cenários</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Os 6 cenários são rejeitados em <strong>todos</strong> os caminhos (tela, API direta e Conversor), com código de validação, e nada é persistido.</div>
+      <div class="ev-section" id="ev-CT-ITG-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-ITG-002</span>
+      <span class="ct-title">Toda averbação gravada tem protocolo (u_pcl não nulo)</span>
+      <span class="badge badge-novo">A1</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Baseline: as averbações do caminho suspeito foram gravadas com <code>u_pcl = NULL</code>; a execução correta do mesmo dia (09:19) gerou protocolos 34, 35, 36 e 62.<br>
+      <strong>Tipo:</strong> Negativo · integridade de dado · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> A1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Executar uma bateria de gravações válidas pelos caminhos legítimos (tela e Conversor)</li>
+      <li><code>SELECT COUNT(*) FROM tb_mov_avb_rcv_cit WHERE u_pcl IS NULL AND d_usu_inc &gt;= '&lt;início do teste&gt;'</code> → esperado 0</li>
+      <li>Conferir também <code>e_ori_avb</code> das linhas criadas (esperado CITNET/CTE)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Zero averbações novas com <code>u_pcl</code> nulo e origem coerente em <code>e_ori_avb</code>.</div>
+      <div class="ev-section" id="ev-CT-ITG-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-ITG-003</span>
+      <span class="ct-title">Quantificar e reportar a massa contaminada na competência 07/2026</span>
+      <span class="badge badge-novo">A1</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> As averbações irregulares entram na competência <code>07/2026</code> com prêmio e contaminam prévia/faturamento — inclusive de apólice cancelada e suspensa. Explica parte da diferença de contagem vista no P1.<br>
+      <strong>Tipo:</strong> Levantamento · impacto · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> A1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Levantar todas as averbações de <code>07/2026</code> com <code>u_pcl IS NULL</code> (apólice, documento, prêmio, data/hora, usuário)</li>
+      <li>Cruzar com as apólices canceladas/suspensas e com os documentos do arquivo de paridade</li>
+      <li>Medir o impacto no prêmio da competência por apólice</li>
+      <li>Registrar a lista no plano e propor a limpeza ao dev/DBA (não executar limpeza sem autorização)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Lista completa e quantificada da massa contaminada, com impacto por apólice — insumo para decidir a limpeza antes de qualquer conclusão sobre o P1.</div>
+      <div class="ev-section" id="ev-CT-ITG-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-ITG-004</span>
+      <span class="ct-title">Identificar o processo que gravou sem validar</span>
+      <span class="badge badge-novo">A1</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Horários observados: 30/07 23:20–23:36 e 31/07 11:47, usuário INTERNO. Candidatos: API do novo em teste, processamento automático, script.<br>
+      <strong>Tipo:</strong> Investigação · <strong>Origem:</strong> task a ticketar · <strong>Apontamento:</strong> A1</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Correlacionar os horários com os Logs de Auditoria do novo (<strong>Admin → Logs de Auditoria</strong>)</li>
+      <li>Conferir <code>n_usu_inc</code>, <code>e_ori_avb</code> e eventuais tabelas de log de requisição</li>
+      <li>Confirmar com o dev qual endpoint/rotina estava ativo naquela janela</li>
+      <li>Documentar a origem no card — sem atribuir causa sem prova</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Origem identificada nominalmente (endpoint/rotina) e confirmação de que aquele caminho agora aplica as mesmas validações.</div>
+      <div class="ev-section" id="ev-CT-ITG-004"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G6 · Regressão — o núcleo que já estava em paridade</h2>
+    <span class="group-badge">8 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">O report de 27/07 fechou 27 de 31 colunas idênticas e aprovou o núcleo. Estes CTs garantem que os PRs #1461/#1462 e os PRs das outras telas não quebraram o que já passava.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-001</span>
+      <span class="ct-title">Cálculo TPP permanece R$ 1.999,98 no mesmo percurso</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Apólice <code>101059</code> sgp 1, taxa <code>f_cml_bsc</code> 0,99999, Osasco/SP → Itaboraí/RJ.<br>
+      <strong>Tipo:</strong> Regressão · cálculo · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Gravar uma averbação nesse percurso no NOVO e registrar o prêmio</li>
+      <li>Repetir no ATUAL</li>
+      <li>Conferir <code>v_cml_pmo</code> e <code>f_cml_bsc</code> nas duas linhas do banco</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> R$ 1.999,98 nos dois, com a mesma taxa gravada.</div>
+      <div class="ev-section" id="ev-CT-REG-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-002</span>
+      <span class="ct-title">Limites DC/DM continuam vindo de tb_apo_cob_lmr</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Endpoint <code>limites-dm-dc-rcv</code>. Baseline: 100.000/100.000 na apólice 101059 e 250.000/200.000 na apólice 2.<br>
+      <strong>Tipo:</strong> Regressão · dado · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Selecionar as duas apólices no novo e registrar DC/DM exibidos</li>
+      <li>Comparar com <code>tb_apo_cob_lmr</code> e com o atual</li>
+      <li>Gravar e conferir <code>v_lmr_dc</code>/<code>v_lmr_dm</code> persistidos</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> DC/DM exibidos e persistidos iguais ao atual e ao banco nas duas apólices.</div>
+      <div class="ev-section" id="ev-CT-REG-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-003</span>
+      <span class="ct-title">Duplicidade de conhecimento nas 4 tabelas RCV</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Mensagens: atual <em>"Conhecimento já cadastrado para outra Averbação"</em>; novo idem com ponto final. A validação varre as 4 tabelas RCV.<br>
+      <strong>Tipo:</strong> Regressão · negativo · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Gravar uma averbação com CT-e novo</li>
+      <li>Tentar gravar outra com o MESMO CT-e na mesma apólice → capturar a mensagem</li>
+      <li>Repetir com o documento de uma averbação <strong>excluída</strong> (i_sit='E') e comparar o comportamento dos dois sistemas</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Duplicidade recusada nos dois, com a mesma regra para averbação excluída.</div>
+      <div class="ev-section" id="ev-CT-REG-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-004</span>
+      <span class="ct-title">Janela de data de saída (G6) e vigência da apólice</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Regra fiel ao <code>ValidarCoberturaDataLimite</code>. Mensagens do novo: <em>"Data de saída deve ser igual ou maior que data atual;"</em> e <em>"Data de movimento (2020-01-01) fora da vigência da apólice (2025-12-02 a 2026-12-02)."</em><br>
+      <strong>Tipo:</strong> Regressão · limite · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Testar data = hoje (aceita), hoje+5 (aceita), hoje+6 (recusa), retroativa (recusa) e 01/01/2020 (recusa por vigência)</li>
+      <li>Capturar o texto exato de cada recusa nos dois sistemas</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmo veredito e mensagens equivalentes em todos os 5 pontos da janela.</div>
+      <div class="ev-section" id="ev-CT-REG-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-005</span>
+      <span class="ct-title">Tipo de Documento restrito por apólice (montarTipoDoc)</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Regra: Estipulação+NFe → só NFe; senão CTE+Outros. No atual a opção NFe é removida quando <code>#hdAvbNfe</code> está vazio.<br>
+      <strong>Tipo:</strong> Regressão · regra por apólice · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Selecionar uma apólice com NFe habilitada e listar as opções de Tipo Documento nos dois sistemas</li>
+      <li>Selecionar uma apólice sem NFe e repetir</li>
+      <li>Confirmar o comportamento na troca de apólice e após o botão Novo</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmas opções por apólice nos dois sistemas, inclusive após troca de apólice/filial e Novo.</div>
+      <div class="ev-section" id="ev-CT-REG-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-006</span>
+      <span class="ct-title">Competência (d_ano_mes_ref) atribuída igual nos dois</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Coluna <code>d_ano_mes_ref</code> — base do faturamento. Relacionada ao D2 (fuso).<br>
+      <strong>Tipo:</strong> Regressão · dado · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Gravar averbações com data de saída no início, meio e virada do mês</li>
+      <li>Conferir <code>d_ano_mes_ref</code> de cada uma nos dois sistemas</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesma competência atribuída em todos os casos, inclusive na virada do mês.</div>
+      <div class="ev-section" id="ev-CT-REG-006"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-007</span>
+      <span class="ct-title">Hash de autenticação do protocolo impresso permanece idêntico</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Já provado idêntico em 27/07 — reconferir após os PRs do D5.<br>
+      <strong>Tipo:</strong> Regressão · relatório · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Imprimir o mesmo protocolo equivalente nos dois sistemas</li>
+      <li>Extrair e comparar o hash de autenticação</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Hash idêntico, sem efeito colateral das mudanças de layout do impresso.</div>
+      <div class="ev-section" id="ev-CT-REG-007"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-REG-008</span>
+      <span class="ct-title">Ramos não-RCV não regridem com o gating por indicativo</span>
+      <span class="badge badge-novo">regressão</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> O gating declara: nenhum ramo é "sempre" visível; ramo sem flag mapeada → oculto (fail-closed). Existe <code>RCV_ONLY_MODE = true</code> hardcoded em <code>web/src/features/navigation/rcvScope.ts</code> que hoje trava tudo em RCV — quando virar false, 2 combos nacionais exibiriam TODOS os ramos sem gating.<br>
+      <strong>Tipo:</strong> Regressão · fail-closed · <strong>Origem:</strong> task #7883/#7898 · <strong>Apontamento:</strong> regressão</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Conferir, nos combos de ramo das telas migradas, que só aparecem ramos com flag ativa</li>
+      <li>Ligar a flag de um segundo ramo nacional no tenant e confirmar que ele aparece nas telas certas</li>
+      <li>Registrar o risco do <code>RCV_ONLY_MODE</code> como pendência amarrada à virada da flag (Lista Averbação Nacional e Consulta Averbação duplicada fora do menu)</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Gating coerente front↔back (mapa ramo→flag idêntico) e risco do RCV_ONLY_MODE documentado com os 2 combos nominados.</div>
+      <div class="ev-section" id="ev-CT-REG-008"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="group-header">
+    <h2>G7 · Multi-tenant — o refatorado não pode ser "AXA-only"</h2>
+    <span class="group-badge">3 CTs</span>
+    <span class="group-toggle">&#9660;</span>
+  </div>
+  <div class="group-body">
+    <div class="doc-box" style="margin-bottom:12px"><p style="margin:0">A arquitetura declarada é schema-aware por tenant (capability providers por INFORMATION_SCHEMA + cache por tenant). Estes CTs provam que a paridade não depende do tenant do piloto.</p></div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-MTN-001</span>
+      <span class="ct-title">Jornada da prévia no caminho genérico (KOVR - HML - ALFA)</span>
+      <span class="badge badge-novo">multi-tenant</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> O piloto de comparação da prévia foi KOVR-alfa justamente por ser caminho genérico (não-AXA).<br>
+      <strong>Tipo:</strong> Positivo · multi-tenant · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> multi-tenant</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Logar no NOVO com <strong>Ambiente = KOVR - HML - ALFA</strong></li>
+      <li>Executar a jornada completa da Aprovação de Prévias (consultar → resumo → aprovar/processar)</li>
+      <li>Comparar com o legado KOVR equivalente</li>
+      <li>Conferir a identidade da seguradora (SUSEP 6921) nos artefatos gerados</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Jornada completa funcional no KOVR, com os mesmos valores do legado e identidade correta do tenant.</div>
+      <div class="ev-section" id="ev-CT-MTN-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-MTN-002</span>
+      <span class="ct-title">Tenant sem RCV não quebra (skip quando tabela/coluna ausente)</span>
+      <span class="badge badge-novo">schema-aware</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Declarado: consulta RCV própria schema-aware (skip se tabela/colunas ausentes) + dedup — funciona para todas as seguradoras sem quebrar as sem RCV. Também: <code>i_fat_cit_net</code> não existe em nenhum tenant e coluna ausente/null passou a permitir.<br>
+      <strong>Tipo:</strong> Negativo · robustez · <strong>Origem:</strong> task #7883 · <strong>Apontamento:</strong> schema-aware</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Escolher um tenant do combo Ambiente que não opere RCV</li>
+      <li>Abrir Aprovação de Prévias e Relatórios → Consulta e confirmar que a tela carrega sem erro</li>
+      <li>Conferir que o ramo 59 simplesmente não aparece, sem 500 nem tela branca</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Telas carregam em tenant sem RCV, sem erro de coluna/tabela ausente e sem exibir ramo indevido.</div>
+      <div class="ev-section" id="ev-CT-MTN-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-bar">
+      <span class="ct-id">CT-MTN-003</span>
+      <span class="ct-title">Correções de tenant (207 / exclusão / DM-DC) valem em mais de um ambiente</span>
+      <span class="badge badge-novo">multi-tenant</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="precond-box"><strong>Pré-condições / massa:</strong> Correções declaradas via capability providers: R1 (207 em <code>tb_cit_net_mov_pcl</code>), R2/R3 (exclusão), R4 (DM/DC).<br>
+      <strong>Tipo:</strong> Regressão · multi-tenant · <strong>Origem:</strong> task #7825 · <strong>Apontamento:</strong> multi-tenant</div>
+      <h4>Passos</h4>
+      <ol>
+      <li>Repetir inclusão, exclusão e leitura de DM/DC em <strong>dois tenants</strong> (AXA-alfa e KOVR-alfa)</li>
+      <li>Conferir que nenhuma das 4 correções depende de código específico de seguradora</li>
+      </ol>
+      <div class="result-box"><strong style="color:#c9d1d9">Resultado esperado:</strong> Mesmo comportamento nos dois tenants nas 4 correções.</div>
+      <div class="ev-section" id="ev-CT-MTN-003"></div>
+    </div>
+  </div>
+  </div>
+
+  <div class="section-title">7 · Matriz de rastreabilidade — apontamento → CT</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Apontamento / critério</th><th>Task</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>D1 — apólice cancelada averbável (ALTO)</td><td>#7825/#7913</td><td><code>CT-RAV-001</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D2 — d_usu_inc em UTC (ALTO)</td><td>#7825/#7913</td><td><code>CT-RAV-002, CT-REG-006</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D3 — lista de apólices divergente (MÉDIO)</td><td>#7825/#7913</td><td><code>CT-RAV-003</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D4a/D4b — prêmio no formulário e crítica de KM (MÉDIO)</td><td>#7825/#7913</td><td><code>CT-RAV-004, CT-RAV-005</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D5 — protocolo impresso incompleto (MÉDIO)</td><td>#7825/#7913</td><td><code>CT-RAV-006, CT-REG-007</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D6 — combo Filial divergente (BAIXO)</td><td>#7825/#7913</td><td><code>CT-RAV-007</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D7 — URBANO na origem (BAIXO)</td><td>#7825/#7913</td><td><code>CT-RAV-008</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D8.1–D8.7 — UX do formulário (BAIXO)</td><td>#7825/#7913</td><td><code>CT-RAV-009</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Prova de dados — 4 tabelas RCV coluna a coluna</td><td>#7913</td><td><code>CT-RAV-010, CT-RAV-011, CT-RAV-012</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>D-1..D-5 — divergências autorizadas pelo PO</td><td>#7913</td><td><code>CT-RAV-013</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>P1 — prêmio comercial da prévia (CRÍTICA)</td><td>#7883</td><td><code>CT-PRV-001, CT-PRV-004</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>PMM — mínimo, proporcional, sem embarque</td><td>#7883</td><td><code>CT-PRV-002, CT-PRV-003, CT-PRV-005</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Suspensão e cancelamento na prévia</td><td>#7883</td><td><code>CT-PRV-006, CT-PRV-007</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>R2 — filtros/colunas da prévia (BAIXO)</td><td>#7883</td><td><code>CT-PRV-008</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>403 falso (i_fat_cit_net) + notice do Processar</td><td>#7883</td><td><code>CT-PRV-009</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>GAP-1 — Resumo/Embarques por linha</td><td>#7883</td><td><code>CT-PRV-010</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>R1 — conjunto retornado e coluna Status (MÉDIO)</td><td>#7898</td><td><code>CT-RCS-001, CT-RCS-002, CT-RCS-003</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>P0 — relatório RC-V vinha vazio</td><td>#7898</td><td><code>CT-RCS-004</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Certificado RC-V + ZIP + identidade do tenant</td><td>#7898</td><td><code>CT-RCS-005, CT-RCS-008</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>IDOR (CWE-639) nos endpoints de leitura</td><td>#7825/#7898</td><td><code>CT-RAV-014, CT-RCS-006, CT-RCS-009</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Período obrigatório na Consulta</td><td>#7898</td><td><code>CT-RCS-007</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>C1 — Conversor rejeita 100% (BLOQUEANTE)</td><td>a ticketar</td><td><code>CT-CNV-001, CT-CNV-002, CT-CNV-005</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>C2 — linha inicial/cabeçalho (MÉDIO)</td><td>a ticketar</td><td><code>CT-CNV-003</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>C3 — VKMCML zero no atual (ALTO)</td><td>a ticketar</td><td><code>CT-CNV-004</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>A1 — gravação sem validação e sem protocolo (GRAVE)</td><td>a ticketar</td><td><code>CT-ITG-001 a CT-ITG-004</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Núcleo em paridade — não regredir</td><td>#7825</td><td><code>CT-REG-001 a CT-REG-007</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Gating de ramo por indicativo (fail-closed)</td><td>#7883/#7898</td><td><code>CT-REG-008</code></td><td class="tbd">pendente</td></tr>
+    <tr><td>Multi-tenant schema-aware</td><td>#7825/#7883</td><td><code>CT-MTN-001, CT-MTN-002, CT-MTN-003</code></td><td class="tbd">pendente</td></tr>
+    </table>
+  </div>
+
+  <div class="section-title">8 · Métricas</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Métrica</th><th>Valor</th></tr>
+      <tr><td>Total de CTs</td><td><strong>54</strong></td></tr>
+      <tr><td>Por prioridade</td><td>P1 <strong>31</strong> · P2 <strong>20</strong> · P3 <strong>3</strong></td></tr>
+      <tr><td>Grupos</td><td>7 (uma tela/frente por grupo)</td></tr>
+      <tr><td>Apontamentos rastreados</td><td>28</td></tr>
+      <tr><td>Taxa de execução</td><td>0/54 (0%)</td></tr>
+      <tr><td>Tasks cobertas</td><td>#7825 · #7883 · #7898 · #7913 (+ 2 defeitos a ticketar)</td></tr>
+    </table>
+  </div>
+
+  <div class="section-title">9 · Riscos</div>
+  <div class="doc-box">
+    <table class="matriz">
+      <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><strong>Massa contaminada em 07/2026 (A1)</strong></td><td>Alta</td><td>Alto</td><td>Averbações irregulares sem protocolo já entraram na competência e afetam qualquer conta de prévia. <strong>Mitigação:</strong> CT-ITG-003 quantifica antes de qualquer veredito de valor; os CTs de PMM usam apólices/competências identificadas e conferidas no banco no momento da execução.</td></tr>
+    <tr><td><strong>P1 depende de decisão de Produtos</strong></td><td>Alta</td><td>Alto</td><td>Sem a regra oficial do prêmio comercial, aprovar por semelhança faturaria errado dos dois lados. <strong>Mitigação:</strong> CT-PRV-001 e CT-PRV-004 ficam bloqueados por decisão de negócio, com os dois valores documentados e escalados.</td></tr>
+    <tr><td><strong>C1 bloqueia toda a homologação do Conversor</strong></td><td>Alta</td><td>Alto</td><td>Com 0 linhas convertidas, nenhuma regra do Conversor é exercitável. <strong>Mitigação:</strong> CT-CNV-002 e 004 declaram dependência explícita do CT-CNV-001; a matriz e o gerador já estão versionados para reexecução imediata quando o fix sair.</td></tr>
+    <tr><td><strong>Base compartilhada entre os dois sistemas</strong></td><td>Média</td><td>Médio</td><td>Novo e atual apontam para <code>smt-hom-citweb-axa-alfa</code> — um teste pode alterar a massa do outro. <strong>Mitigação:</strong> faixas de documento reservadas por cenário (<code>9997xxx</code>/<code>9998xxx</code>), conferência de protocolo por sistema e registro da massa criada/excluída em cada CT.</td></tr>
+    <tr><td><strong>RCV_ONLY_MODE hardcoded</strong></td><td>Média</td><td>Médio</td><td>Enquanto <code>RCV_ONLY_MODE = true</code>, o gating não é exercitado de verdade em 2 combos nacionais. <strong>Mitigação:</strong> CT-REG-008 documenta e nomina os 2 combos como pendência amarrada à virada da flag.</td></tr>
+    <tr><td><strong>Escopo de 6 telas com 2 tasks ainda em dev</strong></td><td>Média</td><td>Baixo</td><td>#7944 e #7973 estão In Progress e podem mudar telas vizinhas. <strong>Mitigação:</strong> execução limitada às 4 tasks em Pronto para homologação; os relatórios de Fatura Mensal/Faturas entram em ciclo próprio.</td></tr>
+    </table>
+  </div>
+
+  <div class="section-title">10 · Referências</div>
+  <div class="doc-box">
+    <ul>
+      <li>PBI <strong>#7792</strong> — <em>[NSSEG] Levantar itens/esforço refatoração - RCV</em> (Area <code>CITWEB</code>,
+      Iteration <code>Sprint_10_Citweb</code>, tag <code>nsseg</code>).</li>
+      <li>Tasks: <strong>#7825</strong> Averbação RCV · <strong>#7883</strong> Aprovação de prévias ·
+      <strong>#7898</strong> Relatórios Consulta · <strong>#7913</strong> Análise apontamentos ·
+      <strong>#7944</strong> e <strong>#7973</strong> (em dev).</li>
+      <li>PRs citados: #58, #59, #1392–#1394, #1397, #1407, #1421, #1423, #1427, #1437, #1439, #1448, #1461, #1462.</li>
+      <li>Repositório do refatorado: <code>SimetriasDev/CITWEB/_git/NSSEG_CITNET</code>.</li>
+    </ul>
+    <p style="margin-bottom:0;color:var(--muted);font-size:12px">Senhas e tokens não constam deste documento — o repositório
+    de planos é público. Todas as credenciais vêm do <code>.env</code> local.</p>
+  </div>
+
+</div>
+
+<script>
+document.querySelectorAll('.ct-bar').forEach(function (b) {
+  b.addEventListener('click', function () { b.closest('.ct-block').classList.toggle('expanded'); });
+});
+document.querySelectorAll('.group-header').forEach(function (h) {
+  h.addEventListener('click', function () {
+    h.classList.toggle('collapsed');
+    var body = h.nextElementSibling;
+    if (body && body.classList.contains('group-body')) { body.classList.toggle('hidden'); }
+  });
+});
+</script>
+</body>
+</html>
