@@ -26,6 +26,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .metric:last-child{border-right:none}.metric-val{font-size:24px;font-weight:700}
 .metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
 .m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+/* tabelas de medicao: sem padding as colunas colam entre si */
+.tbl-med th,.tbl-med td{padding:5px 10px;border-bottom:1px solid #21262d;text-align:left;vertical-align:top}
+.tbl-med th:first-child,.tbl-med td:first-child{white-space:nowrap;width:190px}
 .progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
 .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);width:0%}
 .container{padding:0 24px 40px}
@@ -47,6 +50,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 .ct-id{font-weight:700;font-size:13px;color:var(--accent2)}.ct-title{flex:1;font-size:13px}
 .badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
 .badge-pendente{background:#21262d;color:var(--muted)}
+.badge-bloqueado{background:#2a2114;color:#e3b341}.badge-ok{background:#0d2818;color:#3fb950}.badge-erro{background:#2a1416;color:#f1707a}
 .badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
 .badge-off{background:#0d1f0d;color:#2ea043;font-size:10px}.badge-on{background:#1f1a0d;color:var(--yellow);font-size:10px}
 .ct-toggle{color:var(--muted);transition:transform .2s;font-size:11px}
@@ -60,6 +64,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 .ct-body code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
 .ct-body .precond-box{background:#161b22;border:1px solid var(--border);border-left:3px solid #60a5fa;border-radius:5px;padding:10px 12px;font-size:12px;margin-bottom:10px}
 .tbd{color:var(--yellow);font-weight:600}
+/* .warn-box nao existia neste plano; os blocos de medicao dependem dela p/ borda/padding */
+.warn-box{background:#1f1a0d;border:1px solid var(--yellow);border-radius:6px;padding:12px 14px;font-size:13px}
+.warn-box p{font-size:13px}.warn-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
 </style>
 </head>
 <body>
@@ -102,9 +109,45 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="metric m-total"><div class="metric-val">6</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">6</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Dep. externa (pacote WI)</div></div>
+  <div class="metric"><div class="metric-val" style="color:#d29922">4</div><div class="metric-lbl">Cenário inexistente / s/ massa</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:33%"></div></div>
+
+<div class="container">
+  <div class="section-title">Medição de 03/08/2026 — o que saiu do "aguardando massa"</div>
+  <div class="doc-box" style="border-left:4px solid #58a6ff">
+    <p>O card estava em <code>#QA-STATUS: BLOQUEADO por defeito #7930</code> desde 28/07 por falta de massa agregada.
+    O WorkerDUIMP <strong>passou a agregar em 31/07</strong> (45 linhas nível 'D' em AXA HML, 27 com <code>q_itn_agp</code> &gt; 1),
+    então medi o que a massa real permite medir — e o resultado <strong>reclassifica 5 dos 6 CTs</strong>: o que parecia
+    "falta de massa" é, em três casos, <strong>cenário que o produto não produz</strong>.</p>
+
+    <table style="margin-top:10px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-med">
+      <tr style="background:#161b22"><th>CT</th><th>Situação após a medição</th></tr>
+      <tr><td><strong>CT-DUP-002</strong> · nível 'D'</td><td><strong>Invariantes da chave VERIFICADOS em dado real (45/45)</strong> — ver detalhe no CT. Substitui o "dado simulado" da validação do dev. A <em>rejeição na recarga</em> segue sem exercício: não há pacote WI para recarregar</td></tr>
+      <tr><td><strong>CT-DUP-003</strong> · nível 'A'</td><td style="color:#d29922"><strong>Cenário inexistente no produto</strong> — nível 'A' = 0 em todas as bases com o schema</td></tr>
+      <tr><td><strong>CT-DUP-004</strong> · nível 'I'</td><td style="color:#d29922"><strong>Cenário inexistente no produto</strong> — nível 'I' = 0 em todas as bases com o schema</td></tr>
+      <tr><td><strong>CT-DUP-006</strong> · nível 'I' + <code>q_itn_agp</code></td><td style="color:#d29922">Nível 'I' inexistente. A distinção <code>q_itn_agp</code> 1 vs ≥2 <em>existe</em> nas linhas 'D' (1 a 89) e está coerente com o JSON em 45/45 — o CT precisaria ser reescrito para o nível 'D'</td></tr>
+      <tr><td><strong>CT-DUP-005</strong> · estorno</td><td style="color:#d29922">Sem massa: as 45 linhas agregadas têm <code>i_dsc_cnn_smx = 'N'</code> (nenhum componente inconsistente). Injetar a inconsistência seria fabricar a saída sob teste</td></tr>
+      <tr><td><strong>CT-DUP-001</strong> · flag OFF</td><td>1.475 linhas não agregadas disponíveis, mas o passo do CT é <em>recarregar e confirmar desprezo</em> — depende de pacote WI</td></tr>
+    </table>
+
+    <p style="margin-top:10px"><strong>Por que a recarga não foi feita:</strong> a tela <em>Carga das Declarações do WI</em>
+    responde <em>"Não há cargas a serem processadas"</em>, inclusive com a janela de geração ampliada para
+    <strong>01/01/2020 – 31/12/2026</strong>. Os pacotes nascem na integração WI/Siscomex — é dependência externa real,
+    o único caso em que a skill admite BLOQUEADO. Não é falta de massa nossa: a massa de <em>pendentes</em> existe
+    (1.520 linhas); o que falta é um <em>pacote</em> para reprocessar.</p>
+
+    <p style="margin-top:8px"><strong>Lacuna na evidência do dev (registro factual, não contestação):</strong> o comentário de
+    22/07 reporta CT-DUP-001 como validado no ambiente real com <em>"Lidas 3 / Desprezadas 0 / Inconsistentes 0 / Incluídas 3"</em>.
+    Esse é o resultado de uma <strong>primeira</strong> carga limpa — com <code>Desprezadas 0</code> ele não demonstra detecção de
+    duplicidade, que é justamente o objeto do CT. Os níveis D/A/I foram validados com <strong>dado simulado</strong> + testes
+    unitários (8/8 verdes), o que cobre a lógica, mas não o comportamento com dado do Worker.</p>
+
+    <p style="margin-top:8px"><strong>Achado de cobertura de deploy (vale para #7802 · #7682 · #7930):</strong> o schema de
+    agrupamento existe em apenas <strong>4 de 38 bases</strong> HML — 23 têm a tabela sem as colunas e 11 não têm a tabela.</p>
+  </div>
+</div>
 
 <div class="container">
 
@@ -124,7 +167,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-off">Grupo A — Regressão (flag OFF, executável agora)</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-001</span><span class="ct-title">Flag OFF — duplicidade por número completo (DUIMP/ADIÇÃO/ITEM) sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-001</span><span class="ct-title">Flag OFF — duplicidade por número completo (DUIMP/ADIÇÃO/ITEM) sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO · pacote WI</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> indicativo inativo; pacote DUIMP no modo item a item.</div>
         <h4>Objetivo</h4><p>Garantir que, com agrupamento desligado, a duplicidade continua sendo detectada pela chave completa DUIMP/ADIÇÃO/ITEM — regressão zero.</p>
         <h4>Passos</h4><ol><li>Carregar um pacote DUIMP no modo atual</li><li>Recarregar o mesmo pacote (mesma numeração)</li><li>Confirmar que a segunda carga é desprezada por duplicidade</li><li>SQL: confirmar que não houve inclusão duplicada</li></ol>
@@ -134,31 +177,54 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-on">Grupo B — Duplicidade por nível de agrupamento (flag ON, diferido)</h2><span class="group-badge">5</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-002</span><span class="ct-title">Nível 'D' — duplicidade pela DUIMP inteira</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-002</span><span class="ct-title">Nível 'D' — duplicidade pela DUIMP inteira</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">CHAVE VERIFICADA · recarga bloqueada</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> carga agregada nível 'D'; indicativo ativo.</div>
+        <div class="warn-box" style="border-color:#2ea043;background:#0d1f0d;margin-bottom:10px">✓ <strong>Invariantes da chave verificados em dado REAL (03/08/2026, AXA HML — 45 linhas nível 'D')</strong>
+        <p style="margin-top:6px">A regra diz que no nível 'D' a chave de duplicidade é <strong>a DUIMP inteira</strong>. Isso tem uma
+        consequência verificável sem simular nada: se a chave é a DUIMP, <strong>não pode existir mais de uma linha 'D' para a mesma
+        DUIMP</strong>. Medido:</p>
+        <table style="margin-top:8px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-med">
+          <tr style="background:#161b22"><th>Invariante</th><th>Medição</th></tr>
+          <tr><td>1 linha por DUIMP no nível 'D'</td><td>45 linhas · <strong>45 DUIMPs distintas</strong> · 0 DUIMP com mais de uma linha → nenhuma duplicidade admitida ✓</td></tr>
+          <tr><td><code>t_itn_org_agp</code> e <code>c_hsh_agp</code> presentes</td><td>NULL em <strong>0</strong> de 45 · <strong>45 hashes distintos</strong> (1 por linha) ✓</td></tr>
+          <tr><td><code>q_itn_agp</code> coerente com o JSON</td><td><strong>45/45</strong> — <code>q_itn_agp</code> = soma dos itens de todas as adições do <code>t_itn_org_agp</code>, sem item repetido dentro do agrupamento ✓ (faixa medida: 1 a 89 itens)</td></tr>
+        </table>
+        <p style="margin-top:8px">Exemplo da estrutura conferida — DUIMP <code>26BR00000875210</code>, <code>q_itn_agp</code> = 89:
+        <code>[{"adicao":"001","itens":[1..70]},{"adicao":"002","itens":[71..78]},{"adicao":"003","itens":[79..83]},{"adicao":"004","itens":[84..89]}]</code>
+        → 70+8+5+6 = <strong>89</strong>, casando exatamente.</p>
+        <p style="margin-top:6px;font-size:12px;color:#8b949e"><em>Nota de método:</em> a primeira conferência acusou divergência
+        porque contou o tamanho da lista raiz (4 = nº de <strong>adições</strong>) em vez de somar os itens. O erro era do meu
+        contador, não do sistema — corrigido antes de qualquer registro de defeito.</p></div>
+        <div class="warn-box" style="border-color:#e3b341;background:#2a2114;margin-bottom:10px">⛔ <strong>O passo de rejeição não foi exercido — dependência externa.</strong>
+        Os passos 2–3 do CT ("carregar outro pacote com a mesma DUIMP" / "confirmar desprezo") exigem um <strong>pacote WI</strong>
+        para recarregar. A tela <em>Carga das Declarações do WI</em> responde <em>"Não há cargas a serem processadas"</em>, inclusive
+        com a janela de geração ampliada para 01/01/2020 – 31/12/2026. Os pacotes nascem na integração WI/Siscomex, fora do CITWEB —
+        é o único caso em que a skill admite BLOQUEADO. O protocolo de carga (<em>Resultado das Cargas</em>) também não serve como
+        prova: ele reporta apenas <code>DI=</code> e <code>Adi=</code> carregados, sem separar desprezo por duplicidade — as duas
+        cargas de 28/07 mostram <code>DI=0000 Adi=00000</code>, o que não distingue "rejeitado por duplicidade" de "pacote vazio".</div>
         <h4>Objetivo</h4><p>Verificar que, num agrupamento nível 'D', a chave de duplicidade é o número da DUIMP: recarregar outro pacote com a mesma DUIMP deve ser desprezado.</p>
         <h4>Passos</h4><ol><li>Carregar pacote DUIMP nível 'D'</li><li>Carregar outro pacote com a mesma DUIMP</li><li>Confirmar desprezo por duplicidade (chave = nº DUIMP, via t_itn_org_agp)</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Segunda carga com mesma DUIMP desprezada por duplicidade no nível 'D'.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-003</span><span class="ct-title">Nível 'A' — duplicidade por DUIMP + Adição</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-003</span><span class="ct-title">Nível 'A' — duplicidade por DUIMP + Adição</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">CENÁRIO INEXISTENTE (nível 'A' = 0)</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> carga agregada nível 'A'; indicativo ativo.</div>
         <h4>Objetivo</h4><p>Verificar que no nível 'A' a chave é DUIMP + Adição (não precisa do item) — recarga com mesma DUIMP+Adição é desprezada.</p>
         <h4>Passos</h4><ol><li>Carregar pacote nível 'A' (DUIMP+Adição)</li><li>Recarregar com mesma DUIMP+Adição</li><li>Confirmar desprezo por duplicidade no nível da adição</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Duplicidade detectada por DUIMP+Adição; item não é considerado na chave do nível 'A'.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-004</span><span class="ct-title">Nível 'I' — duplicidade por DUIMP + Adição + Item (ou grupo de itens)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-004</span><span class="ct-title">Nível 'I' — duplicidade por DUIMP + Adição + Item (ou grupo de itens)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">CENÁRIO INEXISTENTE (nível 'I' = 0)</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> carga agregada nível 'I'; indicativo ativo.</div>
         <h4>Objetivo</h4><p>Verificar que no nível 'I' a chave inclui o item (ou grupo de itens) — via t_itn_org_agp.</p>
         <h4>Passos</h4><ol><li>Carregar pacote nível 'I'</li><li>Recarregar com mesma DUIMP+Adição+Item(ou grupo)</li><li>Confirmar desprezo por duplicidade no nível do item/grupo</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Duplicidade detectada por DUIMP+Adição+Item (ou grupo), conforme t_itn_org_agp.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-005</span><span class="ct-title">Estorno — inconsistência em 1 item despreza o agrupamento inteiro</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-005</span><span class="ct-title">Estorno — inconsistência em 1 item despreza o agrupamento inteiro</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">SEM COMPONENTE INCONSISTENTE (45/45 = 'N')</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> agrupamento ('A' ou 'I' com q_itn_agp&gt;1) em que 1 item componente tenha inconsistência.</div>
         <h4>Objetivo</h4><p>Regra de estorno: a inconsistência em qualquer item do agrupamento deve desprezar <em>tudo</em> o que compõe aquele agrupamento — não apenas o item.</p>
         <h4>Passos</h4><ol><li>Carregar agrupamento com um item componente inconsistente</li><li>Confirmar que o agrupamento inteiro é desprezado (não só o item com problema)</li><li>SQL: confirmar que nenhum item do agrupamento foi incluído</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Agrupamento inteiro desprezado quando um componente é inconsistente; nenhum item do grupo incluído parcialmente.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-006</span><span class="ct-title">Nível 'I' — q_itn_agp distingue item individual (1) de grupo de itens (≥2)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-006</span><span class="ct-title">Nível 'I' — q_itn_agp distingue item individual (1) de grupo de itens (≥2)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge badge-bloqueado">REESCREVER p/ nível 'D'</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> duas cargas nível 'I' — uma com q_itn_agp=1, outra com q_itn_agp≥2.</div>
         <h4>Objetivo</h4><p>Verificar que o CITWEB lê <code>q_itn_agp</code> para distinguir item individual (1) de agrupamento de itens (≥2) ao aplicar a duplicidade no nível 'I'.</p>
         <h4>Passos</h4><ol><li>Carregar nível 'I' q_itn_agp=1 e validar chave de item individual</li><li>Carregar nível 'I' q_itn_agp≥2 e validar chave de grupo de itens</li><li>Confirmar que a duplicidade é aplicada corretamente em cada caso</li></ol>
