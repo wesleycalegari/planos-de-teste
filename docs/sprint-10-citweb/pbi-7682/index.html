@@ -28,6 +28,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
 .progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
 .progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);width:0%}
+/* tabelas de medicao dos CT-DVM: sem padding as colunas numericas colam entre si */
+.tbl-dvm th,.tbl-dvm td{padding:4px 10px;border-bottom:1px solid #21262d;text-align:right}
+.tbl-dvm th:first-child,.tbl-dvm td:first-child{text-align:left}
+.tbl-verif th:nth-child(2),.tbl-verif td:nth-child(2){text-align:left}
 .container{padding:0 24px 40px}
 .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2);margin:28px 0 10px}
 .doc-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px}
@@ -107,9 +111,9 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">4</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">5</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Decisão de escopo</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar"></div></div>
 
@@ -132,17 +136,40 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-off">Grupo A — Regressão (flag OFF, executável agora)</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-001</span><span class="ct-title">Flag OFF — valores monetários por item sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-001</span><span class="ct-title">Flag OFF — valores monetários por item sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO (03/08)</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> <code>Ind_DuimpAgrupamentoAverbacao</code> inativo; DUIMP no modo atual em AXA HML.</div>
         <h4>Objetivo</h4><p>Garantir que, com o agrupamento desligado (colunas novas em NULL, q_itn_agp tratado como 1), os valores monetários da DUIMP continuam sendo lidos e somados corretamente — regressão zero.</p>
         <h4>Passos</h4><ol><li>Processar/consultar uma DUIMP existente em AXA HML</li><li>Conferir os valores monetários (FOB, impostos) exibidos vs. o JSON/origem</li><li>SQL: confirmar 1 linha = 1 item e colunas novas em NULL</li><li>Confirmar que os totais batem sem duplicação</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual; valores corretos por item; nenhuma regressão introduzida pelo suporte às colunas novas.</div><div class="warn-box" style="margin-top:8px"><strong>Atualização 31/07/2026 — este CT como escrito
-não é mais reproduzível.</strong> A pré-condição é <code>Ind_DuimpAgrupamentoAverbacao</code> <em>inativo</em>,
-e a flag passou a estar <strong>ativa</strong> em AXA HML (46 declarações agregadas hoje). O risco que o CT
-cobre — caminho não agregado continuar correto — está coberto pelo CT-DVM-006 com a flag ligada: no mesmo
-processamento, a declaração de 1 item gerou sua própria averbação com valores corretos
-(<code>v_fob_ori</code> 53.355,30 = fonte). Decisão de escopo para o PO: manter o CT como regressão histórica
-ou substituí-lo pelo CT-DVM-006. Não estou dando veredito num CT cuja pré-condição não existe mais.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Comportamento idêntico ao atual; valores corretos por item; nenhuma regressão introduzida pelo suporte às colunas novas.</div><div class="warn-box" style="border-color:#2ea043;background:#0d1f0d;margin-top:8px">✓ <strong>APROVADO (03/08/2026, AXA HML — módulo Interface build V 1.0.260724.1910)</strong>
+        <p style="margin-top:6px"><strong>O CT saiu do impasse por reenquadramento da pré-condição, não por mudança de ambiente.</strong>
+        Em 31/07 ele foi marcado "não reproduzível" porque exigia a flag <code>Ind_DuimpAgrupamentoAverbacao</code>
+        <em>desligada</em> e ela passou a estar ligada na AXA. Mas a pré-condição útil não é "flag global desligada" —
+        é <strong>linha não agregada convivendo com o código novo</strong>. E isso existe hoje na AXA: das 1.520 linhas
+        de <code>tb_itf_smx_dcl_pnd_dui</code>, <strong>1.475 estão não agregadas</strong> (colunas de agrupamento em NULL)
+        ao lado das 45 agregadas, <strong>no mesmo build</strong>. É exatamente onde a regressão tem de ser medida.</p>
+        <table style="margin-top:8px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-dvm tbl-verif">
+          <tr style="background:#161b22"><th>Verificação</th><th>Medição (AXA, linhas não agregadas)</th><th>Resultado</th></tr>
+          <tr><td>(a) colunas novas em NULL</td><td>1.475 linhas / 369 declarações · <code>q_itn_agp</code>, <code>c_hsh_agp</code>, <code>d_agp</code> NULL em 1.475/1.475</td><td style="color:#3fb950">OK</td></tr>
+          <tr><td>(b) 1 linha = 1 item</td><td>0 pares (declaração, item) duplicados</td><td style="color:#3fb950">OK</td></tr>
+          <tr><td>(c) sem contradição de estado</td><td>0 linhas com nível NULL e <code>q_itn_agp</code> &gt; 1</td><td style="color:#3fb950">OK</td></tr>
+          <tr><td>(d) valor por item = origem</td><td>FOB de cada linha presente no <code>t_json_wi</code> da própria linha em 6/6 amostras</td><td style="color:#3fb950">OK</td></tr>
+        </table>
+        <p style="margin-top:8px"><strong>Evidência mais forte — declaração <code>26BR00001291646</code>, 3 itens não agregados:</strong>
+        item 1 FOB 16.536,94 (II 14.798,89 · IPI 6.899,76) · item 2 FOB 13.840,70 (II 12.673,53 · IPI 5.908,84) ·
+        item 3 FOB 5.595,78 (II 4.235,05 · IPI 1.974,53) — três linhas, três valores distintos, cada um conferido
+        contra o JSON de origem. É a prova direta de "1 linha por item, valor por item correto" com o código novo presente.</p>
+        <p style="margin-top:8px"><strong>Camada de apresentação:</strong> o relatório <em>DI's/DUIMP's não Averbadas</em>
+        (Interface WI/Siscomex → Relatórios, critério Geral) foi gerado e validado —
+        <code>DINaoAverbadas-FRED-03082026-124221.xlsx</code>, 58.110 bytes, aba "RELAÇÃO DE PENDENTES", A1:G1597
+        (1.596 linhas): <strong>1.586 linhas com QTD = 001</strong> e 10 com QTD &gt; 1. Confirma que o item não agregado
+        é apresentado como 1. Arquivo anexado em <code>evidencias/CT-DVM-001/</code>.</p>
+        <p style="margin-top:8px;color:#d29922"><strong>Ressalva honesta sobre a evidência:</strong> nenhuma tela
+        somente-leitura do módulo Interface expõe valor monetário por item — <em>Carga</em> lista pacotes,
+        <em>Processamento</em> mutaria a massa pendente (não foi acionado, de propósito, para não consumir a massa de
+        que #7802/#7683 dependem) e <em>Relatórios</em> não tem coluna monetária. Por isso a conferência de valor foi
+        feita contra o <strong>JSON de origem gravado na própria linha</strong> (<code>t_json_wi</code>), que é uma
+        comparação mais forte que a leitura de tela — e não um screenshot do valor exibido.</p></div>
+        <div class="warn-box" style="border-color:#8b949e;background:#161b22;margin-top:8px;font-size:12px">📜 <strong>Descartado no caminho:</strong> tentei validar na MITSUI, que tem as colunas de agrupamento no banco e 5.934 linhas 100% não agregadas — parecia o ambiente ideal. Não serve: o módulo Interface da MITSUI roda build <code>V 1.0.260423.1614</code>, cerca de 3 meses <em>anterior</em> ao código de agrupamento. Validar ali não prova regressão zero de um código que não está lá. <strong>Coluna existir no schema não significa código deployado</strong> — conferir o build do módulo, não só o schema.</div></div></div>
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-on">Grupo B — Valores agrupados (flag ON, diferido)</h2><span class="group-badge">5</span><span class="group-toggle">▼</span></div>
@@ -214,13 +241,32 @@ ou substituí-lo pelo CT-DVM-006. Não estou dando veredito num CT cuja pré-con
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com linhas 'A'/'D' e linhas 'I' que compõem o mesmo agrupamento.</div>
         <h4>Objetivo</h4><p>Risco central da PBI: garantir que o CITWEB não some linhas de níveis diferentes que se sobrepõem (a soma de 'A'/'D' já é o total — somar também as 'I' filhas duplicaria os valores).</p>
         <h4>Passos</h4><ol><li>SQL: mapear os níveis da DUIMP e quais 'I' pertencem a cada 'A'/'D'</li><li>Consultar o total da DUIMP no CITWEB</li><li>Conferir que o total = soma do nível correto, sem contar 'I' filhas já representadas em 'A'/'D'</li><li>Comparar com o total esperado dos itens reais (sem duplicidade)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Total da DUIMP sem duplicação; níveis sobrepostos não são somados em conjunto; total bate com a realidade dos itens.</div><div class="warn-box" style="margin-top:8px"><strong>Sem massa em 31/07/2026 — motivo preciso.</strong>
-Este CT exige linhas <strong>'I' filhas de 'A'/'D'</strong> para verificar que níveis sobrepostos não são
-somados juntos. Das <strong>46 linhas agregadas</strong> em AXA HML, <strong>46 são nível 'D'</strong> — o
-WorkerDUIMP não gerou nenhuma 'A' nem 'I', então não existe sobreposição para testar. Gerar essas linhas por
-SQL seria fabricar a própria saída sob teste. Pergunta em aberto com o dev (registrada no #7802): o nível de
-agregação é configurável ou o Worker sempre consolida na DUIMP inteira? Se for sempre 'D', este cenário não
-existe no produto e o CT deve ser reescrito, não ficar aguardando massa.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Total da DUIMP sem duplicação; níveis sobrepostos não são somados em conjunto; total bate com a realidade dos itens.</div><div class="warn-box" style="border-color:#58a6ff;background:#0d1a26;margin-top:8px">ℹ️ <strong>03/08/2026 — a pergunta em aberto foi respondida por medição: o cenário NÃO existe no produto.</strong>
+        <p style="margin-top:6px">Em 31/07 este CT ficou "sem massa" e a dúvida foi registrada no #7802: <em>o nível de
+        agregação é configurável, ou o Worker sempre consolida na DUIMP inteira?</em> A varredura de <strong>todas as
+        38 bases HML</strong> responde:</p>
+        <table style="margin-top:8px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-dvm">
+          <tr style="background:#161b22"><th style="text-align:left">Base</th><th>Total</th><th>NULL</th><th>Nível D</th><th>Nível A</th><th>Nível I</th></tr>
+          <tr><td>smt-hom-citweb-axa</td><td>1.520</td><td>1.475</td><td>45</td><td style="color:#f1707a"><strong>0</strong></td><td style="color:#f1707a"><strong>0</strong></td></tr>
+          <tr><td>smt-hom-citweb-axa-alfa</td><td>1.284</td><td>1.284</td><td>0</td><td style="color:#f1707a"><strong>0</strong></td><td style="color:#f1707a"><strong>0</strong></td></tr>
+          <tr><td>smt-hom-citweb-mitsui</td><td>5.934</td><td>5.934</td><td>0</td><td style="color:#f1707a"><strong>0</strong></td><td style="color:#f1707a"><strong>0</strong></td></tr>
+          <tr><td>smt-hom-citweb-mitsui-alfa</td><td>5.934</td><td>5.934</td><td>0</td><td style="color:#f1707a"><strong>0</strong></td><td style="color:#f1707a"><strong>0</strong></td></tr>
+          <tr style="background:#161b22"><td><strong>TOTAL</strong></td><td><strong>14.672</strong></td><td><strong>14.627</strong></td><td><strong>45</strong></td><td style="color:#f1707a"><strong>0</strong></td><td style="color:#f1707a"><strong>0</strong></td></tr>
+        </table>
+        <p style="margin-top:8px"><strong>Nível 'A' = 0 e nível 'I' = 0 em todas as bases que têm o schema de agrupamento.</strong>
+        O WorkerDUIMP consolida <em>sempre</em> na DUIMP inteira ('D'). Logo <strong>não existe sobreposição de níveis
+        para somar errado</strong> — o risco que este CT cobre não é alcançável pelo produto como ele está hoje.
+        Fabricar linhas 'A'/'I' por SQL seria manufaturar a própria saída sob teste, o que não valida nada.</p>
+        <p style="margin-top:8px"><strong>Achado colateral relevante para toda a família DUIMP (#7802 · #7683 · #7930):</strong>
+        o schema de agrupamento (<code>c_nvl_avb</code>, <code>q_itn_agp</code>, <code>c_hsh_agp</code>, <code>d_agp</code>)
+        existe em apenas <strong>4 de 38 bases</strong>. Outras <strong>23 bases têm a tabela mas não as colunas</strong>
+        e 11 não têm a tabela. A cobertura de deploy é bem menor do que "AXA + alfa" sugere.</p>
+        <p style="margin-top:8px"><strong>Encaminhamento (decisão de escopo, não de QA):</strong> o próprio plano já previa
+        esta saída — "se for sempre 'D', este cenário não existe no produto e o CT deve ser reescrito, não ficar aguardando
+        massa". Proposta: <strong>reescrever o CT-DVM-003</strong> para validar que o total da DUIMP agregada nível 'D'
+        não é somado em duplicidade com as averbações geradas (risco real e mensurável), ou marcá-lo N/A como foi feito com o CT-FMR-007
+        do #7884. <strong>Aguardando a decisão do Wesley/PO</strong> — não estou dando veredito de aprovação nem de
+        reprovação num cenário que o produto não produz.</p></div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DVM-004</span><span class="ct-title">VerificaImpostosDI usa SUM(q_itn_agp) em vez de COUNT(*) — consistência pendente↔histórico</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP agregada; validação de impostos acionada (processamento).</div>
