@@ -196,12 +196,39 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <strong>1.227 → 1.227</strong> e <strong>0 chaves <code>(declaração, adição, item, apólice)</code> duplicadas</strong>
       antes e depois. Medido <em>após</em> o processamento assíncrono estabilizar (<code>sts_prc='P'</code> = 0).</p>
       <div class="warn-box" style="margin-top:8px">
-        <strong>⚠️ Ressalva de mecanismo — para o Gate 3 decidir:</strong> os 86 registros voltaram como
+        <strong>⚠️ Ressalva de mecanismo (registrada em 03/08):</strong> os 86 registros voltaram como
         <strong><code>'C'</code> = "DUIMP Gravada"</strong>, não como "Desprezada". O sistema <em>reescreveu</em> as
-        declarações em vez de <em>desprezá-las</em>. A <strong>invariante se sustenta</strong> — a mesma DUIMP/adição/item nunca
-        ficou gravada duas vezes —, mas o texto deste CT fala em "confirmar desprezo", e o observado é <em>upsert sem
-        duplicar</em>. Registro a diferença em vez de acomodá-la: se o CA exige literalmente que a declaração seja
-        <em>ignorada</em>, isso é decisão de produto, não minha.
+        declarações em vez de <em>desprezá-las</em>. A invariante se sustentou, mas o texto deste CT fala em "confirmar
+        desprezo" — então eu registrei a diferença em vez de acomodá-la, e levei como pergunta de produto.
+      </div>
+
+      <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d;margin-top:8px">
+        <strong>✅ RESSALVA RESOLVIDA em 04/08 — pelo código, não por decisão. O comportamento observado é o pretendido.</strong>
+        <p style="margin:6px 0">Em vez de deixar a pergunta pendente, fui ao fonte. O caminho DUIMP da carga
+        <strong>apaga a declaração antes de reinserir</strong>, incondicionalmente e sem checagem de existência —
+        <code>Domain/InterfaceStreitiDomain.cs:4871-4872</code>:</p>
+        <pre style="background:#0b0f14;border:1px solid #21262d;border-radius:4px;padding:8px;overflow-x:auto;font-size:12px"><code>campoDeclaracao = "EXCLUSAO_DECLARACAO";
+new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd, true);</code></pre>
+        <p style="margin:6px 0">O passo se chama literalmente <code>EXCLUSAO_DECLARACAO</code>. Logo a ausência de duplicidade
+        que eu medi <strong>vem desse DELETE</strong>, não de um "desprezo" — e <em>"DUIMP Gravada"</em> na recarga é o
+        resultado <strong>correto</strong>, não um desvio. O que estava impreciso era <strong>o texto do CT</strong>: o
+        comportamento a confirmar é <em>"recarregar não duplica, porque substitui"</em>, não <em>"a declaração repetida é
+        ignorada"</em>. O veredito APROVADO fica mantido, agora com o mecanismo explicado.</p>
+      </div>
+
+      <div class="warn-box" style="margin-top:8px">
+        <strong>🔎 Achado lateral no mesmo código — inconsistência de escopo, hoje SEM impacto observável.</strong>
+        <p style="margin:6px 0">O DELETE filtra <strong>apenas pelo número da declaração</strong>, sem a apólice
+        (<code>Repository/InterfaceSiscomexDeclaracaoPendenteRepository.cs:65-68</code>):</p>
+        <pre style="background:#0b0f14;border:1px solid #21262d;border-radius:4px;padding:8px;overflow-x:auto;font-size:12px"><code>DELETE FROM tb_itf_smx_dcl_pnd_dui WHERE u_dcl_imt_smx = @u_dcl_imt_smx</code></pre>
+        <p style="margin:6px 0">Já a checagem de existência análoga, usada por outra tela, filtra por
+        <strong>apólice E declaração</strong> (<code>VerificaAdicao</code>, linhas 170–174). Se a mesma DUIMP estivesse
+        vinculada a duas apólices, recarregar por uma apagaria as linhas da outra.</p>
+        <p style="margin:6px 0"><strong>Medi antes de chamar de defeito:</strong> varri as <strong>38 bases HML</strong>
+        (11 com dado DUIMP, incluindo a Mitsui com 5.934 linhas / 1.351 declarações) e o número de declarações vinculadas a
+        mais de uma apólice é <strong>zero</strong> em todas. Portanto é <strong>risco latente de escopo no código</strong>,
+        não um problema observável — e por isso <strong>não abri Bug</strong>. Fica registrado para o dev decidir se vale
+        alinhar o filtro do DELETE ao do <code>VerificaAdicao</code>.</p>
       </div>
       <p style="margin:6px 0;font-size:12px;color:#8b949e">Script:
       <code>testes-automatizados/sprint-10-citweb/pbi-7683/ct_dup_001_recarga_pacote.py</code></p>
