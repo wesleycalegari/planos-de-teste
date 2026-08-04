@@ -168,7 +168,30 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Flag <code>AgrupamentoAverbacaoHabilitado</code> <b>ON</b> + migration aplicada + Worker gravando linhas agregadas em HML</li><li>Pacote DUIMP com ao menos 1 linha agregada com q_itn_agp &gt; 1 (ex.: 1 linha = 5 itens)</li><li>Serviço de expansão #7802 publicado</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o pacote DUIMP com linha(s) agregada(s)</li><li>Verificar lblDIIncluida ao fim: deve refletir a soma de q_itn_agp (itens reais), não o nº de linhas</li><li>Confirmar via SQL a soma de q_itn_agp das linhas processadas</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Regra decidida (Fabiola/Wesley 24/07): contador = nº de AVERBAÇÕES, não itens.</b> Ao processar uma linha agregada que representa vários itens (q_itn_agp&gt;1), o contador deve refletir a <b>averbação</b> correspondente — <b>não</b> somar os itens do agrupamento. Ex.: 1 linha agregada com q_itn_agp=5 → conta como a(s) averbação(ões) gerada(s), não 5 itens. ⚠️ Se a tela exibir a soma de itens (5), é <b>REPROVADO</b> (o <code>AtualizaContadoresDIPorItens</code> soma <code>q_itn_agp</code> = itens, o que contraria a regra).</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido até flag ON + migration + Worker em HML (mesma condição do Grupo B do #7802).</div></div>
+      <div class="ct-ev"><div class="ev-pend" style="border-left:4px solid #22d3ee">
+        <strong>⏳ PENDENTE — mas o motivo mudou em 04/08/2026: a dependência do Worker CAIU.</strong>
+        <p style="margin:6px 0">O <code>#QA-STATUS: BLOQUEADO</code> de 28/07 dizia "CTs Worker-dependentes SEM massa para
+        validar". Não vale mais. Medição de 04/08 na AXA HML (<code>tb_itf_smx_dcl_pnd_dui</code>):
+        <strong>270 linhas com <code>q_itn_agp ≥ 2</code></strong>, a maior com <strong>145 itens</strong>. O José havia
+        avisado no card em <strong>29/07 11:35</strong> que o WorkerDUIMP tinha dois serviços apontando para o mesmo banco
+        e que já estava rodando — aviso que ficou 6 dias sem resposta do QA.</p>
+        <p style="margin:6px 0"><strong>Massa que discrimina o fix:</strong> apólice <code>3762900634322</code> · filial
+        <strong>3762</strong> · desembaraço <strong>06/2026</strong> → <strong>72 linhas agregadas = 1.401 itens</strong>
+        (84 pendentes no período, 0 averbações hoje). Contador ~72 → APROVADO · ~1.401 → REPROVADO.</p>
+        <p style="margin:6px 0"><strong>O oráculo não sai da tela</strong> (lição do #7762 no mesmo dia): o nº de averbações
+        é o <em>delta</em> de <code>tb_mov_avb_int_cit</code> antes/depois; a soma de itens vem de
+        <code>SUM(q_itn_agp)</code>. Script:
+        <code>testes-automatizados/sprint-11-citweb/pbi-7803/ct_ctd_002_003_contador_agregada.py</code>.</p>
+        <p style="margin:6px 0"><strong>Onde parei (3 tentativas, INCONCLUSIVO — não é REPROVADO):</strong> com filial 3762,
+        critério Desembaraço, 01→30/06/2026 e só <em>Processar DUIMP's</em>, o modal de confirmação aparece e é confirmado,
+        mas nada processa — contadores vazios, 0 averbações criadas, pendentes inalterados (84 → 84). Duas hipóteses, sem
+        escolher no chute: (a) <code>ddlCriterio</code> volta para "Selecione" após a interação com os checkboxes;
+        (b) <code>e_dcl_smx='1'</code> pode significar <em>já processada</em> — nesse caso contador vazio é o comportamento
+        <em>correto</em> e não há defeito. Pergunta de uma frase feita ao José no card.</p>
+        <p style="margin:6px 0"><strong>⛔ Armadilha nova:</strong> a <strong>filial precisa ser a da apólice</strong>. O
+        default da tela é <code>0001</code>; com a filial errada o botão Processar <strong>não abre nem o modal</strong>,
+        sem mensagem nenhuma.</p>
+      </div></div>
     </div>
   </div>
 
@@ -185,7 +208,10 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Mesmas do CT-CTD-002</li><li>Pacote com linhas agregadas em cada categoria: incluída, desprezada, inconsistente</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o pacote com linhas agregadas nas 4 categorias</li><li>Verificar cada contador ao fim vs. a soma de q_itn_agp por categoria (via SQL)</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Regra decidida (Fabiola/Wesley 24/07): cada um dos 4 contadores reflete o nº de AVERBAÇÕES da sua categoria (Lida/Desprezada/Inconsistente/Incluída), não a soma de itens do agrupamento.</b> ⚠️ Se exibir a soma de <code>q_itn_agp</code> (itens) por categoria, é REPROVADO.</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON em HML).</div></div>
+      <div class="ct-ev"><div class="ev-pend" style="border-left:4px solid #22d3ee">⏳ PENDENTE — mesma situação do
+      <strong>CT-CTD-002</strong> (ver ali): a dependência do Worker caiu em 04/08 (270 linhas com <code>q_itn_agp ≥ 2</code>),
+      a massa existe, e o que resta é um obstáculo de execução na tela de Processamento — não uma dependência de terceiros.
+      Este CT roda na mesma passagem do 002, lendo os 4 contadores por categoria.</div></div>
     </div>
   </div>
 
