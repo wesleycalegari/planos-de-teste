@@ -352,17 +352,31 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
   <div class="ct-block" id="ct-CTD-004">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-CTD-004</span>
-      <span class="ct-title">Paridade SQL Server × Oracle — mesma soma de q_itn_agp</span>
+      <span class="ct-title">Paridade SQL Server × Oracle — contagem independente do banco <span style="font-size:11px;color:#8b949e">(objetivo corrigido em 04/08)</span></span>
       <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pendente" id="badge-CTD-004">PENDENTE</span>
+      <span class="badge badge-bloqueado" id="badge-CTD-004">NÃO EXECUTÁVEL EM HML</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>CA exige validação em SQL Server e Oracle. Verificar que os contadores produzem o mesmo resultado (soma de q_itn_agp) nos dois bancos.</p></div>
-      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Ambientes AXA HML em SQL Server e em Oracle disponíveis</li><li>Mesmo pacote DUIMP agregado processado em ambos</li></ul></div>
-      <div class="ct-section"><h4>Passos</h4><ol><li>Processar o mesmo pacote agregado no ambiente SQL Server e no Oracle</li><li>Comparar os 4 contadores entre os dois bancos</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores idênticos em SQL Server e Oracle (nº de averbações — regra decidida), sem divergência por banco.</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON) + requer acesso aos dois bancos.</div></div>
+      <div class="ct-section"><h4>⚠️ Correção do próprio CT (04/08/2026) — a premissa que eu escrevi contradiz a regra aceita</h4>
+        <p>O título e o objetivo originais diziam <em>"mesma <strong>soma de q_itn_agp</strong>"</em>. Está errado: a implementação <strong>não soma</strong> <code>q_itn_agp</code> nos contadores — e não somar foi uma <strong>decisão de negócio</strong>, a da Fabiola no Gate 2 (24/07) confirmada pelo Wesley: <em>"números = averbações, não itens do agrupamento"</em>. O CT media exatamente o que o código deliberadamente deixou de fazer. Corrigido para o que o CA pede de fato: <strong>a contagem não pode divergir por banco</strong>.</p>
+        <p>Evidência lida no ref do ambiente (<code>origin/hml</code>, HEAD <code>71a7c7554</code>) — <code>InterfaceSTREITI/Controllers/DIProcessamentoController.cs</code>, método <code>AtualizaContadoresDIPorAverbacao</code>:</p>
+        <pre style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:10px;overflow-x:auto;font-size:12px">// Regra de negócio (PO/QA 24/07): contadores = nº de averbações (+1 por linha processada),
+// não a soma de itens do agrupamento (q_itn_agp). Uma linha agregada conta como 1 averbação.
+_ = linha;                       // parâmetro deliberadamente descartado
+const int qtdAverbacoes = 1;     // sempre 1 por linha
+...
+if (incrementarIncluida) Tot_Avb_Incl += qtdAverbacoes;</pre>
+        <p style="color:var(--muted);font-size:12px">De quebra, isto <strong>confirma o CT-CTD-002</strong> pelo lado do código: contador 13 com 71 itens no pacote é o comportamento especificado, não coincidência.</p>
+      </div>
+      <div class="ct-section"><h4>Objetivo (corrigido)</h4><p>O CA exige validação em SQL Server <em>e</em> Oracle. Verificar que os contadores produzem o mesmo resultado nos dois bancos.</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Uma instância HML em <strong>Oracle</strong> — <span class="tbd">não existe hoje</span></li><li>Mesmo pacote DUIMP processado em ambos</li></ul></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores idênticos nos dois bancos, sem divergência por provider.</div></div>
+      <div class="ct-ev"><div class="ev-pend" style="border-left:3px solid #d29922">⚠️ <strong>NÃO EXECUTÁVEL EM HML</strong> — e a razão agora é precisa, não "falta acesso".
+        <p><strong>1. Não há instância Oracle ao meu alcance.</strong> O provider vem do appSetting <code>DataBaseSettings</code> (<code>UtilityDB/DbUtility.cs</code>, <code>switch</code> ORACLE/MYSQL/SQL_SERVER); todas as ~38 bases HML que eu acesso são SQL Server (<code>smt-hom-citweb-*</code>) e não existe chave de conexão Oracle. Isso é ambiente, não massa — o único caso em que a skill admite não-execução.</p>
+        <p><strong>2. A contagem é provider-independente por construção.</strong> O incremento é <code>+= 1</code> em memória, por linha, em C#; não há agregação em SQL. <code>DuimpAgrupamentoDomain.ObterQuantidadeItens</code> também é C# puro (lê a propriedade do model; NULL ou ≤ 0 vira 1). Divergência por banco só entraria pelo <em>SELECT</em> ou pelo <em>mapeamento do reader</em>.</p>
+        <p><strong>3. O risco residual, nomeado.</strong> Em <code>Repository/InterfaceSiscomexDeclaracaoPendenteRepository.cs</code> a coluna é lida de duas formas: via <code>TryLerColuna</code> + <code>Convert.ToInt16</code> (linha ~1969, robusto) e via <code>reader["q_itn_agp"].ToString().ChecaValueInt16NuloOuVazio()</code> (linha ~815) — esta segunda faz <strong>round-trip por string</strong>. Em SQL Server a coluna é <code>smallint</code> e o texto sai <code>"5"</code>; se no schema Oracle ela for <code>NUMBER</code> com escala, o texto pode sair com separador decimal (<code>"5,00"</code> em cultura pt-BR) e o parse para Int16 falha. <strong>É isso que um teste em Oracle pegaria</strong> — fica registrado como o ponto a verificar quando houver instância.</p>
+        <p><strong>Decisão que não é minha:</strong> ou dev/ops disponibiliza um HML Oracle, ou o CA se considera coberto por construção + unit tests, com esta ressalva registrada. <strong>Não marco APROVADO por leitura de código</strong> — análise estática não é execução.</p></div>
     </div>
   </div>
 
