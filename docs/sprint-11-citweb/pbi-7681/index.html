@@ -187,6 +187,27 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <p style="margin-top:6px;color:var(--muted);font-size:12px">Os 5 relatórios exigidos em prévia e pós-fechamento: <strong>Resumo de Embarques</strong>, <strong>Relação de Embarques</strong>, <strong>Relação de Embarques Simplificado</strong>, <strong>Análise de Produção</strong> (módulo Internacional <em>e</em> módulo Gestão) e <strong>Relatório de Produção</strong> (módulo Internacional <em>e</em> módulo Gestão) — validando <strong>Prêmio</strong> e <strong>Taxa</strong> em cada um.</p>
 </div>
 
+<div class="warn-box" style="border-left:4px solid #d13438;background:#1f0d0d;margin:16px 24px 0;padding:14px 18px">
+  <h3 style="color:#f1707a;margin:0 0 8px">⚠️ 04/08/2026 — o build mais novo QUEBRA este fluxo (Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8013" style="color:#f1707a">#8013</a>)</h3>
+  <p><strong>Isto não é reteste deste card e não muda o placar abaixo</strong> — os 19 aprovados continuam válidos <strong>para o build em que foram executados</strong> (AXA <code>V 1.0.260731.1945</code>). O que registro aqui é que o pacote mais recente derruba o Conversor de Importação inteiro.</p>
+  <p>Encontrei enquanto fechava o CT-CEX-008 do <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7707" style="color:#8ab4f8">#7707</a> (Exportação): lá a KOVR recusava 100% dos registros, e o código apontava o mesmo padrão no controller de Importação. Então medi aqui também.</p>
+  <p><strong>Medição — KOVR HML, build <code>V 1.0.260804.1540</code>:</strong> layout <code>QA</code> (<code>CIT-AVB-IMP</code>), apólice <code>4022026</code>, subgrupo 1, filial 1.</p>
+  <ul>
+    <li><strong>Conversão: 5/5 aceitas, 0 rejeitadas</strong> — a etapa de conversão está intacta.</li>
+    <li><strong>Processamento: 0 aceitas · 5 rejeitadas</strong>, todas com <code>País 0 sem cobertura.</code> — e a grid exibindo o país <strong>215/0</strong>, ou seja, a tela sabe o país e a validação não.</li>
+    <li><strong>Linha de base no mesmo banco:</strong> essa apólice e esse layout gravaram <strong>72 averbações em 20/07/2026</strong> (definitivas <code>2026000030–2026000101</code>, origem 215 → destino 12, conferidas em <code>tb_mov_avb_int_cit</code>). Funcionava.</li>
+  </ul>
+  <p><strong>Causa raiz (a mesma nos dois fluxos):</strong> <code>ProcessamentoAverbacoesImportacaoController.cs:224</code> atribui o país ao objeto <em>externo</em> (<code>processamentoAverbacoes.c_pas_irb = item.c_ori_tch;</code>) enquanto a validação lê o <em>interno</em> (<code>averbacao.averbacaoMovimentoInternacional.c_pas_irb</code>, em <code>ConsistenciadeDadosdeAverbacoesDomain.cs:670</code>) — auto-properties irmãs e independentes. O commit <code>0a6447731</code> (<em>#7471 refatoração RCTRVI</em>, 02/07) migrou essa atribuição para o objeto interno <strong>apenas</strong> no controller de RCTRVI (linhas 977/981), deixando Importação e Exportação com a versão antiga. Como <code>Verifica_Cobertura_Pais</code> começa em <code>false</code> e só vira <code>true</code> se achar linha do país, o valor 0 reprova sempre.</p>
+  <p style="background:#1f1a0d;border-left:4px solid #d29922;padding:10px 14px;margin:10px 0"><strong>Risco:</strong> a Fabiola registrou no card que o Itamar geraria o pacote em 03/08 para a AXA. Se for o pacote que a KOVR recebeu, o Conversor de Importação passa a recusar 100% na AXA assim que subir. <strong>Um único fix resolve os dois cards</strong> (#7681 e #7707) — por isso a Task é única (#8013) em vez de uma por card.</p>
+  <div style="margin-top:10px">
+    <img src="evidencias/REGRESSAO-BUILD-0408/kovr_importacao_conversao_5de5.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px" alt="KOVR: conversão 5/5 aceitas">
+    <div style="font-size:11px;color:var(--muted);margin:3px 0 10px">EV1 — Conversão em KOVR: 5/5 aceitas, 0 rejeitadas — a conversão não é o problema</div>
+    <img src="evidencias/REGRESSAO-BUILD-0408/kovr_importacao_pais0_5rejeitadas.png" style="max-width:100%;border:1px solid var(--border);border-radius:4px" alt="KOVR: 5 rejeitadas com País 0 sem cobertura">
+    <div style="font-size:11px;color:var(--muted);margin-top:3px">EV2 — Processamento em KOVR: 0 aceitas · 5 rejeitadas · país <strong>215/0</strong> na grid e mensagem <strong>"País 0 sem cobertura"</strong></div>
+  </div>
+  <p style="color:var(--muted);font-size:12px;margin-top:8px">Reprodução: scripts do #7707 com <code>FLUXO=importacao</code> + <code>gerar_massa_importacao_kovr.py</code> (o layout <code>QA</code> preenche tudo por Conteúdo Sugerido — só a coluna <strong>M</strong>, valor FOB, vem do arquivo). Detalhamento das três seguradoras e da contraprova do país 224 no <a href="https://wesleycalegari.github.io/planos-de-teste/sprint-10-citweb/pbi-7707/" style="color:#8ab4f8">plano do #7707</a>.</p>
+</div>
+
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">21</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">19</div><div class="metric-lbl">Aprovados</div></div>
