@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QA — PBI #8016 · Verificação do ADR-010 (resolução de tenant por identidade)</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#7c3aed;--accent2:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--cyan:#22d3ee;--text:#c9d1d9;--muted:#8b949e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--accent);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
+.info-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid #1f6feb;border-radius:6px;padding:14px 16px}
+.info-box h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#60a5fa;margin-bottom:8px}
+.info-box p{font-size:13px;color:var(--text);margin-bottom:6px}
+code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+pre{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:10px 12px;overflow-x:auto;margin:8px 0}
+pre code{background:none;border:0;padding:0}
+a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(167,139,250,.35)}
+.deploy-warn{background:var(--yel-bg);border:1px solid var(--yellow);border-radius:8px;padding:14px 16px;margin:12px 24px 0}
+.deploy-warn h3{color:var(--yellow);font-size:13px;font-weight:700;margin-bottom:6px}
+.deploy-warn p,.deploy-warn li{font-size:12px;color:var(--text)}
+.deploy-warn ul{padding-left:16px;margin-top:4px}
+.metrics{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+.container{padding:0 24px 40px}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:8px;margin:26px 0 12px}
+.doc-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.doc-box p,.doc-box li{font-size:13px;margin-bottom:6px}
+.doc-box ul,.doc-box ol{padding-left:18px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok,.badge-aprovado{background:#0d1f0d;color:#3fb950}
+.badge-erro{background:var(--red-bg);color:#f85149}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.ct-caret{color:var(--muted);font-size:11px}
+.ct-panel{padding:14px;border-top:1px solid var(--border);display:none}
+.ct-block.expanded .ct-panel{display:block}
+.ct-block.expanded .ct-caret{transform:rotate(90deg)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text)}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.expected{background:#0d1a2e;border:1px solid #1f6feb;border-radius:4px;padding:8px 10px;font-size:13px;color:#a5d0ff}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:1px solid var(--border)}
+table.matriz{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
+table.matriz th{background:var(--accent);color:#fff;padding:6px 9px;text-align:left;border:1px solid var(--border)}
+table.matriz td{border:1px solid var(--border);padding:5px 9px;vertical-align:top}
+table.meta{width:100%;border-collapse:collapse;margin-top:4px;font-size:12px}
+table.meta td{border:1px solid var(--border);padding:5px 9px}
+table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font-weight:600}
+.ok{color:#3fb950;font-weight:700}.warn{color:var(--yellow);font-weight:700}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">PBI</span>
+  <span class="topbar-title">#8016 — Estratégia de resolução automática de tenant</span>
+  <span class="topbar-sprint">Sprint_12_Citweb · spike de arquitetura · sem ramo</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">Verificação de QA — PBI #8016</div>
+  <div class="hero-title" style="font-size:16px;font-weight:400;color:var(--muted);margin-top:4px">[NSSEG] Analisar e definir a estratégia de resolução automática de tenant baseada na identidade do usuário</div>
+  <div class="hero-sub">
+    <span>📄 Entregável: <strong>ADR-010-tenant-resolution.md</strong> (219 linhas, anexado em 04/08 18:00)</span>
+    <span>👤 Andreia Ferraraccio</span>
+    <span>📅 04/08/2026</span>
+  </div>
+  <div class="info-box">
+    <h3>Por que este card não recebe plano de CTs</h3>
+    <p>Os quatro critérios de aceite deste PBI falam de um <strong>documento</strong> — “o documento técnico descreve…”,
+    “o documento identifica riscos…”, “a solução recomendada define…”, “a proposta é compatível…”. Não há tela, campo ou
+    cálculo a exercitar em HML: o entregável é uma decisão de arquitetura, e ela já foi anexada ao card.</p>
+    <p>Escrever dez CTs de Playwright aqui seria teatro. O que QA pode fazer de útil — e é o que este documento entrega —
+    são <strong>duas coisas</strong>: (1) conferir, seção por seção, se o ADR responde a cada CA; e (2) converter as
+    decisões do ADR em <strong>afirmações verificáveis</strong>, para que a implementação não chegue ao QA sem oráculo.</p>
+    <p style="color:var(--muted);font-size:12px">QA verifica se o documento <em>atende ao que o card pediu</em>. QA não
+    arbitra se a arquitetura escolhida é a melhor — isso é decisão de dev/arquitetura.</p>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val">4</div><div class="metric-lbl">Critérios de aceite</div></div>
+  <div class="metric m-ok"><div class="metric-val">4</div><div class="metric-lbl">Atendidos pelo ADR</div></div>
+  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Ressalvas</div></div>
+  <div class="metric m-total"><div class="metric-val">7</div><div class="metric-lbl">Ganchos de teste futuros</div></div>
+</div>
+
+<div class="container">
+
+<div class="section-title">1 · Identificação</div>
+<table class="meta">
+  <tr><td>Card</td><td>PBI #8016 — In Progress · AreaPath <code>CITWEB</code> · <code>Sprint_12_Citweb</code></td></tr>
+  <tr><td>Criado</td><td>04/08/2026 por Andreia Ferraraccio (também responsável)</td></tr>
+  <tr><td>Tipo de trabalho</td><td>Spike / análise de arquitetura — entregável documental, sem código</td></tr>
+  <tr><td>Entregável avaliado</td><td><code>ADR-010-tenant-resolution.md</code> · status <strong>Proposto</strong> · autoria “Equipe CitNET”</td></tr>
+  <tr><td>Ambiente</td><td>Não se aplica — nada a executar em HML</td></tr>
+</table>
+
+<div class="section-title">2 · Verificação critério a critério</div>
+<div class="doc-box">
+<table class="matriz">
+  <tr><th style="width:32%">Critério de aceite</th><th style="width:38%">Onde o ADR responde</th><th style="width:12%">Veredito</th><th>Nota</th></tr>
+  <tr>
+    <td><strong>CA-1</strong> — o documento descreve claramente a estratégia recomendada para derivação de tenant</td>
+    <td>§2 Decisão (5 itens) · §5.1 fluxo de autenticação (5 passos) · §5.2 ordem da camada de resolução · §10 Resumo</td>
+    <td class="ok">ATENDIDO</td>
+    <td>A recomendação é explícita e não ambígua: tenant derivado da identidade no IdP (claims/grupos/roles), com a
+    Opção D (híbrida) nomeada como caminho de transição.</td>
+  </tr>
+  <tr>
+    <td><strong>CA-2</strong> — identifica riscos de segurança e operacionalidade da abordagem com Redis/<code>client_id</code></td>
+    <td>§1 (por que <code>client_id</code> é insuficiente) · §4 Opção B (desvantagens) · §5.3 gestão de segredos ·
+    <strong>§7 tabela de riscos</strong> (4 riscos com impacto e mitigação)</td>
+    <td class="ok">ATENDIDO</td>
+    <td>Responde às duas metades do CA: o risco semântico do <code>client_id</code> (identifica aplicação, não tenant) e
+    o risco operacional do Redis (“segredo exposto em cache”, fonte de verdade mutável divergindo do IdP).</td>
+  </tr>
+  <tr>
+    <td><strong>CA-3</strong> — define claramente como o backend resolve o tenant e a conexão ao banco</td>
+    <td>§5.2 (ordem de resolução) · §6 Backend (<code>ITenantResolver</code>, <code>ITenantContext</code>,
+    <code>TenantConnectionFactory</code>) · §5.3 segredo em vault · §11 papel do BFF</td>
+    <td class="ok">ATENDIDO</td>
+    <td>Chega ao nível de componente e de ordem de precedência — não fica em princípio. Inclui a regra negativa que
+    mais importa para teste: falha de resolução é erro, <strong>nunca fallback silencioso</strong>.</td>
+  </tr>
+  <tr>
+    <td><strong>CA-4</strong> — a proposta é compatível com cenários SaaS e on-prem</td>
+    <td>§3 requisitos funcionais · §4 Opção C (vantagens) · §8 consequências positivas ·
+    <strong>§11 Notas de compatibilidade</strong> (trata os dois casos nominalmente)</td>
+    <td class="ok">ATENDIDO</td>
+    <td>§11 é explícito: o padrão vale para portal centralizado (SaaS) e portal local (on-prem), desde que IdP e BFF
+    estejam configurados coerentemente.</td>
+  </tr>
+</table>
+<p style="font-size:12px;color:var(--muted);margin-top:10px">Conclusão da verificação: <strong class="ok">os 4 CAs
+estão atendidos pelo documento entregue</strong>. As duas ressalvas abaixo não derrubam nenhum CA — são pontos a
+resolver antes de o ADR virar base de implementação.</p>
+</div>
+
+<div class="section-title">3 · Ressalvas</div>
+
+<div class="deploy-warn" style="margin-left:0;margin-right:0">
+  <h3>R-1 · O escopo do ADR é CitNET; o card está no board CITWEB — e o CITWEB resolve tenant de outro jeito</h3>
+  <p>O documento se declara “Autores: Equipe CitNET” e fala de <strong>CitNET</strong> em §1 e §10; o título do card usa o
+  prefixo <strong>[NSSEG]</strong>. Já o CITWEB, hoje, não resolve tenant por identidade <em>nem</em> por combo de login:
+  cada seguradora tem <strong>deploy e base próprios</strong>, escolhidos pela URL do ambiente e pelo appSetting
+  <code>DataBaseSettings</code>.</p>
+  <p>Isso não é teoria — é observável: em 04/08/2026 os ambientes de HML estavam em <strong>pacotes diferentes entre
+  si</strong> (KOVR em <code>1.0.260804.1540</code>, AXA em <code>1.0.260804.1125</code>), o que só é possível porque são
+  implantações independentes por seguradora.</p>
+  <p><strong>Pergunta que vale responder antes da implementação:</strong> o ADR-010 vale só para o CitNET/RCV, ou o CITWEB
+  também deve migrar para resolução por identidade? São esforços muito diferentes, e a resposta muda quem testa o quê.</p>
+</div>
+
+<div class="deploy-warn" style="margin-left:0;margin-right:0;border-color:var(--muted);background:#161b22">
+  <h3 style="color:var(--muted)">R-2 · Dois pontos de forma no documento e no card</h3>
+  <ul>
+    <li><strong>Numeração fora de ordem:</strong> a seção <strong>§11 “Integração com a Plataforma (Portal) e BFF”</strong>
+    aparece fisicamente <strong>entre a §5.4 e a §6</strong>. Como o ADR vai circular entre times, vale mover para depois
+    da §10 ou renumerar — hoje quem lê em sequência encontra 5 → 11 → 6.</li>
+    <li><strong>Status <em>Proposto</em>:</strong> o CA-1 pede “a estratégia recomendada”, e o ADR entrega exatamente isso —
+    mas ainda como proposta, não como decisão ratificada. Quando houver o aceite, atualizar o cabeçalho para
+    <em>Aceito</em> fecha o rastro.</li>
+    <li><strong>Tags do card vazias:</strong> sem <code>citweb</code>/<code>citnet</code> nem seguradora, o card não
+    aparece nas varreduras que filtram por tag. Derivei sistema e escopo do próprio conteúdo em vez de escalar, mas vale
+    preencher.</li>
+  </ul>
+</div>
+
+<div class="section-title">4 · Ganchos de teste — o que vira CT quando isto virar código</div>
+<div class="doc-box" style="margin-bottom:12px">
+  <p>Cada item abaixo é uma <strong>afirmação do próprio ADR</strong> convertida em algo que se prova ou se refuta. Não são
+  CTs para executar agora — não há o que executar. São o oráculo pronto para o dia em que a implementação chegar ao QA,
+  para que ninguém precise reabrir esta discussão para descobrir o que “funcionando” significa.</p>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-01</span><span class="ct-title">Isolamento: identidade do tenant A não alcança dados do tenant B</span>
+  <span class="badge badge-p1">P1</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§3 requisitos de segurança — “o tenant usado para conexão deve ser o
+    mesmo tenant autorizado para a identidade autenticada”; §11 — o BFF “rejeita requests cujo usuário não esteja
+    autorizado para o tenant resolvido”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Autenticar como usuário do tenant A e forçar o tenant B por todas as
+    vias disponíveis (seleção na UI, header, parâmetro de request, token com claim adulterada).</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">Recusa explícita em todas as vias. Nenhuma
+    consulta chega à base do tenant B — verificar no banco/log, não só na tela.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-02</span><span class="ct-title">Falha de resolução é erro explícito — nunca fallback silencioso</span>
+  <span class="badge badge-p1">P1</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§6 Backend — “garantir que qualquer falha de resolução seja tratada
+    como erro de autorização ou configuração, <strong>nunca como fallback silencioso</strong>”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Autenticar com token sem a claim de tenant (ou com claim
+    desconhecida) e observar o que o backend faz.</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">Erro de autorização/configuração visível e
+    auditado. <strong>Não</strong> abrir conexão com um tenant “padrão”. Este é o gancho mais importante da lista: é
+    exatamente o comportamento que passa despercebido em teste de tela, porque o sistema parece funcionar.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-03</span><span class="ct-title"><code>client_id</code> não altera o tenant resolvido</span>
+  <span class="badge badge-p1">P1</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§11 — “evitar usar <code>client_id</code> do portal como prova de
+    tenant; aceitar <code>client_id</code> apenas como metadado do aplicativo”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>O mesmo usuário acessa por dois <code>client_id</code> diferentes
+    (portal e app direto).</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">O tenant resolvido é idêntico nos dois
+    acessos. Trocar o <code>client_id</code> não muda a base acessada.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-04</span><span class="ct-title">Fallback manual é raro, visível e auditado</span>
+  <span class="badge badge-p2">P2</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§4 Opção D + §7 mitigação — “tornar o fallback raro e visível”;
+    §2.3 — a seleção na UI “nunca como a fonte primária”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Exercitar o cenário excepcional que aciona o fallback operacional.</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">O uso do fallback gera registro de auditoria
+    identificando usuário, tenant e motivo — e não se torna o caminho normal de login.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-05</span><span class="ct-title">Toda resolução de tenant é auditável (usuário + tenant)</span>
+  <span class="badge badge-p2">P2</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§5.1.5 e §6 Observabilidade — registrar a resolução do tenant em
+    log/auditoria; “operações sensíveis também registram o <code>tenant</code> e o usuário associado”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Executar uma operação sensível e conferir o registro correspondente.</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">O registro existe e traz tenant + usuário —
+    verificado no log real, não presumido pela ausência de erro.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-06</span><span class="ct-title">Credencial de base não vem do Redis como fonte primária</span>
+  <span class="badge badge-p1">P1</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§2.5 e §5.3 — segredo em secret manager/vault; “Redis apenas para
+    cache, lookup leve ou rate limiting, <strong>não como repositório primário de credenciais</strong>”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Indisponibilizar o Redis e tentar autenticar/conectar; inspecionar o
+    conteúdo armazenado no Redis.</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">O sistema continua resolvendo a conexão pelo
+    vault (podendo degradar em desempenho), e o Redis não guarda segredo de conexão em claro.</div></div>
+  </div>
+</div>
+
+<div class="ct-block">
+  <div class="ct-bar"><span class="ct-id">H-07</span><span class="ct-title">O mesmo padrão funciona em SaaS e em on-prem</span>
+  <span class="badge badge-p2">P2</span><span class="badge badge-pendente">futuro</span><span class="ct-caret">▶</span></div>
+  <div class="ct-panel">
+    <div class="ct-section"><h4>Origem no ADR</h4><p>§11 Notas de compatibilidade — portal centralizado (SaaS) e portal
+    local (on-prem), “desde que o IdP e o BFF estejam configurados coerentemente”.</p></div>
+    <div class="ct-section"><h4>Como se prova</h4><p>Repetir H-01 e H-02 nas duas topologias de implantação.</p></div>
+    <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">Mesmo comportamento de isolamento e de erro
+    explícito nos dois cenários — a diferença fica na configuração, não na regra.</div></div>
+  </div>
+</div>
+
+<div class="section-title">5 · O que QA propõe para este card</div>
+<div class="doc-box">
+  <ol>
+    <li><strong>Fechar o CA pelo documento, não por execução:</strong> os 4 CAs estão atendidos pelo ADR-010. Do lado do QA,
+    não há CT a executar nem evidência de tela a produzir.</li>
+    <li><strong>Responder a R-1 antes de virar implementação:</strong> definir se o ADR-010 abrange o CITWEB ou só o
+    CitNET. É a única ressalva com impacto real de esforço.</li>
+    <li><strong>Guardar os 7 ganchos:</strong> quando a implementação entrar em sprint, eles viram os CTs — sem
+    redescobrir o oráculo. H-02 é o que mais se perde em teste manual de tela.</li>
+    <li><strong>Corrigir a numeração do §11 e as tags do card</strong> — dois minutos, evita ruído depois.</li>
+  </ol>
+</div>
+
+</div>
+
+<div class="footer">
+  QA · CITWEB — verificação documental do PBI #8016 · gerada em 04/08/2026 ·
+  entregável avaliado: <code>ADR-010-tenant-resolution.md</code> (219 linhas)
+</div>
+
+<script>
+document.querySelectorAll('.ct-bar').forEach(function(b){
+  b.addEventListener('click', function(){ b.closest('.ct-block').classList.toggle('expanded'); });
+});
+</script>
+</body>
+</html>
