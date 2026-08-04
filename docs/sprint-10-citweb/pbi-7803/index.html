@@ -160,7 +160,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
       <span class="ct-id">CT-CTD-002</span>
       <span class="ct-title">Flag ON — linha agregada (q_itn_agp&gt;1): contador reflete AVERBAÇÕES (não itens do agrupamento)</span>
       <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pendente" id="badge-CTD-002">PENDENTE</span>
+      <span class="badge badge-ok" id="badge-CTD-002">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
@@ -186,7 +186,65 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
         critério Desembaraço, 01→30/06/2026 e só <em>Processar DUIMP's</em>, o modal de confirmação aparece e é confirmado,
         mas nada processa — contadores vazios, 0 averbações criadas, pendentes inalterados (84 → 84).</p>
 
-        <div class="ev-pend" style="border-left:4px solid #f85149;border-style:solid;color:#c9d1d9;background:#1a0d0e">
+        <div class="ev-pend" style="border-left:4px solid #2ea043;border-style:solid;color:#c9d1d9;background:#0d1f0d">
+          <strong>✅ EXECUTADO E APROVADO em 04/08/2026 — build V 1.0.260804.1124 (AXA HML)</strong>
+          <p style="margin:6px 0">Massa: apólice <code>100622001</code> · filial <code>0001</code> · referência
+          <strong>04/2026</strong> · 5 linhas agregadas representando <strong>71 itens</strong>.</p>
+          <table class="matriz">
+            <tr><th>Medida</th><th>Valor</th><th>Origem</th></tr>
+            <tr><td>Contadores na tela</td><td>Lidas <strong>14</strong> · Desprezadas <strong>0</strong> ·
+                Inconsistentes <strong>1</strong> · Incluídas <strong>13</strong></td>
+                <td><code>.well</code> ao vivo + hidden no post-back</td></tr>
+            <tr style="background:#0d1f0d"><td><strong>Averbações criadas</strong></td><td><strong>13</strong></td>
+                <td>delta de <code>tb_mov_avb_int_cit</code> (146 → 159) — <strong>medido no banco, não lido da tela</strong></td></tr>
+            <tr><td>Soma de itens das agregadas</td><td>71</td><td><code>SUM(q_itn_agp)</code></td></tr>
+          </table>
+          <p style="margin:6px 0"><strong>Veredito: o contador exibe o nº de AVERBAÇÕES (13), não a soma dos itens do
+          agrupamento (71).</strong> É exatamente a regra que a Fabiola definiu no Gate 2 de 24/07 e que o helper
+          <code>AtualizaContadoresDIPorAverbacao</code> implementa. <code>Incluídas = 13 = delta de averbações</code>, e
+          <code>Lidas = 14 = declarações lidas</code> (não 71 itens) — coerente também em Lidas.</p>
+          <p style="margin:6px 0;color:#d29922"><strong>Precisão sobre o CT-CTD-003:</strong> este run exercitou
+          <strong>3 das 4 categorias</strong> — Lidas (14), Inconsistentes (1) e Incluídas (13). <strong>Desprezadas veio
+          0</strong>, então essa categoria <em>não</em> foi exercitada. O CT-CTD-003 fica <strong>parcialmente
+          validado</strong>; para fechá-lo falta massa que gere declaração desprezada agregada. Não vou marcá-lo como
+          aprovado com 3 de 4.</p>
+          <p style="margin:6px 0;color:#8b949e">Evidências: <code>ev_CT-CTD-002_01_filtro_duimp_*.png</code>,
+          <code>ev_CT-CTD-002_02_contadores_final_*.png</code> e <code>resultado_*.json</code> (com as amostras ao vivo do
+          <code>.well</code>) em <code>evidencias/CT-CTD-002/</code>. Script:
+          <code>testes-automatizados/sprint-11-citweb/pbi-7803/ct_ctd_002_003_contador_agregada.py</code>.</p>
+        </div>
+
+        <div class="ev-pend" style="border-left:4px solid #d29922;border-style:solid;color:#c9d1d9;background:#1f1a0d">
+          <strong>⛔ OS TRÊS GUARDS DA TELA — o que me custou 4 execuções, e nenhum deles é defeito</strong>
+          <p style="margin:6px 0">O processamento só roda quando as três condições valem. <strong>O sistema anuncia todas
+          as três</strong>; eu não estava lendo a mensagem depois do POST:</p>
+          <table class="matriz">
+            <tr><th>#</th><th>Guard</th><th>O que o sistema faz</th></tr>
+            <tr><td>1</td><td><strong>Filial</strong> tem de ser a da apólice</td>
+                <td>com a filial errada (default <code>0001</code>) o Processar <strong>não abre nem o modal</strong>, sem mensagem</td></tr>
+            <tr><td>2</td><td><strong>Vigência</strong> — mês/ano de referência dentro da vigência da apólice</td>
+                <td><code>DIProcessamentoController.cs:534</code> → aviso <em>"Ano/Mês de referência fora da vigência da apólice"</em> e <strong>return</strong></td></tr>
+            <tr><td>3</td><td><strong>Origem SISCOMEX</strong> na apólice</td>
+                <td><code>DIProcessamentoController.cs:185</code> → aviso <em>"Apólice deve possuir a origem SISCOMEX"</em> e <strong>return</strong></td></tr>
+          </table>
+          <p style="margin:6px 0">⚠️ A coluna da origem é <code>tb_apo_cit.e_ori_avb</code> — <strong>não</strong> está em
+          <code>tb_apo_int_cit</code> (lá existe <code>e_avb</code>, que é o <em>tipo</em> de apólice, outra coisa). Só
+          <strong>34</strong> apólices da AXA HML têm origem SISCOMEX. Query da massa boa: agregada com
+          <code>q_itn_agp≥2</code> + apólice vigente no desembaraço + <code>e_ori_avb='SISCOMEX'</code> → 12 grupos.</p>
+          <p style="margin:6px 0;color:#8b949e">Falhas minhas encadeadas: usei referência 06/2026 numa apólice que expira
+          31/03/2026 — violando a minha própria regra de vigência de massa; e só passei a ler o alerta da tela depois do
+          POST na 4ª execução, que foi justamente a que funcionou.</p>
+        </div>
+
+        <div class="ev-pend" style="border-left:4px solid #6e7681;border-style:solid;color:#8b949e">
+          <strong>Investigação intermediária de 04/08 (mantida para histórico — superada pela execução acima):</strong>
+          <p style="margin:6px 0">A conclusão "os contadores vazios eram o comportamento correto porque
+          <code>sts_prc='C'</code>" estava <strong>errada</strong>: o seletor
+          (<code>InterfaceSiscomexDeclaracaoPendenteRepository.ListarPorData:511</code>) não consulta
+          <code>sts_prc</code>. A causa real eram os guards 2 e 3 acima.</p>
+        </div>
+
+        <div class="ev-pend" style="border-left:4px solid #6e7681;border-style:solid;color:#8b949e;display:none">
           <strong>⚠️ CORRIJO O BLOCO ABAIXO (mesmo dia, 20 min depois): a conclusão "os contadores vazios eram o
           comportamento correto" era PRECIPITADA.</strong>
           <p style="margin:6px 0">Fui ler o seletor de verdade —
