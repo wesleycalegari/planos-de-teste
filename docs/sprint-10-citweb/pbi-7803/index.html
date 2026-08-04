@@ -385,15 +385,48 @@ if (incrementarIncluida) Tot_Avb_Incl += qtdAverbacoes;</pre>
       <span class="ct-id">CT-CTD-005</span>
       <span class="ct-title">SignalR — atualização em tempo real dos contadores, sem degradação</span>
       <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pendente" id="badge-CTD-005">PENDENTE</span>
+      <span class="badge badge-erro" id="badge-CTD-005">REPROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>CA: a atualização via SignalR (DIProcessamentoHub.AtualizaContadoresDI) continua em tempo real, sem degradação perceptível de performance, mesmo somando q_itn_agp.</p></div>
-      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Flag ON, pacote DUIMP agregado com volume relevante</li></ul></div>
-      <div class="ct-section"><h4>Passos</h4><ol><li>Iniciar o processamento e observar os contadores atualizando ao vivo na tela</li><li>Verificar que a atualização é incremental/tempo real (SignalR) e não só ao final</li><li>Observar se há travamento/lentidão perceptível durante o broadcast</li></ol></div>
+      <div class="ct-section"><h4>Objetivo</h4><p>CA: a atualização via SignalR (<code>DIProcessamentoHub.AtualizaContadoresDI</code>) continua em tempo real, sem degradação perceptível de performance.</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Massa com volume relevante · apólice <code>123456</code> · filial 1 · referência <strong>02/2026</strong> · <strong>549 declarações</strong> pendentes (passando os 3 guards da tela)</li></ul></div>
+      <div class="ct-section"><h4>Passos</h4><ol><li>Iniciar o processamento e observar os contadores ao vivo</li><li>Verificar que a atualização é incremental (SignalR) e não só ao final</li><li>Observar travamento/lentidão durante o broadcast</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores atualizam em tempo real via SignalR durante o processamento, sem degradação perceptível.</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON em HML).</div></div>
+      <div class="ct-ev"><div style="background:#1f0d0d;border-left:4px solid #d13438;padding:10px 14px;color:#f1707a;margin-bottom:8px">
+        <strong>✗ REPROVADO</strong> — executado em 04/08/2026 · AXA HML · build <strong>V 1.0.260804.1124</strong> · Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8015" style="color:#f1707a">#8015</a><br>
+        <span style="color:var(--muted)">Nenhuma atualização chega ao navegador durante o processamento: os quatro números aparecem juntos quando o POST retorna, e a barra de progresso não sai do zero.</span>
+      </div>
+      <h4>A medição que fecha o caso — janela de ~6 minutos</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0">
+        <tr style="background:#161b22"><th style="padding:6px;text-align:left">O que</th><th style="padding:6px;text-align:left">Medido</th></tr>
+        <tr><td style="padding:6px">Janela de processamento</td><td style="padding:6px">confirmação <code>t=21,5s</code> → resposta <code>t=378,9s</code> = <strong>5min57s</strong></td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Broadcasts de contador recebidos</td><td style="padding:6px;color:#f1707a"><strong>ZERO</strong> — nenhum <code>ContadoresDI</code>/<code>AddProgress</code> no transporte durante a janela</td></tr>
+        <tr><td style="padding:6px">Estados dos labels <code>#lblDI*</code></td><td style="padding:6px"><strong>1</strong> — <code>549 / 18 / 219 / 312</code> de uma vez, em <code>t=379,9s</code></td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Barra de progresso</td><td style="padding:6px"><code>#lblProgress</code> e <code>#lblPercentualProgresso</code> <strong>vazios</strong> o tempo todo</td></tr>
+        <tr><td style="padding:6px">1º tráfego SignalR</td><td style="padding:6px"><code>negotiate</code> em <code>t=380,5s</code> — <strong>1,6s depois</strong> do render final</td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Oráculo no banco</td><td style="padding:6px">averbações <strong>96 → 408</strong> (+312) · 312 declarações saíram da fila → <strong>o processamento funcionou</strong></td></tr>
+        <tr><td style="padding:6px">Throughput</td><td style="padding:6px"><strong>0,65 s/declaração</strong> (357s para 549), sem timeout — <em>degradação de performance não é o problema</em></td></tr>
+      </table>
+      <h4>Mecanismo, no código de <code>origin/hml</code> (HEAD <code>71a7c7554</code>)</h4>
+      <p><code>Views/DIProcessamento/Index.cshtml:217-220</code> — <code>MyYesFunction()</code> faz
+      <code>document.getElementById("frmDIProcessamento").submit()</code>, e <code>#btnProcessar</code> é <code>type="submit"</code>:
+      o processamento é um <strong>POST de página inteira</strong>. A mesma view monta o cliente SignalR no <em>load</em>
+      (<code>$.hubConnection()</code> → <code>createHubProxy('DIProcessamentoHub')</code> → <code>joinGroup(userIdHub)</code>) e assina
+      <code>on('ContadoresDI', …)</code> e <code>on('AddProgress', …)</code>. Ao submeter o formulário, a navegação cancela o
+      long-polling: o servidor segue emitindo para o grupo do usuário e <strong>não há mais cliente escutando</strong>. Push existe,
+      assinatura existe — o gatilho impede a entrega.</p>
+      <div class="warn-box" style="margin:8px 0"><strong>Não é volume:</strong> reproduzi com 12, 13, 15, 18 e 549 declarações. Nas cinco execuções o cliente recebeu zero. Com 549 houve quase 6 minutos de janela — tempo de sobra para qualquer atualização incremental.</div>
+      <h4>Cinco execuções, e o que cada uma corrigiu na minha instrumentação</h4>
+      <ol style="font-size:13px">
+        <li>Registrei a <strong>URL</strong> das respostas de <code>/signalr/</code> em vez do corpo — e o long-polling bate a cada ~0,14s independentemente de haver contador, então "43 frames" não provava nada.</li>
+        <li>Passei a ler o corpo, mas filtrando <code>"AtualizaContadores"</code> <em>case-sensitive</em> e supondo <code>"M"</code> como string; no SignalR 2.x <code>M</code> é <strong>array</strong>.</li>
+        <li>Teto de 12 amostras cruas escondia justamente o trecho da janela de processamento.</li>
+        <li>O nome no fio é o do método <strong>do cliente</strong> (<code>ContadoresDI</code>), não o do servidor (<code>AtualizaContadoresDI</code>) — descoberto lendo a view.</li>
+        <li>Eu amostrava o <code>.well</code>, que é o render do POST-BACK; quem o SignalR atualiza são os labels <code>#lblDI*</code>. Só depois disso a medição passou a olhar o lugar certo.</li>
+      </ol>
+      <p style="color:var(--muted);font-size:12px">Sem essas cinco correções eu teria publicado "0 broadcasts" com instrumentação cega — que é indistinguível de defeito. Script: <code>testes-automatizados/sprint-11-citweb/pbi-7803/ct_ctd_005_signalr_tempo_real.py</code> (mede transporte + labels e falha se não houver broadcast). JSON com a trilha completa de tempos em <code>evidencias/CT-CTD-005/</code>.</p>
+      <p style="color:var(--muted);font-size:12px"><strong>Observação separada, sem veredito:</strong> nessa massa 219 das 549 declarações voltaram como <em>Inconsistentes</em>. Não investiguei — pode ser característica da massa da apólice <code>123456</code>. Registro para não passar batido.</p></div>
     </div>
   </div>
 
