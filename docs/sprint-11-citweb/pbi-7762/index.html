@@ -105,6 +105,11 @@ a:hover{color:#67e8f9;border-bottom-color:#67e8f9}
   <code>RelatorioAnaliseProducaoDomain.RetornaTipoApolice</code> (linha 1765) — ver <strong>CT-RAP-004</strong>.</p>
   <p>Os outros 7 CTs seguem válidos: a coluna existe, está preenchida e reflete o cadastro nos módulos Nacional e Gestão.
   O que falha é o <strong>rótulo</strong> no Internacional.</p>
+  <p><strong>Não é regressão deste card:</strong> o Relatório de SLA (<code>RelatorioSLADomain.cs:1637</code>) já traduzia
+  <code>'N' → "MENSAL DET"</code> antes do #7762. O card apenas expôs, num relatório a mais, uma divergência
+  <strong>relatório × cadastro</strong> que já existia — e que exige mudança em <strong>dois</strong> pontos de código.
+  Task do defeito: <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8008">#8008</a> (aberta pelo Diego).
+  Decisão de qual rótulo é o correto é de <strong>Produtos</strong> — ver ressalva no CT-RAP-004.</p>
 </div>
 
 <div class="deploy-warn" style="border-color:#2ea043;background:#0d1f0d">
@@ -318,6 +323,37 @@ else if (tipoRamo.ToUpper() == "NACIONAL")   case "N": tipoAvb = "AVERBÁVEL";  
           <p><strong>Esperado:</strong> apólice internacional com <code>e_avb='N'</code> deve sair como
           <code>AVERBÁVEL</code>, o mesmo termo do cadastro. <strong>Obtido:</strong> <code>MENSAL DET</code>, termo que não
           existe no cadastro internacional.</p>
+
+          <div class="info-box" style="background:#0d1f2d;border-left:4px solid #22d3ee;padding:10px 14px;margin:12px 0">
+            <strong>⚠️ Ressalva que muda o alcance do defeito — e corrige a minha primeira leitura deste achado:</strong>
+            <p>Fui conferir o <em>relatório de referência</em> que o próprio CA deste CT mandava comparar (e que em 24/07 eu
+            não comparei: usei "rótulo consistente entre módulos", que é outra coisa). Ele existe:
+            <code>CITWEB/Domain/RelatorioSLADomain.cs:1637</code> — <code>RetornaTipoApolice(e_avb, c_rmo)</code>, uma
+            <strong>segunda cópia</strong> da tabela de tradução, usada pelo Relatório de SLA. E lá o mapa é
+            <code>'N' → "MENSAL DET"</code> <strong>nos dois branches</strong> (ramos 22/32 <em>e</em> demais).</p>
+            <p>Consequências, ditas com precisão:</p>
+            <ul>
+              <li><strong>Relatório × relatório está CONSISTENTE.</strong> A Análise de Produção usa o mesmo termo que o
+              Relatório de SLA já usava antes do #7762. Portanto o defeito <strong>não foi introduzido por este card</strong> —
+              o #7762 só tornou visível, num relatório a mais, uma tradução que já existia.</li>
+              <li><strong>Quem diverge é relatório × cadastro.</strong> Nenhum usuário consegue digitar "MENSAL DET" numa
+              apólice internacional: o combo não oferece essa opção. É por isso que o CT continua <strong>REPROVADO</strong> —
+              não pelo CA literal (rótulo entre relatórios), mas porque a <em>execução</em> de 24/07 afirmou que a coluna
+              "deriva do campo do cadastro, mesma fonte, sem rótulo paralelo". Existe rótulo paralelo, e ele contradiz o
+              cadastro.</li>
+              <li><strong>Impacto no fix:</strong> corrigir só a Análise de Produção <em>criaria</em> a divergência entre
+              relatórios que hoje não existe. Os <strong>dois</strong> lugares têm de mudar juntos.</li>
+            </ul>
+            <p><strong>A decisão é de produto, não de QA</strong> — e é entre duas opções, ambas legítimas:
+            (i) os relatórios passam a usar <code>AVERBÁVEL</code> para <code>'N'</code> em apólice internacional, alinhando ao
+            cadastro (2 pontos de código); ou (ii) "MENSAL DET" é considerado o termo correto de faturamento e o que precisa
+            mudar é o <strong>cadastro</strong> (ou a documentação). Registrado na Task
+            <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8008">#8008</a>, aberta pelo Diego em 04/08 10:13.</p>
+            <p style="font-size:12px;color:#8b949e">Nota de versão: a leitura acima é do branch
+            <code>fix/ADO-7972-…</code> (arquivo com 2.112 linhas, método na linha 1756). O Diego cita as linhas 2146-2188 —
+            outra versão do mesmo arquivo. O <strong>achado empírico não depende disso</strong>: foi medido no build
+            <code>V 1.0.260804.1125</code> rodando em AXA HML.</p>
+          </div>
 
           <div style="margin-top:8px;padding:8px;background:#1f0d0d;border:1px solid #f85149;border-radius:4px">
             <strong>📎 Evidências (04/08/2026)</strong>
