@@ -399,7 +399,8 @@ if (incrementarIncluida) Tot_Avb_Incl += qtdAverbacoes;</pre>
         <tr><td style="padding:6px">Broadcasts de contador durante o processamento</td><td style="padding:6px;color:#f1707a"><strong>0</strong></td><td style="padding:6px;color:#79c57e"><strong>252</strong></td></tr>
         <tr style="background:#0d1117"><td style="padding:6px">Intervalo entre broadcasts (mediana)</td><td style="padding:6px;color:#f1707a">—</td><td style="padding:6px;color:#79c57e"><strong>0,157 s</strong></td></tr>
         <tr><td style="padding:6px">Estados distintos dos labels <code>#lblDI*</code></td><td style="padding:6px;color:#f1707a"><strong>1</strong> (tudo de uma vez, no fim)</td><td style="padding:6px;color:#79c57e"><strong>205</strong> (mediana 0,218 s entre eles)</td></tr>
-        <tr style="background:#0d1117"><td style="padding:6px">Barra de progresso</td><td style="padding:6px;color:#f1707a">vazia o tempo todo</td><td style="padding:6px;color:#79c57e">avança item a item — <code>0% → 9%</code> na janela amostrada</td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Barra de progresso</td><td style="padding:6px;color:#f1707a">vazia o tempo todo</td><td style="padding:6px;color:#79c57e">avança item a item — <code>0% → 100%</code>, terminando em "Processamento concluído!"</td></tr>
+        <tr><td style="padding:6px">Estado final dos contadores</td><td style="padding:6px;color:#f1707a"><code>549/18/219/312</code> de uma vez só, no POST-BACK</td><td style="padding:6px;color:#79c57e"><code>237/18/219/0</code> construído incrementalmente, e igual ao último broadcast</td></tr>
         <tr><td style="padding:6px">1º tráfego SignalR</td><td style="padding:6px;color:#f1707a"><code>negotiate</code> 1,6 s <em>depois</em> do render final</td><td style="padding:6px;color:#79c57e">1º contador em <code>t=53,06 s</code>, <strong>4,2 s após a confirmação</strong></td></tr>
       </table>
       <p style="font-size:13px">O payload capturado no fio é a prova direta — é a invocação do hub chegando ao cliente,
@@ -425,11 +426,23 @@ t=55,094s  {"M":[{"H":"DIProcessamentoHub","M":"ContadoresDI","A":[3,0,3,0]}]}  
       <strong>E isto é justamente o critério "valores finais coerentes" sendo atendido:</strong> os contadores exibiram
       <code>0 Incluída</code> e o banco criou <code>0 averbação</code>. Contador e efeito real dizem a mesma coisa. Se a
       tela tivesse mostrado incluídas sem gravar nada, aí sim haveria defeito.</div>
-      <div class="warn-box" style="margin:8px 0"><strong>Limite honesto desta medição:</strong> a amostragem encerrou com
-      o progresso em ~9% (23 declarações lidas, 22 inconsistentes), então os <em>totais finais</em> da rodada não foram
-      capturados — o que foi capturado é a janela inicial. Para o critério deste CT isso basta e sobra: tempo real exige
-      atualização <em>durante</em> o processamento, e há 252 broadcasts e 205 estados distintos dentro dessa janela.
-      Nenhum deles existia antes do fix.</div>
+      <div style="background:#0d1f0d;border-left:4px solid #2ea043;padding:10px 14px;margin:8px 0;font-size:13px">
+      <strong style="color:#79c57e">A rodada foi até o fim — e o estado final fecha com o banco</strong><br>
+      Último estado dos labels: <code>237 / 18 / 219 / 0</code> (Lidas / Desprezadas / Inconsistentes / Incluídas), com a
+      barra em <strong>"Processamento concluído! 100%"</strong> em <code>t=114,6 s</code>. O último broadcast do fio, em
+      <code>t=106,1 s</code>, já carregava <code>ContadoresDI [237,18,219,0]</code> — tela e transporte terminam dizendo
+      a mesma coisa.
+      <br><br>E os números batem com a aritmética da massa: das 549 originais, 312 foram incluídas em 04/08 e restaram
+      <strong>237 = 18 Desprezadas + 219 Inconsistentes</strong>. O reteste reprocessou essas 237 e reencontrou
+      <strong>as mesmas 18 e as mesmas 219</strong>, incluindo zero — que é por que o banco continua em 408 averbações.
+      Contador e efeito real coincidem em cada categoria.</div>
+      <div class="warn-box" style="margin:8px 0"><strong>O que este run NÃO fecha — e por que o CT-CTD-003 continua
+      parcial:</strong> a categoria <strong>Desprezadas</strong> finalmente saiu de zero (18), mas as 237 declarações
+      desta massa são <strong>todas simples</strong> (<code>q_itn_agp = 1</code> — medido: 237 linhas para 237 itens).
+      Numa linha simples, 1 declaração = 1 item, então o contador de Desprezadas <em>não discrimina</em> "declarações"
+      de "soma de itens" — que é exatamente o que o CT-CTD-003 precisa provar. Para fechá-lo continua faltando uma
+      <strong>desprezada agregada</strong> (<code>q_itn_agp &gt; 1</code>). Não marco o CT-003 como aprovado com a
+      categoria exercitada na forma que não discrimina.</div>
       <div style="margin-top:10px">
         <img src="evidencias/CT-CTD-005/ev_CT-CTD-005_01_filtro_20260805-142342.png" style="max-width:100%" alt="EV1 — filtro do Processamento preenchido (apólice 123456, filial 1, ref 02/2026)">
         <div style="font-size:11px;color:#888;margin-top:3px">EV1 — filtro do Processamento com a massa do reteste</div>
