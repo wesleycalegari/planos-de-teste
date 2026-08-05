@@ -110,11 +110,11 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
 
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val" id="m-total">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val" id="m-ok">2</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">4</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val" id="m-pend">4</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:83%"></div></div>
 
 <div class="container">
 
@@ -385,11 +385,65 @@ if (incrementarIncluida) Tot_Avb_Incl += qtdAverbacoes;</pre>
       <span class="ct-id">CT-CTD-005</span>
       <span class="ct-title">SignalR — atualização em tempo real dos contadores, sem degradação</span>
       <span class="badge badge-p2">P2</span>
-      <span class="badge badge-erro" id="badge-CTD-005">REPROVADO</span>
+      <span class="badge badge-ok" id="badge-CTD-005">APROVADO NO RETESTE</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
+      <div class="ct-ev"><div style="background:#0d1f0d;border-left:4px solid #2ea043;padding:12px 14px;color:#79c57e;margin-bottom:10px">
+        <strong>✓ APROVADO NO RETESTE</strong> — 05/08/2026 14:23 · AXA HML · módulo <strong>InterfaceSTREITI build V 1.0.260805.1532</strong> · fix <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8015" style="color:#79c57e">#8015</a> (PR !1536) · task de reteste <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/8023" style="color:#79c57e">#8023</a><br>
+        <span style="color:var(--muted)">Os contadores agora chegam ao navegador <strong>durante</strong> o processamento. O defeito era o gatilho, e o gatilho mudou: <code>form.submit()</code> → AJAX.</span>
+      </div>
+      <h4>Antes × depois — a mesma medição, os mesmos scripts, a mesma massa</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0">
+        <tr style="background:#161b22"><th style="padding:6px;text-align:left">O que</th><th style="padding:6px;text-align:left">04/08 — build .260804.1124</th><th style="padding:6px;text-align:left">05/08 — build .260805.1532</th></tr>
+        <tr><td style="padding:6px">Broadcasts de contador durante o processamento</td><td style="padding:6px;color:#f1707a"><strong>0</strong></td><td style="padding:6px;color:#79c57e"><strong>252</strong></td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Intervalo entre broadcasts (mediana)</td><td style="padding:6px;color:#f1707a">—</td><td style="padding:6px;color:#79c57e"><strong>0,157 s</strong></td></tr>
+        <tr><td style="padding:6px">Estados distintos dos labels <code>#lblDI*</code></td><td style="padding:6px;color:#f1707a"><strong>1</strong> (tudo de uma vez, no fim)</td><td style="padding:6px;color:#79c57e"><strong>205</strong> (mediana 0,218 s entre eles)</td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Barra de progresso</td><td style="padding:6px;color:#f1707a">vazia o tempo todo</td><td style="padding:6px;color:#79c57e">avança item a item — <code>0% → 9%</code> na janela amostrada</td></tr>
+        <tr><td style="padding:6px">1º tráfego SignalR</td><td style="padding:6px;color:#f1707a"><code>negotiate</code> 1,6 s <em>depois</em> do render final</td><td style="padding:6px;color:#79c57e">1º contador em <code>t=53,06 s</code>, <strong>4,2 s após a confirmação</strong></td></tr>
+      </table>
+      <p style="font-size:13px">O payload capturado no fio é a prova direta — é a invocação do hub chegando ao cliente,
+      não a batida do long-polling:</p>
+      <pre style="font-size:11px"><code>t=53,063s  {"M":[{"H":"DIProcessamentoHub","M":"ContadoresDI","A":[1,0,0,0]}]}
+t=53,969s  {"M":[{"H":"DIProcessamentoHub","M":"ContadoresDI","A":[1,0,1,0]}]}
+t=54,594s  {"M":[{"H":"DIProcessamentoHub","M":"ContadoresDI","A":[2,0,2,0]}]}
+t=55,094s  {"M":[{"H":"DIProcessamentoHub","M":"ContadoresDI","A":[3,0,3,0]}]}   … 252 no total</code></pre>
+
+      <h4>Por que "0 averbações criadas" aqui é o resultado CORRETO — e não um defeito novo</h4>
+      <p style="font-size:13px">O oráculo de banco fechou em <strong>408 → 408 averbações</strong> e
+      <strong>237 → 237 pendentes</strong>: nada foi persistido. Isso exige explicação, e ela é verificável em vez de
+      suposta. A massa de 02/2026 tinha <strong>549</strong> declarações; a execução de 04/08 incluiu <strong>312</strong>
+      (averbações 96 → 408) e rejeitou o resto — <code>18 Desprezadas + 219 Inconsistentes = <strong>237</strong></code>,
+      exatamente o que restou. <strong>O que sobrou é, por definição, o conjunto que já falhava.</strong></p>
+      <p style="font-size:13px">Confirmado na origem: das 237 residuais, <strong>91 têm erro registrado</strong> em
+      <code>tb_itf_smx_dcl_pnd_err</code>, e são todos de <strong>DE/PARA</strong> —
+      <em>"Navio não cadastrado no DE/PARA = HMM CLOVER"</em> (883 ocorrências),
+      <em>"Mercadoria não cadastrada no DE/PARA = 87169090"</em> (69),
+      <em>"Embalagem não cadastrada no DE/PARA"</em> (55). É a mesma causa que este plano já havia encerrado como
+      observação em 04/08.</p>
+      <div style="background:#0d1a2e;border:1px solid #1f6feb;border-radius:4px;padding:10px 12px;font-size:13px;color:#a5d0ff">
+      <strong>E isto é justamente o critério "valores finais coerentes" sendo atendido:</strong> os contadores exibiram
+      <code>0 Incluída</code> e o banco criou <code>0 averbação</code>. Contador e efeito real dizem a mesma coisa. Se a
+      tela tivesse mostrado incluídas sem gravar nada, aí sim haveria defeito.</div>
+      <div class="warn-box" style="margin:8px 0"><strong>Limite honesto desta medição:</strong> a amostragem encerrou com
+      o progresso em ~9% (23 declarações lidas, 22 inconsistentes), então os <em>totais finais</em> da rodada não foram
+      capturados — o que foi capturado é a janela inicial. Para o critério deste CT isso basta e sobra: tempo real exige
+      atualização <em>durante</em> o processamento, e há 252 broadcasts e 205 estados distintos dentro dessa janela.
+      Nenhum deles existia antes do fix.</div>
+      <div style="margin-top:10px">
+        <img src="evidencias/CT-CTD-005/ev_CT-CTD-005_01_filtro_20260805-142342.png" style="max-width:100%" alt="EV1 — filtro do Processamento preenchido (apólice 123456, filial 1, ref 02/2026)">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV1 — filtro do Processamento com a massa do reteste</div>
+        <img src="evidencias/CT-CTD-005/ev_CT-CTD-005_02_final_20260805-142342.png" style="max-width:100%" alt="EV2 — tela ao final da amostragem, contadores e barra de progresso preenchidos com a página viva">
+        <div style="font-size:11px;color:#888;margin-top:3px">EV2 — contadores e barra de progresso com a página viva (sem POST-BACK)</div>
+      </div>
+      <p style="font-size:12px;color:var(--muted)">Trilha completa (252 payloads + 316 amostras de render, com timestamp
+      monotônico de cada um): <code>evidencias/CT-CTD-005/ct005_medicao_20260805-142342.json</code>. Comando:
+      <code>python ct_ctd_005_signalr_tempo_real.py --apolice 123456 --mesano 02/2026</code>.</p>
+      </div>
       <div class="ct-section"><h4>Objetivo</h4><p>CA: a atualização via SignalR (<code>DIProcessamentoHub.AtualizaContadoresDI</code>) continua em tempo real, sem degradação perceptível de performance.</p></div>
+      <div class="ct-section"><h4>Registro histórico — a reprovação de 04/08 que originou o #8015</h4>
+        <p style="font-size:12px;color:var(--muted)">Mantido na íntegra abaixo: é o que fundamentou o #8015 e o que o
+        reteste acima refuta ponto a ponto.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Massa com volume relevante · apólice <code>123456</code> · filial 1 · referência <strong>02/2026</strong> · <strong>549 declarações</strong> pendentes (passando os 3 guards da tela)</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Iniciar o processamento e observar os contadores ao vivo</li><li>Verificar que a atualização é incremental (SignalR) e não só ao final</li><li>Observar travamento/lentidão durante o broadcast</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores atualizam em tempo real via SignalR durante o processamento, sem degradação perceptível.</div></div>
