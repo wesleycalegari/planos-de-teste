@@ -94,7 +94,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:180px;font
     <span>💻 CITWEB — Nacional → Averbação → RCV</span>
     <span>🔢 Ramo 59 (RC-V)</span>
     <span>📅 05/08/2026</span>
-    <span>🧪 13 CTs</span>
+    <span>🧪 13 CTs · 12 por rodada (3A descartado)</span>
   </div>
   <div class="info-box">
     <h3>Contexto — e o que eu confirmei na tela antes de escrever</h3>
@@ -154,11 +154,40 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   depende dessa decisão e pode ser executado assim que o desenvolvimento entregar.</p>
 </div>
 
+<div class="deploy-warn" style="border-color:var(--green);background:var(--green-bg)">
+  <h3 style="color:#3fb950">✅ Desenvolvimento entregue em 05/08 15:52 — e os três pontos que este plano levantou foram tratados</h3>
+  <p>Este plano foi publicado <strong>antes</strong> do desenvolvimento, justamente para que os achados chegassem a
+  tempo. Chegaram: o commit <code>46bfb67f6</code> (branch <code>fix/7980-incluir-mdfe-tipo-documento-rcv</code>)
+  responde aos três, e o card foi para <em>Pronto para homologação</em>.</p>
+  <table class="matriz">
+    <tr><th>O que o plano levantou no Gate 1</th><th>O que o desenvolvimento fez</th></tr>
+    <tr><td><strong>Descrição × CA se contradizem</strong> sobre validar o número</td>
+        <td>Seguiu a <strong>descrição</strong>: <em>"sem validação de chave MDF-e, alinhado à descrição e à massa HML
+        (10–24 chars)"</em>. → <strong>Grupo 3A descartado, 3B é o que executa</strong></td></tr>
+    <tr><td><strong>CA6 pede 3 saídas; a Impressão da Averbação estava fora</strong> (<code>RelatorioDomain.cs</code> não
+        usava o helper e ignorava <code>'N'</code> e <code>'M'</code>)</td>
+        <td><strong>Corrigida nesta entrega</strong> — a Impressão passa a usar o mesmo helper. Nas palavras dele:
+        <em>"cobre o ponto do CT-TDR-011 que você levantou no Gate 1"</em></td></tr>
+    <tr><td>O rótulo já dizia <code>(C/M/O)</code> mas o combo não oferecia M</td>
+        <td>Combo passa a oferecer MDF-e de fato (View + <code>MontarTipoDoc</code>)</td></tr>
+  </table>
+  <p style="margin-top:8px"><strong>Um comportamento novo que o plano não previa e agora precisa de CT:</strong> o JS
+  <code>MontarTipoDoc</code> (<code>AverbacaoRCV.js</code>) foi alterado para <strong>remontar</strong> a lista
+  C/N/M/O — porque, sem isso, a opção MDF-e <em>sumia ao carregar a apólice</em>. O dev cobriu isso na validação local
+  (cenário 04). É um caminho de falha real e específico: o combo pode estar correto ao abrir a tela e ficar errado
+  depois de escolher a apólice. Está incorporado ao <strong>CT-TDR-001</strong> como passo adicional.</p>
+  <p><strong>O que ele declarou NÃO ter validado — e que é exatamente o meu escopo:</strong>
+  <em>"gravação/reabertura E2E e Excel de Prévia/Fechamento não rodaram no AXA local (sem apólice RCV válida no
+  tenant)"</em>. São os CT-TDR-003, 004, 012 e 013. A massa que falta a ele está mapeada na seção 3 deste plano
+  (AXA, apólice <code>4906590000016</code>, vigente, 9.951 movimentos) — então a homologação cobre o buraco da
+  validação local, que é o desenho certo.</p>
+</div>
+
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val">13</div><div class="metric-lbl">CTs</div></div>
   <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">13</div><div class="metric-lbl">Aguardando dev</div></div>
+  <div class="metric m-pend"><div class="metric-val">13</div><div class="metric-lbl">A executar</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
 
@@ -258,6 +287,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
         <li>Clicar no tile <strong>Nacional</strong> (abre aba nova) e selecionar a nova aba.</li>
         <li>Clicar em <strong>Averbação</strong> → <strong>RCV</strong>.</li>
         <li>Localizar o campo rotulado <strong>"Tipo Documento (C/M/O)"</strong> e abrir o combo.</li>
+        <li><strong>Passo acrescentado em 05/08:</strong> informar a apólice da massa e aguardar a tela carregar os dados dela; <strong>reabrir o combo</strong> e conferir que as 5 opções continuam lá. O dev alterou o JS <code>MontarTipoDoc</code> justamente porque a opção MDF-e <em>sumia</em> nesse momento — o combo pode estar certo ao abrir a tela e errado depois de escolher a apólice.</li>
       </ol></div>
       <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">O combo <code>e_doc_ebq</code> apresenta
       <strong>5 opções</strong>: <code>X</code>="Selecione...", <code>C</code>="CTE", <code>N</code>="Nota Fiscal
@@ -336,11 +366,16 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
     </div>
   </div>
 
-  <div class="group-header"><span class="group-badge">GRUPO 3A</span><h2>Validação do documento — ⚠️ EXECUTAR SE: Produtos decidir que MDF-e valida como CTE/NF-e</h2><span class="group-toggle">▶</span></div>
-  <div class="deploy-warn excl-a" style="margin:0 0 12px">
-    <p>⚠️ <strong>Grupo mutuamente exclusivo com o 3B.</strong> Executar este grupo apenas se a decisão for a do
-    <strong>critério de aceite</strong> ("avisar quando fora do padrão, como CTE/NF-e"). Lembrando a medição da seção de
-    DoR: nesta hipótese, as 4.163 averbações MDF-e já existentes em HML ficam fora do padrão.</p>
+  <div class="group-header"><span class="group-badge">GRUPO 3A</span><h2>Validação do documento — ❌ NÃO SERÁ EXECUTADO (a bifurcação foi resolvida em 05/08)</h2><span class="group-toggle">▶</span></div>
+  <div class="deploy-warn excl-a" style="margin:0 0 12px;background:#1f1a0d">
+    <p>❌ <strong>Grupo descartado — a decisão saiu.</strong> Este plano nasceu com dois grupos mutuamente exclusivos
+    porque a descrição do card e o critério de aceite se contradiziam sobre validar o número do MDF-e. Em
+    <strong>05/08 15:52</strong> o desenvolvimento fechou a bifurcação e registrou no card:
+    <em>"Sem validação de chave MDF-e: alinhado à descrição destacada do card e à massa HML (10–24 chars). Não
+    validamos como CTE/NF-e neste momento."</em></p>
+    <p>É a leitura que a medição deste plano sustentava: validar como CTE/NF-e reprovaria <strong>100% das 4.163
+    averbações MDF-e já existentes</strong>, nenhuma delas com chave de 44 dígitos. <strong>Executar o Grupo 3B</strong>;
+    os CT-TDR-005 e 006 abaixo ficam registrados apenas como histórico da decisão.</p>
   </div>
 
   <div class="ct-block excl-a">
@@ -377,11 +412,11 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
     </div>
   </div>
 
-  <div class="group-header"><span class="group-badge">GRUPO 3B</span><h2>Validação do documento — ⚠️ EXECUTAR SE: Produtos confirmar a descrição (sem validação, igual a "Outros")</h2><span class="group-toggle">▶</span></div>
+  <div class="group-header"><span class="group-badge">GRUPO 3B</span><h2>Validação do documento — ✅ ESTE É O GRUPO A EXECUTAR (confirmado pelo desenvolvimento em 05/08)</h2><span class="group-toggle">▶</span></div>
   <div class="deploy-warn excl-b" style="margin:0 0 12px;background:var(--green-bg);border-color:var(--green)">
-    <p>⚠️ <strong>Grupo mutuamente exclusivo com o 3A.</strong> Esta é a hipótese que a <strong>descrição do card</strong>
-    enuncia e que o <strong>dado real sustenta</strong> — nenhuma das 4.163 averbações MDF-e existentes tem chave de 44
-    dígitos.</p>
+    <p>✅ <strong>Grupo confirmado.</strong> O desenvolvimento seguiu a descrição do card: sem validação do número, o
+    MDF-e se comporta como "Outros" (<code>ConsistirAverbacaoRCV</code> só exige o documento preenchido). É a hipótese
+    que o dado real sustenta — nenhuma das 4.163 averbações MDF-e existentes tem chave de 44 dígitos.</p>
   </div>
 
   <div class="ct-block excl-b">
