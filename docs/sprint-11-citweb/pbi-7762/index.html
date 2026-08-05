@@ -187,7 +187,39 @@ a:hover{color:#67e8f9;border-bottom-color:#67e8f9}
           </ul>
           <a href="evidencias/CT-RAP-001/7762-hdi-analiseproducao-criterios.png"><img src="evidencias/CT-RAP-001/7762-hdi-analiseproducao-criterios.png" alt="Critérios Análise de Produção" style="max-width:100%;border:1px solid #333;border-radius:4px"></a>
         </div>
-        <br><span style="color:#d29922">ℹ️ Nota de ambiente: o card é HDI-Yelum, mas o fix é core (RelatorioAnaliseProducao/main-fix) e o dev (José) deployou em AXA e HDI HML; HDI-Yelum HML tem 12 apólices Nacional e 0 movimentos → relatório vazio lá. Validação feita na AXA (build 260724, dados fartos). Se Produtos exigir validação especificamente em HDI-Yelum, requer criar massa de movimento/fatura Nacional em HDI.</span></div></div></div>
+        <br><span style="color:#d29922">ℹ️ Nota de ambiente: o card é HDI-Yelum, mas o fix é core (RelatorioAnaliseProducao/main-fix) e o dev (José) deployou em AXA e HDI HML; HDI-Yelum HML tem 12 apólices Nacional e 0 movimentos → relatório vazio lá. Validação feita na AXA (build 260724, dados fartos). Se Produtos exigir validação especificamente em HDI-Yelum, requer criar massa de movimento/fatura Nacional em HDI.</span></div>
+
+        <h4 style="color:#3fb950;border-top:1px solid #3fb950;padding-top:10px;margin-top:14px">Reteste (05/08/2026 — regressão do fix do #8008) → <strong>APROVADO</strong></h4>
+        <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d">
+          <p><strong>✅ APROVADO — e este CT é a regressão que o fix precisava ter.</strong> No cadastro
+          <em>nacional</em> <code>'N'</code> é "Mensal Detalhado", então aqui <code>MENSAL DET</code> é o rótulo
+          <strong>certo</strong>: se o patch do ramo internacional tivesse vazado, estas linhas viriam
+          <code>AVERBÁVEL</code>. Repeti a <strong>mesma janela da linha de base de 24/07</strong> (módulo Nacional,
+          ref 04–06/2026, critério Ajustáveis, .xlsx) no build <code>V 1.0.260804.2006</code>:</p>
+          <table class="matriz">
+            <tr><th>Coluna "Tipo de Apólice"</th><th>Linha de base 24/07</th><th>Reteste 05/08</th><th>Leitura</th></tr>
+            <tr><td><code>MENSAL DET</code></td><td>8</td><td><strong>9</strong></td>
+                <td style="color:#3fb950">continua <code>MENSAL DET</code> — <strong>nenhuma virou AVERBÁVEL</strong></td></tr>
+            <tr><td><code>DIÁRIA</code></td><td>3.668</td><td>3.676</td><td>massa nova no ambiente (+8)</td></tr>
+            <tr><td><code>AJUSTÁVEL</code></td><td>11</td><td>11</td><td>idêntico</td></tr>
+            <tr><td><code>NÃO POSSUI TIPO DE APOLICE</code></td><td>5</td><td>5</td><td>idêntico</td></tr>
+            <tr><td><strong>Total de linhas de dados</strong></td><td>3.692</td><td>3.701</td>
+                <td>+9 linhas criadas no ambiente entre 24/07 e 05/08</td></tr>
+          </table>
+          <p style="margin-top:8px"><strong>O que fecha a regressão:</strong> <strong>1.411 linhas conferidas</strong>
+          contra <code>tb_apo_nac_cit.e_avb</code> e <strong>0 divergentes</strong> — mais "DIÁRIA indevida (#7975) = 0".
+          Note que a comparação honesta é a do <em>vocabulário</em>, não a das 8 linhas individuais: o total subiu para 9
+          porque o ambiente ganhou massa nova, e nenhuma das linhas nacionais contradiz o cadastro.</p>
+          <p><strong>Isto é exatamente o CT4 que a validação local do dev deixou inconclusivo</strong> (o filtro de Status
+          da tela não permitia isolar) — resolvido pelo arquivo, sem depender da tela.</p>
+          <div style="margin-top:8px;padding:8px;background:#0b160b;border:1px solid #2ea043;border-radius:4px">
+            <strong>📎 Evidência:</strong>
+            <a href="evidencias/CT-RAP-001/Analitico-Producao-Basico-Nac-04a06-2026_20260805.xlsx">Analitico-Producao-Basico-Nac-04a06-2026_20260805.xlsx</a>
+            — export do reteste, validado com openpyxl contra o cadastro · script
+            <code>ct_rap_tipo_apolice_reteste.py --modulo NACIONAL --mes 04 --mes-ate 06 --criterio ajustaveis</code>
+            · export em <strong>99 s</strong>.</div>
+        </div>
+        </div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-RAP-002</span><span class="ct-title">Módulo Internacional — coluna "Tipo de Apólice" presente e preenchida corretamente</span><span class="badge badge-p1">P1</span><span class="badge badge-aprovado">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> feature em HML; massa Internacional com apólices de tipos conhecidos.</div>
@@ -553,7 +585,36 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
             <li><b>.txt</b> — export Gestão GERAL jun/2026 (arquivo <code>Analitico-Producao-Gestao-AXA-06-2026-formato-TXT.txt</code>, delimitador ";"): coluna "Tipo de Apólice" presente (última coluna, idx 15) e preenchida em 4.168 linhas (DIÁRIA 4.165 + MENSAL DET 3), 0 em branco.</li>
           </ul>
           <em>Observações:</em> não há opção CSV nesta tela; o "PDF/impressão" da produção é um relatório <b>separado</b> ("Relatório da Impressão PDF" / "Relatório Gerencial"), fora do escopo desta coluna. Quando nenhum formato é marcado, o export cai em .xlsx (comportamento default, não é bug).
-          <div style="margin-top:8px;padding:8px;background:#0b160b;border:1px solid #2ea043;border-radius:4px"><strong>📎 Evidência:</strong> <a href="evidencias/CT-RAP-005/Analitico-Producao-Gestao-AXA-06-2026-formato-TXT.txt">Analitico-Producao-Gestao-AXA-06-2026-formato-TXT.txt</a> — export formato .txt (delimitador ";", coluna "Tipo de Apólice" presente na col. 16, 4.168 linhas, 0 em branco)</div></div></div></div>
+          <div style="margin-top:8px;padding:8px;background:#0b160b;border:1px solid #2ea043;border-radius:4px"><strong>📎 Evidência:</strong> <a href="evidencias/CT-RAP-005/Analitico-Producao-Gestao-AXA-06-2026-formato-TXT.txt">Analitico-Producao-Gestao-AXA-06-2026-formato-TXT.txt</a> — export formato .txt (delimitador ";", coluna "Tipo de Apólice" presente na col. 16, 4.168 linhas, 0 em branco)</div></div>
+
+        <h4 style="color:#3fb950;border-top:1px solid #3fb950;padding-top:10px;margin-top:14px">Reteste (05/08/2026 — o .txt carrega o rótulo novo?) → <strong>APROVADO</strong></h4>
+        <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d">
+          <p><strong>✅ APROVADO — e agora com o conteúdo conferido, não só a presença da coluna.</strong> Em 24/07 este
+          CT provou que a coluna <em>existe</em> no .txt. O fix do #8008 muda o <em>valor</em>, então o .txt precisava ser
+          reexportado: se o rótulo novo só chegasse ao .xlsx, o CA5 estaria quebrado. Gestão/GERAL, ref 07/2026,
+          <code>indFormatoTxt</code>, build <code>V 1.0.260804.2006</code>, export em <strong>111 s</strong>:</p>
+          <ul>
+            <li><strong>1.864 linhas</strong> · 16 colunas · "Tipo de Apólice" na <strong>última</strong> (idx 15) ·
+            0 em branco;</li>
+            <li>Distribuição: <code>DIÁRIA</code> 1.660 · <code>AVERBÁVEL</code> <strong>172</strong> ·
+            <code>AJUSTÁVEL</code> 22 · <code>NÃO POSSUI TIPO DE APOLICE</code> 7 · <code>MENSAL DET</code> 3;</li>
+            <li>Cruzamento contra o cadastro: <strong>1.364 nacionais + 490 internacionais conferidas, 0
+            divergentes</strong> nos dois módulos.</li>
+          </ul>
+          <p><strong>Consistência entre formatos (o que o CA5 realmente pede):</strong> a distribuição do .txt é
+          <em>idêntica</em>, valor a valor, à do .xlsx do CT-RAP-003 na mesma referência — 1.864 · 1.660 · 172 · 22 · 7 · 3.
+          Os dois formatos entregam o mesmo dado.</p>
+          <div style="margin-top:8px;padding:8px;background:#0b160b;border:1px solid #2ea043;border-radius:4px">
+            <strong>📎 Evidência:</strong>
+            <a href="evidencias/CT-RAP-003/Analitico-Producao-Gestao-GERAL-07-2026_20260805.txt">Analitico-Producao-Gestao-GERAL-07-2026_20260805.txt</a>
+            — 398.696 bytes.</div>
+          <p style="font-size:12px;color:#8b949e;margin-top:8px"><strong>Correção de andaime (minha, não do sistema):</strong>
+          a primeira conferência deste arquivo estourou <code>StopIteration</code> — eu havia assumido que o .txt sai em
+          <strong>latin-1</strong> (é <strong>UTF-8</strong>: o mojibake fazia "Apólice" não casar) e procurava o header
+          só nas 8 primeiras linhas (no .txt ele está na <strong>linha 8</strong>, depois do título e do critério de
+          seleção). O arquivo estava certo desde o download; o parser, errado. Reconferido sem reexportar
+          (<code>--arquivo</code>), para não disputar a sessão do tenant com o export do SLA que rodava em paralelo.</p>
+        </div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-RAP-006</span><span class="ct-title">Coluna "Tipo de Apólice" nunca em branco (campo obrigatório no cadastro)</span><span class="badge badge-p2">P2</span><span class="badge badge-aprovado">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> massa ampla de apólices (Nacional/Internacional/Gestão), incl. apólices antigas se existirem.</div>
@@ -568,6 +629,24 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
             <li><strong>Campo no cadastro:</strong> confirmado o campo <strong>"Tipo da Apólice"</strong> nos Dados Básicos do cadastro de apólice (screenshot — ver CT-RAP-004), que é a origem obrigatória do valor.</li>
           </ul>
           <em>Nota de escopo:</em> a obrigatoriedade no cadastro (bloqueio ao salvar sem Tipo Apólice) é regra <b>pré-existente</b> do cadastro de apólice, não uma mudança do #7762 (que adiciona a coluna ao relatório). O teste negativo de save-block não foi reexecutado nesta rodada; a assertiva relevante ao card — coluna do relatório nunca em branco — está comprovada em 9.205 linhas.
+        </div>
+
+        <h4 style="color:#3fb950;border-top:1px solid #3fb950;padding-top:10px;margin-top:14px">Reconfirmação (05/08/2026 — sobre os exports do reteste) → <strong>APROVADO</strong></h4>
+        <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d">
+          <p><strong>✅ APROVADO.</strong> O fix do #8008 troca o rótulo, então "nunca em branco" tinha de ser medido de
+          novo — um <code>switch</code> que deixa de casar devolveria célula vazia. Contagem programática de células
+          vazias na coluna, nos <strong>5 arquivos</strong> desta rodada (build <code>V 1.0.260804.2006/.2007</code>):</p>
+          <table class="matriz">
+            <tr><th>Arquivo</th><th>Colunas</th><th>Linhas de dados</th><th>Células vazias</th></tr>
+            <tr><td>Nacional 04–06/2026 (.xlsx)</td><td>22</td><td>3.701</td><td><strong>0</strong></td></tr>
+            <tr><td>Gestão/GERAL 07/2026 (.xlsx)</td><td>22</td><td>1.864</td><td><strong>0</strong></td></tr>
+            <tr><td>Gestão/INTERNACIONAL 07/2026 (.xlsx)</td><td>22</td><td>495</td><td><strong>0</strong></td></tr>
+            <tr><td>Internacional 07/2026 (.xlsx)</td><td>22</td><td>495</td><td><strong>0</strong></td></tr>
+            <tr><td>Gestão/GERAL 07/2026 (<strong>.txt</strong>)</td><td>16</td><td>1.864</td><td><strong>0</strong></td></tr>
+          </table>
+          <p style="margin-top:8px"><strong>8.419 linhas medidas, 0 em branco</strong> — e o legado continua saindo com o
+          rótulo explícito <code>NÃO POSSUI TIPO DE APOLICE</code> (7 no Gestão, 5 no Nacional, 2 no Internacional), nunca
+          célula vazia.</p>
         </div></div></div>
 
   </div>
@@ -590,6 +669,24 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
             <li><strong>Estrutura preservada:</strong> as <strong>21 colunas pré-existentes</strong> permanecem íntegras e populadas; a nova coluna "Tipo de Apólice" foi adicionada como <strong>última coluna (posição 22)</strong> — mudança puramente <em>aditiva</em>, sem deslocar/alterar colunas existentes.</li>
           </ul>
           Nenhum efeito colateral observado nos filtros, na ordenação ou nas demais colunas do relatório.
+        </div>
+
+        <h4 style="color:#3fb950;border-top:1px solid #3fb950;padding-top:10px;margin-top:14px">Reconfirmação pós-fix (05/08/2026) → <strong>APROVADO</strong></h4>
+        <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d">
+          <p><strong>✅ APROVADO.</strong> O fix do #8008 mexeu no método que preenche a coluna — o risco era ele
+          deslocar ou corromper as demais. Medido nos arquivos desta rodada:</p>
+          <ul>
+            <li><strong>Estrutura intacta:</strong> os 4 exports .xlsx seguem com <strong>22 colunas</strong> e a coluna
+            "Tipo de Apólice" na <strong>posição 22</strong> (índice 21) — as 21 pré-existentes não se moveram. O .txt
+            segue com 16 colunas e a coluna na última posição.</li>
+            <li><strong>Filtros respeitados:</strong> Tipo Ramo <code>GERAL</code> devolveu 1.864 linhas e
+            <code>INTERNACIONAL</code> devolveu 495 — o subconjunto internacional do GERAL, com as
+            <em>mesmas</em> 490 linhas conferidas e as <em>mesmas</em> 172 <code>AVERBÁVEL</code>. Filtro de período
+            (04–06/2026 no Nacional × 07/2026 no Gestão) e critério (Ajustáveis × todos) produziram volumes distintos e
+            coerentes.</li>
+            <li><strong>Consistência entre formatos:</strong> .xlsx e .txt da mesma referência dão distribuição idêntica
+            valor a valor (ver CT-RAP-005).</li>
+          </ul>
         </div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-RAP-008</span><span class="ct-title">Performance de geração não impactada de forma perceptível</span><span class="badge badge-p2">P2</span><span class="badge badge-aprovado">APROVADO</span><span class="ct-toggle">▶</span></div>
@@ -606,6 +703,25 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
             <li>Gestão/GERAL — 4.169 linhas (.xlsx 331 KB e .txt 886 KB): gerado em ~1–3 min.</li>
           </ul>
           Tempos compatíveis com relatórios export-only desse porte; a inclusão da coluna (leitura de um campo já existente da apólice) não introduziu lentidão perceptível nem timeout. <em>Nota:</em> não há baseline formal pré-fix cronometrado; avaliação qualitativa conforme o CA ("sem lentidão perceptível").
+        </div>
+
+        <h4 style="border-top:1px solid #d29922;padding-top:10px;margin-top:14px;color:#d29922">Medição pós-fix (05/08/2026) → <strong>APROVADO, e agora com número em vez de impressão</strong></h4>
+        <div class="result-box" style="border-left:4px solid #d29922;background:#1a1408">
+          <p>Os scripts cronometram o export, então esta rodada trocou o "~2–3 min" qualitativo por medição:</p>
+          <table class="matriz">
+            <tr><th>Export (build .2006/.2007)</th><th>Linhas</th><th>Tempo</th></tr>
+            <tr style="background:#0d1f0d"><td>Análise de Produção — Nacional 04–06/2026 (.xlsx)</td><td>3.701</td><td><strong>99 s</strong></td></tr>
+            <tr style="background:#0d1f0d"><td>Análise de Produção — Gestão/GERAL 07/2026 (.txt)</td><td>1.864</td><td><strong>111 s</strong></td></tr>
+            <tr style="background:#1a0d0e"><td>Relatório de <strong>SLA</strong> Básico — critério "Tudo"</td><td>—</td><td><strong>&gt; 20 min sem gerar arquivo</strong> (2 tentativas)</td></tr>
+          </table>
+          <p style="margin-top:8px"><strong>A conclusão do CA8 se mantém e fica mais forte:</strong> a Análise de Produção
+          — o relatório deste card — gera em ~1,5–2 min <em>depois</em> do fix, na mesma ordem de grandeza de 24/07. A
+          coluna não introduziu lentidão.</p>
+          <p><strong>O que a medição expôs (fora do escopo deste CA):</strong> o gargalo está no <strong>Relatório de
+          SLA</strong>, que com critério "Tudo" não produziu arquivo em 20 min — duas vezes. É a mesma lentidão
+          pré-existente que o dev registrou no card em 23/07 ("o relatório já é lento hoje por motivo pré-existente —
+          chamadas ao banco por linha") e sugeriu tratar como débito técnico separado. <strong>Esse item de débito nunca
+          foi aberto</strong> — fica registrado aqui como pendência de backlog, não como reprovação deste CT.</p>
         </div></div></div>
 
   </div>
