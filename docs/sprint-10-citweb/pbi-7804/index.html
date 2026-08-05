@@ -81,7 +81,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="info-box">
     <h3>Contexto</h3>
     <p>Na consulta de protocolo de carga, os contadores textuais (ex.: <code>"X DUIMP's GRAVADAS / DESPREZADAS / COM ERRO / AGUARDANDO"</code>) devem deixar <strong>explícita a unidade</strong> — se <code>X</code> se refere a <strong>linhas</strong> ou a <strong>itens</strong> — para que a leitura não gere ambiguidade sobre quantos itens foram efetivamente processados.</p>
-    <p><strong>CA:</strong> (1) os contadores seguem a mesma regra de contagem definida na PBI 1 (<strong>itens</strong>, não linhas — ver #7803); (2) o texto do protocolo deixa clara a unidade de contagem (ex.: "X itens" em vez de "X DUIMP's" quando aplicável).</p>
+    <p><strong>CA (texto original do card):</strong> (1) os contadores seguem a mesma regra de contagem definida na PBI 1 (<strong>itens</strong>, não linhas — ver #7803) — <span style="color:#d29922">⚠️ este trecho foi <strong>superado</strong> em 05/08: a Fabiola definiu que o registro segue o <strong>nível de agrupamento</strong>, e a medição do #7803 confirma que o contador conta declarações (47) e não itens (555). Ver a caixa verde abaixo;</span> (2) o texto do protocolo deixa clara a unidade de contagem (ex.: "X itens" em vez de "X DUIMP's" quando aplicável).</p>
     <p>Backend: <code>DIProcessamentoController.ListaArquivoConteudoProtocolo()</code> / <code>DICargaController.ListaConteudoProtocoloDuimp()</code>.</p>
   </div>
 </div>
@@ -105,6 +105,29 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 <div class="progress-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
 
 <div class="container">
+
+<div style="background:#0d1f0d;border:1px solid #2ea043;border-left:4px solid #2ea043;border-radius:8px;padding:14px 16px;margin:16px 0">
+  <h3 style="color:#3fb950;font-size:13px;font-weight:700;margin-bottom:8px">✅ 05/08/2026 — a contradição de regra foi resolvida, e ela INVERTE a premissa deste plano</h3>
+  <p style="font-size:13px">Este plano foi escrito em 17/07 sobre o critério de aceite do card, que dizia
+  <em>"contadores seguem a regra da PBI 1 — contam <strong>itens</strong> (soma de <code>q_itn_agp</code>)"</em>.
+  Em 05/08 11:49 levantei que isso contradizia a decisão de 24/07 no #7803 (<em>"números = averbações, não itens do
+  agrupamento"</em>). <strong>A Fabiola respondeu às 17:44:</strong></p>
+  <p style="font-size:13px;background:#161b22;border-left:3px solid #7c3aed;padding:8px 12px;margin:8px 0">
+  <em>"o registro exibido na tela Resultado das Cargas deve ser de acordo com o <strong>nível de
+  agrupamento</strong>"</em></p>
+  <p style="font-size:13px">Isso reconcilia os dois cards: não é "sempre itens" nem "sempre averbações" — o número
+  <strong>segue o nível em que a linha foi agregada</strong>. Como a base de HML é <strong>100% nível
+  <code>'D'</code></strong> (declaração), na prática o contador exibe <strong>declarações</strong>.</p>
+  <p style="font-size:13px"><strong>E isto não é só interpretação de uma frase — está medido.</strong> Ao executar o
+  CT-CTD-003 do #7803 hoje, com uma declaração agregada de <strong>108 itens</strong> preparada de propósito:</p>
+  <pre style="font-size:12px"><code>Lidas 47 · Desprezadas 39 · Inconsistentes 8 · Incluídas 0
+39 + 8 = 47 = nº de DECLARAÇÕES do período   (a soma de itens seria 555)
+a declaração de 108 itens somou <strong>1</strong>, não 108</code></pre>
+  <p style="font-size:13px"><strong>Consequência para este plano:</strong> o resultado esperado do
+  <strong>CT-PRT-002</strong> e do <strong>CT-PRT-004</strong> estava invertido — eles exigiam a soma de
+  <code>q_itn_agp</code>, que é justamente o que o sistema <em>não</em> faz e o que a regra de negócio <em>não</em>
+  pede. Corrigidos abaixo. Sem essa correção, os dois CTs reprovariam uma implementação correta.</p>
+</div>
 
 <div class="group-header" onclick="toggleGroup(this)">
   <h2>Grupo A — Flag OFF (regressão — executável)</h2>
@@ -142,16 +165,16 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="ct-block" id="ct-PRT-002">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-PRT-002</span>
-      <span class="ct-title">Flag ON — contadores do protocolo contam ITENS (q_itn_agp), não linhas</span>
+      <span class="ct-title">Flag ON — contadores do protocolo seguem o NÍVEL DE AGRUPAMENTO (na base atual: declarações)</span>
       <span class="badge badge-p1">P1</span>
       <span class="badge badge-pendente" id="badge-PRT-002">PENDENTE</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>CA(1): os contadores do protocolo seguem a regra da PBI 1 (#7803) — contam itens (soma de <code>q_itn_agp</code>), não linhas — para uma carga com linhas agregadas.</p></div>
+      <div class="ct-section"><h4>Objetivo</h4><p><strong>Regra corrigida em 05/08 (Fabiola, 17:44):</strong> o registro exibido segue o <strong>nível de agrupamento</strong> da linha — não a soma de <code>q_itn_agp</code>. Como a base de HML é 100% nível <code>'D'</code>, o contador exibe <strong>declarações</strong>. É a mesma regra do #7803, agora medida (47 declarações × 555 itens).</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Flag ON + migration + Worker gravando linhas agregadas em HML</li><li>Carga DUIMP com linha(s) agregada(s) (q_itn_agp&gt;1) já processada</li></ul></div>
-      <div class="ct-section"><h4>Passos</h4><ol><li>Abrir o protocolo dessa carga</li><li>Verificar que os contadores refletem a soma de q_itn_agp (itens), não o nº de linhas</li><li>Confirmar via SQL a soma de q_itn_agp e comparar com o protocolo</li><li>Conferir consistência com os contadores da tela de processamento (#7803)</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores do protocolo = soma de q_itn_agp (itens), consistentes com o #7803; ex.: 1 linha agregada com 5 itens conta 5.</div></div>
+      <div class="ct-section"><h4>Passos</h4><ol><li>Abrir o protocolo dessa carga</li><li>Verificar que os contadores refletem o <strong>nº de declarações</strong> (nível de agrupamento), <strong>não</strong> a soma de q_itn_agp</li><li>Confirmar via SQL <strong>as duas</strong> grandezas — nº de declarações e SUM(q_itn_agp) — e mostrar que o protocolo bate com a primeira e difere da segunda (é isso que discrimina a regra)</li><li>Conferir consistência com os contadores da tela de processamento (#7803)</li></ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Contadores do protocolo = <strong>nº de declarações</strong>, consistentes com o #7803. Ex.: 1 linha agregada com 5 itens conta <strong>1</strong>, não 5. ⚠️ Se exibir a soma de itens, é REPROVADO — inverso do que este CT pedia antes de 05/08.</div></div>
       <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON em HML) + depende de #7803/#7802.</div></div>
     </div>
   </div>
@@ -182,10 +205,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>Garantir que os números do protocolo (consulta) batem com os contadores da tela de processamento em tempo real (#7803) e com o SQL — mesma regra de contagem por itens.</p></div>
+      <div class="ct-section"><h4>Objetivo</h4><p>Garantir que os números do protocolo batem com os contadores da tela de processamento (#7803) e com o SQL — <strong>mesma regra: nível de agrupamento (declarações)</strong>, não soma de itens.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Carga agregada processada (flag ON), com contadores de processamento (#7803) já observados</li></ul></div>
-      <div class="ct-section"><h4>Passos</h4><ol><li>Comparar os contadores do protocolo com os exibidos no processamento (#7803)</li><li>Confirmar ambos contra a soma de q_itn_agp via SQL</li></ol></div>
-      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Protocolo, tela de processamento (#7803) e SQL apresentam os mesmos totais de itens (q_itn_agp) por categoria.</div></div>
+      <div class="ct-section"><h4>Passos</h4><ol><li>Comparar os contadores do protocolo com os exibidos no processamento (#7803)</li><li>Confirmar ambos contra o <strong>nº de declarações</strong> via SQL, e registrar tambem SUM(q_itn_agp) como contraprova de que NÃO é esse o número exibido</li></ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Protocolo, tela de processamento (#7803) e SQL apresentam os mesmos totais de <strong>declarações</strong> por categoria — e todos diferentes de SUM(q_itn_agp).</div></div>
       <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON) + depende de #7803.</div></div>
     </div>
   </div>
