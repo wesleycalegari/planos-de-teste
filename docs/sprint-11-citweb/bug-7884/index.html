@@ -141,12 +141,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="container">
 
-  <div class="section-title">0 · Reteste na KOVR — validação da branch <code>hml_fix</code> (Task #8018 · 05/08/2026)</div>
+  <div class="section-title">0 · Reteste na KOVR — validação da branch <code>hml_fix</code> (Task #8018 · 05/08/2026) — 7 de 9 CTs</div>
   <div class="doc-box" style="border-left:4px solid #2ea043">
     <p>O Gate 3 deste bug foi aprovado na <strong>TOKIO</strong>. O Diego pediu (Task
     <strong>#8018</strong>, 05/08) um reteste na <strong>KOVR</strong> para confirmar que a correção da branch
     <code>hml_fix</code> (commit <code>41c3ec001</code>) vale também para essa seguradora, e registrou que o deploy já
-    estava feito. <strong>Confirmado: o cálculo e os relatórios estão corretos na KOVR.</strong></p>
+    estava feito. <strong>Confirmado: 7 dos 9 CTs executados na KOVR, todos aprovados, zero defeitos.</strong></p>
 
     <table class="matriz">
       <tr><th>CT</th><th>Como foi executado</th><th>Resultado na KOVR</th></tr>
@@ -162,6 +162,18 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <td>mesma interação do CT-FMR-002, conferindo os derivados</td>
           <td><strong>APROVADO</strong> — IOF <code>10,95</code> e Total <code>159,39</code> intactos.
               Aritmética fecha: <code>148,00 + 0,44 juros + 0,00 custo + 10,95 IOF = 159,39</code></td></tr>
+      <tr style="background:#0d1f0d"><td><strong>CT-FMR-005</strong><br><small>interação com OUTROS campos</small></td>
+          <td>Playwright MCP — no modal, cliquei em <strong>Data de Vencimento</strong> e <strong>desmarquei o IOF</strong>,
+              forçando um recálculo de verdade</td>
+          <td><strong>APROVADO</strong> — o recálculo <em>rodou</em> (IOF <code>43,13 → 0,00</code>, Total
+              <code>627,63 → 584,50</code>) e o <strong>Prêmio Líquido ficou em <code>584,50</code>, intacto</strong>.
+              Religando o IOF, tudo voltou (43,13 / 627,63 / 584,50)</td></tr>
+      <tr style="background:#0d1f0d"><td><strong>CT-FMR-006</strong><br><small>regressão — apólice SEM desconto</small></td>
+          <td>apólice <code>1005906000020</code> · ref 11/2025 · <strong>zero faixas</strong> em
+              <code>tb_apo_rcv_dsc</code> (medido) · 32 averbações</td>
+          <td><strong>APROVADO</strong> — <code>Desconto por Qtd de Viagens = 0,00000</code> e
+              <strong>Comercial <code>584,50</code> = Líquido <code>584,50</code></strong>.
+              Total <code>627,63 = 584,50 + 43,13 IOF</code></td></tr>
       <tr style="background:#0d1f0d"><td><strong>CT-FMR-008</strong><br><small>faixas de desconto</small></td>
           <td><code>ct_fmr_008_faixas_desconto.py --tenant kovr</code></td>
           <td><strong>APROVADO</strong> — banco <strong>1/1 conferido</strong> (fechamento 211: qtd 1, faixa 1-99 → 7,5%,
@@ -187,15 +199,25 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       branch com um subconjunto diferente de correções.
     </div>
 
-    <p><strong>Ainda não executados na KOVR:</strong> CT-FMR-004 (persistência via emissão — exigiria emitir o
-    fechamento e consumir a massa livre), CT-FMR-005 (interação com outros campos) e CT-FMR-006 (regressão em apólice
-    sem desconto). O CT-FMR-007 permanece N/A. Registro isto explicitamente em vez de dar o reteste como completo.</p>
+    <p><strong>Único CT ainda não executado na KOVR: o CT-FMR-004</strong> (persistência via emissão). Ele exigiria
+    <em>emitir</em> o fechamento e consumir a massa livre, então pedi o aval do Diego na Task #8018 antes de fazê-lo.
+    A fatura já emitida do fechamento 50 (líquido <code>3.552,00</code> com desconto) é evidência de que a persistência
+    está correta na KOVR, mas é um fechamento <strong>pré-existente</strong> — não um que eu tenha emitido, e essa
+    diferença é justamente o que o CT-FMR-004 mede. O CT-FMR-007 permanece N/A.</p>
+
+    <p style="font-size:12px;color:var(--muted)"><strong>Higiene:</strong> saí de todos os modais pelo <strong>Voltar</strong>,
+    nunca pelo Confirmar. Conferido depois no banco: apólice <code>1005906000020</code> segue com 32 movimentos livres e
+    <code>59281120251</code> com 8 — nada foi emitido, nenhuma massa consumida.</p>
 
     <div class="ct-ev" style="margin-top:10px">
       <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-001_kovr_modal_fechamento.png" style="max-width:100%" alt="Modal do Fechamento na KOVR — Prêmio Líquido 148,00 com desconto de 7,5%">
-      <div style="font-size:11px;color:#888;margin-top:3px">EV1 — modal do Fechamento na KOVR: desconto 7,50000 / −12,00 e Prêmio Líquido 148,00 (destacado)</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">EV1 (CT-FMR-001) — desconto 7,50000 / −12,00 e Prêmio Líquido 148,00 (destacado)</div>
       <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-002_kovr_ajuste_sem_sobrescrever.png" style="max-width:100%" alt="Após interagir com o campo Ajuste sem digitar — valores inalterados">
-      <div style="font-size:11px;color:#888;margin-top:3px">EV2 — após clicar em Ajuste e sair com Tab, sem digitar: os valores continuam os mesmos</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">EV2 (CT-FMR-002) — após clicar em Ajuste e sair com Tab, sem digitar: valores idênticos</div>
+      <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-005_kovr_iof_off_liquido_intacto.png" style="max-width:100%" alt="IOF desmarcado — Total muda, Prêmio Líquido permanece 584,50">
+      <div style="font-size:11px;color:#888;margin-top:3px">EV3 (CT-FMR-005) — IOF desmarcado: IOF vai a 0,00 e o Total cai para 584,50, mas o Prêmio Líquido continua 584,50</div>
+      <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-006_kovr_sem_desconto.png" style="max-width:100%" alt="Apólice sem faixa de desconto — Desconto por Qtd de Viagens 0,00000 e Líquido igual ao Comercial">
+      <div style="font-size:11px;color:#888;margin-top:3px">EV4 (CT-FMR-006) — apólice sem faixa: Desconto por Qtd de Viagens 0,00000 e Líquido = Comercial = 584,50</div>
     </div>
   </div>
 
