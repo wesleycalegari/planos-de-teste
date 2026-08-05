@@ -192,6 +192,40 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
     movimento aberto (estes últimos servem à Prévia, CT-REB-008).</p>
   </div>
 
+  <div class="section-title">3.1 · Oráculo — lido do código que subiu, não suposto <span style="font-size:12px;font-weight:400;color:#8b949e">(05/08/2026)</span></div>
+  <div class="doc-box">
+    <p>Quando este plano foi escrito (04/08) o fix ainda não estava em <code>hml</code>. O PR <strong>!1532</strong>
+    (<code>7999-relacao-embarques-mdfe-hml</code> → <code>hml</code>, merge <code>f01c489af</code>) já está
+    <em>completed</em>, e li o código direto do branch — <strong>não do clone local, que está em 14/05 e não tem o
+    fix</strong>. O fix criou <code>/Domain/TipoDocumentoEmbarqueRcvLabel.cs</code>, chamado nos dois relatórios:
+    <code>RelatorioFechamentoDomain.cs:1646</code> e <code>RelatorioPreviaDomain.cs:2808</code> — ambos na coluna 4,
+    o que confirma a paridade Fechamento×Prévia exigida pelo CA.</p>
+    <table class="matriz">
+      <tr><th><code>e_doc_ebq</code></th><th>Rótulo impresso</th><th>Linhas em HML</th><th>Bases</th></tr>
+      <tr><td><code>C</code></td><td>CTE</td><td>43.941</td><td>15</td></tr>
+      <tr><td><code>N</code></td><td>NF Eletrônica</td><td>15.664</td><td>2</td></tr>
+      <tr><td><code>O</code></td><td>Outros</td><td>72.270</td><td>16</td></tr>
+      <tr style="background:#0d1f0d"><td><code>M</code></td><td><strong>MDF-e</strong></td><td><strong>4.163</strong></td>
+          <td><strong>5</strong> — TOKIO, NSTECH, AXA, <strong>KOVR e KOVR-ALFA</strong></td></tr>
+      <tr style="background:#1f1a0d"><td><code>default</code></td><td><code>""</code> (vazio)</td>
+          <td>7 (código em branco)</td><td>1 — TOKIO</td></tr>
+    </table>
+    <p><strong>Três consequências para a execução:</strong></p>
+    <ol style="font-size:13px">
+      <li><strong>A dúvida de vocabulário está respondida pelo próprio código:</strong> o que subiu imprime
+      <code>"MDF-e"</code> — o vocabulário do portal NSSeg, não <code>"Manifesto"</code> (CITNET) nem
+      <code>"Outros"</code>. Resta à Produtos <em>confirmar</em>, não decidir do zero.</li>
+      <li><strong>Massa de MDF-e existe em 2 tenants além dos previstos</strong> (KOVR e KOVR-ALFA), o que dá folga ao
+      CT-REB-002 se a TOKIO estiver instável — ela tem o HTTP 500 do Tipo de Seleção "Todas" já registrado aqui.</li>
+      <li><strong>O <code>switch</code> compara string e é case-sensitive, e o <code>default</code> devolve vazio</strong>
+      — isto é, um código novo volta a produzir exatamente o defeito que abriu o card, silenciosamente. Levantei isso
+      como risco e <strong>fui medir antes de reportar: não se materializa</strong> — varri as 16 bases com movimento
+      RCV (não só as 6 de 04/08) e não existe minúsculo nem 5º código. Os 7 registros em branco da TOKIO continuam
+      saindo com a coluna vazia, o que é o comportamento correto para um movimento sem tipo de documento — é borda
+      conhecida (CT-REB-007), não defeito.</li>
+    </ol>
+  </div>
+
   <div class="section-title">4 · Automação — script existente a reusar</div>
   <div class="doc-box">
     <p><code>testes-automatizados/sprint-11-citweb/bug-7884/ct_fmr_009_relatorios_fechamento.py</code> já cobre
