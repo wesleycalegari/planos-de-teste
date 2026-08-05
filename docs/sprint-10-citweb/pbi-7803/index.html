@@ -110,11 +110,11 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
 
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val" id="m-total">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val" id="m-ok">4</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">5</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">0</div><div class="metric-lbl">Pendentes</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:83%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:100%"></div></div>
 
 <div class="container">
 
@@ -332,13 +332,57 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:160px;font
   <div class="ct-block" id="ct-CTD-003">
     <div class="ct-bar" onclick="toggleCT(this)">
       <span class="ct-id">CT-CTD-003</span>
-      <span class="ct-title">Flag ON — os 4 contadores (Lida/Desprezada/Inconsistente/Incluída) somam q_itn_agp</span>
+      <span class="ct-title">Flag ON — os 4 contadores (Lida/Desprezada/Inconsistente/Incluída) contam averbações, não itens</span>
       <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pendente" id="badge-CTD-003">PENDENTE</span>
+      <span class="badge badge-ok" id="badge-CTD-003">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
-      <div class="ct-section"><h4>Objetivo</h4><p>Verificar que TODOS os 4 contadores (lblDILida, lblDIDesprezada, lblDIInconsistente, lblDIIncluida) somam q_itn_agp, incluindo linhas desprezadas/inconsistentes agregadas.</p></div>
+      <div class="ct-ev"><div style="background:#0d1f0d;border-left:4px solid #2ea043;padding:12px 14px;color:#79c57e;margin-bottom:10px">
+        <strong>✓ APROVADO</strong> — 05/08/2026 15:15 · AXA HML · InterfaceSTREITI <strong>V 1.0.260805.1532</strong> ·
+        apólice <code>3762900634322</code> · filial <code>3762</code> · referência <strong>03/2026</strong><br>
+        <span style="color:var(--muted)">A categoria <strong>Desprezada</strong> foi finalmente exercitada
+        <strong>na forma agregada</strong>, que é o que faltava — e os contadores contam declarações, não itens.</span>
+      </div>
+      <h4>O que travava este CT, e como foi destravado</h4>
+      <p style="font-size:13px">O CT ficou parcial por três execuções porque a categoria <strong>Desprezadas</strong>
+      nunca saía de zero: sem uma desprezada <em>agregada</em>, o contador não discrimina "declarações" de "soma de
+      itens" — numa linha simples 1 declaração = 1 item, e os dois valores coincidem.</p>
+      <p style="font-size:13px"><strong>A massa não existia, então eu criei</strong> — de forma mínima e reversível.
+      Lendo <code>DIProcessamentoController.cs</code> no branch <code>hml</code>, uma declaração é desprezada quando
+      (a) a <strong>data de saída fica fora da vigência</strong> da apólice (linha 1121) ou (b) a apólice está suspensa
+      (linha 1136). Havia agregadas fora de vigência prontas, mas todas em referências 04–06/2026 — que o
+      <strong>guard 2</strong> (referência dentro da vigência) aborta antes de processar qualquer coisa. Então peguei a
+      maior agregada de uma referência <em>válida</em> e movi só a data de saída:</p>
+      <pre style="font-size:12px"><code>declaração 26BR00001806018 · q_itn_agp = <strong>108 itens</strong> · referência 03/2026 (dentro da vigência)
+d_sda_vgm: 14/01/2026  →  01/12/2024   (fora da vigência 16/01/2025..31/03/2026)
+revertido para 14/01/2026 ao fim do teste — verificado por releitura</code></pre>
+
+      <h4>O resultado — discriminação de 47 contra 555</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:6px 0">
+        <tr style="background:#161b22"><th style="padding:6px;text-align:left">Contador na tela</th><th style="padding:6px;text-align:left">Valor</th><th style="padding:6px;text-align:left">Se contasse ITENS seria</th></tr>
+        <tr><td style="padding:6px">Lidas</td><td style="padding:6px;color:#79c57e"><strong>47</strong></td><td style="padding:6px;color:#f1707a">565</td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px"><strong>Desprezadas</strong></td><td style="padding:6px;color:#79c57e"><strong>39</strong></td><td style="padding:6px;color:#f1707a">≥ 108 só pela declaração que eu preparei</td></tr>
+        <tr><td style="padding:6px">Inconsistentes</td><td style="padding:6px;color:#79c57e"><strong>8</strong></td><td style="padding:6px">—</td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">Incluídas</td><td style="padding:6px">0</td><td style="padding:6px">—</td></tr>
+      </table>
+      <p style="font-size:13px"><strong>39 + 8 = 47 = o número de declarações do período</strong> (37 delas agregadas,
+      representando 555 itens). A declaração que preparei — sozinha com 108 itens — entrou na categoria Desprezadas
+      confirmada no banco (<code>i_dpz = 'S'</code>) e somou <strong>1</strong>, não 108. É a prova direta da regra que a
+      Fabiola fixou em 24/07: <em>"números = averbações, não itens do agrupamento"</em>, agora demonstrada também na
+      categoria que faltava.</p>
+      <div class="warn-box" style="margin:8px 0"><strong>Uma coisa que eu não sei explicar, e por isso não afirmo:</strong>
+      alterei <strong>uma</strong> declaração, mas <strong>39</strong> vieram desprezadas — e medi que só 1 das 47 tem
+      saída fora da vigência. As outras 38 foram desprezadas por alguma regra que ainda não identifiquei (o controller
+      tem 161 pontos que tratam desprezo). Isso <strong>não afeta o veredito deste CT</strong>, que depende da razão
+      contador × itens e não do motivo do desprezo, mas fica registrado como pergunta em aberto — não como defeito.
+      <br><br><strong>Efeito colateral a saber antes de reusar esta massa:</strong> o processamento marcou
+      <code>i_dpz = 'S'</code> em 39 declarações do período. O seletor exclui <code>i_dpz='S'</code> quando a opção
+      "processar desprezadas anteriormente" está desligada, então uma próxima rodada nesta massa verá menos linhas.</div>
+      <p style="font-size:12px;color:var(--muted)">Comando: <code>python ct_ctd_002_003_contador_agregada.py --apolice
+      3762900634322 --filial 3762 --mesano 03/2026</code>. Nenhum aviso na tela após o POST (os 3 guards passaram).</p>
+      </div>
+      <div class="ct-section"><h4>Objetivo</h4><p>Verificar que TODOS os 4 contadores (lblDILida, lblDIDesprezada, lblDIInconsistente, lblDIIncluida) refletem o nº de <strong>averbações</strong> da sua categoria — não a soma de <code>q_itn_agp</code> —, incluindo linhas desprezadas/inconsistentes agregadas.</p></div>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Mesmas do CT-CTD-002</li><li>Pacote com linhas agregadas em cada categoria: incluída, desprezada, inconsistente</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Processar o pacote com linhas agregadas nas 4 categorias</li><li>Verificar cada contador ao fim vs. a soma de q_itn_agp por categoria (via SQL)</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Regra decidida (Fabiola/Wesley 24/07): cada um dos 4 contadores reflete o nº de AVERBAÇÕES da sua categoria (Lida/Desprezada/Inconsistente/Incluída), não a soma de itens do agrupamento.</b> ⚠️ Se exibir a soma de <code>q_itn_agp</code> (itens) por categoria, é REPROVADO.</div></div>
