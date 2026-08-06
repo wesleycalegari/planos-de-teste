@@ -245,10 +245,13 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       movimento aberto na competência 08/2026, e é justamente o MDF-e legado, com prêmio <code>0,00</code>: a Prévia
       não emite arquivo sem valor a faturar. A massa que resolveria isso é exatamente a do CT-003 — ou seja, é o mesmo
       bloqueio.</li>
-      <li><strong>CT-002 — ambiente desatualizado.</strong> A NSTECH roda o módulo Nacional em
-      <code>V 1.0.260703.1628</code> (03/07), um mês <em>anterior</em> à entrega. Lá o combo tem 4 opções, sem MDF-e —
-      o que é esperado e <strong>não é reprovação</strong>: o build não contém o código. O CT precisa de um segundo
-      tenant já atualizado.</li>
+      <li><strong>CT-002 — nenhum tenant além da AXA tem este código hoje.</strong> A NSTECH roda o Nacional em
+      <code>V 1.0.260703.1628</code> (03/07), anterior à entrega. Mas o ponto maior veio da investigação no
+      repositório: o merge do #7980 (<code>071de9cf4</code>) está <strong>só na branch <code>hml</code></strong> — não
+      está em <code>hml_fix</code>, <code>main_fix</code>, <code>main</code> nem <code>stg</code> —, e nenhuma branch
+      de deploy dos outros tenants no período o contém (HDI-Yelum, AIG, Tokio, Mitsui). A AXA foi o único ambiente
+      publicado a partir de <code>hml</code> depois do merge. Logo o CT está bloqueado por <strong>sequenciamento de
+      promoção</strong>, não por ambiente nem por acesso — e não deve segurar o Gate 3.</li>
     </ul>
     <p style="margin-top:8px">Ou seja: <strong>6 dos 7 bloqueios caem assim que a gravação for liberada</strong>, e o
     sétimo assim que houver um segundo tenant com o build novo.</p>
@@ -381,7 +384,7 @@ M = "MDF-e"             O = "Outros (NS, ETC)"      (5 opções, antes e depois 
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-002</span><span class="ct-title">A opção aparece igual numa segunda seguradora (escopo CORE)</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — build antigo</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-002</span><span class="ct-title">A opção aparece igual numa segunda seguradora (escopo CORE)</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — código só existe em 1 branch</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">Ambiente <strong>HML NSTECH</strong>. O CA exige "independentemente da seguradora"; um único tenant não prova CORE.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -394,7 +397,26 @@ M = "MDF-e"             O = "Outros (NS, ETC)"      (5 opções, antes e depois 
       <div class="ct-section"><h4>Evidência — 06/08/2026 · BLOQUEADO (não reprovado)</h4>
         <p>A NSTECH roda o módulo Nacional em <code>V 1.0.260703.1628</code> — build de 03/07, <strong>anterior</strong>
         à entrega de 05/08. O combo lá tem 4 opções, sem MDF-e, o que é o esperado para esse build. Atribuir isso ao
-        código seria um falso REPROVADO; o CT exige um segundo tenant já atualizado.</p>
+        código seria um falso REPROVADO.</p>
+        <div class="pre-cond" style="border-left:3px solid #d29922;margin-top:8px">
+        <strong>Investigado no repositório em 06/08 — nenhum tenant além da AXA tem este código hoje.</strong>
+        Procurar um "tenant com build novo" não resolveria: o merge do #7980
+        (<code>071de9cf4</code>, PR 1542, 05/08 16:27) está <strong>apenas na branch <code>hml</code></strong>.
+        Medido com <code>git merge-base --is-ancestor</code>:
+        <pre><code>origin/hml ......... CONTÉM        origin/hml_fix ..... não contém
+origin/main ........ não contém    origin/main_fix .... não contém
+origin/stg ......... não contém</code></pre>
+        E nenhuma branch de deploy dos outros tenants no período contém o commit:
+        <code>promote/feat/7762-main_fix</code> (HDI-Yelum), <code>feat/ADO-7906-…-hml</code> (AIG),
+        <code>fix/ADO-7880-…</code> e <code>fix/ADO-7881-…</code> (Tokio). A AXA foi o único ambiente que subiu a partir
+        de <code>hml</code> após o merge (via <code>promote/fix/7980-hml</code>, 05/08 16:07).
+        <br><br>⚠️ <strong>Consequência para o CT:</strong> ele não está bloqueado por acesso nem por ambiente — está
+        bloqueado por <em>sequenciamento de promoção</em>. Só se torna executável quando o commit chegar a outra branch
+        e um segundo tenant for deployado a partir dela. Não é impedimento de QA, e não deve segurar o Gate 3.
+        <br><br><small>Nota de método: conferir a versão do rodapé não serve para identificar deploy — os módulos sobem
+        isolados e a tela de Login frequentemente não muda de versão. A branch é a fonte de verdade.</small></div>
+      </div>
+      <div class="ct-section"><h4>Evidência descartada — leitura da tela NSTECH</h4>
         <div class="ct-ev"><img src="evidencias/CT-TDR-002/ev_CT-TDR-002_nstech_build_antigo.png" alt="NSTECH com build de 03/07 e combo sem MDF-e"></div>
       </div>
       <div class="ct-section"><h4>Tipo</h4><p>Positivo · compatibilidade multi-tenant</p></div>
