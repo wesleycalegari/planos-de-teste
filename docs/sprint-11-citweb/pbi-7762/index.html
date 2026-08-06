@@ -118,10 +118,13 @@ a:hover{color:#67e8f9;border-bottom-color:#67e8f9}
   Por favor contacte o administrador do sistema."</em> Reproduzido <strong>3×</strong>, no
   <strong>internacional e no nacional</strong>, com filial e com critério "Tudo"; onde não há massa, ele responde
   corretamente "não foram localizados dados". Portanto o CA4 está <strong>não verificado</strong>, não "atendido".</p>
-  <p><strong>É regressão do fix?</strong> Não afirmo sem log de servidor. Pesa <em>contra</em>: o erro atinge também o
-  ramo nacional, cujo rótulo o fix não mudou, e o dev gerou o export do SLA Básico no ambiente local <em>já com o
-  fix</em> (CT3 dele, 04/08). Pesa <em>a favor</em>: o fix alterou <code>RelatorioSLADomain.cs</code>. Datar isso exige a
-  exceção do servidor — é passo do dev.</p>
+  <p><strong>✅ Não é regressão do fix — datado em 06/08.</strong> O mesmo erro, mesmo texto e mesma URL, foi reportado
+  por mim em <strong>02/07/2026</strong> na Task
+  <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7672">#7672</a> (CT-SLA-011 do PBI #7499), um mês
+  antes do #8008. Foi corrigido na época com <em>"ajustes de banco de dados"</em> e <strong>voltou na AXA</strong>: as
+  tabelas de justificativa do SLA estão <strong>vazias</strong> lá (<code>tb_jst_atr_mov_cit</code> e
+  <code>tb_hst_cit_jst_atr</code>, 0 linhas) e populadas na HDI, onde o relatório não quebra. Por orientação do Wesley,
+  <strong>não abrimos bug neste card</strong> — o assunto é do card específico de SLA.</p>
   <p><strong>Estado do fluxo:</strong> <code>#QA-EXEC-PRONTO</code> — <em>não</em> Gate 3. Com um CT sem veredito de
   produto, não se pede aprovação de resultado.</p>
 </div>
@@ -636,18 +639,39 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
           <em>não há</em>, ele responde corretamente que não há dados. Build do módulo Gestão
           <code>V 1.0.260804.2006</code> — o mesmo em que a Análise de Produção gerou normalmente (99 s e 111 s).</p>
 
-          <div class="info-box" style="background:#0d1f2d;border-left:4px solid #22d3ee;padding:10px 14px;margin:12px 0">
-            <strong>É regressão do fix do #8008? Não sei — e não vou afirmar sem o log do servidor.</strong>
-            <p>O que pesa <em>contra</em> ser regressão: (a) o erro atinge também o <strong>NACIONAL</strong>, cujo rótulo
-            o fix não mudou; (b) o próprio dev registrou em 04/08 que o <strong>CT3 dele gerou o export
-            <code>Relatorio_SLA_Bas…</code></strong> no ambiente local <em>já com o fix</em> — se o fix quebrasse o
-            relatório, teria quebrado lá.</p>
-            <p>O que pesa <em>a favor</em>: o fix alterou <code>RelatorioSLADomain.cs</code>, e o erro aparece num build
-            posterior a ele. Tentei datar rodando o SLA no <strong>Mitsui</strong> (tenant sem o deploy de hoje), mas o
-            formulário não carregou naquele tenant — falha do meu andaime, não medição.</p>
-            <p><strong>Quem fecha isso é o dev, com o log da exceção</strong> (stack trace do servidor). Sem isso, QA
-            registra o fato e para: erro reproduzido 3× em 2 ramos, com horários e prints.</p>
+          <div class="info-box" style="background:#0d1f0d;border-left:4px solid #2ea043;padding:10px 14px;margin:12px 0">
+            <strong>✅ NÃO é regressão do #8008 — o defeito está datado, e é anterior a este card.</strong>
+            <p>O mesmo erro, com o <em>mesmo texto</em> e a <em>mesma URL</em>
+            (<code>/Gestao/RelatorioSLA/GerarRelatorio</code>), foi reportado por mim em <strong>02/07/2026</strong> na
+            Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7672">#7672</a>
+            — <em>"[BUG][CITWEB][AXA HML] Erro inesperado ao exportar Relatorio SLA BASICO Nacional"</em>, CT-SLA-011 do
+            PBI #7499. Um mês antes de o #8008 existir. O José corrigiu no mesmo dia e fechou; na Task irmã da HDI
+            (<a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7673">#7673</a>) ele registrou
+            explicitamente que a correção foi de <strong>"ajustes de banco de dados"</strong>.</p>
+            <p><strong>O defeito voltou na AXA</strong> — e a diferença de ambiente é medível: as tabelas de
+            justificativa do SLA estão <strong>vazias na AXA</strong> e populadas na HDI.</p>
+            <table class="matriz">
+              <tr><th>Tabela</th><th>AXA HML</th><th>HDI-Yelum HML</th></tr>
+              <tr><td><code>tb_jst_atr_mov_cit</code></td><td style="color:#f85149">existe · <strong>0 linhas</strong></td><td style="color:#3fb950">6 linhas</td></tr>
+              <tr><td><code>tb_hst_cit_jst_atr</code></td><td style="color:#f85149">existe · <strong>0 linhas</strong></td><td style="color:#3fb950">15 linhas</td></tr>
+            </table>
+            <p style="margin-top:8px">Bate com o padrão histórico deste relatório: a
+            <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7652">#7652</a> foi
+            <code>Ind_Existe_tb_jst_atr_mov_cit</code> não ativado e a
+            <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7799">#7799</a>, tabela ausente no banco
+            alfanumérico. <strong>Não afirmo a linha de código</strong> — não tenho o fonte deployado nem o stack trace —
+            mas o que a medição sustenta é: <em>defeito conhecido do SLA que retornou na AXA, de causa em dados/banco,
+            independente do #7762</em>.</p>
+            <p style="font-size:12px;color:#8b949e">Por orientação do Wesley (06/08), <strong>nenhum bug é aberto neste
+            card</strong>: o assunto pertence ao card específico de SLA — a #7672 é a Task do mesmo defeito.</p>
           </div>
+
+          <p><strong>Tentativas de fechar o CT (10 rodadas, 2 ambientes):</strong> na AXA o relatório quebra com
+          critério "Tudo", por filial, no ramo internacional <em>e</em> no nacional, em 06/2026 e 07/2026, e até com
+          <strong>zero status marcados</strong> — ou seja, não é um status específico, não é o período e não é o volume.
+          Na HDI-Yelum o relatório <strong>não quebra</strong> (responde corretamente "não foram localizados dados"), mas
+          não há massa no SLA em nenhuma das referências testadas (02, 06 e 07/2026), então ali não há o que comparar.
+          No Mitsui o formulário não carrega pelo script — limitação do andaime, não medição.</p>
 
           <div style="margin-top:8px;padding:8px;background:#1f1a0d;border:1px solid #d29922;border-radius:4px">
             <strong>📎 Evidências (05/08/2026)</strong>
@@ -831,7 +855,7 @@ RESULTADO CT-RAP-002/004 (#7975 + #8008): REPROVADO</code></pre>
   <div class="section-title">3 · Riscos</div>
   <div class="doc-box"><ul>
     <li style="color:#3fb950"><strong>✅ MATERIALIZOU-SE E FOI CORRIGIDO — Divergência de rótulo (era Médio, virou defeito #8008):</strong> a coluna usava, no ramo internacional, o vocabulário do Nacional (<code>MENSAL DET</code> onde o cadastro diz <code>Averbável</code>). Detectado em 04/08 pela Fabiola, reproduzido e medido em AXA HML (172 linhas / 161 apólices). <strong>Fix verificado em 05/08: 0 divergentes nos três módulos e nos dois formatos.</strong> <em>A mitigação havia falhado</em> porque o CT-RAP-004 comparou o relatório com o cadastro <strong>Nacional</strong> e generalizou — lição incorporada aos scripts (o oráculo agora é o combo de cadastro por módulo).</li>
-    <li style="color:#d29922"><strong>⚠️ RISCO NOVO (05/08) — Relatório de SLA Básico não gera na AXA HML:</strong> devolve "Ocorreu um erro inesperado!" onde há dados, nos ramos nacional <em>e</em> internacional (3 reproduções). <em>Impacto neste card:</em> impede verificar o CA4 (comparação entre relatórios). <em>Impacto fora dele:</em> é o relatório que Produtos usa para acompanhar SLA. <em>Mitigação:</em> datar via log de servidor (dev) para separar regressão do #8008 de defeito pré-existente, e abrir o work item correspondente.</li>
+    <li style="color:#d29922"><strong>⚠️ RISCO ATIVO — Relatório de SLA Básico não gera na AXA HML (defeito conhecido que voltou):</strong> devolve "Ocorreu um erro inesperado!" onde há dados, nos ramos nacional <em>e</em> internacional. Reproduzido em <strong>7 rodadas</strong> (critério "Tudo", por filial, dois períodos, e até com zero status marcados). <strong>Datado:</strong> é o mesmo defeito da Task <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7672">#7672</a> (02/07/2026), corrigido na época com "ajustes de banco de dados" — as tabelas de justificativa estão vazias na AXA e populadas na HDI, onde não quebra. <em>Impacto neste card:</em> impede verificar o CA4. <em>Impacto fora dele:</em> é o relatório que Produtos usa. <em>Encaminhamento:</em> card específico de SLA (não se abre bug no #7762).</li>
     <li style="color:#d29922"><strong>⚠️ RISCO NÃO COBERTO — ramos internacionais 25/28/30:</strong> os dois relatórios ramificam por <code>c_rmo == 22 || c_rmo == 32</code>, então uma apólice de ramo 25, 28 ou 30 sairia com o vocabulário <strong>nacional</strong>. Na AXA HML isso é caixa vazia — medido em 05/08: toda a massa internacional está em 22 (<code>N</code>=526, <code>D</code>=96, <code>A</code>=9) e 32 (<code>N</code>=218, <code>D</code>=281). <em>Mitigação:</em> vale checar em tenant que tenha esses ramos antes do rollout.</li>
     <li><strong>Cobertura parcial de módulos (Alto):</strong> a coluna aparecer só no Nacional e faltar no Internacional/Gestão. <em>Mitigação:</em> CT-RAP-001/002/003 nos três módulos.</li>
     <li><strong>Export incompleto (Médio):</strong> coluna na tela mas ausente em algum formato de exportação. <em>Mitigação:</em> CT-RAP-005 valida o arquivo de cada formato.</li>
