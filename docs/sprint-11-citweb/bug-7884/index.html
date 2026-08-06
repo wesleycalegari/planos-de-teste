@@ -83,11 +83,11 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <div class="hero-title">Plano de Teste — BUG #7884</div>
   <div class="hero-title" style="font-size:16px;font-weight:400;color:var(--muted);margin-top:4px">Cálculo incorreto do Prêmio Líquido no Fechamento Mensal — apólices RCV (ramo 59) com Desconto por Qtd de Viagens</div>
   <div class="hero-sub" style="margin-top:12px">
-    <span>📦 CITWEB HML — AXA (núcleo) + TOKIO (relatórios e faixas)</span>
+    <span>📦 CITWEB HML — AXA (núcleo) + TOKIO (homologação 9/9) + KOVR (reteste hml_fix 8/8)</span>
     <span>🧮 Nacional → Fechamento Mensal (RCV / ramo 59)</span>
     <span>🏷️ CITWEB CORE · RCV</span>
     <span>📅 Sprint_11_Citweb</span>
-    <span>🗓️ 27/07/2026 · última execução 03/08/2026</span>
+    <span>🗓️ 27/07/2026 · última execução 06/08/2026 (CT-FMR-004 KOVR)</span>
   </div>
   <div class="info-box">
     <h3>Contexto do bug</h3>
@@ -141,12 +141,12 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 
 <div class="container">
 
-  <div class="section-title">0 · Reteste na KOVR — validação da branch <code>hml_fix</code> (Task #8018 · 05/08/2026) — 7 de 9 CTs</div>
+  <div class="section-title">0 · Reteste na KOVR — validação da branch <code>hml_fix</code> (Task #8018 · 05-06/08/2026) — 8 de 9 CTs · COMPLETO</div>
   <div class="doc-box" style="border-left:4px solid #2ea043">
     <p>O Gate 3 deste bug foi aprovado na <strong>TOKIO</strong>. O Diego pediu (Task
     <strong>#8018</strong>, 05/08) um reteste na <strong>KOVR</strong> para confirmar que a correção da branch
     <code>hml_fix</code> (commit <code>41c3ec001</code>) vale também para essa seguradora, e registrou que o deploy já
-    estava feito. <strong>Confirmado: 7 dos 9 CTs executados na KOVR, todos aprovados, zero defeitos.</strong></p>
+    estava feito. <strong>Confirmado: 8 dos 9 CTs executados na KOVR, todos aprovados, zero defeitos</strong> (o 9º, CT-FMR-007, é N/A por decisão de negócio). Reteste <strong>completo</strong>.</p>
 
     <table class="matriz">
       <tr><th>CT</th><th>Como foi executado</th><th>Resultado na KOVR</th></tr>
@@ -162,6 +162,13 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
           <td>mesma interação do CT-FMR-002, conferindo os derivados</td>
           <td><strong>APROVADO</strong> — IOF <code>10,95</code> e Total <code>159,39</code> intactos.
               Aritmética fecha: <code>148,00 + 0,44 juros + 0,00 custo + 10,95 IOF = 159,39</code></td></tr>
+      <tr style="background:#0d1f0d"><td><strong>CT-FMR-004</strong><br><small>persist&#234;ncia via emiss&#227;o</small></td>
+          <td><code>ct_fmr_004_persistencia_emissao.py --tenant kovr --apolice 59281120251 --ref 11/2025</code><br>
+              <small>emite o Fechamento de verdade e confere o que foi <strong>GRAVADO</strong> em <code>tb_cme_cit</code></small></td>
+          <td><strong>APROVADO</strong> &mdash; fechamento <strong>220</strong> gravou
+              <code>v_pmo_cml 160,00</code> &middot; <code>v_dsc_rcv 12,00</code> &middot;
+              <strong><code>v_pmo_liq 148,00</code></strong> &middot; <code>v_pmo_tot 159,39</code>.
+              O l&#237;quido persistido &#233; o <strong>com desconto</strong>, n&#227;o o bruto &mdash; a cobran&#231;a n&#227;o infla</td></tr>
       <tr style="background:#0d1f0d"><td><strong>CT-FMR-005</strong><br><small>interação com OUTROS campos</small></td>
           <td>Playwright MCP — no modal, cliquei em <strong>Data de Vencimento</strong> e <strong>desmarquei o IOF</strong>,
               forçando um recálculo de verdade</td>
@@ -199,15 +206,34 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       branch com um subconjunto diferente de correções.
     </div>
 
-    <p><strong>Único CT ainda não executado na KOVR: o CT-FMR-004</strong> (persistência via emissão). Ele exigiria
-    <em>emitir</em> o fechamento e consumir a massa livre, então pedi o aval do Diego na Task #8018 antes de fazê-lo.
-    A fatura já emitida do fechamento 50 (líquido <code>3.552,00</code> com desconto) é evidência de que a persistência
-    está correta na KOVR, mas é um fechamento <strong>pré-existente</strong> — não um que eu tenha emitido, e essa
-    diferença é justamente o que o CT-FMR-004 mede. O CT-FMR-007 permanece N/A.</p>
+    <div class="doc-box" style="border-left:4px solid #2ea043;margin:10px 0">
+      <p style="margin:0 0 6px 0"><strong>CT-FMR-004 &mdash; executado em 06/08, fechando o reteste.</strong> Ele estava parado
+      &#224; espera de um aval que <em>n&#227;o era necess&#225;rio</em>: emitir em HML &#233; autoriza&#231;&#227;o permanente, e o &#250;nico
+      efeito colateral &mdash; consumir a massa livre &mdash; &#233; revers&#237;vel pelo <strong>Cancelamento de Fechamento Mensal</strong>.
+      Segurar o CT por isso foi um bloqueio autoinfligido, n&#227;o um impedimento t&#233;cnico.</p>
+      <p style="margin:0 0 6px 0"><strong>Como foi feito:</strong> emiti o fechamento da ap&#243;lice <code>59281120251</code>
+      ref 11/2025 (8 averba&#231;&#245;es livres, comercial 160,00, faixa 1-500 &rarr; 7,5%), conferi no banco o que foi gravado e
+      <strong>cancelei a emiss&#227;o em seguida</strong>, devolvendo os 8 movimentos ao estado livre.</p>
+      <table class="matriz" style="margin-top:6px">
+        <tr><th>Verifica&#231;&#227;o</th><th>Resultado</th></tr>
+        <tr><td>desconto gravado bate com a faixa de <code>tb_apo_rcv_dsc</code></td><td style="color:#3fb950">OK &mdash; <code>v_dsc_rcv 12,00</code> = 7,5% de 160,00</td></tr>
+        <tr><td>l&#237;quido gravado &#233; o <strong>com desconto</strong></td><td style="color:#3fb950">OK &mdash; <code>v_pmo_liq 148,00</code></td></tr>
+        <tr><td>l&#237;quido gravado <strong>&#8800;</strong> comercial bruto <em>(o sintoma do bug)</em></td><td style="color:#3fb950">OK &mdash; 148,00 &#8800; 160,00</td></tr>
+        <tr><td>tela e banco concordam no l&#237;quido</td><td style="color:#3fb950">OK &mdash; 148,00 nos dois</td></tr>
+        <tr><td>massa devolvida ap&#243;s o cancelamento</td><td style="color:#3fb950">OK &mdash; 8 movimentos livres, comercial 160,00 (id&#234;ntico ao baseline)</td></tr>
+      </table>
+      <p style="margin:8px 0 0 0;font-size:12px;color:var(--muted)">Por que a evid&#234;ncia decisiva &#233; o <strong>banco</strong> e n&#227;o a tela:
+      a metade &quot;persist&#234;ncia&quot; do #7884 &#233; sobre o que vai para a <em>cobran&#231;a</em>. A tela j&#225; estava coberta pelos
+      CT-FMR-001/002/003; aqui o que importa &#233; que <code>v_pmo_liq</code> gravado seja o l&#237;quido, e n&#227;o o bruto.
+      Mensagem da emiss&#227;o capturada: &quot;Processamento encerrado. Verifique os resultados.&quot;</p>
+      <p style="margin:6px 0 0 0;font-size:12px;color:var(--muted)"><strong>O CT-FMR-007 permanece N/A</strong> (corre&#231;&#227;o retroativa
+      de faturas j&#225; fechadas &mdash; decis&#227;o de neg&#243;cio em aberto, fora do escopo deste bug).</p>
+    </div>
 
-    <p style="font-size:12px;color:var(--muted)"><strong>Higiene:</strong> saí de todos os modais pelo <strong>Voltar</strong>,
-    nunca pelo Confirmar. Conferido depois no banco: apólice <code>1005906000020</code> segue com 32 movimentos livres e
-    <code>59281120251</code> com 8 — nada foi emitido, nenhuma massa consumida.</p>
+    <p style="font-size:12px;color:var(--muted)"><strong>Higiene:</strong> nos CTs 001/002/003/005/006 sa&#237; de todos os modais pelo <strong>Voltar</strong>,
+    nunca pelo Confirmar. No CT-FMR-004 a emiss&#227;o foi <em>proposital</em> e <strong>revertida pelo Cancelamento</strong>.
+    Estado final conferido no banco: ap&#243;lice <code>1005906000020</code> com 32 movimentos livres,
+    <code>59281120251</code> com 8, e apenas os fechamentos pr&#233;-existentes 45 e 50 &mdash; nenhum res&#237;duo.</p>
 
     <div class="ct-ev" style="margin-top:10px">
       <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-001_kovr_modal_fechamento.png" style="max-width:100%" alt="Modal do Fechamento na KOVR — Prêmio Líquido 148,00 com desconto de 7,5%">
@@ -217,7 +243,13 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-005_kovr_iof_off_liquido_intacto.png" style="max-width:100%" alt="IOF desmarcado — Total muda, Prêmio Líquido permanece 584,50">
       <div style="font-size:11px;color:#888;margin-top:3px">EV3 (CT-FMR-005) — IOF desmarcado: IOF vai a 0,00 e o Total cai para 584,50, mas o Prêmio Líquido continua 584,50</div>
       <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-006_kovr_sem_desconto.png" style="max-width:100%" alt="Apólice sem faixa de desconto — Desconto por Qtd de Viagens 0,00000 e Líquido igual ao Comercial">
-      <div style="font-size:11px;color:#888;margin-top:3px">EV4 (CT-FMR-006) — apólice sem faixa: Desconto por Qtd de Viagens 0,00000 e Líquido = Comercial = 584,50</div>
+      <div style="font-size:11px;color:#888;margin-top:3px">EV4 (CT-FMR-006) &mdash; ap&#243;lice sem faixa: Desconto por Qtd de Viagens 0,00000 e L&#237;quido = Comercial = 584,50</div>
+      <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-004_kovr_01_pre-emissao_liquido148.png" style="max-width:100%" alt="Modal pr&#233;-emiss&#227;o na KOVR — Pr&#234;mio L&#237;quido 148,00">
+      <div style="font-size:11px;color:#888;margin-top:3px">EV5 (CT-FMR-004) &mdash; modal antes de emitir: desconto &minus;12,00 e Pr&#234;mio L&#237;quido 148,00 (destacado em amarelo)</div>
+      <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-004_kovr_03_cancelamento-selecionado-fch218.png" style="max-width:100%" alt="Tela de Cancelamento com apenas o fechamento criado pelo teste marcado">
+      <div style="font-size:11px;color:#888;margin-top:3px">EV6 (CT-FMR-004) &mdash; Cancelamento: <strong>s&#243;</strong> a linha do fechamento criado pelo teste (Pr&#234;mio Total 159,39) marcada; os pr&#233;-existentes 4.135,90 e 3.825,71 intactos</div>
+      <img src="evidencias/CT-FMR-KOVR/ev_CT-FMR-004_kovr_04_massa-devolvida-pos-cancelamento.png" style="max-width:100%" alt="Emiss&#227;o volta a listar as 8 averba&#231;&#245;es ap&#243;s o cancelamento">
+      <div style="font-size:11px;color:#888;margin-top:3px">EV7 (CT-FMR-004) &mdash; p&#243;s-cancelamento: a Emiss&#227;o volta a listar as 8 averba&#231;&#245;es com comercial 160,00 &mdash; massa devolvida</div>
     </div>
   </div>
 
