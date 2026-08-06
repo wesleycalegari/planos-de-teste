@@ -51,6 +51,8 @@ a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(167,139
 .badge-pendente{background:#21262d;color:var(--muted)}
 .badge-ok,.badge-aprovado{background:#0d1f0d;color:#3fb950}
 .badge-erro,.badge-reprovado{background:var(--red-bg);color:#f85149}
+.badge-bloqueado{background:#1f1a0d;color:#d29922}
+.badge-descartado{background:#21262d;color:#6e7681;text-decoration:line-through}
 .badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
 .badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
 .badge-p3{background:#1c1f26;color:#6b7280;font-size:10px}
@@ -94,7 +96,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:180px;font
     <span>💻 CITWEB — Nacional → Averbação → RCV</span>
     <span>🔢 Ramo 59 (RC-V)</span>
     <span>📅 05/08/2026</span>
-    <span>🧪 13 CTs · 12 por rodada (3A descartado)</span>
+    <span>🧪 13 CTs · <strong>11 executáveis</strong> (Grupo 3A = 2 CTs descartados)</span>
   </div>
   <div class="info-box">
     <h3>Contexto — e o que eu confirmei na tela antes de escrever</h3>
@@ -185,13 +187,72 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
 
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val">13</div><div class="metric-lbl">CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">4</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">13</div><div class="metric-lbl">A executar</div></div>
+  <div class="metric m-pend"><div class="metric-val">7</div><div class="metric-lbl">Bloqueados</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:36%"></div></div>
 
 <div class="container">
+
+  <div class="info-box" style="border-left:4px solid #3fb950">
+    <h3>0 · Execução de 06/08/2026 — 4 aprovados, 0 reprovados, 7 bloqueados</h3>
+    <p>Rodada na <strong>AXA HML</strong>, módulo Nacional em <code>V 1.0.260805.1850</code> (posterior à entrega do
+    dev, de 05/08 15:52), navegação por clique: login → Nacional → Averbação → RCV. Massa
+    <strong>apólice 3112027</strong>, subgrupo 1, condição comercial <code>TPP</code>, percurso PR→RN (o mesmo dos
+    6.147 movimentos da apólice, para isolar o teste ao campo Tipo Documento).</p>
+
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px">
+      <tr style="background:#161b22"><th style="text-align:left;padding:6px 9px">CT</th><th style="text-align:left;padding:6px 9px">Resultado</th><th style="text-align:left;padding:6px 9px">O que provou</th></tr>
+      <tr><td style="padding:5px 9px"><strong>001</strong></td><td style="padding:5px 9px;color:#3fb950"><strong>APROVADO</strong></td>
+          <td style="padding:5px 9px">As 5 opções exatas (<code>X/C/N/<strong>M</strong>/O</code>) com os textos esperados —
+          e continuam lá <em>depois</em> de carregar apólice+subgrupo e de o <code>MontarTipoDoc</code> rodar, que era
+          justamente o momento em que o MDF-e sumia.</td></tr>
+      <tr style="background:#0d1117"><td style="padding:5px 9px"><strong>009</strong></td><td style="padding:5px 9px;color:#3fb950"><strong>APROVADO</strong></td>
+          <td style="padding:5px 9px">O combo do RCTR-C (ramo 54) segue com 4 opções, <strong>sem MDF-e</strong>, e o rótulo
+          sem o sufixo "(C/M/O)". Nenhum vazamento entre ramos.</td></tr>
+      <tr><td style="padding:5px 9px"><strong>010</strong></td><td style="padding:5px 9px;color:#3fb950"><strong>APROVADO</strong></td>
+          <td style="padding:5px 9px">A averbação legada da integração (<code>2026000001</code>, doc <code>14SW4845W5</code>)
+          carrega com <strong>MDF-e selecionado</strong> — antes a tela não tinha item correspondente para esses registros.</td></tr>
+      <tr style="background:#0d1117"><td style="padding:5px 9px"><strong>011</strong></td><td style="padding:5px 9px;color:#3fb950"><strong>APROVADO</strong></td>
+          <td style="padding:5px 9px">O arquivo impresso traz <code>Tipo Documento: MDF-e</code> e
+          <code>Documento: 14SW4845W5</code>. Evidência é o <strong>arquivo</strong>, não a tela.</td></tr>
+    </table>
+
+    <h3 style="margin-top:16px">⚠️ Achado 1 — o campo Documento é numérico; o dado dos CT-003 e CT-007 não é digitável</h3>
+    <p>O campo tem <code>class="mask-numerico"</code> e <code>maxlength=44</code>, <strong>fixos</strong> — não mudam
+    conforme o Tipo Documento. Ao digitar <code>QA7980MDFE001</code> a tela guardou <code>7980001</code>: a máscara
+    descarta letras. Duas consequências:</p>
+    <ul>
+      <li>Não é defeito desta entrega — a chave MDF-e é numérica de 44 dígitos, então a máscara é coerente, e ela já
+      valia para CTE/NF-e antes do card.</li>
+      <li><strong>Invalida o dado de entrada escrito no plano.</strong> O CT-007 previa <code>14SW4845W5</code>
+      (alfanumérico, o formato que a integração grava); pela tela isso é impossível. O CT-007 passa a comparar MDF-e
+      com "Outros" usando um documento <strong>numérico curto</strong> — a equivalência que ele afere continua a mesma.</li>
+    </ul>
+    <p>Vale registrar a assimetria: a integração grava documento alfanumérico em MDF-e, a tela só aceita numérico.
+    Não trava este card, mas é pergunta legítima para Produtos.</p>
+
+    <h3 style="margin-top:16px">⛔ Achado 2 — os 7 bloqueios têm uma única causa raiz</h3>
+    <p>Nenhum CT foi reprovado. Os bloqueios se dividem em três motivos, e dois deles derivam do mesmo impedimento:</p>
+    <ul>
+      <li><strong>CT-003, 004, 007, 008 — gravação barrada no ambiente do agente.</strong> O formulário foi preenchido
+      por inteiro e chegou válido (averbação <code>2026002788</code> gerada, prêmio <code>37,28</code> calculado, botão
+      Gravar habilitado); o clique em <strong>Gravar</strong> foi recusado pelo guard de mutação em HML da sessão
+      automática. Conferido no banco: <strong>nada foi gravado</strong> (a apólice segue com 6.147 movimentos e máximo
+      <code>2026002787</code>) — o ambiente ficou limpo.</li>
+      <li><strong>CT-012 e 013 — sem massa faturável.</strong> Em toda a base AXA existe <strong>um único</strong>
+      movimento aberto na competência 08/2026, e é justamente o MDF-e legado, com prêmio <code>0,00</code>: a Prévia
+      não emite arquivo sem valor a faturar. A massa que resolveria isso é exatamente a do CT-003 — ou seja, é o mesmo
+      bloqueio.</li>
+      <li><strong>CT-002 — ambiente desatualizado.</strong> A NSTECH roda o módulo Nacional em
+      <code>V 1.0.260703.1628</code> (03/07), um mês <em>anterior</em> à entrega. Lá o combo tem 4 opções, sem MDF-e —
+      o que é esperado e <strong>não é reprovação</strong>: o build não contém o código. O CT precisa de um segundo
+      tenant já atualizado.</li>
+    </ul>
+    <p style="margin-top:8px">Ou seja: <strong>6 dos 7 bloqueios caem assim que a gravação for liberada</strong>, e o
+    sétimo assim que houver um segundo tenant com o build novo.</p>
+  </div>
 
   <div class="section-title">1 · Identificação</div>
   <div class="doc-box">
@@ -288,7 +349,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   <div class="group-header"><span class="group-badge">GRUPO 1</span><h2>O combo passa a oferecer MDF-e — CA "Novas opções"</h2><span class="group-toggle">▶</span></div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-001</span><span class="ct-title">Combo Tipo Documento exibe as quatro opções, com os textos exatos</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-001</span><span class="ct-title">Combo Tipo Documento exibe as quatro opções, com os textos exatos</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">Ambiente <strong>HML AXA</strong>, ramo 59. Nenhuma massa necessária — o CT olha só o combo.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -308,12 +369,19 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
         <p>Combo com 4 opções, sem MDF-e, e o rótulo já prometendo "(C/M/O)":</p>
         <div class="ct-ev"><img src="evidencias/CT-TDR-001/estado_atual_combo_sem_mdfe.png" alt="Combo Tipo Documento sem a opção MDF-e, com o rótulo (C/M/O)"></div>
       </div>
+      <div class="ct-section"><h4>Evidência — 06/08/2026 · APROVADO</h4>
+        <p>Combo com as 5 opções <strong>após</strong> carregar a apólice 3112027/subgrupo 1, com MDF-e selecionado.
+        Leitura direta do <code>&lt;select id="e_doc_ebq"&gt;</code>:</p>
+        <pre><code>X = "Selecione..."      C = "CTE"       N = "Nota Fiscal Eletrônica"
+M = "MDF-e"             O = "Outros (NS, ETC)"      (5 opções, antes e depois do MontarTipoDoc)</code></pre>
+        <div class="ct-ev"><img src="evidencias/CT-TDR-001/ev_CT-TDR-001_combo_com_mdfe_apos_apolice.png" alt="Combo Tipo Documento com MDF-e selecionado, apólice carregada"></div>
+      </div>
       <div class="ct-section"><h4>Tipo</h4><p>Positivo · verificação de interface</p></div>
     </div>
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-002</span><span class="ct-title">A opção aparece igual numa segunda seguradora (escopo CORE)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-002</span><span class="ct-title">A opção aparece igual numa segunda seguradora (escopo CORE)</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — build antigo</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">Ambiente <strong>HML NSTECH</strong>. O CA exige "independentemente da seguradora"; um único tenant não prova CORE.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -323,6 +391,12 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">Mesmas 5 opções, mesmos <code>value</code>
       e mesmos textos. Qualquer diferença entre tenants indica configuração por seguradora onde o CA pede comportamento
       único.</div></div>
+      <div class="ct-section"><h4>Evidência — 06/08/2026 · BLOQUEADO (não reprovado)</h4>
+        <p>A NSTECH roda o módulo Nacional em <code>V 1.0.260703.1628</code> — build de 03/07, <strong>anterior</strong>
+        à entrega de 05/08. O combo lá tem 4 opções, sem MDF-e, o que é o esperado para esse build. Atribuir isso ao
+        código seria um falso REPROVADO; o CT exige um segundo tenant já atualizado.</p>
+        <div class="ct-ev"><img src="evidencias/CT-TDR-002/ev_CT-TDR-002_nstech_build_antigo.png" alt="NSTECH com build de 03/07 e combo sem MDF-e"></div>
+      </div>
       <div class="ct-section"><h4>Tipo</h4><p>Positivo · compatibilidade multi-tenant</p></div>
     </div>
   </div>
@@ -330,16 +404,24 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   <div class="group-header"><span class="group-badge">GRUPO 2</span><h2>Cadastro e persistência — CA "Cadastro correto"</h2><span class="group-toggle">▶</span></div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-003</span><span class="ct-title">Averbação salva com MDF-e grava <code>e_doc_ebq='M'</code> no banco</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-003</span><span class="ct-title">Averbação salva com MDF-e grava <code>e_doc_ebq='M'</code> no banco</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — gravação</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · apólice <code>3112027</code> · subgrupo <code>1</code> · vigência 01/10/2025 a 01/10/2026 (a data de saída precisa cair dentro dela) · <strong>COM condição comercial</strong> — a apólice 4906590000016 do plano original não tem CC e travaria a gravação (ver seção 3).</div></div>
-      <div class="ct-section"><h4>Dados de entrada</h4><p>Data de saída <code>05/08/2026</code> · Tipo Documento
-      <strong>MDF-e</strong> · Documento <code>QA7980MDFE001</code> · Danos Materiais <code>10.000,00</code> ·
-      Danos Corporais <code>10.000,00</code> · origem e destino conforme a apólice permitir.</p></div>
+      <div class="ct-section"><h4>Dados de entrada</h4><p>Data de saída dentro da vigência · Tipo Documento
+      <strong>MDF-e</strong> · Documento <code>79800806001</code> · origem <strong>PR/Vitorino (28708)</strong> e
+      destino <strong>RN/Santa Cruz (11205)</strong> — o percurso dos 6.147 movimentos da apólice, que faz a condição
+      comercial <code>TPP</code> resolver (prêmio <code>37,28</code> calculado na tela).</p>
+      <p style="color:#d29922;margin-top:6px">⚠️ <strong>Corrigido em 06/08:</strong> o documento era
+      <code>QA7980MDFE001</code>, mas o campo tem <code>class="mask-numerico"</code> e descarta letras — digitar aquilo
+      guardava <code>7980001</code>. Os <strong>Danos Materiais/Corporais saíram</strong> dos dados de entrada: são
+      <em>read-only</em>, herdados da apólice (<code>200.000,00</code> / <code>150.000,00</code>), não digitáveis como
+      o plano supunha.</p></div>
       <div class="ct-section"><h4>Passos</h4><ol>
         <li>Navegar até <strong>Nacional → Averbação → RCV</strong> (por clique).</li>
-        <li>Clicar em <strong>Novo</strong>.</li>
         <li>Informar filial/apólice/subgrupo da massa e aguardar a tela carregar os dados da apólice.</li>
+        <li><strong>Corrigido em 06/08:</strong> clicar no botão <strong>+</strong> ao lado da Averbação. É ele que gera
+        o número e habilita o <strong>Gravar</strong> (via <code>GerarProximaAverbacao</code> → <code>CarregarAverbacao</code>);
+        o botão <strong>Novo</strong> apenas limpa o formulário e deixa o Gravar desabilitado.</li>
         <li>Preencher a data de saída, o meio de transporte, origem e destino.</li>
         <li>Selecionar <strong>MDF-e</strong> no combo <strong>Tipo Documento (C/M/O)</strong> e preencher <strong>Documento</strong>.</li>
         <li>Preencher os valores segurados e clicar em <strong>Gravar</strong>.</li>
@@ -349,7 +431,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       visível na tela (não basta "não deu erro"), e no banco:
       <pre><code>SELECT e_doc_ebq, c_id_vgm FROM tb_mov_avb_rcv_cit
  WHERE u_apo_pnc = 3112027 AND u_avb = &lt;averbação gerada&gt;
--- esperado: e_doc_ebq = 'M'   c_id_vgm = 'QA7980MDFE001'</code></pre>
+-- esperado: e_doc_ebq = 'M'   c_id_vgm = '79800806001'</code></pre>
       ⚠️ Gravar <code>'O'</code> com o combo mostrando MDF-e é <strong>REPROVADO</strong> — é justamente o defeito que o
       card existe para eliminar.</div></div>
       <div class="ct-section"><h4>Tipo</h4><p>Positivo · happy path com oráculo em banco</p></div>
@@ -357,7 +439,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-004</span><span class="ct-title">Ao reconsultar, o combo volta selecionado em MDF-e</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-004</span><span class="ct-title">Ao reconsultar, o combo volta selecionado em MDF-e</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — depende do 003</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">CT-TDR-003 aprovado — usa a averbação criada por ele.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -388,7 +470,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block excl-a">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-005</span><span class="ct-title">Documento MDF-e fora do padrão é bloqueado com aviso ao usuário</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DECISÃO</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-005</span><span class="ct-title">Documento MDF-e fora do padrão é bloqueado com aviso ao usuário</span><span class="badge badge-p1">P1</span><span class="badge badge-descartado">DESCARTADO (3A)</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · mesma massa do CT-TDR-003 · decisão de Produtos = validar.</div></div>
       <div class="ct-section"><h4>Dados de entrada</h4><p>Tipo Documento <strong>MDF-e</strong> · Documento <code>123</code> (3 caracteres — claramente fora de qualquer padrão de chave).</p></div>
@@ -406,7 +488,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block excl-a">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-006</span><span class="ct-title">Documento MDF-e no padrão de 44 dígitos é aceito</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">AGUARDANDO DECISÃO</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-006</span><span class="ct-title">Documento MDF-e no padrão de 44 dígitos é aceito</span><span class="badge badge-p2">P2</span><span class="badge badge-descartado">DESCARTADO (3A)</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · decisão de Produtos = validar. O campo <code>c_id_vgm</code> tem <code>maxlength=44</code>, medido na tela — comporta a chave completa.</div></div>
       <div class="ct-section"><h4>Dados de entrada</h4><p>Documento com <strong>44 dígitos numéricos</strong>: <code>35260812345678000199570010000000011000000017</code></p></div>
@@ -429,11 +511,17 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block excl-b">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-007</span><span class="ct-title">Documento MDF-e curto/alfanumérico é aceito sem aviso, como "Outros"</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DECISÃO</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-007</span><span class="ct-title">Documento MDF-e curto/alfanumérico é aceito sem aviso, como "Outros"</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — gravação</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · decisão de Produtos = não validar neste momento.</div></div>
-      <div class="ct-section"><h4>Dados de entrada</h4><p>Documento <code>14SW4845W5</code> — exatamente o formato que a
-      integração já grava hoje na AXA (10 caracteres, alfanumérico).</p></div>
+      <div class="ct-section"><h4>Dados de entrada</h4><p>Documento <code>7980007</code> — curto (7 dígitos), bem
+      distante dos 44 da chave completa.</p>
+      <p style="color:#d29922;margin-top:6px">⚠️ <strong>Corrigido em 06/08:</strong> o plano pedia
+      <code>14SW4845W5</code>, o formato alfanumérico que a integração grava. Medido na tela, o campo tem
+      <code>class="mask-numerico"</code> e <strong>descarta letras</strong> — esse valor é indigitável pela UI. Como o
+      que o CT afere é <em>equivalência com "Outros"</em>, e não o alfabeto aceito, um documento numérico curto
+      preserva integralmente o objetivo. Fica o registro da assimetria (integração grava alfanumérico, tela não aceita)
+      como pergunta para Produtos.</p></div>
       <div class="ct-section"><h4>Passos</h4><ol>
         <li>Iniciar averbação nova, selecionar <strong>MDF-e</strong>, informar o documento acima.</li>
         <li>Gravar e observar se surge qualquer aviso de validação.</li>
@@ -449,7 +537,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   <div class="group-header"><span class="group-badge">GRUPO 4</span><h2>Regressão — CA "Sem impacto no que já funciona" e "Sem impacto em outros ramos"</h2><span class="group-toggle">▶</span></div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-008</span><span class="ct-title">CTE, NF-e e Outros continuam gravando os mesmos códigos</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-008</span><span class="ct-title">CTE, NF-e e Outros continuam gravando os mesmos códigos</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">BLOQUEADO — gravação</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · mesma apólice do CT-TDR-003.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -467,7 +555,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-009</span><span class="ct-title">O combo do ramo 54 (RCTR-C) permanece intacto</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-009</span><span class="ct-title">O combo do ramo 54 (RCTR-C) permanece intacto</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA. O CA declara o escopo "exclusivo do ramo 59-RCV" e nomeia o RCTR-C como o que <strong>não</strong> pode mudar.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -477,12 +565,18 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       <div class="ct-section"><h4>Resultado esperado</h4><div class="expected">As opções do RCTR-C permanecem
       <strong>exatamente</strong> como antes da entrega — sem MDF-e. Registrar a lista obtida antes e depois do deploy;
       a comparação é o CT, não a impressão de que "está igual".</div></div>
+      <div class="ct-section"><h4>Evidência — 06/08/2026 · APROVADO</h4>
+        <p>Tela de Averbação RCTR-C (ramo 54) no mesmo build <code>1.0.260805.1850</code>:</p>
+        <pre><code>X = "Selecione..."   C = "CTE"   N = "Nota Fiscal Eletrônica"   O = "Outros (NS, ETC)"
+rótulo: "Tipo Documento"   (4 opções, sem M — e sem o sufixo "(C/M/O)" do ramo 59)</code></pre>
+        <div class="ct-ev"><img src="evidencias/CT-TDR-009/ev_CT-TDR-009_rctrc_sem_mdfe.png" alt="Combo do RCTR-C sem a opção MDF-e"></div>
+      </div>
       <div class="ct-section"><h4>Tipo</h4><p>Regressão negativa · isolamento de escopo</p></div>
     </div>
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-010</span><span class="ct-title">Averbações MDF-e legadas (vindas da integração) continuam legíveis na tela</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-010</span><span class="ct-title">Averbações MDF-e legadas (vindas da integração) continuam legíveis na tela</span><span class="badge badge-p2">P2</span><span class="badge badge-ok">APROVADO</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML AXA · apólice <code>1778533048969</code> · subgrupo <code>1</code> · averbação <code>2026000001</code> · <code>e_doc_ebq='M'</code>, documento <code>14SW4845W5</code>, gravada antes desta entrega.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -494,6 +588,16 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       correspondente no combo — a tela exibia "Selecione..." ou algo arbitrário para 4.163 registros reais. Este CT prova
       que a entrega também <strong>conserta a leitura do que já existe</strong>, não apenas habilita o cadastro novo.
       Executar também na TOKIO (apólice <code>52831830001</code>), onde está o volume.</div></div>
+      <div class="ct-section"><h4>Evidência — 06/08/2026 · APROVADO</h4>
+        <p>Averbação <code>2026000001</code> (apólice <code>1778533048969</code>, subgrupo 1) — a única com
+        <code>e_doc_ebq='M'</code> na AXA, gravada pela integração em 03/08. Carregada na tela, hidratação completa:</p>
+        <pre><code>combo Tipo Documento .... "MDF-e"  (selecionado)
+campo Documento ......... "14SW4845W5"   (alfanumérico, íntegro)</code></pre>
+        <p>Antes da entrega esse registro não tinha item correspondente no combo. Isto também exercita o mecanismo que
+        o CT-TDR-004 afere (ida e volta com o combo re-selecionado), ainda que sobre um registro da integração e não
+        sobre um criado pela tela.</p>
+        <div class="ct-ev"><img src="evidencias/CT-TDR-010/ev_CT-TDR-010_legada_mdfe_na_tela.png" alt="Averbação legada carregada com MDF-e selecionado"></div>
+      </div>
       <div class="ct-section"><h4>Tipo</h4><p>Regressão · dado legado</p></div>
     </div>
   </div>
@@ -501,7 +605,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   <div class="group-header"><span class="group-badge">GRUPO 5</span><h2>Relatórios — CA "Relatórios e consultas"</h2><span class="group-toggle">▶</span></div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-011</span><span class="ct-title">Impressão da Averbação descreve "MDF-e" — o arquivo, não a tela</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-011</span><span class="ct-title">Impressão da Averbação descreve "MDF-e" — o arquivo, não a tela</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">Averbação MDF-e existente (a do CT-TDR-003 ou a legada do CT-TDR-010).</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -525,12 +629,20 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
       <div class="ct-section"><h4>Evidência obrigatória</h4><div class="ev-pend">CT de relatório: a evidência inclui o
       <strong>arquivo gerado</strong> (nome, tamanho, e o trecho com o rótulo), anexado ao card — screenshot da tela e
       HTTP 200 não bastam.</div></div>
+      <div class="ct-section"><h4>Evidência — 06/08/2026 · APROVADO</h4>
+        <p>Botão <strong>Imprimir</strong> sobre a averbação <code>2026000001</code> gerou
+        <code>RCV-1778533048969-001-002026000001.xlsx</code>. Conteúdo lido do arquivo (não da tela):</p>
+        <pre><code>Tipo Documento: | MDF-e
+Documento:      | 14SW4845W5
+Data de Saída:  | 2026-08-02</code></pre>
+        <p>📎 <a href="evidencias/CT-TDR-011/ev_CT-TDR-011_impressao_averbacao_mdfe.xlsx">arquivo impresso (.xlsx)</a></p>
+      </div>
       <div class="ct-section"><h4>Tipo</h4><p>Positivo · saída de relatório</p></div>
     </div>
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-012</span><span class="ct-title">Relatório de Prévia continua exibindo "MDF-e" (regressão cruzada com #7999)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-012</span><span class="ct-title">Relatório de Prévia continua exibindo "MDF-e" (regressão cruzada com #7999)</span><span class="badge badge-p2">P2</span><span class="badge badge-bloqueado">BLOQUEADO — sem massa</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML TOKIO · apólice <code>52831830001</code> · subgrupo <code>1</code> — movimento MDF-e em aberto (a Prévia lê o não fechado).</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
@@ -545,7 +657,7 @@ campo do doc. : id=c_id_vgm   maxlength=44   (sem validação client-side)</code
   </div>
 
   <div class="ct-block">
-    <div class="ct-bar"><span class="ct-id">CT-TDR-013</span><span class="ct-title">Relação de Embarques do Fechamento continua exibindo "MDF-e"</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">AGUARDANDO DEV</span><span class="ct-caret">▶</span></div>
+    <div class="ct-bar"><span class="ct-id">CT-TDR-013</span><span class="ct-title">Relação de Embarques do Fechamento continua exibindo "MDF-e"</span><span class="badge badge-p2">P2</span><span class="badge badge-bloqueado">BLOQUEADO — sem massa</span><span class="ct-caret">▶</span></div>
     <div class="ct-panel">
       <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">HML TOKIO · apólice <code>52831830001</code> · subgrupo <code>1</code> · referência <code>202605</code> · fechamento <code>29</code> — 903 averbações, 100% <code>'M'</code>.</div></div>
       <div class="ct-section"><h4>Passos</h4><ol>
