@@ -64,6 +64,7 @@ a{color:var(--accent2);text-decoration:none;border-bottom:1px solid rgba(167,139
 .pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
 .pre-cond code{color:#79c57e}
 .expected{background:#0d1a2e;border:1px solid #1f6feb;border-radius:4px;padding:8px 10px;font-size:13px;color:#a5d0ff}
+.ct-ev{margin-top:10px}
 .ev-pend{background:#161b22;border:1px dashed var(--muted);border-radius:4px;padding:8px 12px;font-size:12px;color:var(--muted);margin-top:8px}
 .footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:1px solid var(--border)}
 table.matriz{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
@@ -92,34 +93,44 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
     <span>📅 04/08/2026</span>
   </div>
   <div class="info-box">
-    <h3>Contexto da melhoria</h3>
+    <h3>Contexto da melhoria — diagnóstico de 04/08/2026, antes do fix</h3>
     <p>A <strong>Relação de Embarques</strong> do Fechamento deve retornar <strong>exatamente o tipo de documento
-    averbado</strong>. Hoje a coluna "Tipo Documento" traduz apenas três códigos e <strong>tudo o que não é um deles sai
-    em branco</strong>.</p>
-    <p><strong>Como está no código</strong> — <code>RelatorioFechamentoDomain.cs:1643</code>:</p>
+    averbado</strong>. Em 04/08, quando este plano foi escrito, a coluna "Tipo Documento" traduzia apenas três códigos e
+    <strong>tudo o que não era um deles saía em branco</strong>. O fix subiu em HML em 04/08 (PR !1532) e a coluna passou
+    a traduzir quatro — ver seções 3.1 e 3.2.</p>
+    <p><strong>Como estava no código antes do fix</strong> — <code>RelatorioFechamentoDomain.cs:1643</code>:</p>
     <pre><code>switch (item.e_doc_ebq.ToString()) {
     case "C": "CTE"            case "N": "NF Eletrônica"          case "O": "Outros"
     default : ""     // ← MDF-e cai aqui, e a coluna sai VAZIA
 }</code></pre>
     <p><strong>Correção da premissa do card:</strong> a descrição diz <em>"hoje só reconhece CTE e Outros"</em>, sugerindo
-    que o MDF-e é classificado como "Outros". <strong>Não é</strong> — ele cai no <code>default</code> e a coluna vem
-    <strong>vazia</strong>. Também existe <code>"NF Eletrônica"</code> (código <code>N</code>), que o card não menciona.</p>
+    que o MDF-e estaria sendo classificado como "Outros". <strong>Não estava</strong> — ele caía no <code>default</code>
+    e a coluna vinha <strong>vazia</strong>. Também existe <code>"NF Eletrônica"</code> (código <code>N</code>), que o card não menciona.</p>
   </div>
 </div>
 
 <div class="deploy-warn" style="border-color:var(--cyan);background:#0d1f2d">
-  <h3 style="color:var(--cyan)">⚠️ Antes de codar: o mapeamento está DUPLICADO em 3 lugares, cada um com um subconjunto diferente</h3>
-  <p>Levantado por leitura de código em 04/08. Corrigir só o Fechamento (o que o card pede) deixa a <strong>Prévia</strong>
-  mostrando em branco o mesmo dado — dois relatórios da mesma averbação divergindo. Isto é decisão de escopo e vale
-  <strong>antes</strong> do desenvolvimento:</p>
+  <h3 style="color:var(--cyan)">Histórico — levantamento de 04/08/2026, antes do desenvolvimento: o mapeamento estava DUPLICADO em 3 lugares, cada um com um subconjunto diferente</h3>
+  <p><strong>Este box registra o estado do código em 04/08, antes da entrega — não o estado atual.</strong> Naquele
+  momento, corrigir só o Fechamento (o que o card pedia) deixaria a <strong>Prévia</strong> mostrando em branco o mesmo
+  dado — dois relatórios da mesma averbação divergindo. Era decisão de escopo e valia <strong>antes</strong> do
+  desenvolvimento; foi levada ao dev nesses termos.</p>
   <table class="matriz">
-    <tr><th>Arquivo</th><th>Relatório</th><th>Traduz</th><th>Sai em branco hoje</th></tr>
+    <tr><th>Arquivo</th><th>Relatório</th><th>Traduzia em 04/08</th><th>Saía em branco em 04/08 (pré-fix)</th></tr>
     <tr><td><code>RelatorioFechamentoDomain.cs:1643</code></td><td>Relação de Embarques do <strong>Fechamento</strong> (alvo do card)</td><td>C · N · O</td><td><strong>M</strong> · A · D · vazio</td></tr>
     <tr><td><code>RelatorioPreviaDomain.cs:2807</code></td><td>Relação de Embarques da <strong>Prévia</strong></td><td>C · N · O</td><td><strong>M</strong> · A · D · vazio</td></tr>
     <tr><td><code>RelatorioDomain.cs:2280</code></td><td>Comprovante/impressão da averbação</td><td>C · O</td><td><strong>N</strong> · M · A · D · vazio</td></tr>
   </table>
-  <p>⚠️ Observe o terceiro: ele não trata nem <code>N</code>, então <strong>NF-e já sai em branco ali hoje</strong> —
-  defeito pré-existente, independente deste card.</p>
+  <p><strong>Como terminou:</strong> o escopo foi ampliado na entrega. O PR <strong>!1532</strong> (deploy em HML em
+  <strong>04/08 20:32 UTC</strong>, task <strong>#8007</strong> <em>Done</em>) criou
+  <code>/Domain/TipoDocumentoEmbarqueRcvLabel.cs</code> e passou a chamá-lo <strong>nos dois</strong> relatórios —
+  <code>RelatorioFechamentoDomain.cs:1646</code> e <code>RelatorioPreviaDomain.cs:2808</code> —, o que atende a paridade
+  Fechamento×Prévia exigida pelo CA (seção 3.1). Medido em <strong>07/08</strong>: <strong>903/903</strong> no Fechamento
+  (TOKIO) e <strong>10/10</strong> na Prévia (AXA), seção 3.2. A divergência antecipada aqui <strong>não se
+  materializou</strong>.</p>
+  <p>⚠️ O terceiro ponto (<code>RelatorioDomain.cs:2280</code>) <strong>não foi tocado pelo fix</strong>: ele não trata
+  nem <code>N</code>, então a expectativa é que NF-e continue saindo em branco no comprovante — defeito pré-existente,
+  independente deste card. Confirmação é o <strong>CT-REB-009</strong>, que segue <strong>PENDENTE</strong>.</p>
 </div>
 
 <div class="metrics">
@@ -138,13 +149,13 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
     tautologia). Veio da <strong>tela onde o usuário escolhe o tipo</strong> — o formulário de averbação RCV
     (<code>NSSegApis/client/nsseg-portal/src/pages/averbacoes/ramo59/Ramo59FormPage.tsx:6-12</code>):</p>
     <table class="matriz">
-      <tr><th><code>e_doc_ebq</code></th><th>Rótulo no cadastro (fonte de verdade)</th><th>Rótulo hoje no relatório</th><th>Situação</th></tr>
-      <tr><td><code>C</code></td><td>CT-e — Conhecimento de Transporte Eletrônico</td><td>CTE</td><td>✅ ok</td></tr>
-      <tr><td><code>N</code></td><td>NF-e — Nota Fiscal Eletrônica</td><td>NF Eletrônica</td><td>✅ ok</td></tr>
-      <tr><td><code>O</code></td><td>— <em>(não está no formulário; vem do Conversor/legado)</em></td><td>Outros</td><td>✅ ok</td></tr>
-      <tr style="background:#1f0d0d"><td><code>M</code></td><td><strong>MDF-e — Manifesto Eletrônico de Documentos Fiscais</strong></td><td><strong>(vazio)</strong></td><td>❌ <strong>o card</strong></td></tr>
-      <tr style="background:#1f1a0d"><td><code>A</code></td><td>AWB — Air Waybill</td><td>(vazio)</td><td>⚠️ mesma classe, fora do card</td></tr>
-      <tr style="background:#1f1a0d"><td><code>D</code></td><td>D — Outro documento</td><td>(vazio)</td><td>⚠️ mesma classe, fora do card</td></tr>
+      <tr><th><code>e_doc_ebq</code></th><th>Rótulo no cadastro (fonte de verdade)</th><th>Rótulo no relatório <strong>antes do fix</strong> (04/08)</th><th>Situação hoje</th></tr>
+      <tr><td><code>C</code></td><td>CT-e — Conhecimento de Transporte Eletrônico</td><td>CTE</td><td>✅ ok — inalterado pelo fix</td></tr>
+      <tr><td><code>N</code></td><td>NF-e — Nota Fiscal Eletrônica</td><td>NF Eletrônica</td><td>✅ ok — inalterado pelo fix</td></tr>
+      <tr><td><code>O</code></td><td>— <em>(não está no formulário; vem do Conversor/legado)</em></td><td>Outros</td><td>✅ ok — inalterado pelo fix</td></tr>
+      <tr style="background:#0d1f0d"><td><code>M</code></td><td><strong>MDF-e — Manifesto Eletrônico de Documentos Fiscais</strong></td><td><strong>(vazio)</strong> — era o defeito do card</td><td>✅ passou a imprimir <strong>MDF-e</strong> desde o PR !1532 (04/08); medido em 07/08 — seção 3.2. Execução formal dos CTs segue <strong>PENDENTE</strong>.</td></tr>
+      <tr style="background:#1f1a0d"><td><code>A</code></td><td>AWB — Air Waybill</td><td>(vazio)</td><td>⚠️ segue sem tradução — mesma classe, fora do card</td></tr>
+      <tr style="background:#1f1a0d"><td><code>D</code></td><td>D — Outro documento</td><td>(vazio)</td><td>⚠️ segue sem tradução — mesma classe, fora do card</td></tr>
     </table>
     <p>⚠️ Note a assimetria de <code>O</code> × <code>D</code>: o relatório espera <code>O</code> para "Outros", mas o
     formulário emite <code>D</code> para "Outro documento". Averbação criada pelo portal novo com "Outro documento"
@@ -179,7 +190,8 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
       <tr style="background:#1f0d0d"><td><strong>MDF-e (núcleo)</strong></td><td>TOKIO</td>
           <td>apólice <code>52831830001</code> · subgrupo <code>1</code> · referência <code>202605</code> ·
               fechamento <code>29</code> → <strong>903 averbações, 100% <code>e_doc_ebq='M'</code></strong>
-              (zero de outros tipos). Hoje: 903 linhas com a coluna vazia.</td></tr>
+              (zero de outros tipos). <strong>Em 04/08, antes do fix:</strong> 903 linhas com a coluna vazia — pós-fix,
+              903/903 saem com <code>MDF-e</code> (medição de 07/08, seção 3.2).</td></tr>
       <tr><td>MDF-e (2º tenant, CA "todas as seguradoras")</td><td>NSTECH</td>
           <td>apólice <code>19122025</code> · subgrupo <code>1</code> · referência <code>202512</code> ·
               fechamento <code>13</code> → <strong>6 averbações</strong> <code>'M'</code></td></tr>
@@ -214,16 +226,59 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
     <ol style="font-size:13px">
       <li><strong>A dúvida de vocabulário está respondida pelo próprio código:</strong> o que subiu imprime
       <code>"MDF-e"</code> — o vocabulário do portal NSSeg, não <code>"Manifesto"</code> (CITNET) nem
-      <code>"Outros"</code>. Resta à Produtos <em>confirmar</em>, não decidir do zero.</li>
+      <code>"Outros"</code>. Resta à Produtos <em>confirmar</em>, não decidir do zero. <strong>Atualização de
+      05/08:</strong> nem a confirmação é mais necessária — o CA do
+      <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7980">#7980</a>, criado pela própria Produtos em
+      03/08, já fixa o vocabulário em <code>"MDF-e"</code> no combo e nos relatórios. O que segue pendente é o aval do
+      plano (Gate 2), <em>não</em> a decisão do rótulo.</li>
       <li><strong>Massa de MDF-e existe em 2 tenants além dos previstos</strong> (KOVR e KOVR-ALFA), o que dá folga ao
       CT-REB-002 se a TOKIO estiver instável — ela tem o HTTP 500 do Tipo de Seleção "Todas" já registrado aqui.</li>
       <li><strong>O <code>switch</code> compara string e é case-sensitive, e o <code>default</code> devolve vazio</strong>
       — isto é, um código novo volta a produzir exatamente o defeito que abriu o card, silenciosamente. Levantei isso
       como risco e <strong>fui medir antes de reportar: não se materializa</strong> — varri as 16 bases com movimento
-      RCV (não só as 6 de 04/08) e não existe minúsculo nem 5º código. Os 7 registros em branco da TOKIO continuam
-      saindo com a coluna vazia, o que é o comportamento correto para um movimento sem tipo de documento — é borda
-      conhecida (CT-REB-007), não defeito.</li>
+      RCV (não só as 6 de 04/08) e não existe minúsculo nem 5º código. Quanto aos <strong>7 registros em branco da
+      TOKIO</strong>: pela leitura do código (<code>default</code> → <code>""</code>) e pelos dados, <strong>permanece
+      esperado que continuem saindo com a coluna vazia</strong> — comportamento correto para um movimento sem tipo de
+      documento. ⚠️ Isto é conclusão de <strong>leitura de código e de banco, não de execução</strong>: quem confirma é
+      o <strong>CT-REB-006</strong> — a contraprova obrigatória do risco Alto da seção 7 —, que segue
+      <strong>PENDENTE</strong>.</li>
     </ol>
+  </div>
+
+  <div class="section-title">3.2 · Evidência cruzada — medições registradas no <strong>#7980</strong>, não neste plano <span style="font-size:12px;font-weight:400;color:#8b949e">(07/08/2026)</span></div>
+  <div class="doc-box">
+    <p>Ao homologar o <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7980">PBI #7980</a> ("Incluir
+    opção MDF-e no campo Tipo Documento da Averbação RCV" — a <em>entrada</em>; este card é a <em>saída</em>), dois CTs
+    de regressão cruzada caíram exatamente sobre a coluna que este PBI entregou. Ambos passaram em <strong>07/08</strong>.
+    Registro aqui por rastreabilidade: <strong>é evidência de outro card e não substitui a execução formal destes 10
+    CTs</strong>.</p>
+    <table class="matriz">
+      <tr><th>O que foi medido</th><th>Onde</th><th>Resultado</th></tr>
+      <tr><td>Relação de Embarques da <strong>Prévia</strong><br><code>RelatorioPreviaDomain.cs:2804</code></td>
+          <td><strong>AXA</strong> HML · build <code>V 1.0.260806.1708</code><br>apólice <code>3112027</code> ·
+              ref <code>08/2026</code></td>
+          <td><strong>10 de 10</strong> linhas com a coluna D correta, conferidas linha a linha contra o banco pelo
+              número da averbação — <code>M</code>→MDF-e, <code>C</code>→CTE, <code>N</code>→NF Eletrônica,
+              <code>O</code>→Outros. Zero divergências.</td></tr>
+      <tr><td>Relação de Embarques do <strong>Fechamento</strong><br><code>RelatorioFechamentoDomain.cs:1642</code></td>
+          <td><strong>TOKIO</strong> HML · build <code>V 1.0.260807.1214</code><br>apólice <code>52831830001</code> ·
+              fechamento <code>29</code></td>
+          <td><strong>903 de 903</strong> linhas com <code>MDF-e</code>, em movimento fechado real e em volume.
+              Zero divergências.</td></tr>
+    </table>
+    <p style="font-size:12px;color:#8b949e">ℹ️ <strong>Sobre os números de linha desta tabela</strong> (<code>1642</code> /
+    <code>2804</code>): são a numeração conforme lida em <strong>07/08</strong>, pós-fix, e vêm transcritos do registro do
+    #7980. A seção 3.1 cita <code>1646</code> / <code>2808</code> nos mesmos arquivos, lidos em 05/08; a seção 8 e o box
+    do topo citam <code>1643</code> / <code>2807</code>, que são as posições <strong>pré-fix</strong>. É o mesmo
+    <em>call site</em> em três leituras — a posição exata não altera nenhum veredito.</p>
+    <p><strong>Onde estão os arquivos:</strong> os <code>.xlsx</code> exportados estão anexados ao card
+    <strong>#7980</strong> e a conferência linha a linha está no plano dele (CTs 012 e 013). Nenhum arquivo foi anexado
+    a este card — por isso esta pasta não tem <code>evidencias/</code>.</p>
+    <p><strong>O que isto NÃO faz:</strong> não aprova CT nenhum deste plano. <strong>CT-REB-001</strong> e
+    <strong>CT-REB-008</strong> seguem <strong>PENDENTE</strong> — o Gate 2 nunca foi aprovado e a execução formal não
+    começou. Se a Produtos aprovar o reaproveitamento proposto no card em 07/08, estes dois passam a APROVADO citando o
+    anexo de origem no #7980; até lá o placar do topo permanece <strong>0 aprovados · 0 reprovados · 10
+    pendentes</strong>.</p>
   </div>
 
   <div class="section-title">4 · Automação — script existente a reusar</div>
@@ -246,8 +301,8 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 
     <div class="ct-block"><div class="ct-bar" onclick="this.parentElement.classList.toggle('expanded')"><span class="ct-id">CT-REB-001</span><span class="ct-title">MDF-e aparece como "MDF-e" na coluna Tipo Documento (TOKIO, 903 averbações)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-caret">▸</span></div>
       <div class="ct-panel">
-        <div class="ct-section"><h4>Objetivo</h4><p>CA1: movimento MDF-e aparece como <strong>"MDF-e"</strong> no Excel. Este é o CT que discrimina o fix: hoje a coluna sai <strong>vazia</strong>.</p></div>
-        <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">CITWEB HML <strong>TOKIO</strong> · apólice <code>52831830001</code> · subgrupo <code>1</code> · referência <code>202605</code> · fechamento <code>29</code> — <strong>903 averbações com <code>e_doc_ebq='M'</code></strong>, confirmadas por SQL em 04/08. Fix implantado em HML (card em "Pronto para homologação").</div></div>
+        <div class="ct-section"><h4>Objetivo</h4><p>CA1: movimento MDF-e aparece como <strong>"MDF-e"</strong> no Excel. Este é o CT que discrimina o fix: <strong>antes do fix</strong> a coluna saía <strong>vazia</strong>.</p></div>
+        <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">CITWEB HML <strong>TOKIO</strong> · apólice <code>52831830001</code> · subgrupo <code>1</code> · referência <code>202605</code> · fechamento <code>29</code> — <strong>903 averbações com <code>e_doc_ebq='M'</code></strong>, confirmadas por SQL em 04/08. <strong>Fix implantado em HML desde 04/08/2026</strong> (PR !1532 <em>completed</em>; #8007 <em>Done</em>; card em "Pronto para homologação") — a pré-condição de ambiente está satisfeita.</div></div>
         <div class="ct-section"><h4>Passos</h4><ol>
           <li>Login no CITWEB TOKIO HML (credenciais do <code>.env</code>)</li>
           <li>Clicar em <strong>Nacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Impressão</strong></li>
@@ -256,8 +311,9 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
           <li>Abrir o arquivo e ler a coluna <strong>D — "Tipo Documento"</strong> em todas as linhas</li>
           <li>Cruzar com o banco: <code>SELECT e_doc_ebq, COUNT(*) FROM tb_mov_avb_rcv_cit WHERE u_apo_pnc=52831830001 AND d_ano_mes_ref=202605 AND u_fch_mes=29 GROUP BY e_doc_ebq</code></li>
         </ol></div>
-        <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As <strong>903 linhas</strong> exibem <code>MDF-e</code> na coluna Tipo Documento — <strong>0 (zero) em branco</strong>. O texto deve ser exatamente o do cadastro (<strong>MDF-e</strong>), não "MDFE", "Manifesto" nem "Outros". ⚠️ Se vier vazio, é o defeito atual não corrigido; se vier "Outros", o fix classificou errado.</div></div>
-        <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — aguardando o fix em HML (task #8007 "Análise e Desenvolvimento" em In Progress).</div></div>
+        <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As <strong>903 linhas</strong> exibem <code>MDF-e</code> na coluna Tipo Documento — <strong>0 (zero) em branco</strong>. O texto deve ser exatamente o do cadastro (<strong>MDF-e</strong>), não "MDFE", "Manifesto" nem "Outros". ⚠️ Se vier vazio, o fix do PR !1532 não alcançou este tenant/build; se vier "Outros", o fix classificou errado.</div></div>
+        <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — <strong>execução não autorizada</strong>: Gate 2 aguardando Produtos <strong>desde 04/08</strong> (task <strong>#8012</strong> "Teste QA - 7999" em <em>To Do</em>). Não é falta de fix nem de ambiente — o fix <strong>já está implantado</strong>: PR <strong>!1532</strong> <em>completed</em>, task <strong>#8007</strong> <em>Done</em> em 04/08/2026 e card em "Pronto para homologação".</div></div>
+        <div class="ct-section" style="margin-top:12px"><h4>Histórico — motivo do bloqueio registrado em 04/08/2026, hoje superado</h4><p>Até a tarde de 04/08 este bloco dizia <em>"aguardando o fix em HML (task #8007 'Análise e Desenvolvimento' em In Progress)"</em>, o que era verdade enquanto o dev ainda trabalhava — o plano é gerado antes da entrega, por regra. Às <strong>20:32 UTC de 04/08</strong> o José registrou no card o deploy em HML com smoke, a <code>#8007</code> foi para <em>Done</em> e o PBI para "Pronto para homologação". Desde então o que segura a execução é apenas o Gate 2, e não o estado do ambiente.</p></div>
       </div>
     </div>
 
@@ -323,7 +379,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 
     <div class="ct-block"><div class="ct-bar" onclick="this.parentElement.classList.toggle('expanded')"><span class="ct-id">CT-REB-007</span><span class="ct-title">AWB (<code>A</code>) e "Outro documento" (<code>D</code>) — mesma classe de defeito, decisão de produto</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-caret">▸</span></div>
       <div class="ct-panel">
-        <div class="ct-section"><h4>Objetivo</h4><p>O formulário de averbação RCV oferece <strong>5</strong> códigos; o relatório traduz <strong>3</strong>. Além do MDF-e, <code>A</code> (AWB) e <code>D</code> (Outro documento) também saem em branco. Levantar isto <em>antes</em> do fix evita um segundo card com a mesma causa.</p></div>
+        <div class="ct-section"><h4>Objetivo</h4><p>O formulário de averbação RCV oferece <strong>5</strong> códigos; o relatório <strong>traduzia 3</strong> antes desta entrega e <strong>hoje traduz 4</strong> (<code>C</code>, <code>N</code>, <code>O</code>, <code>M</code>). O MDF-e saiu da lista com o PR !1532; <strong>seguem sem tradução <code>A</code> (AWB) e <code>D</code> (Outro documento)</strong>, que continuam saindo em branco. Levantar isto <em>antes</em> do fix evitou um segundo card com a mesma causa — a decisão de escopo sobre A e D continua em aberto.</p></div>
         <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">⚠️ <strong>Não há massa <code>'A'</code> nem <code>'D'</code> em nenhum HML hoje</strong> (medido nos 6 tenants em 04/08) — nenhuma averbação foi criada com esses tipos. Se o escopo incluí-los, o QA <strong>cria a massa</strong> (averbação RCV com tipo AWB e com Outro documento), conforme a diretriz de HML.</div></div>
         <div class="ct-section"><h4>Passos</h4><ol>
           <li>Confirmar com Produtos se <code>A</code> e <code>D</code> entram neste card ou em card próprio</li>
@@ -337,7 +393,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 
     <div class="ct-block"><div class="ct-bar" onclick="this.parentElement.classList.toggle('expanded')"><span class="ct-id">CT-REB-008</span><span class="ct-title">Prévia — o mesmo campo, o mesmo switch: MDF-e deve aparecer lá também</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-caret">▸</span></div>
       <div class="ct-panel">
-        <div class="ct-section"><h4>Objetivo</h4><p>A Relação de Embarques da <strong>Prévia</strong> (<code>RelatorioPreviaDomain.cs:2807</code>) tem uma cópia idêntica do switch. Se o fix cobrir só o Fechamento, a mesma averbação aparece com tipo na Relação do Fechamento e <strong>em branco</strong> na da Prévia. Foi exatamente esse tipo de duplicata que gerou defeito no #7762.</p></div>
+        <div class="ct-section"><h4>Objetivo</h4><p>Até 04/08 a Relação de Embarques da <strong>Prévia</strong> (<code>RelatorioPreviaDomain.cs:2807</code>) tinha uma cópia idêntica do switch: se o fix cobrisse só o Fechamento, a mesma averbação apareceria com tipo na Relação do Fechamento e <strong>em branco</strong> na da Prévia — foi exatamente esse tipo de duplicata que gerou defeito no #7762. O PR !1532 <strong>cobriu os dois</strong> relatórios (ambos chamam <code>TipoDocumentoEmbarqueRcvLabel</code>), e a Prévia foi medida em 10/10 na AXA em 07/08 pelo #7980 (seção 3.2). Este CT é a verificação formal dessa paridade em tela neste plano, e segue <strong>PENDENTE</strong>: a medição de 07/08 é evidência de outro card e não o substitui.</p></div>
         <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">CITWEB HML <strong>TOKIO</strong> — <strong>3.200 averbações MDF-e em movimento ABERTO</strong> (<code>u_fch_mes=0</code>), que é o que a Prévia enxerga.</div></div>
         <div class="ct-section"><h4>Passos</h4><ol><li>Nacional → <strong>Prévia</strong> → Relação de Embarques, para uma apólice com movimento aberto MDF-e</li><li>Exportar e ler a coluna Tipo Documento</li><li>Comparar com o rótulo obtido no Fechamento (CT-REB-001)</li></ol></div>
         <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">A Prévia exibe <code>MDF-e</code>, <strong>igual</strong> ao Fechamento. ⚠️ Se o Fechamento exibir e a Prévia não, o fix ficou incompleto — REPROVADO por inconsistência entre relatórios do mesmo dado.</div></div>
@@ -347,7 +403,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 
     <div class="ct-block"><div class="ct-bar" onclick="this.parentElement.classList.toggle('expanded')"><span class="ct-id">CT-REB-009</span><span class="ct-title">Achado pré-existente: o comprovante da averbação não traduz nem NF-e</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-caret">▸</span></div>
       <div class="ct-panel">
-        <div class="ct-section"><h4>Objetivo</h4><p>Documentar e medir o terceiro ponto de tradução — <code>RelatorioDomain.cs:2280</code> — que trata apenas <code>C</code> e <code>O</code>. Ali <strong>NF-e já sai em branco hoje</strong>, independente deste card.</p></div>
+        <div class="ct-section"><h4>Objetivo</h4><p>Documentar e medir o terceiro ponto de tradução — <code>RelatorioDomain.cs:2280</code> — que trata apenas <code>C</code> e <code>O</code>. Ali <strong>NF-e já saía em branco em 04/08</strong> e este ponto <strong>não foi tocado pelo PR !1532</strong>, então a expectativa é que continue assim — independente deste card. Quem confirma é este CT, ainda <strong>PENDENTE</strong>.</p></div>
         <div class="ct-section"><h4>Pré-condições</h4><div class="pre-cond">CITWEB HML <strong>NSTECH</strong> (15.660 averbações <code>'N'</code>) — impressão/comprovante de uma averbação com NF-e.</div></div>
         <div class="ct-section"><h4>Passos</h4><ol><li>Imprimir o comprovante de uma averbação com <code>e_doc_ebq='N'</code></li><li>Verificar o campo de tipo de documento no arquivo gerado</li></ol></div>
         <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Espera-se confirmar o defeito pré-existente (campo vazio para NF-e). O desfecho deste CT é um <strong>achado registrado</strong> + decisão de Produtos sobre abrir card próprio — não é regressão deste PBI.</div></div>
@@ -397,9 +453,12 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
     <ul>
       <li><strong>Fix no <code>default</code> em vez do código <code>M</code> (Alto):</strong> passaria no CT-REB-001 e
       quebraria as averbações sem tipo. <em>Mitigação:</em> CT-REB-006 é a contraprova obrigatória.</li>
-      <li><strong>Fix só no Fechamento (Alto):</strong> a Prévia usa a mesma tradução duplicada e continuaria em branco,
-      criando divergência entre dois relatórios do mesmo dado. <em>Mitigação:</em> CT-REB-008 + a tabela dos 3 pontos de
-      código no topo deste plano, levada ao dev antes do desenvolvimento.</li>
+      <li><strong>Fix só no Fechamento (Alto) — risco mapeado em 04/08, não materializado:</strong> a Prévia usava a mesma
+      tradução duplicada e continuaria em branco, criando divergência entre dois relatórios do mesmo dado.
+      <em>Mitigação:</em> CT-REB-008 + a tabela dos 3 pontos de código no topo deste plano, levada ao dev antes do
+      desenvolvimento. <em>Status em 07/08:</em> o PR !1532 cobriu os dois relatórios (seção 3.1) e a Prévia foi medida
+      em 10/10 na AXA (seção 3.2) — <strong>o risco não se materializou</strong>; o CT-REB-008 segue pendente apenas de
+      execução formal.</li>
       <li><strong>Reuso do rótulo "Outros" (Médio):</strong> classificar MDF-e como "Outros" "resolveria" o branco sem
       atender ao CA. <em>Mitigação:</em> CT-REB-001 exige o texto exato do cadastro; CT-REB-004 protege o <code>O</code>.</li>
       <li><strong>Evidência de um tenant valendo pelo outro (Médio):</strong> foi a causa de um escape real no #7762.
@@ -412,11 +471,20 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
   <div class="section-title">8 · Referências</div>
   <div class="doc-box">
     <ul>
-      <li>Card <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7999">PBI #7999</a> · task filha
-      <strong>#8007</strong> "Análise e Desenvolvimento" (José Ribeiro Carvalho, In Progress)</li>
+      <li>Card <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7999">PBI #7999</a> — State
+      <strong>Pronto para homologação</strong> · task filha <strong>#8007</strong> "Análise e Desenvolvimento"
+      (José Ribeiro Carvalho, <strong>Done — 04/08/2026</strong>) · task de execução <strong>#8012</strong>
+      "Teste QA - 7999" (<strong>To Do</strong> — parada no Gate 2, aberto desde 04/08)</li>
+      <li>Card relacionado <a href="https://dev.azure.com/SimetriasDev/CITWEB/_workitems/edit/7980">PBI #7980</a> —
+      "Incluir opção MDF-e no campo Tipo Documento da Averbação RCV": fixa o vocabulário <code>MDF-e</code> no CA e
+      guarda os <code>.xlsx</code> da evidência cruzada de 07/08 (seção 3.2)</li>
+      <li>Entrega do dev: PR <strong>!1532</strong> (<code>7999-relacao-embarques-mdfe-hml</code> → <code>hml</code>,
+      merge <code>f01c489af</code>, <em>completed</em>) — criou <code>/Domain/TipoDocumentoEmbarqueRcvLabel.cs</code></li>
       <li>Oráculo do domínio: <code>NSSegApis/client/nsseg-portal/src/pages/averbacoes/ramo59/Ramo59FormPage.tsx:6-12</code></li>
-      <li>Pontos de tradução: <code>RelatorioFechamentoDomain.cs:1643</code> ·
-      <code>RelatorioPreviaDomain.cs:2807</code> · <code>RelatorioDomain.cs:2280</code></li>
+      <li>Pontos de tradução <strong>antes do fix</strong> (posições lidas em 04/08):
+      <code>RelatorioFechamentoDomain.cs:1643</code> · <code>RelatorioPreviaDomain.cs:2807</code> ·
+      <code>RelatorioDomain.cs:2280</code>. Pós-fix a tradução mora em
+      <code>/Domain/TipoDocumentoEmbarqueRcvLabel.cs</code>, chamado nos dois primeiros; o terceiro não foi alterado.</li>
       <li>Script base da tela: <code>testes-automatizados/sprint-11-citweb/bug-7884/ct_fmr_009_relatorios_fechamento.py</code></li>
       <li>Relay de DoR do Cleiton (04/08 06:57) apontava ausência de plano de teste — este documento responde a isso.</li>
     </ul>
@@ -425,7 +493,7 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 </div>
 
 <div class="footer">
-  Plano de Teste PBI #7999 · Sprint_12_Citweb · gerado em 04/08/2026 · QA CITWEB<br>
+  Plano de Teste PBI #7999 · Sprint_12_Citweb · gerado em 04/08/2026 · revisado em 07/08/2026 · QA CITWEB<br>
   Massa e domínio confirmados por consulta ao banco HML e ao código-fonte — nenhum valor suposto.
 </div>
 

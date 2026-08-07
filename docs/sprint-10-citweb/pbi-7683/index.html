@@ -68,6 +68,17 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 /* .warn-box nao existia neste plano; os blocos de medicao dependem dela p/ borda/padding */
 .warn-box{background:#1f1a0d;border:1px solid var(--yellow);border-radius:6px;padding:12px 14px;font-size:13px}
 .warn-box p{font-size:13px}.warn-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+/* evidencias embutidas (mesmo padrao do plano #7707) */
+.ct-ev{margin-top:14px}
+.ct-ev .ev-head{border-radius:5px;padding:9px 12px;font-size:12.5px;margin-bottom:10px;line-height:1.5}
+.ct-ev .ev-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.ct-ev img{width:100%;border:1px solid var(--border);border-radius:5px;cursor:pointer;background:#fff}
+.ct-ev .cap{font-size:11px;color:var(--muted);margin-top:4px}
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99;padding:24px;overflow:auto}
+#lb img{max-width:100%;margin:0 auto;display:block;border-radius:6px}
+#lb .x{position:fixed;top:14px;right:22px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
+/* rotulo de bloco superado (texto mantido, nao apagado) */
+.hist-h{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin:14px 0 6px}
 </style>
 </head>
 <body>
@@ -100,39 +111,53 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
   <h3>⚠️ Feature atrás de flag — cenários de agrupamento diferidos</h3>
   <p>Controlado por <code>AgrupamentoAverbacaoHabilitado</code> / <code>Ind_DuimpAgrupamentoAverbacao</code> (Diego, #7468), <strong>desligada e ainda não disponível em HML</strong>.</p>
   <ul>
-    <li><strong>Grupo A (flag OFF)</strong> — executável agora: duplicidade no modo atual (número DUIMP/ADIÇÃO/ITEM completo) sem regressão.</li>
-    <li><strong>Grupo B (flag ON)</strong> — <span class="tbd">diferido</span>: exige migration + indicativo + Worker gravando linhas agregadas com <code>t_itn_org_agp</code>.</li>
-    <li>CA formal ausente no card — critérios derivados da descrição; <span class="tbd">confirmar com @fabiola.costa (cenários de duplicidade e de estorno)</span>.</li>
+    <li><strong>Grupo A (flag OFF)</strong> — <strong>executado e aprovado</strong> em 03/08: duplicidade no modo atual (número DUIMP/ADIÇÃO/ITEM completo) sem regressão (CT-DUP-001).</li>
+    <li><strong>Grupo B (flag ON)</strong> — diferido <strong>pela flag</strong>: exige migration + indicativo ativos em HML.
+    <strong>A massa agregada deixou de ser o obstáculo</strong>: o WorkerDUIMP agrega desde 31/07 e a tabela fechou 03/08 com
+    <strong>411 linhas agregadas de nível <code>'D'</code></strong>, com <code>t_itn_org_agp</code> preenchido em 100% das medidas.
+    O que não existe é nível <code>'A'</code>/<code>'I'</code> — <strong>o produto nunca os emite</strong> (confirmado em 38 bases HML),
+    então CT-DUP-003/004/006 não são "falta de massa", são cenário que o produto não produz.</li>
+    <li>CA formal ausente no card — critérios derivados da descrição. <strong>Gate 2 aprovado pela Fabiola em 24/07 15:55</strong>
+    (<em>"plano de teste validado. Retornar as telas de evidência"</em>), sem regra nova.</li>
+    <li><strong>Pendência de Gate 3 — decisão de ESCOPO com o Wesley</strong> (não é mais dúvida de CA para a Fabiola):
+    <span class="tbd">(1) CT-DUP-003 e CT-DUP-004 — reescrever para o nível <code>'D'</code>, o único que o produto gera, ou marcar N/A?
+    (2) CT-DUP-006 — reescrever a distinção <code>q_itn_agp</code> 1 vs ≥2 sobre as linhas <code>'D'</code>, onde já é mensurável e está coerente?</span>
+    Mesma pergunta em aberto no <strong>#7682</strong> (CT-DVM-003) — mesma causa, vale decisão única para os dois cards.</li>
   </ul>
 </div>
 
 <div class="metrics" style="margin-top:16px">
   <div class="metric m-total"><div class="metric-val">6</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val">1</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val">2</div><div class="metric-lbl">Dep. externa (pacote WI)</div></div>
+  <div class="metric m-pend"><div class="metric-val">1</div><div class="metric-lbl">Pendente — recarga s/ cenário 'D'</div></div>
   <div class="metric"><div class="metric-val" style="color:#d29922">4</div><div class="metric-lbl">Cenário inexistente / s/ massa</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" style="width:33%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" style="width:17%"></div></div>
 
 <div class="container">
   <div class="section-title">Medição de 03/08/2026 — o que saiu do "aguardando massa"</div>
   <div class="doc-box" style="border-left:4px solid #58a6ff">
     <p>O card estava em <code>#QA-STATUS: BLOQUEADO por defeito #7930</code> desde 28/07 por falta de massa agregada.
-    O WorkerDUIMP <strong>passou a agregar em 31/07</strong> (45 linhas nível 'D' em AXA HML, 27 com <code>q_itn_agp</code> &gt; 1),
+    O WorkerDUIMP <strong>passou a agregar em 31/07</strong> (45 linhas nível 'D' em AXA HML às 17h, 27 com <code>q_itn_agp</code> &gt; 1 —
+    <strong>411 linhas agregadas</strong> ao fim de 03/08, depois das cargas do CT-DUP-001),
     então medi o que a massa real permite medir — e o resultado <strong>reclassifica 5 dos 6 CTs</strong>: o que parecia
     "falta de massa" é, em três casos, <strong>cenário que o produto não produz</strong>.</p>
 
     <table style="margin-top:10px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-med">
       <tr style="background:#161b22"><th>CT</th><th>Situação após a medição</th></tr>
-      <tr><td><strong>CT-DUP-002</strong> · nível 'D'</td><td><strong>Invariantes da chave VERIFICADOS em dado real (45/45)</strong> — ver detalhe no CT. Substitui o "dado simulado" da validação do dev. A <em>rejeição na recarga</em> segue sem exercício: não há pacote WI para recarregar</td></tr>
+      <tr><td><strong>CT-DUP-002</strong> · nível 'D'</td><td><strong>Invariantes da chave VERIFICADOS em dado real (45/45)</strong> — ver detalhe no CT. Substitui o "dado simulado" da validação do dev. A <em>rejeição na recarga</em> segue sem exercício — falta um pacote do WI cujo conteúdo caia sobre linhas já agregadas no nível 'D'; <strong>recarregar é possível</strong> (o CT-DUP-001 provou o caminho em 03/08 às 17:55)</td></tr>
       <tr><td><strong>CT-DUP-003</strong> · nível 'A'</td><td style="color:#d29922"><strong>Cenário inexistente no produto</strong> — nível 'A' = 0 em todas as bases com o schema</td></tr>
       <tr><td><strong>CT-DUP-004</strong> · nível 'I'</td><td style="color:#d29922"><strong>Cenário inexistente no produto</strong> — nível 'I' = 0 em todas as bases com o schema</td></tr>
-      <tr><td><strong>CT-DUP-006</strong> · nível 'I' + <code>q_itn_agp</code></td><td style="color:#d29922">Nível 'I' inexistente. A distinção <code>q_itn_agp</code> 1 vs ≥2 <em>existe</em> nas linhas 'D' (1 a 89) e está coerente com o JSON em 45/45 — o CT precisaria ser reescrito para o nível 'D'</td></tr>
-      <tr><td><strong>CT-DUP-005</strong> · estorno</td><td style="color:#d29922">Sem massa: as 45 linhas agregadas têm <code>i_dsc_cnn_smx = 'N'</code> (nenhum componente inconsistente). Injetar a inconsistência seria fabricar a saída sob teste</td></tr>
-      <tr><td><strong>CT-DUP-001</strong> · flag OFF</td><td>1.475 linhas não agregadas disponíveis, mas o passo do CT é <em>recarregar e confirmar desprezo</em> — depende de pacote WI</td></tr>
+      <tr><td><strong>CT-DUP-006</strong> · nível 'I' + <code>q_itn_agp</code></td><td style="color:#d29922">Nível 'I' inexistente. A distinção <code>q_itn_agp</code> 1 vs ≥2 <em>existe</em> nas linhas 'D' (1 a 89) e está coerente com o JSON em <strong>45/45</strong> <em>(medição das 17h de 03/08, sobre as 45 linhas existentes naquele momento; o universo fechou o dia em 411)</em> — o CT precisaria ser reescrito para o nível 'D'</td></tr>
+      <tr><td><strong>CT-DUP-005</strong> · estorno</td><td style="color:#d29922">Sem massa: as <strong>411 linhas agregadas</strong> têm <code>i_dsc_cnn_smx = 'N'</code> (nenhum componente inconsistente) — medição das 21h de 03/08, depois das cargas da tarde; às 17h eram 45, todas 'N' também. Injetar a inconsistência seria fabricar a saída sob teste</td></tr>
+      <tr><td><strong>CT-DUP-001</strong> · flag OFF</td><td style="color:#3fb950"><strong>EXECUTADO E APROVADO em 03/08 às 17:55</strong>, pelo caminho <em>Pacotes WI → Exclusão de Pacotes → Efetuar Carga</em> — não dependia de pacote novo do WI. Evidências no bloco do CT</td></tr>
     </table>
 
+    <h4 class="hist-h">Histórico — diagnóstico de 28/07 a 03/08 (manhã), superado pela execução das 17:55 de 03/08</h4>
+    <p style="margin-top:10px;color:var(--muted)"><em>O texto abaixo era a justificativa vigente enquanto o CT-DUP-001 estava marcado BLOQUEADO.
+    Ele foi retratado no mesmo dia: a recarga <strong>é possível</strong> pelas telas do produto, e o CT executou. Mantido como registro do que se
+    acreditava antes, não como situação corrente.</em></p>
     <p style="margin-top:10px"><strong>Por que a recarga não foi feita:</strong> a tela <em>Carga das Declarações do WI</em>
     responde <em>"Não há cargas a serem processadas"</em>, inclusive com a janela de geração ampliada para
     <strong>01/01/2020 – 31/12/2026</strong>. Os pacotes nascem na integração WI/Siscomex — é dependência externa real,
@@ -169,12 +194,18 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
       (<code>PacoteExclusaoController.Excluir</code> → <code>InterfaceSiscomexControlePacoteRecebidoRepository().Excluir</code>),
       o pacote volta a ser listado na Carga, e o <strong>Efetuar Carga</strong> reprocessa as mesmas declarações — que é
       exatamente o cenário do CT: recarregar e confirmar o desprezo por duplicidade.</p>
+      <h4 class="hist-h" style="margin-top:12px">Histórico — plano de sequenciamento escrito em 03/08, antes da execução das 17:55</h4>
+      <p style="margin:6px 0;color:var(--muted)"><em>Mantido porque explica a escolha do pacote alvo. O desfecho está no parágrafo seguinte.</em></p>
       <p style="margin:6px 0"><strong>Por que ainda não executei:</strong> recarregar pacote escreve nas
       <strong>1.520 linhas</strong> de <code>tb_itf_smx_dcl_pnd_dui</code>, que hoje são a massa de
       <strong>#7802, #7683 e #7804</strong> — inclusive as <strong>45 linhas agregadas</strong> validadas em 03/08, que são o
       único cenário de nível <code>'D'</code> existente. Vou executar escolhendo um pacote que <em>não</em> contenha essas 45
       (elas pertencem ao pacote <code>59046788000110 op 19/02/20</code>). Isso é sequenciamento para não destruir massa de
       outros cards, não bloqueio.</p>
+      <p style="margin:6px 0"><strong>⇒ Desfecho:</strong> o sequenciamento funcionou. A massa não foi destruída — as 45 linhas agregadas
+      seguiram intactas e a tabela terminou o dia com <strong>411 linhas agregadas</strong> (total 1.227 contra 1.520: a diferença é
+      <em>colapso</em> por agregação, não perda), com <strong>0 chaves duplicadas</strong>. As 366 agregadas novas de nível <code>'D'</code>
+      viraram massa para <strong>#7802</strong> e <strong>#7804</strong>.</p>
     </div>
 
     <div class="result-box" style="border-left:4px solid #2ea043;background:#0d1f0d;margin-top:10px">
@@ -257,26 +288,41 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
       <li>Ambiente: <strong>CITWEB HML AXA</strong> — <code>ROT_AUTO / •••••• (senha no .env)</code>; módulo <strong>Interface WI/Siscomex → Declarações Adições</strong></li>
       <li>Cotação USD (220) vigente</li>
       <li>Grupo A: DUIMP no modo atual (número completo DUIMP/ADIÇÃO/ITEM)</li>
-      <li>Grupo B: migration + indicativo; cargas agregadas D/A/I com <code>t_itn_org_agp</code> preenchido <span class="tbd">[massa via Worker]</span>; capacidade de recarregar o mesmo pacote (duplicidade)</li>
+      <li>Grupo B: migration + <span class="tbd">indicativo ativo em HML — único pré-requisito ainda em aberto</span>.
+      Os outros dois foram atendidos em 03/08: <strong>cargas agregadas com <code>t_itn_org_agp</code> preenchido</strong> existem
+      (411 linhas de nível <code>'D'</code>, NULL em 0 de 45 na conferência das 17h) — <em>mas somente no nível <code>'D'</code>:
+      <code>'A'</code> e <code>'I'</code> são cenário que o produto não produz, em 38 bases HML</em>; e a
+      <strong>capacidade de recarregar o mesmo pacote está provada</strong> (CT-DUP-001, via <em>Pacotes WI → Exclusão de Pacotes → Efetuar Carga</em>)</li>
       <li>Acesso SQL HML à <code>tb_itf_smx_dcl_pnd_dui</code></li>
     </ul>
   </div>
 
-  <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-off">Grupo A — Regressão (flag OFF, executável agora)</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
+  <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-off">Grupo A — Regressão (flag OFF) — executado e aprovado em 03/08/2026</h2><span class="group-badge">1</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-001</span><span class="ct-title">Flag OFF — duplicidade por número completo (DUIMP/ADIÇÃO/ITEM) sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="badge badge-pendente">ressalva de mecanismo</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-001</span><span class="ct-title">Flag OFF — duplicidade por número completo (DUIMP/ADIÇÃO/ITEM) sem regressão</span><span class="badge badge-off">FLAG OFF</span><span class="badge badge-p1">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> indicativo inativo; pacote DUIMP no modo item a item.</div>
         <h4>Objetivo</h4><p>Garantir que, com agrupamento desligado, a duplicidade continua sendo detectada pela chave completa DUIMP/ADIÇÃO/ITEM — regressão zero.</p>
         <h4>Passos</h4><ol><li>Carregar um pacote DUIMP no modo atual</li><li>Recarregar o mesmo pacote (mesma numeração)</li><li>Confirmar que a segunda carga é desprezada por duplicidade</li><li>SQL: confirmar que não houve inclusão duplicada</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Duplicidade detectada pela chave completa; segunda carga desprezada; comportamento idêntico ao atual.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Duplicidade detectada pela chave completa; segunda carga desprezada; comportamento idêntico ao atual.</div>
+<div class="ct-ev">
+<div class="ev-head" style="background:#0d1f0d;border:1px solid #2ea043;color:#79c57e"><strong>✓ APROVADO</strong> — recarga do mesmo pacote não duplicou: linhas do alvo <strong>86 → 86</strong>, total <strong>1.227 → 1.227</strong>, <strong>0 chaves</strong> <code>(declaração, adição, item, apólice)</code> duplicadas.<br><span style="color:var(--muted)">Execução em 03/08/2026 17:55 · CITWEB AXA HML · módulo InterfaceStreiti build <strong>V 1.0.260803.1658</strong> · alvo <code>00002789000110 · sayerlack · 06/05/2026 14:28</code></span></div>
+<h4>Obtido</h4><p>O caminho de recarga é pelas telas do próprio produto: <em>Pacotes WI → Exclusão de Pacotes</em> remove o registro de controle, o pacote volta a ser listado em <em>Carga das Declarações do WI</em> e o <strong>Efetuar Carga</strong> reprocessa as mesmas declarações. Banner de sucesso <em>"Carga de pacote(s) DI/DUIMP efetuada com sucesso"</em> citando <strong>somente</strong> o pacote alvo; protocolo <code>tb_itf_smx_ctl_prc_dui</code> <strong>8.984 → 9.073</strong>, com os 89 novos todos das 17:55 e todos do CNPJ alvo — a prova de que o alvo passou pela carga, sem a qual "nada duplicou" seria verdade trivial.</p>
+<h4>Observação</h4><p style="color:var(--muted)">Medido <em>após</em> o processamento assíncrono estabilizar (<code>sts_prc='P'</code> = 0), não em 20 segundos como na tentativa anterior. Script: <code>testes-automatizados/sprint-10-citweb/pbi-7683/ct_dup_001_recarga_pacote.py</code>.</p>
+<div class="ev-grid">
+<div><img src="evidencias/CT-DUP-001/01_exclusao_grid.png" alt="EV1 — Pacotes WI &gt; Exclusão de Pacotes com o pacote alvo listado" onclick="openLb('evidencias/CT-DUP-001/01_exclusao_grid.png')"><div class="cap">EV1 — <strong>Pacotes WI → Exclusão de Pacotes</strong>: o pacote alvo <code>00002789000110 · sayerlack</code> (geração 06/05/2026 14:29) com registro de controle criado por <code>FRED</code> em 03/08 17:24 — é esse registro que impedia a listagem na Carga</div></div>
+<div><img src="evidencias/CT-DUP-001/02_pos_exclusao.png" alt="EV2 — mensagem Pacote(s) excluído(s) com sucesso" onclick="openLb('evidencias/CT-DUP-001/02_pos_exclusao.png')"><div class="cap">EV2 — pós-exclusão: <em>"Pacote(s) excluído(s) com sucesso."</em> e a grid de controle vazia</div></div>
+<div><img src="evidencias/CT-DUP-001/03_carga_listagem.png" alt="EV3 — Carga das Declarações do WI listando o pacote alvo" onclick="openLb('evidencias/CT-DUP-001/03_carga_listagem.png')"><div class="cap">EV3 — <strong>Carga das Declarações do WI</strong> volta a listar o alvo (<code>00002789000110 / sayerlack / 2026-05-06 14:28:31</code>), janela 01/01/2026–03/08/2026, com <strong>LISTAR PACOTES</strong> e <strong>EFETUAR CARGA</strong></div></div>
+<div><img src="evidencias/CT-DUP-001/04_pos_carga.png" alt="EV4 — mensagem Carga de pacote(s) DI/DUIMP efetuada com sucesso" onclick="openLb('evidencias/CT-DUP-001/04_pos_carga.png')"><div class="cap">EV4 — <strong>mensagem de sucesso</strong>: <em>"Carga de pacote(s) DI/DUIMP efetuada com sucesso: Cod. Estabelecimento: 00002789000110 - usuário geração: sayerlack - Hora Geração: 2026-05-06 14:28:31"</em>, com o aviso de processamento assíncrono.<br><strong>Ressalva de leitura:</strong> a linha do grid atrás do toast mostra <code>Usuário: FRED | Total DIs: 0000 / Adições: 0000</code> — <em>isso não significa "a carga não processou nada"</em>. Os contadores <code>DI=</code>/<code>Adi=</code> do <em>Resultado das Cargas</em> não contemplam nem separam DUIMP (ver a ressalva do CT-DUP-002); além disso, a carga é <strong>assíncrona</strong> e a tela é pintada antes do processamento terminar. A prova de que o alvo passou pela carga é o protocolo <code>tb_itf_smx_ctl_prc_dui</code> <strong>8.984 → 9.073</strong>, com os 89 novos todos das 17:55 e todos do CNPJ alvo</div></div>
+</div>
+</div></div></div>
   </div>
 
   <div class="group-header" onclick="toggleGroup(this)"><h2 class="g-on">Grupo B — Duplicidade por nível de agrupamento (flag ON, diferido)</h2><span class="group-badge">5</span><span class="group-toggle">▼</span></div>
   <div class="group-body">
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-002</span><span class="ct-title">Nível 'D' — duplicidade pela DUIMP inteira</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">CHAVE VERIFICADA · recarga bloqueada</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-002</span><span class="ct-title">Nível 'D' — duplicidade pela DUIMP inteira</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">CHAVE VERIFICADA · rejeição na recarga sem cenário</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> carga agregada nível 'D'; indicativo ativo.</div>
-        <div class="warn-box" style="border-color:#2ea043;background:#0d1f0d;margin-bottom:10px">✓ <strong>Invariantes da chave verificados em dado REAL (03/08/2026, AXA HML — 45 linhas nível 'D')</strong>
+        <div class="warn-box" style="border-color:#2ea043;background:#0d1f0d;margin-bottom:10px">✓ <strong>Invariantes da chave verificados em dado REAL (medição das 17h de 03/08/2026, AXA HML — as 45 linhas nível 'D' existentes antes das cargas da tarde)</strong>
         <p style="margin-top:6px">A regra diz que no nível 'D' a chave de duplicidade é <strong>a DUIMP inteira</strong>. Isso tem uma
         consequência verificável sem simular nada: se a chave é a DUIMP, <strong>não pode existir mais de uma linha 'D' para a mesma
         DUIMP</strong>. Medido:</p>
@@ -292,13 +338,23 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
         <p style="margin-top:6px;font-size:12px;color:#8b949e"><em>Nota de método:</em> a primeira conferência acusou divergência
         porque contou o tamanho da lista raiz (4 = nº de <strong>adições</strong>) em vez de somar os itens. O erro era do meu
         contador, não do sistema — corrigido antes de qualquer registro de defeito.</p></div>
-        <div class="warn-box" style="border-color:#e3b341;background:#2a2114;margin-bottom:10px">⛔ <strong>O passo de rejeição não foi exercido — dependência externa.</strong>
-        Os passos 2–3 do CT ("carregar outro pacote com a mesma DUIMP" / "confirmar desprezo") exigem um <strong>pacote WI</strong>
-        para recarregar. A tela <em>Carga das Declarações do WI</em> responde <em>"Não há cargas a serem processadas"</em>, inclusive
-        com a janela de geração ampliada para 01/01/2020 – 31/12/2026. Os pacotes nascem na integração WI/Siscomex, fora do CITWEB —
-        é o único caso em que a skill admite BLOQUEADO. O protocolo de carga (<em>Resultado das Cargas</em>) também não serve como
-        prova: ele reporta apenas <code>DI=</code> e <code>Adi=</code> carregados, sem separar desprezo por duplicidade — as duas
-        cargas de 28/07 mostram <code>DI=0000 Adi=00000</code>, o que não distingue "rejeitado por duplicidade" de "pacote vazio".</div>
+        <div class="warn-box" style="border-color:#e3b341;background:#2a2114;margin-bottom:10px">⚠️ <strong>O passo de rejeição segue sem exercício — falta o cenário, não o acesso.</strong>
+        <p style="margin:6px 0">Os passos 2–3 do CT ("carregar outro pacote com a mesma DUIMP" / "confirmar desprezo") exigem
+        recarregar um pacote que contenha uma DUIMP <strong>já agregada no nível <code>'D'</code></strong>. <strong>Recarregar é
+        possível</strong> — o CT-DUP-001 provou o caminho em 03/08 às 17:55 (<em>Pacotes WI → Exclusão de Pacotes → Efetuar Carga</em>).
+        O que ainda não existe é um pacote do WI cujo conteúdo caia sobre as linhas agregadas de nível <code>'D'</code>, que é o
+        cenário específico deste CT.</p>
+        <p style="margin:6px 0">O protocolo de carga (<em>Resultado das Cargas</em>) também não serve como prova: ele reporta apenas
+        <code>DI=</code> e <code>Adi=</code> carregados, sem separar desprezo por duplicidade — as duas cargas de 28/07 mostram
+        <code>DI=0000 Adi=00000</code>, o que não distingue "rejeitado por duplicidade" de "pacote vazio". A varredura do domínio de
+        <code>t_sts_prc</code> (7.201 registros) confirmou que <strong>não existe status de duplicidade</strong>: a evidência terá de
+        ser no banco, como foi no CT-DUP-001.</p>
+        <h4 class="hist-h">Histórico — justificativa vigente até 03/08, retratada por escrito</h4>
+        <p style="margin:6px 0;color:var(--muted)"><em>Este CT esteve marcado BLOQUEADO com o texto: "os passos exigem um pacote WI para
+        recarregar; a tela responde <strong>'Não há cargas a serem processadas'</strong>, inclusive com a janela ampliada para
+        01/01/2020 – 31/12/2026; os pacotes nascem na integração WI/Siscomex, fora do CITWEB — é o único caso em que a skill admite
+        BLOQUEADO". A premissa da origem externa estava certa, mas a conclusão não: o que impedia a recarga era um registro nosso
+        (<code>tb_itf_smx_ctl_pct_str</code>, 63 pacotes marcados como "já carregado"), na nossa tabela, com tela própria para removê-lo.</em></p></div>
         <h4>Objetivo</h4><p>Verificar que, num agrupamento nível 'D', a chave de duplicidade é o número da DUIMP: recarregar outro pacote com a mesma DUIMP deve ser desprezado.</p>
         <h4>Passos</h4><ol><li>Carregar pacote DUIMP nível 'D'</li><li>Carregar outro pacote com a mesma DUIMP</li><li>Confirmar desprezo por duplicidade (chave = nº DUIMP, via t_itn_org_agp)</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Segunda carga com mesma DUIMP desprezada por duplicidade no nível 'D'.</div></div></div>
@@ -315,8 +371,12 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
         <h4>Passos</h4><ol><li>Carregar pacote nível 'I'</li><li>Recarregar com mesma DUIMP+Adição+Item(ou grupo)</li><li>Confirmar desprezo por duplicidade no nível do item/grupo</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Duplicidade detectada por DUIMP+Adição+Item (ou grupo), conforme t_itn_org_agp.</div></div></div>
 
-    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-005</span><span class="ct-title">Estorno — inconsistência em 1 item despreza o agrupamento inteiro</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">SEM COMPONENTE INCONSISTENTE (45/45 = 'N')</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DUP-005</span><span class="ct-title">Estorno — inconsistência em 1 item despreza o agrupamento inteiro</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p1">P1</span><span class="badge badge-bloqueado">SEM COMPONENTE INCONSISTENTE (411/411 = 'N')</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> agrupamento ('A' ou 'I' com q_itn_agp&gt;1) em que 1 item componente tenha inconsistência.</div>
+        <div class="warn-box" style="margin-bottom:10px">⚠️ <strong>Sem componente inconsistente na massa — medição de 03/08/2026 (21h), AXA HML.</strong>
+        <p style="margin:6px 0">As <strong>411 linhas agregadas</strong> existentes ao fim de 03/08 têm <code>i_dsc_cnn_smx = 'N'</code> —
+        <strong>411/411</strong>, nenhum componente inconsistente. A medição das 17h, antes das cargas do CT-DUP-001, dava 45/45 'N':
+        o universo cresceu 9×, o veredito não mudou. Injetar a inconsistência à mão seria fabricar a saída sob teste.</p></div>
         <h4>Objetivo</h4><p>Regra de estorno: a inconsistência em qualquer item do agrupamento deve desprezar <em>tudo</em> o que compõe aquele agrupamento — não apenas o item.</p>
         <h4>Passos</h4><ol><li>Carregar agrupamento com um item componente inconsistente</li><li>Confirmar que o agrupamento inteiro é desprezado (não só o item com problema)</li><li>SQL: confirmar que nenhum item do agrupamento foi incluído</li></ol>
         <h4>Resultado Esperado</h4><div class="result-box">Agrupamento inteiro desprezado quando um componente é inconsistente; nenhum item do grupo incluído parcialmente.</div></div></div>
@@ -341,11 +401,13 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
   </table></div>
 
   <div class="section-title">3 · Riscos</div>
-  <div class="doc-box"><ul>
-    <li><strong>Duplicata não detectada (Alto):</strong> chave errada por nível permitiria averbação em dobro. <em>Mitigação:</em> CT-DUP-002/003/004 (um por nível).</li>
-    <li><strong>Estorno parcial (Alto):</strong> desprezar só o item inconsistente deixaria o agrupamento incompleto. <em>Mitigação:</em> CT-DUP-005 bloqueante.</li>
-    <li><strong>Massa dependente do Worker (Alto p/ cronograma):</strong> Grupo B só com cargas agregadas em HML. <em>Mitigação:</em> Grupo A executável já.</li>
-    <li><strong>CA não formalizado (Médio):</strong> derivados da descrição. <em>Mitigação:</em> confirmar com Fabiola.</li>
+  <div class="doc-box">
+    <h4 class="hist-h">Histórico — riscos mapeados no planejamento (15/07/2026), com a situação apurada até 04/08/2026</h4>
+    <ul>
+    <li><strong>Duplicata não detectada (Alto) — segue vigente para 'A'/'I':</strong> chave errada por nível permitiria averbação em dobro. <em>Mitigação:</em> CT-DUP-002/003/004 (um por nível). <em>Situação:</em> coberto no nível <code>'D'</code> (invariantes verificados em dado real, 45/45); os níveis <code>'A'</code>/<code>'I'</code> permanecem sem cobertura porque o produto não os emite.</li>
+    <li><strong>Estorno parcial (Alto) — segue vigente:</strong> desprezar só o item inconsistente deixaria o agrupamento incompleto. <em>Mitigação:</em> CT-DUP-005 bloqueante. <em>Situação:</em> não exercido — as 411 linhas agregadas têm <code>i_dsc_cnn_smx = 'N'</code> (nenhum componente inconsistente); injetar a inconsistência seria fabricar a saída sob teste.</li>
+    <li><strong>Massa dependente do Worker (Alto p/ cronograma) — não se materializou:</strong> na época se registrou que o Grupo B só andaria com cargas agregadas em HML, e a mitigação era "Grupo A executável já". <em>Desfecho:</em> o WorkerDUIMP passou a agregar em <strong>31/07</strong> e a tabela fechou 03/08 com <strong>411 linhas agregadas de nível <code>'D'</code></strong> — a massa deixou de ser o obstáculo. O que restou foi a flag (ainda desligada em HML) e o fato de o produto não emitir <code>'A'</code>/<code>'I'</code>.</li>
+    <li><strong>CA não formalizado (Médio) — encerrado no Gate 2:</strong> os critérios foram derivados da descrição e a mitigação prevista era confirmar com a Fabiola. <em>Desfecho:</em> confirmado — <strong>Gate 2 aprovado em 24/07 15:55</strong> (<em>"plano de teste validado. Retornar as telas de evidência"</em>), sem regra nova. O que sobrou não é dúvida de CA: é a <strong>decisão de escopo de Gate 3 com o Wesley</strong> sobre CT-DUP-003/004 (reescrever para <code>'D'</code> ou N/A) e CT-DUP-006 (reescrever sobre as linhas <code>'D'</code>) — mesma decisão pendente no #7682.</li>
   </ul></div>
 
 </div>
@@ -353,6 +415,10 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
 <script>
 function toggleGroup(h){h.classList.toggle('collapsed');const b=h.nextElementSibling;b.style.display=h.classList.contains('collapsed')?'none':'';}
 function toggleCT(b){b.classList.toggle('expanded');}
+function openLb(s){document.getElementById('lbi').src=s;document.getElementById('lb').style.display='block';}
+function closeLb(){document.getElementById('lb').style.display='none';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLb();});
 </script>
+<div id="lb" onclick="closeLb()"><span class="x">&times;</span><img id="lbi" src=""></div>
 </body>
 </html>
