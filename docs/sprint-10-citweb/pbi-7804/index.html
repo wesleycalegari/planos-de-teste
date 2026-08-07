@@ -161,7 +161,17 @@ a declaração de 108 itens somou <strong>1</strong>, não 108</code></pre>
       compartilhado</strong>. O dev cobriu o caminho OFF por <strong>teste unitário</strong> (2 casos novos, 10/10 no total,
       commit <code>6a3affc16</code>) e registrou a mesma ressalva em 15:01. Para fechar com prova visual seria preciso
       ambiente isolado ou decisão explícita de desligar a flag temporariamente — <strong>é decisão de ambiente, não de
-      QA</strong>, e por isso o CT não é declarado aprovado nem reprovado.</div></div>
+      QA</strong>, e por isso o CT não é declarado aprovado nem reprovado.
+      <br><br><strong>Reverificado em 07/08/2026 12:30 — o impedimento continua real e agora tem prova corrente.</strong>
+      Eu não herdei o bloqueio: fui medir se ele ainda vale. O <strong>#7803 está em "Em homologação" com a task de QA
+      <code>#7837</code> em <em>In Progress</em></strong> (card alterado em 06/08 18:04, marcador
+      <code>#QA-EXEC-PRONTO</code> com 5 CTs aprovados). Ou seja, a flag <code>Ind_DuimpAgrupamentoAverbacao</code> está
+      sendo exercitada por uma validação <strong>em curso</strong> — desligá-la agora, mesmo por poucos minutos,
+      contaminaria o card do lado. A diretriz de liberdade total em HML cobre <em>massa</em> (criar segurado, apólice,
+      averbação, cancelar emissão); uma <em>feature flag</em> compartilhada é diferente: ela muda o comportamento do
+      sistema para todos os usuários do ambiente ao mesmo tempo, inclusive para quem está homologando outro card.
+      Reavalio a cada ciclo — assim que o #7803 fechar, este CT deixa de ter impedimento e roda com toggle e
+      restauração imediata.</div></div>
     </div>
   </div>
 
@@ -299,7 +309,29 @@ DESPREZADAS:   0003 Itens     &lt;-- sem agregacao -> "Itens" e o correto (nao h
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Carga agregada processada (flag ON), com contadores de processamento (#7803) já observados</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Comparar os contadores do protocolo com os exibidos no processamento (#7803)</li><li>Confirmar ambos contra o <strong>nº de declarações</strong> via SQL, e registrar tambem SUM(q_itn_agp) como contraprova de que NÃO é esse o número exibido</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Protocolo, tela de processamento (#7803) e SQL apresentam os mesmos totais de <strong>declarações</strong> por categoria — e todos diferentes de SUM(q_itn_agp).</div></div>
-      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — diferido (flag ON) + depende de #7803.</div></div>
+      <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — <strong>duas das três pernas da comparação já estão
+      medidas (07/08/2026); falta a terceira, e ela pode não ser obtenível.</strong>
+      <br><br><strong>Perna 1 — tela do protocolo</strong> (medida em 06/08, AXA HML, build
+      <code>V 1.0.260806.1708</code>, protocolo <code>PROTCARGA-260803-1754</code>), texto literal nos dois modos de
+      exibição: <code>GRAVADAS: 0086 DUIMPs · DESPREZADAS: 0003 Itens · COM ERRO: 0000 · AGUARDANDO: 0000</code>.
+      <br><strong>Perna 3 — SQL</strong> (remedido em 07/08 com o schema correto — meus nomes de coluna anteriores
+      eram paráfrase, não schema; o protocolo fica em <code>t_prt_prc</code> e o status em <code>sts_prc</code>):
+      <pre><code>tb_itf_smx_ctl_prc_dui  (t_prt_prc = PROTCARGA-260803-1754)
+  sts_prc='C' "DUIMP Gravada" ....  86 linhas | 86 declaracoes distintas
+  sts_prc='D' "Desprezada" .......   3 linhas |  3 declaracoes distintas
+  TOTAL .........................  89 linhas
+
+tb_itf_smx_dcl_pnd_dui (agregacao das 86 gravadas)
+  c_nvl_avb='D' .................  64 linhas | SUM(q_itn_agp) = 304   <- CONTRAPROVA</code></pre>
+      Protocolo e SQL <strong>batem em 86</strong>, e o 86 é <strong>diferente</strong> de 304 — que é exatamente o que
+      o CA exige demonstrar. Das 86 gravadas, 64 têm linha de agregação e 22 não; todas contam como 1 declaração.
+      <br><br><strong>Perna 2 — tela de processamento do #7803: pendente, com dúvida de viabilidade.</strong> Aquela
+      tela exibe contadores <em>em tempo real, durante</em> o processamento (é a própria entrega do #7803, via SignalR).
+      Para um protocolo já processado em 03/08 ela pode simplesmente não retê-los — nesse caso a comparação de três
+      pernas exigiria <strong>processar uma carga nova</strong> observando as duas telas ao mesmo tempo, e não apenas
+      abrir um protocolo histórico. Isso é medição, não suposição: vou verificar na tela antes de decidir se o CT é
+      executável como escrito ou se o roteiro precisa mudar. Não declaro aprovado nem reprovado sobre a perna que
+      ainda não vi.</div></div>
     </div>
   </div>
 
