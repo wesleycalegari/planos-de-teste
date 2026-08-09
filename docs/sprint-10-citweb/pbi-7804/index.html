@@ -102,9 +102,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val" id="m-total">4</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val" id="m-ok">2</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">3</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val" id="m-pend">2</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
 </div>
 <div class="progress-wrap"><div class="progress-bar" id="progress" style="width:0%"></div></div>
 
@@ -145,7 +145,7 @@ a declaração de 108 itens somou <strong>1</strong>, não 108</code></pre>
       <span class="ct-id">CT-PRT-001</span>
       <span class="ct-title">Flag OFF — protocolo exibe contadores coerentes (1 linha = 1 item) e unidade legível</span>
       <span class="badge badge-p1">P1</span>
-      <span class="badge badge-pendente" id="badge-PRT-001">PENDENTE</span>
+      <span class="badge badge-ok" id="badge-PRT-001">APROVADO (09/08)</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
@@ -153,6 +153,34 @@ a declaração de 108 itens somou <strong>1</strong>, não 108</code></pre>
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>CITWEB AXA HML — Consulta de Protocolo de Carga (DUIMP)</li><li>Flag <code>AgrupamentoAverbacaoHabilitado</code> OFF</li><li>Protocolo de uma carga já processada sem agregação</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Abrir a consulta de protocolo de uma carga processada (flag OFF)</li><li>Ler os contadores textuais (GRAVADAS/DESPREZADAS/COM ERRO/AGUARDANDO)</li><li>Verificar que os números batem com o processamento e que a unidade está legível</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Protocolo exibe contadores coerentes (linha=item) e texto com unidade clara. Sem regressão.</div></div>
+      <div class="ct-ev" style="background:#0d1f0d;border:1px solid #2ea043;margin-bottom:12px">
+        <div style="color:#79c57e;font-size:12px">✓ <strong>APROVADO</strong> — unidade <strong>"Itens"</strong> na carga sem agregação (contra <strong>"DUIMPs"</strong> na agregada do CT-PRT-002) e total batendo com o banco. AXA HML · InterfaceSTREITI · build <strong>V 1.0.260807.1848</strong> · 09/08/2026</div>
+      </div>
+      <h4>Execução de 09/08/2026 — o impedimento era de leitura, não de ambiente</h4>
+      <p>Eu havia registrado que este CT exigia <strong>desligar a flag</strong> <code>Ind_DuimpAgrupamentoAverbacao</code>, o que contaminaria o #7803 e o ambiente compartilhado. <strong>A premissa estava errada.</strong> A pré-condição escrita é <em>"protocolo de uma carga já processada SEM agregação"</em> — não exige a flag desligada agora, exige um protocolo <strong>gerado</strong> quando não havia agregação. Executado sem tocar na flag.</p>
+      <p>⚠️ <strong>Data de protocolo não serve de critério:</strong> o <code>PROTCARGA-260717-1600</code> é de 17/07, anterior à ativação da flag (24/07 17:54), e ainda assim tem 4 linhas agregadas — a agregação é feita pelo Worker <em>depois</em> da carga. O critério correto é <code>d_agp IS NULL</code>.</p>
+      <p><strong>Alvo:</strong> <code>PROTCARGA-250902-1526</code> — 281 declarações, <strong>zero agregadas</strong>.</p>
+      <pre style="background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:10px;font-size:12px;overflow-x:auto">GRAVADAS:       0280 Itens
+DESPREZADAS:    0001 Itens
+COM ERRO:       0000 Itens
+AGUARDANDO PROCESSAMENTO: 0000 Itens</pre>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0">
+        <tr style="background:#161b22"><th style="padding:6px;text-align:left">Conferência</th><th style="padding:6px">Tela</th><th style="padding:6px">Banco</th></tr>
+        <tr><td style="padding:6px"><strong>Total de declarações</strong></td><td style="padding:6px;text-align:center">281</td><td style="padding:6px;text-align:center;color:#3fb950"><strong>281 ✓</strong></td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px">GRAVADAS (<code>sts_prc='C'</code>)</td><td style="padding:6px;text-align:center">280</td><td style="padding:6px;text-align:center;color:#3fb950"><strong>280 ✓</strong></td></tr>
+        <tr><td style="padding:6px">DESPREZADAS (<code>sts_prc='D'</code>)</td><td style="padding:6px;text-align:center">1</td><td style="padding:6px;text-align:center;color:#3fb950"><strong>1 ✓</strong></td></tr>
+        <tr style="background:#0d1117"><td style="padding:6px"><strong>Unidade exibida</strong></td><td style="padding:6px;text-align:center"><strong>Itens</strong></td><td style="padding:6px;text-align:center">sem agregação → 1 linha = 1 item ✓</td></tr>
+      </table>
+      <p><strong>Por que APROVADO.</strong> O CA pede contagem pela regra de agrupamento e unidade clara no texto. Os dois estão entregues: sem agregação a tela imprime <strong>"Itens"</strong>; na agregada imprime <strong>"DUIMPs"</strong> (CT-PRT-002). O rótulo é dinâmico e correto nos dois modos, e os números batem com o banco pelo critério do próprio sistema.</p>
+      <div class="ct-ev" style="border-color:#e3b341;background:#2a2114">
+        <p style="margin:4px 0"><strong>⚠️ Observação — não é defeito deste card.</strong> As 280 "GRAVADAS" incluem <strong>15 declarações cuja mensagem diz o contrário</strong>: 13 começam com <em>"Desprezada — …"</em> (Incoterm ausente, data de desembaraço inválida, data de saída inválida, erro ao obter dados) e 1 diz <em>"Erro ao processar DUIMP pendente"</em> — todas gravadas com <code>sts_prc='C'</code>. A tela conta por status e está fiel ao dado; quem gravou status e mensagem em desacordo foi a <strong>ingestão de setembro/2025</strong>, muito antes desta entrega. Fica registrado sem abrir defeito contra o #7804.</p>
+      </div>
+      <div class="ct-ev"><div class="ev-grid">
+        <div><img src="evidencias/CT-PRT-001/01_resultado_das_cargas.png" alt="EV1 — aba Resultado das Cargas" onclick="openLb('evidencias/CT-PRT-001/01_resultado_das_cargas.png')"><div class="cap">EV1 — aba <strong>Resultado das Cargas</strong> com a lista de protocolos</div></div>
+        <div><img src="evidencias/CT-PRT-001/02_pos_consulta.png" alt="EV2 — protocolo carregado" onclick="openLb('evidencias/CT-PRT-001/02_pos_consulta.png')"><div class="cap">EV2 — <code>PROTCARGA-250902-1526</code> carregado: DI's LIDAS zeradas e DUIMP's listadas uma a uma</div></div>
+        <div><img src="evidencias/CT-PRT-001/03_conteudo_completo.png" alt="EV3 — contadores em Itens" onclick="openLb('evidencias/CT-PRT-001/03_conteudo_completo.png')"><div class="cap">EV3 — rodapé com <strong>GRAVADAS 0280 Itens</strong> · DESPREZADAS 0001 Itens</div></div>
+      </div></div>
+      <h4>Histórico — impedimento registrado em 06–07/08, antes desta execução</h4>
       <div class="ct-ev"><div class="ev-pend">⏳ <strong>PENDENTE — motivo ATUALIZADO em 06/08 (o anterior estava
       defasado).</strong> Dizia "card New; aguarda desenvolvimento + deploy HML AXA": isso não vale mais — o card está em
       <em>Pronto para homologação</em>, o dev entregou e o build em HML é <code>V 1.0.260806.1708</code>.<br><br>
