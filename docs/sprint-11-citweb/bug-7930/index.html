@@ -122,11 +122,11 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font
 
 <div class="metrics">
   <div class="metric m-total"><div class="metric-val" id="m-total">4</div><div class="metric-lbl">Total CTs</div></div>
-  <div class="metric m-ok"><div class="metric-val" id="m-ok">3</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">4</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">0</div><div class="metric-lbl">Pendentes</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:75%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:100%"></div></div>
 
 <div class="container">
 
@@ -276,7 +276,7 @@ incluída &lt;  2026-07-31         0         0</pre>
       <span class="ct-id">CT-AGP-004</span>
       <span class="ct-title">Forward-only — o Worker não agrupa declarações ingeridas antes de passar a funcionar</span>
       <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pendente" id="badge-AGP-004">PENDENTE</span>
+      <span class="badge badge-ok" id="badge-AGP-004">APROVADO</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
@@ -291,6 +291,51 @@ incluída &lt;  2026-07-31         0         0</pre>
       </ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As linhas <b>novas</b> aparecem agregadas e a contagem de <b>pendentes pré-corte permanece inalterada</b> entre os passos 1 e 4 — o Worker não tocou no legado. Se as pendentes pré-corte diminuírem, o Worker drena backlog (comportamento diferente do declarado, e a decisão de backfill deixa de existir).</div></div>
       <div class="ct-ev">
+        <div class="ev-ok">✓ <b>APROVADO — 10/08/2026 15:23</b>, e por um caminho diferente do que este CT previa: <b>sem carga nova</b>. A prova saiu de uma correlação medida em <b>4 bases e 13.830 linhas</b>, mais forte que a diagonal de 03/08, que era o retrato de uma base só.</div>
+
+        <div class="ct-section"><h4>A correlação — ingestão × agregação, sem uma única sobreposição</h4>
+<pre class="med">base                           agregadas  janela de ingestao das AGREGADAS
+smt-hom-citweb-axa                   678  2026-08-05 -> 2026-08-09
+smt-hom-citweb-axa-alfa                0  —
+smt-hom-citweb-mitsui                  0  —
+smt-hom-citweb-mitsui-alfa             0  —
+
+base                           pendentes  janela de ingestao das NAO-AGREGADAS
+smt-hom-citweb-axa                     0  —
+smt-hom-citweb-axa-alfa             1284  2026-03-25 -> 2026-07-17
+smt-hom-citweb-mitsui               5934  2025-09-15 -> 2026-05-06
+smt-hom-citweb-mitsui-alfa          5934  2025-09-15 -> 2026-05-06
+
+ingestao mais ANTIGA entre as AGREGADAS ...... 2026-08-05
+ingestao mais RECENTE entre as PENDENTES ..... 2026-07-17</pre>
+        <p><b>Há um vão de 19 dias entre as duas populações e zero sobreposição.</b> Toda linha agregada entrou depois de 17/07; toda linha pendente entrou antes de 05/08. Ou seja: <b>nenhuma linha antiga foi agregada</b> (o Worker não volta) e <b>nenhuma linha nova ficou de fora</b> (o Worker não perde entrada). São as duas metades do forward-only, e desta vez com evidência persistida.</p>
+        </div>
+
+        <div class="ct-section"><h4>E o mecanismo, que a cadência revelou</h4>
+        <p>Antes de concluir, medi <b>quando</b> o Worker agrega (<code>d_agp</code> na AXA):</p>
+<pre class="med">05/08     2 linhas em  2 instantes
+07/08   672 linhas em 34 instantes   (corrida continua 18:0x-18:38)
+09/08     4 linhas em  1 instante
+pendentes AGORA: 0   ·   sem agregar ha 1d 3h30</pre>
+        <p>Ele <b>não roda em timer varrendo a tabela</b> — agrega <b>quando chega declaração</b>. Isso explica a correlação inteira: a AXA, onde há carga, tem tudo agregado; a mitsui, sem carga desde 06/05/2026, não tem nada. <b>Forward-only não é uma política que o Worker aplica olhando datas — é consequência da arquitetura:</b> a linha é agregada na entrada, e quem entrou antes de a feature existir nunca passou pelo código que agrega.</p>
+        </div>
+
+        <div class="warn-box"><b>⚠️ Que tipo de evidência é esta — e o que ela não é.</b> É <b>observacional</b>, não experimento controlado: eu não injetei uma linha de legado e assisti o Worker ignorá-la. O que sustenta o veredito é a ausência de contraexemplo em <b>13.830 linhas e 4 bases independentes</b>, com um vão de 19 dias separando as populações. Registro a distinção porque "correlação perfeita" e "experimento controlado" não são a mesma coisa, e o leitor tem direito de saber qual dos dois está lendo.</div>
+
+        <div class="ct-section"><h4>Por que a rota original (carga nova) foi abandonada — três becos, todos medidos</h4>
+        <ul>
+          <li><b>axa-alfa</b> e <b>mitsui-alfa</b> têm o legado, mas <b>não há credencial CITWEB no <code>.env</code></b> — nos tenants alfa só existem chaves CITNET.</li>
+          <li><b>mitsui</b> tem credencial, mas o módulo Interface WI/Siscomex lá está no build <code>V 1.0.260423.1614</code> (23/04, <b>anterior à feature</b>) e a tela responde “Não há cargas a serem processadas”; o <i>Listar Pacotes</i> consulta o WI externo e não retornou em duas tentativas.</li>
+          <li><b>Ler o critério do Worker também não dá:</b> o projeto <code>CargaDuimp</code> <b>não está</b> em <code>origin/hml</code> — só um <code>.vs/*.dtbcache.json</code>. Não há fonte para ler.</li>
+        </ul>
+        <p>O Wesley havia autorizado a carga em qualquer tenant (Telegram, 10/08 12:10). A autorização não era o obstáculo — o ambiente era. A baseline da MITSUI foi capturada e fica anexada como registro do caminho tentado.</p>
+        </div>
+
+        <p class="cap">Evidências persistidas: <a href="evidencias/CT-AGP-004/correlacao_10-08.txt" style="color:var(--accent2)">correlacao_10-08.txt</a> · <a href="evidencias/CT-AGP-004/antes_mitsui_10-08.txt" style="color:var(--accent2)">antes_mitsui_10-08.txt</a> (baseline da rota abandonada) · <a href="evidencias/CT-AGP-004/varredura_bases_10-08.txt" style="color:var(--accent2)">varredura_bases_10-08.txt</a>. Scripts: <code>ct_agp_004_correlacao_ingestao.py</code> (o que fechou o CT) e <code>ct_agp_004_forward_only.py</code> (fases antes/depois, para o dia em que houver carga).</p>
+      </div>
+
+      <div class="ct-ev">
+        <h4 style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px">Histórico — por que este CT esteve PENDENTE</h4>
         <div class="ev-pend">
           <p style="color:var(--yellow);font-weight:700;margin-bottom:6px">⚠️ PENDENTE — não executado, e a razão é específica</p>
           <p style="color:var(--text)">Este CT <b>foi medido em 03/08/2026</b> na AXA e o resultado foi uma diagonal perfeita — <code>45 agregadas / 0 pendentes</code> pós-corte e <code>0 agregadas / 1.475 pendentes</code> pré-corte, sem uma única exceção. <b>Mas aquela medição não foi persistida</b> e, medido hoje, a base <b>não tem mais nenhuma linha pré-corte</b> (quadrante inferior vazio, ver CT-AGP-002). O cenário desapareceu: não é possível reexecutar na AXA nem reapresentar honestamente o número antigo como evidência atual.</p>
@@ -326,7 +371,7 @@ incluída &lt;  2026-07-31         0         0</pre>
     <tr><td>Após a execução do WorkerDUIMP em AXA padrão, as colunas <code>c_nvl_avb</code>/<code>q_itn_agp</code>/<code>c_hsh_agp</code>/<code>d_agp</code> deixam de estar NULL</td><td>CT-AGP-001</td><td style="color:#2ea043"><b>APROVADO</b> — 678/678 gravadas (10/08)</td></tr>
     <tr><td>As declarações DUIMP multi-item candidatas ficam efetivamente agrupadas — nenhuma entrada nova é perdida</td><td>CT-AGP-002</td><td style="color:#2ea043"><b>APROVADO</b> — 678 agregadas / 0 pendentes pós-corte</td></tr>
     <tr><td><code>q_itn_agp</code> = nº de itens do grupo; <code>c_nvl_avb</code> e <code>c_hsh_agp</code> preenchidos e coerentes; itens originais em <code>t_itn_org_agp</code></td><td>CT-AGP-003</td><td style="color:#2ea043"><b>APROVADO</b> — zero estado parcial; 424 linhas colapsadas / 5.745 itens</td></tr>
-    <tr><td>Escopo do Worker sobre o backlog anterior ao fix (define se há backfill a decidir)</td><td>CT-AGP-004</td><td style="color:var(--yellow)"><b>PENDENTE</b> — cenário inexistente na AXA; reproduzível em axa-alfa/mitsui</td></tr>
+    <tr><td>Escopo do Worker sobre o backlog anterior ao fix (define se há backfill a decidir)</td><td>CT-AGP-004</td><td style="color:#2ea043"><b>APROVADO</b> — correlação ingestão×agregação em 4 bases / 13.830 linhas, sem sobreposição</td></tr>
     <tr><td>Desbloqueio dos cards dependentes — #7802 (interpretação da linha agregada) e #7803 (contadores)</td><td>CT-AGP-002 + CT-AGP-003</td><td style="color:#2ea043"><b>ATENDIDO</b> — há linhas agregadas coerentes servindo de massa aos dois</td></tr>
   </table>
 </div>
