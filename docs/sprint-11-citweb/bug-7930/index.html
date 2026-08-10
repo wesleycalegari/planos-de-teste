@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plano de Teste BUG #7930 — WorkerDUIMP: agrupamento de averbações (AXA)</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#7c3aed;--accent2:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;line-height:1.6}
+.topbar{background:var(--surface);border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-badge{background:var(--red);color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.topbar-title{font-weight:700;font-size:15px}
+.topbar-sprint{color:var(--muted);font-size:12px;margin-left:auto}
+.hero{background:linear-gradient(135deg,#1a0d2e 0%,#0d1117 60%);border-bottom:1px solid var(--border);padding:28px 24px}
+.hero-title{font-size:22px;font-weight:700;color:#e6edf3;margin-bottom:6px}
+.hero-sub{color:var(--muted);font-size:13px;display:flex;gap:16px;flex-wrap:wrap;margin:12px 0}
+.info-box{background:var(--surface);border:1px solid var(--border);border-left:4px solid #1f6feb;border-radius:6px;padding:14px 16px}
+.info-box h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#60a5fa;margin-bottom:8px}
+.info-box p{font-size:13px;color:var(--text);margin-bottom:6px}
+.info-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.deploy-warn{background:var(--yel-bg);border:1px solid var(--yellow);border-radius:8px;padding:14px 16px;margin:12px 24px 0}
+.deploy-warn h3{color:var(--yellow);font-size:13px;font-weight:700;margin-bottom:6px}
+.deploy-warn p,.deploy-warn li{font-size:12px;color:var(--text)}
+.deploy-warn ul{padding-left:16px;margin-top:4px}
+.deploy-warn code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.metrics{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin:20px 24px 0}
+.metric{flex:1;padding:14px;background:var(--surface);text-align:center;border-right:1px solid var(--border)}
+.metric:last-child{border-right:none}
+.metric-val{font-size:24px;font-weight:700}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+.m-total .metric-val{color:var(--text)}.m-ok .metric-val{color:#2ea043}.m-rep .metric-val{color:var(--red)}.m-pend .metric-val{color:var(--yellow)}
+.progress-wrap{margin:0 24px 20px;background:#21262d;border-radius:4px;height:6px;overflow:hidden}
+.progress-bar{height:100%;background:linear-gradient(90deg,var(--accent),#2ea043);border-radius:4px;transition:width .4s}
+.container{padding:0 24px 40px}
+.group-header{display:flex;align-items:center;gap:10px;padding:12px 0 8px;border-bottom:1px solid var(--border);margin:24px 0 12px;cursor:pointer;user-select:none}
+.group-header h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.group-badge{background:var(--accent);color:#fff;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:700}
+.group-toggle{margin-left:auto;color:var(--muted)}
+.group-body{padding:0 2px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:10px;overflow:hidden}
+.ct-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none}
+.ct-id{font-weight:700;font-size:13px;color:var(--accent2)}
+.ct-title{flex:1;font-size:13px}
+.badge{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-pendente{background:#21262d;color:var(--muted)}
+.badge-ok{background:#0d1f0d;color:#2ea043}
+.badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
+.badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
+.ct-caret{color:var(--muted);font-size:11px}
+.ct-bar.collapsed .ct-caret{transform:rotate(-90deg)}
+.ct-panel{padding:14px;border-top:1px solid var(--border)}
+.ct-section{margin-bottom:12px}
+.ct-section h4{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px}
+.ct-section p,.ct-section li{font-size:13px;color:var(--text)}
+.ct-section ol,.ct-section ul{padding-left:18px}
+.ct-section code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.pre-cond{background:#0d1117;border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-size:12px;color:var(--muted)}
+.pre-cond code{color:#79c57e}
+.expected{background:#0d1a2e;border:1px solid #1f6feb;border-radius:4px;padding:8px 10px;font-size:13px;color:#a5d0ff}
+.ct-ev{margin-top:12px;padding-top:10px;border-top:1px solid var(--border)}
+.ev-ok{background:var(--green-bg);border:1px solid var(--green);border-left:4px solid var(--green);border-radius:4px;padding:8px 12px;font-size:13px;margin-bottom:8px;color:#79c57e}
+.ev-pend{background:#161b22;border:1px dashed var(--muted);border-radius:4px;padding:8px 12px;font-size:12px;color:var(--muted);margin-top:8px}
+.cap{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.45}
+pre.med{background:#010409;border:1px solid var(--border);border-radius:6px;padding:12px 14px;font-size:12px;line-height:1.5;color:#c9d1d9;overflow-x:auto;font-family:Consolas,'Courier New',monospace;white-space:pre}
+.warn-box{background:#2d1b00;border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:10px 12px;margin:10px 0}
+.warn-box code{background:#0d1117;border:1px solid var(--border);padding:1px 5px;border-radius:3px;font-size:12px;color:#79c57e}
+.matriz{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.matriz th,.matriz td{border:1px solid var(--border);padding:6px 8px;text-align:left}
+.matriz th{background:#1c1f26;color:var(--accent2);font-size:12px}
+.matriz td.num{text-align:right;font-variant-numeric:tabular-nums}
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:1px solid var(--border)}
+table.meta{width:100%;border-collapse:collapse;margin-top:4px;font-size:12px}
+table.meta td{border:1px solid var(--border);padding:5px 9px}
+table.meta td:first-child{background:#0d1117;color:var(--muted);width:170px;font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-badge">BUG</span>
+  <span class="topbar-title">#7930 — WorkerDUIMP não agrupa averbações (AXA HML padrão)</span>
+  <span class="topbar-sprint">Sprint_11_Citweb · AXA · DUIMP / Internacional</span>
+</div>
+
+<div class="hero">
+  <div class="hero-title">Plano de Teste — BUG #7930</div>
+  <div class="hero-title" style="font-size:16px;font-weight:400;color:var(--muted);margin-top:4px">[CITWEB] DUIMP — WorkerDUIMP não agrupa averbações em AXA HML padrão (<code style="font-size:14px">c_nvl_avb</code>/<code style="font-size:14px">q_itn_agp</code>/<code style="font-size:14px">c_hsh_agp</code>/<code style="font-size:14px">d_agp</code> NULL)</div>
+  <div class="hero-sub">
+    <span>🏢 AXA HML padrão — base <code>smt-hom-citweb-axa</code></span>
+    <span>💻 CITWEB — WorkerDUIMP / Interface WI-Siscomex</span>
+    <span>🗄️ <code>tb_itf_smx_dcl_pnd_dui</code></span>
+    <span>📅 Sprint_11_Citweb</span>
+    <span>🗓️ Plano 10/08/2026</span>
+  </div>
+
+  <div class="info-box">
+    <h3>Contexto do defeito</h3>
+    <p><b>Sintoma reportado (28/07/2026):</b> na base AXA HML padrão, a etapa de agrupamento de averbações DUIMP do WorkerDUIMP não gravava nada. As quatro colunas escritas pelo Worker — <code>c_nvl_avb</code> (nível), <code>q_itn_agp</code> (nº de itens do grupo), <code>c_hsh_agp</code> (hash do grupo) e <code>d_agp</code> (data do agrupamento) — estavam <b>NULL em 100% das linhas</b>, incluindo as declarações incluídas naquele mesmo dia. Havia <b>230 DUIMPs multi-item</b> candidatas legítimas (uma delas com 89 itens), nenhuma agrupada.</p>
+    <p><b>Por que travava duas entregas:</b> o #7802 (interpretação da linha agregada) e o #7803 (contadores em tempo real) consomem o artefato que este Worker produz. Sem agrupamento gravado em padrão, os CTs daqueles cards não tinham massa — o defeito era pré-requisito de ambos, não um item isolado.</p>
+    <p><b>Natureza do card:</b> defeito de <b>rotina batch + persistência</b>, não de tela. A verificação é por <b>medição SQL read-only</b> na tabela que o Worker escreve — não há passo de UI que prove o agrupamento. As evidências deste plano são, por isso, <b>saídas de medição persistidas em arquivo</b>, não screenshots.</p>
+  </div>
+</div>
+
+<div class="deploy-warn" style="border-left:4px solid var(--red);background:#1f0d0d;border-color:var(--red)">
+  <h3 style="color:#f1707a">⛔ Limitação honesta deste plano — leia antes dos CTs</h3>
+  <p>O veredito <b>APROVADO</b> deste card foi postado em <b>03/08/2026</b> apoiado numa medição que <b>não foi persistida em arquivo</b> — existia apenas como tabela digitada por mim num comentário do AzDO. Isso é falha minha de processo: medição sem artefato não é evidência.</p>
+  <p>Pior: aquela medição <b>não pode ser refeita</b>. A tabela da AXA foi renovada desde então — as 1.475 linhas de legado que sustentavam a metade "o Worker não olha para trás" <b>não existem mais na base</b> (medido hoje: zero linhas anteriores ao corte). Reapresentar os números de 03/08 como evidência de hoje seria republicar um dado que já não se sustenta.</p>
+  <p>Por isso este plano separa o que está <b>medido hoje e reproduzível</b> (Grupo A — 3 CTs, evidência anexada) do que <b>não tem cenário na AXA</b> (Grupo B — CT-AGP-004, marcado PENDENTE com o caminho para executá-lo). O card não é fechado sobre a metade que eu não consigo provar.</p>
+</div>
+
+<div class="deploy-warn">
+  <h3>⚠️ Quatro armadilhas de medição já pagas nesta tabela</h3>
+  <ul>
+    <li><b>O agrupamento COLAPSA linhas.</b> Uma declaração de 89 itens deixa de ser 89 linhas e passa a ser <b>uma</b> linha com <code>q_itn_agp=89</code> e os itens em <code>t_itn_org_agp</code>. Logo uma declaração <b>já agrupada nunca satisfaz</b> <code>HAVING COUNT(*) &gt; 1</code> — usar esse filtro como denominador de cobertura reportaria <b>REPROVADO até num Worker perfeito</b>. Foi o erro da primeira versão do script de medição.</li>
+    <li><b><code>c_nvl_avb</code> é <code>char(1)</code>.</b> <code>ISNULL(c_nvl_avb,'(NULL)')</code> <b>trunca</b> para <code>(</code> e a leitura sai errada. Usar <code>CASE</code> explícito.</li>
+    <li><b>O relógio do banco está 3h à frente do local (UTC).</b> Sem esse ajuste a sequência dos eventos é lida ao contrário.</li>
+    <li><b>O processamento é assíncrono</b> — a própria tela avisa. Medir 20s após o clique produziu "0 linhas novas"; minutos depois o total havia caído de 1.520 para 1.164 e as agregadas subido de 45 para 138. Medir cedo quase virou veredito.</li>
+  </ul>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="m-total">4</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="m-ok">3</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:75%"></div></div>
+
+<div class="container">
+
+<div class="info-box" style="margin-top:20px;border-left-color:var(--accent)">
+  <h3>Pré-requisitos e ambiente (comuns a todos os CTs)</h3>
+  <table class="meta">
+    <tr><td>Ambiente</td><td>AXA HML padrão — servidor <code>smt-hom-citweb.database.windows.net</code>, base <code>smt-hom-citweb-axa</code></td></tr>
+    <tr><td>Tabela sob verificação</td><td><code>tb_itf_smx_dcl_pnd_dui</code> (declarações DUIMP pendentes de averbação)</td></tr>
+    <tr><td>Colunas do Worker</td><td><code>c_nvl_avb</code> · <code>q_itn_agp</code> · <code>c_hsh_agp</code> · <code>d_agp</code> · <code>t_itn_org_agp</code> · <code>d_usu_inc</code></td></tr>
+    <tr><td>Acesso</td><td>SQL read-only via ODBC Driver 17. Credenciais em <code>.env</code> (chaves <code>DB_*</code>) — <b>nunca</b> literais no script ou no plano</td></tr>
+    <tr><td>Script de medição</td><td><code>testes-automatizados/sprint-11-citweb/bug-7930/ct_agp_cobertura_workerduimp.py</code><br>Execução: <code>python ct_agp_cobertura_workerduimp.py --saida &lt;arquivo.txt&gt;</code> (a flag <code>--saida</code> persiste a evidência; <code>--todos</code> varre todos os tenants)</td></tr>
+    <tr><td>Corte pós-fix</td><td><code>2026-07-31</code> — dia em que o agrupamento passou a gravar nesta base</td></tr>
+    <tr><td>Massa</td><td><b>Não precisa ser criada.</b> A massa é a própria carga de declarações Siscomex já ingerida em HML — havia 230 candidatos multi-item na abertura do card. O defeito nunca foi falta de massa</td></tr>
+  </table>
+</div>
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo A — Reteste do defeito (medido na AXA em 10/08/2026)</h2>
+  <span class="group-badge">3 CTs</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <div class="ct-block" id="ct-AGP-001">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-AGP-001</span>
+      <span class="ct-title">Reteste do sintoma — as quatro colunas do Worker deixam de ser NULL</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-ok" id="badge-AGP-001">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section"><h4>Objetivo</h4><p>Verificar que o sintoma exato reportado no card — <code>c_nvl_avb</code>, <code>q_itn_agp</code>, <code>c_hsh_agp</code> e <code>d_agp</code> NULL em <b>100%</b> das linhas — deixou de ocorrer. Este é o reteste do defeito em si: mede a mesma tabela, com a mesma query, no mesmo ambiente da abertura.</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Base <code>smt-hom-citweb-axa</code> acessível</li><li>WorkerDUIMP executado ao menos uma vez após 31/07/2026 nesta base</li><li>Declarações DUIMP presentes em <code>tb_itf_smx_dcl_pnd_dui</code></li></ul></div>
+      <div class="ct-section"><h4>Passos</h4><ol>
+        <li>Confirmar que as quatro colunas de agrupamento <b>existem</b> no schema desta base: <code>SELECT name FROM sys.columns WHERE object_id = OBJECT_ID('tb_itf_smx_dcl_pnd_dui')</code>. ⚠️ Sem este passo, o erro <code>42S22</code> (coluna inexistente) é lido como "não há agrupamento" — conclusão diferente e falsa.</li>
+        <li>Contar o total de linhas: <code>SELECT COUNT(*) FROM tb_itf_smx_dcl_pnd_dui</code></li>
+        <li>Contar as linhas com data de agrupamento: <code>SELECT COUNT(*) FROM tb_itf_smx_dcl_pnd_dui WHERE d_agp IS NOT NULL</code></li>
+        <li>Distribuir o nível gravado, com <code>CASE</code> explícito (nunca <code>ISNULL</code> com literal &gt; 1 char): <code>SELECT CASE WHEN c_nvl_avb IS NULL THEN '&lt;null&gt;' ELSE c_nvl_avb END, COUNT(*) FROM tb_itf_smx_dcl_pnd_dui GROUP BY c_nvl_avb</code></li>
+        <li>Ler a janela de gravação e a faixa de itens: <code>SELECT MIN(d_agp), MAX(d_agp), MIN(q_itn_agp), MAX(q_itn_agp) FROM tb_itf_smx_dcl_pnd_dui WHERE d_agp IS NOT NULL</code></li>
+        <li>Persistir a saída completa em arquivo (<code>--saida</code>) como evidência do CT</li>
+      </ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As quatro colunas <b>gravadas</b> em pelo menos parte das linhas, com <code>d_agp</code> preenchida, <code>c_nvl_avb</code> com valor de domínio válido (<code>'D'</code>) e <code>q_itn_agp</code> &gt; 0. Qualquer valor diferente de <b>0 linhas gravadas</b> refuta o sintoma de 28/07; o volume e a cobertura são objeto do CT-AGP-002.</div></div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <b>APROVADO</b> — AXA HML padrão, medido em <b>10/08/2026 11:32:41</b> (local). <b>678 de 678 linhas</b> com <code>d_agp</code> gravada; <code>c_nvl_avb</code> = <code>'D'</code> em todas as 678; <code>q_itn_agp</code> de <b>1 a 145</b>; janela de gravação <b>05/08 19:05 → 09/08 14:52</b> (UTC). Na abertura do card eram <b>0 de 2.155</b> — o sintoma reportado não se reproduz mais.</div>
+        <p class="cap">EV1 — saída literal do script de medição, persistida em <a href="evidencias/CT-AGP-001/medicao_10-08.txt" style="color:var(--accent2)">evidencias/CT-AGP-001/medicao_10-08.txt</a>:</p>
+<pre class="med"># executado em 10/08/2026 11:32:41 (local)
+# servidor=smt-hom-citweb.database.windows.net · corte=2026-07-31
+
+=== smt-hom-citweb-axa ===
+  linhas: 678  ·  com d_agp: 678
+  níveis c_nvl_avb: D=678
+  candidatos multi-item: 678
+     JÁ agrupadas (colapsadas, com d_agp): 678  (100.0%)
+     PENDENTES (ainda espalhadas em itens): 0
+  janela d_agp (UTC, -3h p/ local): 2026-08-05 19:05:39.453000 → 2026-08-09 14:52:41.720000
+  q_itn_agp: 1..145  ·  hashes distintos: 678</pre>
+        <div class="ct-section" style="margin-top:12px"><h4>Histórico das medições (todas na mesma tabela, SQL read-only)</h4>
+        <table class="matriz">
+          <tr><th>Data</th><th class="num">Linhas</th><th class="num">Com <code>d_agp</code></th><th>Leitura</th></tr>
+          <tr><td>28/07/2026</td><td class="num">2.155</td><td class="num">0</td><td>100% NULL — <b>defeito aberto</b></td></tr>
+          <tr><td>29/07/2026</td><td class="num">—</td><td class="num">1</td><td>Worker rodou, mas 0 de 218 grupos multi-item — <b>ainda REPROVADO</b></td></tr>
+          <tr><td>31/07/2026</td><td class="num">1.864</td><td class="num">45</td><td>Grava certo (<code>c_nvl_avb='D'</code>, <code>q_itn_agp</code> 1..89) — <b>agrupamento funciona</b>; cobertura em aberto</td></tr>
+          <tr><td>03/08/2026</td><td class="num">1.520</td><td class="num">45</td><td>Cobertura fechada pelo corte de ingestão — <b>APROVADO</b> (medição não persistida — ver box vermelho no topo)</td></tr>
+          <tr style="background:#0d1f0d"><td><b>10/08/2026</b></td><td class="num"><b>678</b></td><td class="num"><b>678</b></td><td><b>100% gravado, zero pendente</b> — evidência persistida acima</td></tr>
+        </table></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="ct-AGP-002">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-AGP-002</span>
+      <span class="ct-title">Cobertura — toda declaração ingerida após o fix está agregada, nenhuma pendente</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-ok" id="badge-AGP-002">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section"><h4>Objetivo</h4><p>"Gravou alguma coisa" (CT-AGP-001) não é o mesmo que "grava para tudo o que entra". Este CT mede a <b>cobertura</b>: das declarações que o Worker ingeriu, quantas ficaram sem agrupamento. É a pergunta que separa "o encanamento funciona" de "o defeito está corrigido".</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>CT-AGP-001 com as colunas gravadas (senão a cobertura é trivialmente 0)</li><li>Corte de referência: <code>2026-07-31</code> — data a partir da qual o Worker passou a gravar nesta base</li></ul></div>
+      <div class="ct-section"><h4>Passos</h4><ol>
+        <li>Definir <b>candidatos</b> pela regra correta, que respeita o colapso: <code>agrupadas</code> = linhas com <code>d_agp IS NOT NULL</code>; <code>pendentes</code> = grupos com <code>COUNT(*) &gt; 1</code> e <b>nenhum</b> <code>d_agp</code>; <code>candidatos = agrupadas + pendentes</code>. ⚠️ <b>Não</b> usar <code>HAVING COUNT(*) &gt; 1</code> como denominador — ver a 1ª armadilha no topo do plano.</li>
+        <li>Contar os grupos ainda espalhados em itens (pendentes) com a CTE agrupando por <code>u_dcl_imt_smx, u_apo_pnc</code></li>
+        <li>Cruzar <b>quando a linha entrou</b> (<code>d_usu_inc</code>) com <b>se foi agrupada</b> (<code>d_agp</code>), nos quatro quadrantes do corte — é o cruzamento que separa cobertura real de legado somado ao denominador</li>
+        <li>Verificar a ausência de grupos com agrupamento <b>parcial</b> (parte das linhas do grupo agrupada, parte não)</li>
+        <li>Persistir a saída em arquivo</li>
+      </ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>Zero</b> linha ingerida em/após o corte sem agrupamento (<code>pos_pendente = 0</code>) e <b>zero</b> grupo com agrupamento parcial. Qualquer linha nova sem <code>d_agp</code> refuta a correção — significa que o Worker está perdendo entrada.</div></div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <b>APROVADO</b> — AXA HML padrão, 10/08/2026 11:32. <b>678 agregadas / 0 pendentes</b> entre as linhas ingeridas em/após 31/07 — cobertura <b>100,0%</b> do que o Worker ingeriu. <b>Zero</b> grupo com agrupamento parcial. Nenhuma entrada perdida.</div>
+        <p class="cap">EV1 — quadrantes do cruzamento <code>d_usu_inc</code> × <code>d_agp</code>, da mesma execução persistida em <a href="evidencias/CT-AGP-001/medicao_10-08.txt" style="color:var(--accent2)">evidencias/CT-AGP-001/medicao_10-08.txt</a>:</p>
+<pre class="med">                        agrupada  pendente
+incluída &gt;= 2026-07-31       678         0
+incluída &lt;  2026-07-31         0         0</pre>
+        <div class="warn-box" style="margin-top:12px">
+          <p><b>⚠️ Leitura honesta destes quadrantes.</b> A linha de cima prova a cobertura: <b>tudo</b> o que entrou foi agregado, sem exceção. A linha de baixo está <b>vazia</b> — e vazia não prova nada. Em 03/08 essa mesma linha continha <code>0 agregadas / 1.475 pendentes</code>, e era ela que sustentava a segunda metade do veredito ("o Worker não agrega o legado"). Hoje não há legado nesta base para observar. Esse pedaço virou o <b>CT-AGP-004</b>, marcado PENDENTE — não foi absorvido aqui como se estivesse provado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="ct-AGP-003">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-AGP-003</span>
+      <span class="ct-title">Consistência do artefato — colapso correto e nenhum estado parcial</span>
+      <span class="badge badge-p1">P1</span>
+      <span class="badge badge-ok" id="badge-AGP-003">APROVADO</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section"><h4>Objetivo</h4><p><b>Coluna preenchida não é coluna correta.</b> As quatro colunas só fazem sentido juntas — qualquer uma sozinha é <b>estado parcial</b>, e estado parcial é pior que NULL: a linha passa por "agrupada" nas telas que leem <code>c_nvl_avb</code> (#7802) e nos contadores que leem <code>q_itn_agp</code> (#7803), sem ter o hash ou os itens que os alimentam. Este CT mede os invariantes que tornam o artefato coerente, e não apenas presente.</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Linhas com <code>d_agp</code> gravada na base (CT-AGP-001 aprovado)</li></ul></div>
+      <div class="ct-section"><h4>Passos</h4><ol>
+        <li>Contar violações de coerência entre as colunas, em uma passada: <code>d_agp</code> sem <code>c_hsh_agp</code>; <code>c_hsh_agp</code> sem <code>d_agp</code>; <code>d_agp</code> sem <code>q_itn_agp</code>; <code>d_agp</code> sem <code>c_nvl_avb</code></li>
+        <li>Verificar a <b>unicidade do hash</b>: <code>COUNT(DISTINCT c_hsh_agp)</code> deve igualar o número de linhas agregadas — hash repetido significa dois grupos distintos colapsados na mesma identidade</li>
+        <li>Confirmar que o <b>colapso realmente ocorreu</b>: contar as linhas com <code>q_itn_agp &gt; 1</code> e somar <code>q_itn_agp</code> para obter o total de itens originais representados</li>
+        <li>Conferir o domínio de <code>c_nvl_avb</code> (esperado <code>'D'</code> = declaração)</li>
+        <li>Persistir a saída em arquivo</li>
+      </ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected"><b>0</b> em todas as quatro contagens de violação; hash <b>único</b> por linha agregada; ao menos uma linha com <code>q_itn_agp &gt; 1</code> (provando o colapso, não apenas gravação em grupos de tamanho 1); <code>c_nvl_avb</code> dentro do domínio.</div></div>
+      <div class="ct-ev">
+        <div class="ev-ok">✓ <b>APROVADO</b> — AXA HML padrão, 10/08/2026 11:32. <b>Zero</b> violação nos quatro invariantes; hash único <b>678/678</b>; <b>424</b> linhas colapsadas com mais de um item, representando <b>5.745 itens originais</b> (média ≈ 13,6 itens por linha, máximo 145); <code>c_nvl_avb='D'</code> em 100%. O agrupamento é coerente, não apenas presente.</div>
+        <p class="cap">EV1 — bloco de invariantes da execução persistida em <a href="evidencias/CT-AGP-001/medicao_10-08.txt" style="color:var(--accent2)">evidencias/CT-AGP-001/medicao_10-08.txt</a>:</p>
+<pre class="med">  INVARIANTES do artefato  (0 em todos = agrupamento coerente)
+     d_agp sem c_hsh_agp: 0  ·  c_hsh_agp sem d_agp: 0
+     d_agp sem q_itn_agp: 0  ·  d_agp sem c_nvl_avb: 0
+     hash unico por linha agregada: 678/678  OK
+     linhas colapsadas multi-item (q_itn_agp&gt;1): 424  ·  itens originais representados: 5745
+     => estado parcial: 0 linha(s)  OK</pre>
+        <p class="cap">Nota de rastreabilidade: este bloco de invariantes foi <b>acrescentado ao script em 10/08</b>. As medições anteriores (31/07 e 03/08) confirmaram que as colunas eram gravadas, mas <b>não</b> mediam coerência entre elas — "100% com <code>d_agp</code>" era, até hoje, uma coluna preenchida e não um agrupamento verificado.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Grupo B — Escopo forward-only (sem cenário na AXA hoje)</h2>
+  <span class="group-badge">1 CT</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+
+  <div class="ct-block" id="ct-AGP-004">
+    <div class="ct-bar" onclick="toggleCT(this)">
+      <span class="ct-id">CT-AGP-004</span>
+      <span class="ct-title">Forward-only — o Worker não agrupa declarações ingeridas antes de passar a funcionar</span>
+      <span class="badge badge-p2">P2</span>
+      <span class="badge badge-pendente" id="badge-AGP-004">PENDENTE</span>
+      <span class="ct-caret">▾</span>
+    </div>
+    <div class="ct-panel">
+      <div class="ct-section"><h4>Objetivo</h4><p>Verificar o <b>escopo</b> do Worker: ele agrupa o que ingere de agora em diante e <b>não</b> volta para drenar o backlog anterior. A afirmação importa para o negócio — decide se as declarações antigas precisam de backfill ou morrem onde estão. Não é defeito em nenhum dos dois casos; é escopo declarado, e escopo declarado também se prova.</p></div>
+      <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Uma base que <b>ainda tenha o estado legado</b>: linhas ingeridas antes do corte e não agrupadas</li><li>WorkerDUIMP ativo nessa base após o corte</li><li>⛔ A AXA HML padrão <b>não atende</b> a esta pré-condição hoje — ver box abaixo</li></ul></div>
+      <div class="ct-section"><h4>Passos</h4><ol>
+        <li>Medir os quatro quadrantes <code>d_usu_inc</code> × <code>d_agp</code> na base escolhida, antes de qualquer nova carga</li>
+        <li>Executar uma carga de pacote nova, gerando ingestão pós-corte</li>
+        <li>Aguardar o processamento assíncrono concluir (⚠️ 4ª armadilha — não medir aos 20s; reconferir até o total estabilizar)</li>
+        <li>Remedir os quatro quadrantes e comparar com o passo 1</li>
+        <li>Persistir as duas medições em arquivo</li>
+      </ol></div>
+      <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">As linhas <b>novas</b> aparecem agregadas e a contagem de <b>pendentes pré-corte permanece inalterada</b> entre os passos 1 e 4 — o Worker não tocou no legado. Se as pendentes pré-corte diminuírem, o Worker drena backlog (comportamento diferente do declarado, e a decisão de backfill deixa de existir).</div></div>
+      <div class="ct-ev">
+        <div class="ev-pend">
+          <p style="color:var(--yellow);font-weight:700;margin-bottom:6px">⚠️ PENDENTE — não executado, e a razão é específica</p>
+          <p style="color:var(--text)">Este CT <b>foi medido em 03/08/2026</b> na AXA e o resultado foi uma diagonal perfeita — <code>45 agregadas / 0 pendentes</code> pós-corte e <code>0 agregadas / 1.475 pendentes</code> pré-corte, sem uma única exceção. <b>Mas aquela medição não foi persistida</b> e, medido hoje, a base <b>não tem mais nenhuma linha pré-corte</b> (quadrante inferior vazio, ver CT-AGP-002). O cenário desapareceu: não é possível reexecutar na AXA nem reapresentar honestamente o número antigo como evidência atual.</p>
+        </div>
+        <p class="cap">EV1 — varredura de todos os tenants em 10/08/2026, para localizar onde o cenário ainda existe. Persistida em <a href="evidencias/CT-AGP-004/varredura_bases_10-08.txt" style="color:var(--accent2)">evidencias/CT-AGP-004/varredura_bases_10-08.txt</a>:</p>
+        <table class="matriz">
+          <tr><th>Base</th><th class="num">Linhas</th><th class="num">Agregadas</th><th class="num">Grupos multi-item pendentes</th><th>Serve para este CT?</th></tr>
+          <tr><td><code>smt-hom-citweb-axa</code></td><td class="num">678</td><td class="num">678</td><td class="num">0</td><td style="color:#f1707a">Não — sem legado</td></tr>
+          <tr style="background:#0d1f0d"><td><code>smt-hom-citweb-axa-alfa</code></td><td class="num">1.284</td><td class="num">0</td><td class="num">198</td><td style="color:#79c57e"><b>Sim</b> — estado legado íntegro</td></tr>
+          <tr style="background:#0d1f0d"><td><code>smt-hom-citweb-mitsui</code></td><td class="num">5.934</td><td class="num">0</td><td class="num">345</td><td style="color:#79c57e"><b>Sim</b></td></tr>
+          <tr style="background:#0d1f0d"><td><code>smt-hom-citweb-mitsui-alfa</code></td><td class="num">5.934</td><td class="num">0</td><td class="num">345</td><td style="color:#79c57e"><b>Sim</b></td></tr>
+          <tr><td>outras <b>23</b> bases</td><td class="num">—</td><td class="num">—</td><td class="num">—</td><td>Não — as 4 colunas de agrupamento <b>não existem</b> no schema</td></tr>
+        </table>
+        <p class="cap">Total varrido: <b>27</b> bases HML online. Apenas <b>4</b> têm as colunas de agrupamento — o schema é <b>parcial entre tenants</b>, e essa é a 2ª armadilha listada no topo: sem checar <code>sys.columns</code> antes, o erro <code>42S22</code> seria lido como "não há agrupamento".</p>
+        <div class="warn-box">
+          <p><b>Para executar este CT é preciso uma decisão:</b> rodar carga de pacote em <code>axa-alfa</code> (ou mitsui) é <b>mutação de massa em HML</b>, que a diretriz de HML autoriza — mas em um <b>tenant que não é o do card</b>. Como a mudança é observável por outros times que usam essas bases, está aguardando aval antes de executar, não por falta de permissão de massa.</p>
+          <p><b>Alternativa sem mutação:</b> aceitar o risco documentado. O comportamento forward-only já foi observado em 03/08 e é coerente com o desenho do Worker; nenhum dos dois cards dependentes (#7802/#7803) consome o legado. Nessa via, o CT fica registrado como risco aceito em vez de executado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Matriz de rastreabilidade</h2>
+  <span class="group-badge">4 CTs</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+  <table class="matriz">
+    <tr><th>Critério derivado do card</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Após a execução do WorkerDUIMP em AXA padrão, as colunas <code>c_nvl_avb</code>/<code>q_itn_agp</code>/<code>c_hsh_agp</code>/<code>d_agp</code> deixam de estar NULL</td><td>CT-AGP-001</td><td style="color:#2ea043"><b>APROVADO</b> — 678/678 gravadas (10/08)</td></tr>
+    <tr><td>As declarações DUIMP multi-item candidatas ficam efetivamente agrupadas — nenhuma entrada nova é perdida</td><td>CT-AGP-002</td><td style="color:#2ea043"><b>APROVADO</b> — 678 agregadas / 0 pendentes pós-corte</td></tr>
+    <tr><td><code>q_itn_agp</code> = nº de itens do grupo; <code>c_nvl_avb</code> e <code>c_hsh_agp</code> preenchidos e coerentes; itens originais em <code>t_itn_org_agp</code></td><td>CT-AGP-003</td><td style="color:#2ea043"><b>APROVADO</b> — zero estado parcial; 424 linhas colapsadas / 5.745 itens</td></tr>
+    <tr><td>Escopo do Worker sobre o backlog anterior ao fix (define se há backfill a decidir)</td><td>CT-AGP-004</td><td style="color:var(--yellow)"><b>PENDENTE</b> — cenário inexistente na AXA; reproduzível em axa-alfa/mitsui</td></tr>
+    <tr><td>Desbloqueio dos cards dependentes — #7802 (interpretação da linha agregada) e #7803 (contadores)</td><td>CT-AGP-002 + CT-AGP-003</td><td style="color:#2ea043"><b>ATENDIDO</b> — há linhas agregadas coerentes servindo de massa aos dois</td></tr>
+  </table>
+</div>
+
+<div class="group-header" onclick="toggleGroup(this)">
+  <h2>Riscos</h2>
+  <span class="group-badge">3</span>
+  <span class="group-toggle">▾</span>
+</div>
+<div class="group-body">
+  <table class="matriz">
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><b>A metade forward-only do veredito segue sem prova persistida.</b> O APROVADO de 03/08 se apoiou nela e a evidência não existe mais</td><td>Ocorreu</td><td>Médio</td><td>CT-AGP-004 registrado como PENDENTE com o caminho de execução medido (axa-alfa/mitsui). O card não é fechado alegando prova que não tenho</td></tr>
+    <tr><td><b>Renovação da tabela apaga o cenário antes da medição.</b> A tabela caiu de 2.155 → 1.520 → 678 linhas em 12 dias; o legado de 1.475 linhas evaporou</td><td>Alta</td><td>Alto</td><td><code>--saida</code> agora persiste toda medição em arquivo no ato. Medição não persistida deixa de ser aceita como evidência neste card</td></tr>
+    <tr><td><b>Schema parcial entre tenants</b> — 23 de 27 bases não têm as colunas de agrupamento; o erro <code>42S22</code> se confunde com "não agrupou"</td><td>Média</td><td>Médio</td><td>O script checa <code>sys.columns</code> antes de medir e reporta <code>sem_colunas</code> explicitamente, distinto de zero agrupamento</td></tr>
+  </table>
+</div>
+
+</div>
+
+<div class="footer">QA — Plano de Teste BUG #7930 · CITWEB AXA · WorkerDUIMP / agrupamento de averbações DUIMP · Sprint_11_Citweb · Plano gerado 10/08/2026 · Evidências: medição SQL read-only persistida em <code>evidencias/</code></div>
+
+<script>
+function toggleCT(bar){bar.classList.toggle('collapsed');var p=bar.nextElementSibling;if(p)p.style.display=p.style.display==='none'?'block':'none';}
+function toggleGroup(h){h.classList.toggle('collapsed');var b=h.nextElementSibling;if(b)b.style.display=h.classList.contains('collapsed')?'none':'block';}
+(function(){
+  var ok=document.querySelectorAll('.ct-bar .badge-ok').length;
+  var rep=document.querySelectorAll('.ct-bar .badge-erro').length;
+  var pend=document.querySelectorAll('.ct-bar .badge-pendente').length;
+  var total=ok+rep+pend;
+  document.getElementById('m-total').textContent=total;
+  document.getElementById('m-ok').textContent=ok;
+  document.getElementById('m-rep').textContent=rep;
+  document.getElementById('m-pend').textContent=pend;
+  document.getElementById('progress').style.width=(total?Math.round((total-pend)/total*100):0)+'%';
+})();
+</script>
+</body>
+</html>
