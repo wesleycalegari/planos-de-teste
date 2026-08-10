@@ -44,6 +44,7 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 .badge-pendente{background:#21262d;color:var(--muted)}
 .badge-ok{background:#0d1f0d;color:#2ea043}
 .badge-erro{background:var(--red-bg);color:var(--red)}
+.badge-na{background:#21262d;color:#8b949e;border:1px solid #30363d}
 .badge-p1{background:#1c1f26;color:#60a5fa;font-size:10px}
 .badge-p2{background:#1c1f26;color:#94a3b8;font-size:10px}
 .ct-caret{color:var(--muted);font-size:11px}
@@ -71,6 +72,9 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
 #lb.open{display:flex}
 #lb-img{max-width:90vw;max-height:85vh;border-radius:6px;border:1px solid var(--border)}
 #lb-cap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#e6edf3;font-size:13px;background:rgba(0,0,0,.7);padding:6px 14px;border-radius:6px;max-width:80vw;text-align:center}
+.matriz{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.matriz th,.matriz td{border:1px solid var(--border);padding:6px 8px;text-align:left}
+.matriz th{background:#1c1f26;color:var(--accent2);font-size:12px}
 </style>
 </head>
 <body>
@@ -117,9 +121,10 @@ body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,san
   <div class="metric m-total"><div class="metric-val" id="m-total">4</div><div class="metric-lbl">Total CTs</div></div>
   <div class="metric m-ok"><div class="metric-val" id="m-ok">3</div><div class="metric-lbl">Aprovados</div></div>
   <div class="metric m-rep"><div class="metric-val" id="m-rep">0</div><div class="metric-lbl">Reprovados</div></div>
-  <div class="metric m-pend"><div class="metric-val" id="m-pend">1</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="m-pend">0</div><div class="metric-lbl">Pendentes</div></div>
+  <div class="metric"><div class="metric-val" style="color:#8b949e">1</div><div class="metric-lbl">N/A por escopo</div></div>
 </div>
-<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:75%"></div></div>
+<div class="progress-wrap"><div class="progress-bar" id="progress" style="width:100%"></div></div>
 
 <div class="container">
 
@@ -367,7 +372,7 @@ DESPREZADAS:   0003 Itens     &lt;-- sem agregacao -> "Itens" e o correto (nao h
       <span class="ct-id">CT-PRT-004</span>
       <span class="ct-title">Consistência protocolo × tela de processamento (#7803) × SQL</span>
       <span class="badge badge-p2">P2</span>
-      <span class="badge badge-pendente" id="badge-PRT-004">PENDENTE</span>
+      <span class="badge badge-na" id="badge-PRT-004">N/A — premissa refutada</span>
       <span class="ct-caret">▾</span>
     </div>
     <div class="ct-panel">
@@ -375,6 +380,27 @@ DESPREZADAS:   0003 Itens     &lt;-- sem agregacao -> "Itens" e o correto (nao h
       <div class="ct-section"><h4>Pré-condições</h4><ul class="pre-cond"><li>Carga agregada processada (flag ON), com contadores de processamento (#7803) já observados</li></ul></div>
       <div class="ct-section"><h4>Passos</h4><ol><li>Comparar os contadores do protocolo com os exibidos no processamento (#7803)</li><li>Confirmar ambos contra o <strong>nº de declarações</strong> via SQL, e registrar tambem SUM(q_itn_agp) como contraprova de que NÃO é esse o número exibido</li></ol></div>
       <div class="ct-section"><h4>Resultado Esperado</h4><div class="expected">Protocolo, tela de processamento (#7803) e SQL apresentam os mesmos totais de <strong>declarações</strong> por categoria — e todos diferentes de SUM(q_itn_agp).</div></div>
+      <div class="ct-ev" style="border-color:#d13438;background:#1f0d0d">
+        <h4 style="color:#f1707a">⛔ N/A — a premissa deste CT é estruturalmente falsa (medido no código em 10/08)</h4>
+        <p style="margin:4px 0">Este CT pedia que os contadores do <b>protocolo</b> batessem com os da <b>tela de processamento</b> do #7803. Fui ao código em <code>origin/hml</code> para montar a execução e descobri que <b>os dois números não são a mesma grandeza</b> — não é questão de massa nem de janela:</p>
+        <table class="matriz">
+          <tr><th>Superfície</th><th>Tabela que alimenta o número</th><th>Quem escreve nela</th></tr>
+          <tr><td>Protocolo de carga</td><td><code>tb_itf_smx_ctl_prc_dui</code></td><td><code>DICargaController</code> e <code>InterfaceStreitiDomain</code> — o caminho da <b>CARGA</b></td></tr>
+          <tr><td>Tela de processamento (#7803)</td><td>declarações pendentes (<code>tb_itf_smx_dcl_pnd_dui</code>) via broadcast SignalR</td><td><code>DIProcessamentoController</code> — o caminho do <b>PROCESSAMENTO</b></td></tr>
+        </table>
+        <p style="margin:6px 0"><b>A prova de que não há caminho indireto:</b> <code>DIProcessamentoController</code> tem <b>zero</b> referências a <code>tb_itf_smx_ctl_prc_dui</code>. Ele chama o <code>InterfaceStreitiDomain</code> cinco vezes, mas só em métodos de <b>leitura</b> (<code>VerificaSeDuimp</code> ×4 e <code>ObtemBuscaDuplicidadeAgrupamento</code>). A única escrita no protocolo dentro do Domain está na linha 474, no caminho de <b>ingestão</b> — que a tela de processamento não percorre. <b>O processamento nunca atualiza o protocolo.</b></p>
+        <p style="margin:6px 0">Logo os dois contadores medem <b>populações diferentes em momentos diferentes</b>: o protocolo reflete o resultado da carga Siscomex; a tela reflete o que aquele processamento leu, filtrado por apólice + filial + período. Coincidirem seria acidente, não consistência — e um CT que só passa por acidente não prova nada.</p>
+        <p style="margin:6px 0"><b>O erro foi meu, no desenho do CT</b>, não do produto. Marcar N/A é o registro honesto: não é BLOQUEADO (nada externo impede) nem PENDENTE (não há cenário a esperar).</p>
+        <div style="background:#0d1f0d;border:1px solid #2ea043;border-left:4px solid #2ea043;border-radius:4px;padding:8px 12px;margin-top:8px">
+          <b>⚠️ E a intenção do CT não se perdeu.</b> O que ele queria garantir — <b>todas as superfícies contam declarações, não itens</b> — <b>já está provado</b>, em duas medições independentes:
+          <ul style="margin-top:4px">
+            <li><b>Aqui</b> (CT-PRT-002/003): o protocolo exibiu <code>0086 DUIMPs</code> contra <b>304</b> itens somados — o número é declaração.</li>
+            <li><b>No #7803</b> (CT-CTD-003, aprovado em 05/08): a tela contou <b>47</b> declarações contra <b>565</b> itens — inclusive na categoria Desprezadas, que era a que faltava discriminar.</li>
+          </ul>
+          As duas pontas estão cobertas; o que não existe é o cruzamento <em>na mesma remessa</em>, e agora se sabe por quê.
+        </div>
+      </div>
+
       <div class="ct-ev"><div class="ev-pend">⏳ PENDENTE — <strong>duas das três pernas da comparação já estão
       medidas (07/08/2026); falta a terceira, e ela pode não ser obtenível.</strong>
       <br><br><strong>Perna 1 — tela do protocolo</strong> (medida em 06/08, AXA HML, build
@@ -460,7 +486,10 @@ function toggleGroup(h){h.classList.toggle('collapsed');var b=h.nextElementSibli
   var ok=document.querySelectorAll('.ct-bar .badge-ok').length;
   var rep=document.querySelectorAll('.ct-bar .badge-erro').length;
   var pend=document.querySelectorAll('.ct-bar .badge-pendente').length;
-  var total=ok+rep+pend;
+  // ⛔ 10/08: o total ignorava badge-na e o placar caia sozinho ao marcar um CT como N/A —
+  //    4 CTs viravam "3" na tela. CT resolvido por escopo continua sendo CT do plano.
+  var na=document.querySelectorAll('.ct-bar .badge-na').length;
+  var total=ok+rep+pend+na;
   document.getElementById('m-total').textContent=total;
   document.getElementById('m-ok').textContent=ok;
   document.getElementById('m-rep').textContent=rep;
