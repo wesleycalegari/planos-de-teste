@@ -63,6 +63,12 @@
   [data-status="reprovado"] .ct-bar{border-left-color:var(--fail)}
   [data-status="bloqueado"] .ct-bar{border-left-color:var(--block)}
   [data-status="pendente"]  .ct-bar{border-left-color:var(--pend)}
+  /* declaradas em 10/08: usadas no HTML sem existir no <style>. ok-box e ct-ev ja carregavam
+     estilo inline (renderizavam por acidente); ev-list nao tinha nenhum. */
+  .ev-list{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+  .ev-list img{max-width:100%;border:1px solid var(--border);border-radius:4px;cursor:pointer;display:block}
+  .ct-ev{margin:10px 0}
+  .ok-box{border-radius:4px;padding:10px;margin:10px 0}
   .ct-toggle{width:20px;height:20px;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .2s}
   [data-expanded="true"] .ct-toggle{transform:rotate(90deg)}
   .ct-chevron{width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--text-muted);display:block}
@@ -127,8 +133,8 @@
 </header>
 
 <div class="dash">
-  <div class="dash-card"><div class="val" id="exec-total" style="color:var(--accent)">19</div><div class="lbl">Total CTs</div></div>
-  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:var(--ok)">19</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-total" style="color:var(--accent)">20</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:var(--ok)">20</div><div class="lbl">Aprovados</div></div>
   <div class="dash-card"><div class="val" id="exec-reprovados" style="color:var(--fail)">0</div><div class="lbl">Reprovados</div></div>
   <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:var(--block)">0</div><div class="lbl">Bloqueados</div></div>
   <div class="dash-card"><div class="val" id="exec-pendentes" style="color:var(--pend)">0</div><div class="lbl">Pendentes</div></div>
@@ -1273,6 +1279,74 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
       </div>
     </div>
 
+    <div class="ct-block" data-status="aprovado" data-expanded="false">
+      <div class="ct-bar">
+        <div class="ct-toggle"><span class="ct-chevron"></span></div>
+        <div class="ct-bar-main">
+          <span class="ct-id">CT-DDA-020</span><span class="ct-prio p1">P1</span>
+          <span class="ct-title">Match de DDR por RAIZ em tenant cuja coluna de CNPJ ainda é numérica (fix TRY_CAST+COALESCE, deploy 10/08)</span>
+        </div>
+        <span class="ct-status-chip chip-ok">APROVADO (10/08)</span>
+      </div>
+      <div class="ct-panel">
+        <div class="ct-grid">
+          <div class="ct-field"><label>Tipo</label><p>Regressão de regressão — escopo novo entrado por deploy</p></div>
+          <div class="ct-field"><label>Prioridade</label><p>P1 — Bloqueante (falha silenciosa: perda de desconto sem erro em tela)</p></div>
+          <div class="ct-field full"><label>Por que este CT existe</label>
+            <p>A matriz fechou <strong>19/19</strong> e o Gate 3 estava aberto aguardando o &ldquo;ok&rdquo;. Em <strong>10/08 11:48</strong> o Diego registrou no #7470 o <strong>deploy de um fix novo</strong> — <code>TRY_CAST</code>+<code>COALESCE</code> no predicado de match por raiz — em AXA, Fairfax e Kovr. Deploy novo <em>depois</em> da matriz executada reverte o marcador: não se pede aprovação de um Gate 3 que não cobre o código que está no ar.</p>
+            <p><strong>O defeito que o fix corrige</strong> (<code>Repository/AverbacaoMovimentoAbertoNacionalRepository.cs:6143</code>, <code>origin/hml</code>): o predicado usa <code>REPLICATE('0',14) + coluna</code> para completar zeros à esquerda. Em tenant onde <code>u_cpf_cgc_emb</code> ainda é <strong><code>float</code></strong> (pré-migração do #6043), o <code>+</code> do SQL Server <strong>soma</strong> em vez de concatenar (precedência de tipo) e o zero-padding morre <strong>em silêncio</strong> — a raiz sai em notação científica. Consequência: o Recálculo de DDR <strong>não encontra</strong> as averbações elegíveis ao desconto, <strong>sem erro na tela</strong>.</p>
+          </div>
+          <div class="ct-field full"><label>Pré-condições</label>
+            <ul>
+              <li>Fix presente em <code>origin/hml</code> — conferido por <strong>conteúdo</strong>, não por build: <code>git show origin/hml:Repository/AverbacaoMovimentoAbertoNacionalRepository.cs</code> → <code>TRY_CAST</code> ×3, <code>COALESCE</code> ×3 (em <code>origin/main</code>: zero)</li>
+              <li>Um tenant com a coluna <strong>numérica</strong> (cenário do fix) e um com a coluna <strong>alfanumérica</strong> (contraprova de não-quebra) — o tipo real vem do <code>INFORMATION_SCHEMA</code>, não de suposição</li>
+              <li>HML FAIRFAX — <code>https://fairfax-hml-faturamento.nsseg.com.br/login/</code> · credenciais no <code>.env</code> (<code>HML_FAIRFAX_CITWEB_*</code>)</li>
+              <li>Massa: apólice <code>1</code> · filial <code>1</code> · ramo <code>54</code> · subgrupo <code>1</code> · ref <code>05/2026</code> · DDR raiz <code>33778846</code> (<code>i_tpi_cnpj_cpf='R'</code>) · averbações <code>202600000069</code> e <code>202600000070</code></li>
+            </ul>
+          </div>
+          <div class="ct-field full"><label>Passos</label>
+            <ol>
+              <li>Ler o tipo real de <code>tb_mov_avb_nac_cit.u_cpf_cgc_emb</code> e <code>tb_ddr_tom_cit.u_cnpj_cpf</code> em cada tenant via <code>INFORMATION_SCHEMA.COLUMNS</code></li>
+              <li>Sobre dados reais, calcular a expressão <strong>antiga</strong> e a <strong>nova</strong> na mesma linha e comparar</li>
+              <li>Contar quantas linhas a expressão antiga corrompe (raiz com notação científica/decimal)</li>
+              <li>Contar o match DDR com o predicado antigo e com o novo — isolando (a) só o predicado e (b) o predicado + os filtros de elegibilidade da query real (movimento aberto <code>u_fch_mes</code>, <code>i_opr_ddr in ('P','T','S')</code>, CNPJ não vazio)</li>
+              <li>Fechar na tela: login em HML FAIRFAX → <strong>Recálculo de Averbações</strong> → preencher a massa → <strong>Recalcular DDR</strong> → confirmar o modal e capturar a mensagem</li>
+              <li>Conferir que a quantidade da tela é a mesma que o SQL previu</li>
+            </ol>
+          </div>
+          <div class="ct-field full"><label>Resultado esperado</label>
+            <div class="result-ok">No tenant de coluna <strong>numérica</strong>: a expressão nova produz a raiz de 8 dígitos onde a antiga produzia notação científica, e o Recálculo passa a encontrar as averbações elegíveis. No tenant <strong>alfanumérico</strong>: <strong>nenhuma</strong> diferença entre as duas expressões e o mesmo número de matches — o fix não pode alterar quem já estava correto.</div>
+          </div>
+        </div>
+        <div class="ev-section"><div class="ev-lbl">Evidências</div>
+          <div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;color:#3fb950"><strong>&#10003; APROVADO — 10/08/2026 12:13 · HML FAIRFAX · build Nacional V 1.0.260810.1313</strong> (o deploy de hoje, visível no rodapé da EV3). As duas pernas fecham no <strong>mesmo número</strong>: o SQL previa <strong>2</strong> averbações elegíveis e a tela recalculou <strong>2</strong>.</div>
+
+          <table class="matriz" style="margin-top:10px">
+            <thead><tr><th>Tenant</th><th>Tipo de <code>u_cpf_cgc_emb</code></th><th style="text-align:right">Linhas c/ CNPJ</th><th style="text-align:right">Raízes corrompidas pela expressão antiga</th><th style="text-align:right">Match DDR ANTIGO</th><th style="text-align:right">Match DDR NOVO</th></tr></thead>
+            <tbody>
+              <tr><td><code>fairfax</code></td><td><strong>float</strong> (cenário do fix)</td><td style="text-align:right">508.275</td><td style="text-align:right"><strong>71.398</strong></td><td style="text-align:right">0</td><td style="text-align:right"><strong>2</strong></td></tr>
+              <tr><td><code>kovr</code></td><td><strong>float</strong> (cenário do fix)</td><td style="text-align:right">175.145</td><td style="text-align:right"><strong>10.591</strong></td><td style="text-align:right">0</td><td style="text-align:right">0</td></tr>
+              <tr><td><code>axa</code></td><td>varchar (já migrada)</td><td style="text-align:right">26.269</td><td style="text-align:right">0</td><td style="text-align:right">7 (3 elegíveis)</td><td style="text-align:right">7 (3 elegíveis)</td></tr>
+            </tbody>
+          </table>
+          <div style="font-size:11px;color:#8b949e;margin-top:6px">Medição SQL read-only, saída literal persistida em <a href="evidencias/CT-DDA-020/medicao_10-08.txt" style="color:#3fb950">evidencias/CT-DDA-020/medicao_10-08.txt</a>. Exemplo real da FAIRFAX na mesma linha: valor bruto <code>4.05088e+013</code> → raiz <strong>antiga</strong> <code>004.0508</code> · raiz <strong>nova</strong> <code>40508809</code>.</div>
+
+          <div style="background:#1a1d23;border:1px solid #343a46;border-left:3px solid #3b9eff;border-radius:4px;padding:8px 12px;font-size:12px;margin-top:10px">
+            <strong>Leitura honesta de cada coluna.</strong> As <strong>71.398</strong> e <strong>10.591</strong> raízes corrompidas provam o defeito sobre dado real, em escala. O <strong>0 → 2</strong> da FAIRFAX é o efeito de negócio: duas averbações que <em>silenciosamente</em> deixariam de receber o desconto. O <strong>0 → 0</strong> da KOVR <strong>não</strong> é falha: a corrupção está provada lá (10.591 linhas), mas não existe par DDR/averbação que case, então o efeito final não é observável nessa base — registro em vez de inflar o número. E o <strong>7 → 7 com zero diferenças</strong> na AXA é a parte que mais importa num fix de expressão: ele <strong>não mexeu</strong> em quem já estava certo.
+          </div>
+
+          <div style="background:#2d1b00;border:1px solid #d29922;border-left:3px solid #d29922;border-radius:4px;padding:8px 12px;font-size:12px;margin-top:10px">
+            <strong>&#9888; Por que a validação do dev não fechava este CT.</strong> O Diego validou por SQL contra dado real e rodou smoke em <strong>AXA-STG e Kovr-STG</strong>. Staging não é homologação — o QA não valida em staging (lê estado e comentário, nada mais). E &ldquo;fluxo geral sem erro&rdquo; não prova este predicado: o modo de falha é justamente <em>não encontrar averbação</em>, o que na tela parece &ldquo;não existe DDR a recalcular&rdquo;. Só a contagem esperada, prevista por SQL e confirmada na tela, distingue os dois.
+          </div>
+
+          <div style="margin-top:10px"><img src="evidencias/CT-DDA-020/ev_CTDDA020_01_form-preenchido_20260810-121331.png" style="max-width:100%;cursor:pointer" onclick="openLb(this.src)" alt="EV1"><div style="font-size:11px;color:#8b949e;margin-top:3px">EV1 — FAIRFAX HML: formulário preenchido (filial 0001 · RCTR-C · apólice 0000000000001 · subgrupo 001 · ref 05/2026)</div></div>
+          <div style="margin-top:10px"><img src="evidencias/CT-DDA-020/ev_CTDDA020_02_resultado_20260810-121333.png" style="max-width:100%;cursor:pointer" onclick="openLb(this.src)" alt="EV2"><div style="font-size:11px;color:#8b949e;margin-top:3px">EV2 — modal: “Serão recalculadas 2 averbações. Confirma?” — a mesma quantidade que o SQL previu</div></div>
+          <div style="margin-top:10px"><img src="evidencias/CT-DDA-020/ev_CTDDA020_03_pos-confirmacao_20260810-121335.png" style="max-width:100%;cursor:pointer" onclick="openLb(this.src)" alt="EV3"><div style="font-size:11px;color:#8b949e;margin-top:3px">EV3 — “Foram recalculadas 2 averbações com sucesso!” · build <strong>V 1.0.260810.1313</strong> legível no rodapé</div></div>
+          <div style="font-size:11px;color:#8b949e;margin-top:8px">Script: <code>testes-automatizados/sprint-10-citweb/pbi-7470/ct_dda_020_raiz_cnpj_coluna_numerica.py</code> (medição SQL) + <code>testes-automatizados/sprint-11/pbi-7916/ct_dda_recalculo_ddr.py --tenant fairfax --cenario reteste-ddr --apolice 1 --ref 05/2026</code> (tela).</div>
+        </div>
+      </div>
+    </div>
+
     <!-- MATRIZ -->
 <div class="section">
   <div class="section-header">6. Matriz de rastreabilidade</div>
@@ -1424,7 +1498,7 @@ WHERE u_apo_pnc IN (1778531976824, 1778531976855) ORDER BY c_rmo, u_avb;</pre>
 </div>
 
 <footer>
-  PBI-7916 — [CITWEB] Recálculo de DDR (AXA) · Plano gerado em 28/07/2026 · QA Auto / Wesley Moreira · 19 CTs · aguardando Gate 1 (Wesley) e Gate 2 (Produtos)
+  PBI-7916 — [CITWEB] Recálculo de DDR (AXA) · Plano gerado em 28/07/2026 · QA Auto / Wesley Moreira · 20 CTs · CT-DDA-020 acrescentado em 10/08 (escopo novo: deploy do fix TRY_CAST+COALESCE)
 </footer>
 
 <script>
