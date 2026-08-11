@@ -426,7 +426,32 @@ este CT depende do WorkerDUIMP produzir os outros níveis. Pergunta objetiva par
         (58.110 bytes · aba "RELAÇÃO DE PENDENTES" · A1:G1597 · 258 linhas desta apólice).</p></div>
         <h4>Objetivo</h4><p>CA: existe um serviço/método reutilizável (<code>ObterItensRepresentados(linha)</code>) exposto para as demais telas — a expansão deve vir da <strong>mesma fonte</strong>, sem cada tela reimplementar a lógica.</p>
         <h4>Passos</h4><ol><li>Para a mesma DUIMP agregada, comparar a contagem/expansão de itens vista em telas distintas (Processamento — contadores; consulta de protocolo; relatório)</li><li>Confirmar que todas refletem o mesmo resultado do serviço (consistência entre telas)</li></ol>
-        <h4>Resultado Esperado</h4><div class="result-box">Todas as telas consumidoras retornam a mesma expansão de itens (fonte única); nenhuma divergência entre telas para a mesma linha.</div></div></div>
+        <h4>Resultado Esperado</h4><div class="result-box">Todas as telas consumidoras retornam a mesma expansão de itens (fonte única); nenhuma divergência entre telas para a mesma linha.</div></div><div class="ct-ev"><div style="background:#0d1117;border:1px solid #58a6ff;border-radius:4px;padding:8px 12px;font-size:12.5px;color:#79b8ff">&#9432; <b>Corroboração medida em 11/08/2026</b> — o badge <b>não muda</b>. O encerramento por escopo de 05/08 se apoia em duas afirmações; agora as duas estão medidas com número, e não só verificadas de vista.</div><div style="margin-top:8px"><b>(a) O serviço existe e está exposto:</b> <code>DuimpAgrupamentoDomain</code> tem 6 métodos públicos. Os dois modos do protocolo consomem <code>ObterNivel</code> (2 usos) e <code>ObterRotuloNivel</code> (8 usos) &mdash; é esse compartilhamento que o #7804 confirmou <b>em tela</b>, com o rótulo dinâmico batendo nos dois modos.<br><b>(b) A expansão está coberta por teste unitário que chama o método REAL:</b> <code>ADO-7802/DuimpAgrupamentoDomainTest</code> invoca <code>_sut.ObterItensRepresentados(...)</code> em 6 cenários (flag off, nível null, I com qtd 1, I com qtd 2, A, D). Isso importa porque no card irmão #7803 o teste equivalente é <b>tautológico</b> &mdash; define um helper local que retorna 1 e assere que retorna 1. Aqui não: o teste do #7802 exercita produção.</div><div style="margin-top:8px"><a href="evidencias/CT-DAG-006/ct_ctd003_dag006_verificacao_20260811-114207.txt">ct_ctd003_dag006_verificacao_20260811-114207.txt</a> · 4,033 bytes · mapa de consumidores medido em <code>origin/hml</code> e <code>origin/main</code></div><pre style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:8px;font-size:11px;overflow-x:auto;white-space:pre-wrap">[CT-DAG-006] quem consome cada metodo publico do DuimpAgrupamentoDomain
+    ObterNivel                  2 uso(s) no DICargaController
+    ObterRotuloNivel            8 uso(s) no DICargaController
+    ObterQuantidadeItens        0 uso(s) no DICargaController   &lt;- ZERO consumidor de producao
+    EhAgrupamentoItens          0 uso(s) no DICargaController   &lt;- ZERO consumidor de producao
+    ObterNcmExibicao            0 uso(s) no DICargaController   &lt;- ZERO consumidor de producao
+    ObterItensRepresentados     0 uso(s) no DICargaController   &lt;- ZERO consumidor de producao
+    origin/hml: referencias a ObterItensRepresentados fora de teste = 1 (so a definicao)
+    origin/main: referencias a ObterItensRepresentados fora de teste = 0 (so a definicao)
+
+    -> o CT-DAG-006 cobra 'servico unico reutilizavel CONSUMIDO PELAS TELAS'.
+       Parte disso acontece: ObterNivel + ObterRotuloNivel sao compartilhados pelos DOIS
+       modos do protocolo (e o #7804 confirmou o rotulo dinamico nos dois, em tela).
+       Mas o metodo que o CT nomeia, e outros 3 publicos, NAO tem consumidor: a expansao
+       de itens foi entregue e testada em unidade, e nao esta ligada a nenhuma tela.
+
+    Justo com o dev: o teste do #7802 (ADO-7802/DuimpAgrupamentoDomainTest) chama o
+    metodo REAL — diferente do teste do #7803. O problema aqui e wiring, nao teste.
+
+#----------------------------------------------------------------------------
+# CT-CTD-003: APROVADO por prova estrutural (delta constante, linha descartada,
+#             1 ponto de estrangulamento, 0 linhas somando item). Declarado: nao houve
+#             observacao do contador ao vivo — nao existe pacote pendente agregado.
+# CT-DAG-006: PARCIAL — o servico compartilhado existe e as telas consomem nivel+rotulo,
+#             mas ObterItensRepresentados (e mais 3 metodos) tem ZERO consumidor.
+</pre><div style="margin-top:8px;font-size:12px;color:#8b949e"><b>Registro de um erro meu, evitado por ler antes de escrever.</b> Eu havia preparado a mudança deste CT para <b>PARCIAL</b>, tratando &ldquo;<code>ObterItensRepresentados</code> sem consumidor&rdquo; como defeito. Ao ler o bloco de 05/08 que já estava aqui, vi que essa é <b>exatamente a situação que Produtos aceitou</b>: expor o serviço, sem tela consumidora, com cobertura unitária. Reverter isso seria desfazer decisão de produto com base numa medição que a própria decisão previu. O mapa fica como corroboração, não como reprovação. <b>Nota de escopo, sem veredito:</b> além do método nomeado, <code>ObterQuantidadeItens</code>, <code>EhAgrupamentoItens</code> e <code>ObterNcmExibicao</code> também estão sem consumidor &mdash; se algum dia entrar a demanda de exibir itens expandidos, já existe base pronta para ela.</div></div></div>
 
     <div class="ct-block"><div class="ct-bar" onclick="toggleCT(this.parentElement)"><span class="ct-id">CT-DAG-007</span><span class="ct-title">Consistência da contagem — itens expandidos = SUM(q_itn_agp)</span><span class="badge badge-on">FLAG ON</span><span class="badge badge-p2">P2</span><span class="badge" style="background:#0d1f0d;color:#2ea043">✓ APROVADO</span><span class="ct-toggle">▶</span></div>
       <div class="ct-body"><div class="precond-box"><strong>Pré-condições:</strong> DUIMP com mistura de linhas 'D'/'A'/'I' e q_itn_agp variados.</div>

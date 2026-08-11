@@ -428,7 +428,46 @@ revertido para 14/01/2026 ao fim do teste — verificado por releitura</code></p
       a massa existe, e o que resta é um obstáculo de execução na tela de Processamento — não uma dependência de terceiros.
       Este CT roda na mesma passagem do 002, lendo os 4 contadores por categoria.</div></div>
     </div>
-  </div>
+  <div class="ct-ev"><div style="background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12.5px;color:#79c57e">&#10003; <strong>APROVADO</strong> &mdash; reexecutado em 11/08/2026 com prova estrutural. <b>Não há por onde o contador somar item</b>: o método que alimenta os quatro descarta a linha e soma constante 1.</div><div style="margin-top:8px"><a href="evidencias/CT-CTD-003/ct_ctd003_dag006_verificacao_20260811-114207.txt">ct_ctd003_dag006_verificacao_20260811-114207.txt</a> · 4,033 bytes · dump da verificação (código lido de <code>origin/hml</code> + medição de massa na base AXA)</div><div style="margin-top:8px">Os 4 contadores passam por <b>um único</b> método, <code>DIProcessamentoController.AtualizaContadoresDIPorAverbacao</code> (52 call sites: 2 Lida, 32 Desprezada, 14 Inconsistente, 4 Incluída). Dentro dele a linha é explicitamente descartada (<code>_ = linha</code>) e o delta é <code>const int qtdAverbacoes = 1</code>. Varredura no controller: <b>zero</b> linhas em que um contador soma <code>q_itn_agp</code>. Isso é mais forte que &ldquo;o número está certo hoje&rdquo; &mdash; é a impossibilidade aritmética de estar errado.</div><pre style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:8px;font-size:11px;overflow-x:auto;white-space:pre-wrap">[CT-CTD-003] O metodo unico dos 4 contadores
+    private void AtualizaContadoresDIPorAverbacao(
+    InterfaceSiscomexDeclaracaoPendente linha,
+    bool incrementarLida = false,
+    bool incrementarDesprezada = false,
+    bool incrementarInconsistente = false,
+    bool incrementarIncluida = false)
+    {
+    // linha mantida na assinatura para simetria com os call sites
+    _ = linha;
+    const int qtdAverbacoes = 1;
+    if (incrementarLida) Tot_DI_Proc += qtdAverbacoes;
+    if (incrementarDesprezada) Tot_DI_Despr += qtdAverbacoes;
+    if (incrementarInconsistente) Tot_DI_Erro += qtdAverbacoes;
+    if (incrementarIncluida) Tot_Avb_Incl += qtdAverbacoes;
+    DIProcessamentoHub.AtualizaContadoresDI(userIdHub, Tot_DI_Proc, Tot_DI_Despr, Tot_DI_Erro, Tot_Avb_Incl);
+    }
+
+    -> a linha e DESCARTADA (`_ = linha`) e o delta e `const int qtdAverbacoes = 1`.
+       O numero de itens do agrupamento nao participa da aritmetica.
+
+[CT-CTD-003] call sites por contador (todos passam pelo mesmo metodo)
+    incrementarLida              2 chamada(s)
+    incrementarDesprezada       32 chamada(s)
+    incrementarInconsistente    14 chamada(s)
+    incrementarIncluida          4 chamada(s)
+    linhas onde um contador soma itens (q_itn/Sum): 0  &lt;- esperado 0
+
+[CT-CTD-003] ⚠ o teste unitario do dev NAO prova isso (achado)
+    ADO-7803/ContadoresDuimpQtdItensTest.cs define o proprio helper:
+      private static int DeltaContadorPorAverbacao(InterfaceSiscomexDeclaracaoPendente linha)
+    chama o metodo de PRODUCAO? False
+    -> teste tautologico: passaria mesmo se a producao somasse itens.
+
+[CT-CTD-003] massa para ver o contador AO VIVO (base axa)
+    pacotes PENDENTES com linha agregada: 0  &lt;- 0 = nao ha o que processar
+    no maior pacote agregado: 250 linhas x 3508 itens = razao 14.0x
+    -> se algum dia o contador somar itens, a diferenca sera de uma ordem de grandeza
+
+</pre><div style="background:#1f1a0d;border:1px solid #d29922;border-radius:4px;padding:8px 12px;font-size:12.5px;color:#e3b341;margin-top:8px">&#9888; <b>Achado sobre o teste do dev, não sobre o produto.</b> O <code>ADO-7803/ContadoresDuimpQtdItensTest.cs</code> <b>não chama a produção</b>: ele define um helper local <code>DeltaContadorPorAverbacao</code> que faz <code>return 1</code> e depois assere que retorna 1. É tautológico &mdash; passaria igual se o código somasse itens. O produto está certo; a rede de proteção dele, não.</div><div style="margin-top:8px;font-size:12px;color:#8b949e"><b>O que eu NÃO medi, e por quê:</b> ver os 4 contadores subindo ao vivo exigiria <b>processar</b> um pacote com linha agregada. Medido na base AXA: <b>zero</b> pacotes pendentes com linha agregada &mdash; todas as agregadas já têm controle de processamento. Fabricar linhas na tabela de interface do Siscomex por SQL num HML compartilhado poderia gerar averbação em apólice de terceiro, então não fiz. Corroboração behavioral existente na mesma família: no #7804 a tela de protocolo exibiu <b>86</b> onde a soma de itens seria <b>304</b>.</div></div></div>
 
   <div class="ct-block" id="ct-CTD-004">
     <div class="ct-bar" onclick="toggleCT(this)">
