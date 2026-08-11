@@ -1,0 +1,70 @@
+RETESTE PBI-5201 — mensagens de tela capturadas via browser_evaluate
+Ambiente: CITWEB HML BERKLEY (berkley-hml-faturamento.nsseg.com.br)
+Módulo NACIONAL — build V 1.0.260804.1118 | Login: SUPORTE | Data: 11/08/2026
+Apólice 0000900654001 / Filial 901 / Subgrupo 001 / Ramo 54 RCTR-C
+
+Motivo deste arquivo: as mensagens do CITWEB são toasts transitórios (somem antes do
+screenshot completar). O texto exato foi extraído do DOM via browser_evaluate no instante
+em que a mensagem estava visível, e está reproduzido aqui na íntegra.
+
+================================================================================
+[MASSA] Cadastro de Condição Comercial por Município (tela nova — PR 1473)
+================================================================================
+Tentativa 1 — Salvar SEM informar "Município de Destino":
+  Page_Validators -> ctl00_ContentPlaceHolder1_cvrMunicipioDestino : isvalid = FALSE
+  divAlertSummary -> innerHTML = <div id="...vsPageComercial" class="alert-warning
+                                 validation-summary-errors"><ul></ul></div>
+  divAlertSummary -> getComputedStyle(display) = "none"
+  Banco: SELECT COUNT(*) tb_sgp_nac_cml_cdd_cit = 471 (inalterado — nada gravado)
+  >>> Bloqueou a gravação SEM exibir mensagem ao usuário (lista de erros vazia e oculta).
+
+Tentativa 2 — com Município de Destino informado (CAMPINAS/9502): gravou.
+  Banco: 900654001|901|1|CML|T|0|INDEPENDE|INDEPENDE|SP|9999|SP|9502|TXCML|0.12345
+         |0.0|5000000.0|31/12/2024|31/12/2026|SUPORTE|2026-08-11 14:21:00
+
+================================================================================
+[CT-MUN-004 / Task #7778] Aviso quando não há taxa por município cadastrada
+================================================================================
+Cenário: SP/SANTOS (48500) -> SP/CAMPINAS (9502) — rota SEM CC por município.
+Mensagem exibida (classe "alert alert-warning alert-dismissable"):
+
+  "Não há taxa cadastrada para o município de origem/destino selecionado."
+
+Cálculo NÃO foi bloqueado: IS 120.000,00 | taxa comercial 0,020000 (estado)
+| adicional avarias 0,010000 | Prêmio 36,00.
+Evidência em imagem: ev_MUN004_04_aviso-visivel-fullpage_20260811-142800.png
+
+================================================================================
+[CT-MUN-003] Cálculo com município COM taxa cadastrada
+================================================================================
+Cenário: SP/PERDIZES (9999) -> SP/CAMPINAS (9502) — rota COM CC por município.
+Nenhum aviso exibido (correto).
+  f_cml_bsc_vgm (Taxa básica Comercial) = 0,123450   <- taxa do MUNICÍPIO
+  f_tar_bsc_vgm (Taxa básica Referencial) = 0,020000 <- taxa do ESTADO
+  IS 150.000,00 -> Prêmio 200,18
+Evidência: ev_MUN003_01_taxa-municipio-aplicada-0123450_20260811-143000.png
+
+================================================================================
+[CT-REG-001 / Task #7779] Gravar averbação SEM município (regressão do HTTP 500)
+================================================================================
+Mensagem exibida após Gravar (classe "alert ... alert-dismissable"):
+
+  "Inclusão efetuada com sucesso!"
+
+Rede (browser_network_requests, não transitório):
+  [POST] https://berkley-hml-faturamento.nsseg.com.br/Nacional/AverbacaoRCTRC/Gravar => [200]
+  [POST] https://berkley-hml-faturamento.nsseg.com.br/Nacional/AverbacaoRCTRC/Gravar => [200]
+  (nenhum HTTP 500 — o defeito original retornava 500 nesta mesma rota)
+
+Validação de campo obrigatório funcionando (contraprova de que a tela valida e avisa):
+  "Informe a Placa do Veículo."
+
+================================================================================
+[PERSISTÊNCIA] Averbações gravadas neste reteste — tb_mov_avb_nac_cit
+u_avb | inclusão | uf_ori | c_cdd_ori | uf_dst | c_cdd_dst | v_is | f_tar_bsc_vgm | f_cml_bsc_vgm | prêmio
+================================================================================
+202600000046|2026-08-11 14:29|SP|9999|SP|9502|150000,00|0,02|0,12345|200,18   <- COM município (taxa do município)
+202600000047|2026-08-11 14:31|SP|0   |MG|0   |150000,00|0,05|0,05   | 90,00   <- SEM município
+202600000048|2026-08-11 14:33|SP|0   |MG|0   |200000,00|0,05|0,05   |120,00   <- SEM município
+202600000049|2026-08-11 14:34|SP|0   |MG|0   |200000,00|0,05|0,05   |120,00   <- SEM município
+202600000050|2026-08-11 14:34|SP|0   |MG|0   |250000,00|0,05|0,05   |150,00   <- SEM município
