@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Plano de Teste PBI #7997 — Tipo de Documento MDF-e na Relação de Embarques Simplificada RCV (CITNET)</title>
+<title>Plano de Teste PBI #7997 — Tipo de Documento MDF-e na Relação de Embarques RCV (CITNET)</title>
 <style>
 :root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--accent:#7c3aed;--accent2:#a78bfa;--green:#2ea043;--green-bg:#0d1f0d;--red:#d13438;--red-bg:#1f0d0d;--yellow:#d29922;--yel-bg:#1f1a0d;--text:#c9d1d9;--muted:#8b949e}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -100,7 +100,34 @@ table.meta td:first-child{background:#0d1117;color:var(--muted);width:180px;font
   </div>
 </div>
 
-<div class="deploy-warn" style="border-color:#d13438;background:#1f0d0d"><h3 style="color:#f1707a">⛔ Escopo corrigido pela PO em 12/08/2026 — os 8 CTs deste plano apontam para o relatório ERRADO</h3><p>A <b>Fabiola</b> respondeu ao Gate 2 (12/08 15:41Z) e a resposta <b>não foi um ok</b>: foi uma correção de escopo em três pontos. Cito na íntegra, porque cada frase muda o plano:</p><blockquote style="border-left:3px solid #d13438;margin:8px 0;padding:6px 12px;color:#e6edf3">&quot;esse card originalmente foi aberto corretamente para o <b>CITWEB</b>, o 7999 trata-se do relatório no momento do <b>fechamento (impressão)</b>, e esse card está relacionado ao relatório de Relação de Embarques do momento da <b>Prévia</b>. No plano de teste também cita Relação de Embarques <b>Simplificada</b>, mas esse card é sobre o relatório <b>Relação de Embarques (normal)</b>. Todos os cards abertos sobre esse tema são do CITWEB, até porque o cliente mais urgente é a Tokio, e ela utilizará o novo citnet. No CITNET iríamos tratar no momento 2.&quot;</blockquote><p><b>O que isso invalida, sem rodeio:</b></p><ul><li><b>Sistema:</b> o plano trata o card como <b>CITNET</b> (o título do card e a tag <code>Citnet</code> dizem isso) — a PO diz que é <b>CITWEB</b>;</li><li><b>Relatório:</b> os 8 CTs (<code>CT-TDS-001..008</code>) medem a <b>Relação de Embarques Simplificada</b> — o card é sobre a <b>Relação de Embarques normal</b>. O primeiro CT diz literalmente &quot;Excel da <i>Simplificada</i>&quot;;</li><li><b>Momento:</b> fica fixado em <b>Prévia</b> aqui, e <b>fechamento/impressão</b> no #7999 — os dois cards não são CITNET × CITWEB, são <b>Prévia × Fechamento</b>.</li></ul><p><b>Consequência de processo:</b> pela regra de Gate 2, apontamento com <b>regra nova</b> não segue para execução por atalho — o plano volta a <b>#QA-GATE1-PENDENTE</b> para revalidação do Wesley, e a PO <b>não</b> é acionada de novo antes disso. Os 8 CTs seguem <b>PENDENTE</b> (nenhum foi executado) e serão <b>re-derivados</b> contra o relatório correto, no CITWEB, no momento da Prévia. Nada aqui é resultado de teste — é escopo.</p><p style="color:#8b949e">Registro honesto: o erro é meu. O card se chama &quot;[CITNET] Relação de Embarques Prévia&quot; e eu segui o título e a tag em vez de confirmar o relatório e o sistema com a PO antes de escrever 8 CTs.</p></div><div class="deploy-warn" style="border-color:var(--red);background:#1f0d0d;border-left:4px solid var(--red)">
+<div class="deploy-warn" style="border-color:#2ea043;background:#0d1f0d">
+  <h3 style="color:#79c57e">✔ Rota decidida em 12/08/2026 — o teste é no CITNET, e os 8 CTs deste plano valem</h3>
+  <p><b>Wesley, 12/08/2026:</b> <i>"sim, o teste deve ser realizado no citnet"</i>. Isso encerra a divergência de
+     rota que a correção de escopo da PO abriu no mesmo dia — e encerra <b>a favor deste plano</b>: os 8 CTs
+     (CT-TDS-001..008) medem exatamente o artefato do CITNET.</p>
+  <ul>
+    <li><b>A condição que a própria PO colocou foi verificada e é atendida.</b> Ela escreveu: <i>"agora se o
+        relatório Relação de Embarques for o mesmo na Prévia e Impressão (fechamento), e uma única ação já
+        reflete em ambos os relatórios, aí concordo desse PBI ter sido alterado para CITNET"</i>. No CITWEB o
+        rótulo sai de <b>um helper único</b> — <code>Domain/TipoDocumentoEmbarqueRcvLabel.cs</code>, criado pela
+        entrega do #7999 e <b>ausente</b> em <code>origin/main</code> — chamado de
+        <code>RelatorioPreviaDomain.cs:2808</code> (Prévia), <code>RelatorioFechamentoDomain.cs:1646</code>
+        (Fechamento) e <code>RelatorioDomain.cs:2281</code> (impressão da averbação). O teste unitário
+        <code>ADO-7980/TipoDocumentoEmbarqueRcvLabelTest.cs</code> diz no próprio comentário que trava o contrato
+        dos três. Uma ação cobre os dois momentos — condição satisfeita.</li>
+    <li><b>E "Simplificada" não é outro relatório: é o nome do método.</b> Foi essa palavra que gerou a dúvida,
+        então fica registrado o que o código diz. No CITNET, para o <b>ramo 59</b>, existe <b>um único caminho</b>
+        de Relação de Embarques: <code>RelatorioController.cs:6195</code> →
+        <code>case 59: MontaRelatorioSimplificadoRCV(...)</code>. Não existe nenhum
+        <code>AjusteLayoutRelacaoEmbarques…RCV</code>, enquanto Exportação, Importação, RCTR-VI, RCA-C, RCF-DC,
+        RCTA-C, RCTF-C, RCTR-C e TRN <b>têm</b> o seu. Ou seja: no CITNET não há "normal × simplificada" para
+        RCV — há um relatório só, e é ele que estes CTs medem. A coluna e o mapeamento vivem dentro dele
+        (<code>ObterLabelTipoDocumentoRCV</code>, linhas 10187 e 10262).</li>
+    <li><b>O que fica como contexto, e não como evidência daqui:</b> a medição de 07/08 na Prévia do CITWEB e o
+        CT-REB-008 do #7999 (2.551 de 2.551 linhas com MDF-e na Relação de Embarques da Prévia, TOKIO) são de
+        <b>outro sistema e outro card</b>. Cada CT deste plano é executado no CITNET, sob este card.</li>
+  </ul>
+</div><div class="deploy-warn" style="border-color:var(--red);background:#1f0d0d;border-left:4px solid var(--red)">
   <h3 style="color:#f1707a">⛔ Duas correções de rota que este plano incorpora — leia antes dos CTs</h3>
   <ol>
     <li><b>Este card é CITNET, não CITWEB.</b> Foi aberto com a tag <code>citweb</code>; a Sandra Venturim corrigiu para <code>Citnet</code> em 10/08 durante a daily e reabriu o card. Em 07/08 ele havia sido fechado como <b>“Duplicado — já resolvido via #7999 + #7980”</b>, mas aqueles dois cards são explicitamente <b>CITWEB</b> — a comparação foi feita contra o sistema errado e <b>não vale</b>. O card é demanda genuína.</li>
