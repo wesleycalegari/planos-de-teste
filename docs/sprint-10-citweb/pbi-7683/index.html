@@ -108,21 +108,61 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
 </div>
 
 <div class="deploy-warn">
-  <h3>⚠️ Feature atrás de flag — cenários de agrupamento diferidos</h3>
-  <p>Controlado por <code>AgrupamentoAverbacaoHabilitado</code> / <code>Ind_DuimpAgrupamentoAverbacao</code> (Diego, #7468), <strong>desligada e ainda não disponível em HML</strong>.</p>
+  <h3>&#9888; Situa&ccedil;&atilde;o do agrupamento &mdash; atualizado em 12/08/2026</h3>
+  <p>Controlado por <code>AgrupamentoAverbacaoHabilitado</code> /
+  <code>Ind_DuimpAgrupamentoAverbacao</code> (Diego, #7468). <strong>O indicativo est&aacute; ON na
+  AXA HML desde 05/08</strong> e o WorkerDUIMP est&aacute; rodando &mdash; a frase anterior deste box
+  (&ldquo;desligada e ainda n&atilde;o dispon&iacute;vel em HML&rdquo;) estava vencida.</p>
   <ul>
-    <li><strong>Grupo A (flag OFF)</strong> — <strong>executado e aprovado</strong> em 03/08: duplicidade no modo atual (número DUIMP/ADIÇÃO/ITEM completo) sem regressão (CT-DUP-001).</li>
-    <li><strong>Grupo B (flag ON)</strong> — diferido <strong>pela flag</strong>: exige migration + indicativo ativos em HML.
-    <strong>A massa agregada deixou de ser o obstáculo</strong>: o WorkerDUIMP agrega desde 31/07 e a tabela fechou 03/08 com
-    <strong>411 linhas agregadas de nível <code>'D'</code></strong>, com <code>t_itn_org_agp</code> preenchido em 100% das medidas.
-    O que não existe é nível <code>'A'</code>/<code>'I'</code> — <strong>o produto nunca os emite</strong> (confirmado em 38 bases HML),
-    então CT-DUP-003/004/006 não são "falta de massa", são cenário que o produto não produz.</li>
-    <li>CA formal ausente no card — critérios derivados da descrição. <strong>Gate 2 aprovado pela Fabiola em 24/07 15:55</strong>
-    (<em>"plano de teste validado. Retornar as telas de evidência"</em>), sem regra nova.</li>
-    <li><strong>Pendência de Gate 3 — decisão de ESCOPO com o Wesley</strong> (não é mais dúvida de CA para a Fabiola):
-    <span class="tbd">(1) CT-DUP-003 e CT-DUP-004 — reescrever para o nível <code>'D'</code>, o único que o produto gera, ou marcar N/A?
-    (2) CT-DUP-006 — reescrever a distinção <code>q_itn_agp</code> 1 vs ≥2 sobre as linhas <code>'D'</code>, onde já é mensurável e está coerente?</span>
-    Mesma pergunta em aberto no <strong>#7682</strong> (CT-DVM-003) — mesma causa, vale decisão única para os dois cards.</li>
+    <li><strong>Grupo A (flag OFF)</strong> &mdash; <strong>executado e aprovado</strong> em 03/08:
+    duplicidade no modo atual (n&uacute;mero DUIMP/ADI&Ccedil;&Atilde;O/ITEM completo) sem
+    regress&atilde;o (CT-DUP-001).</li>
+    <li><strong>N&iacute;vel D</strong> &mdash; <strong>aprovado</strong> em 09/08 (CT-DUP-002), sobre
+    as 411 linhas agregadas de 03/08, com <code>t_itn_org_agp</code> preenchido em 100% das medidas e
+    <strong>0 chaves duplicadas</strong>.</li>
+    <li><strong>N&iacute;veis A e I &mdash; corrigi minha pr&oacute;pria conclus&atilde;o em
+    12/08.</strong> A medi&ccedil;&atilde;o continua v&aacute;lida (A e I = <strong>0</strong> em 36
+    bases; existe s&oacute; D=678 e legado sem n&iacute;vel=13.152). O que caiu foi a <em>leitura</em>
+    dela: este box dizia que os CTs &ldquo;n&atilde;o s&atilde;o falta de massa, s&atilde;o
+    cen&aacute;rio que o produto n&atilde;o produz&rdquo;, e dessa frase veio a
+    classifica&ccedil;&atilde;o de bloqueio. Ao ir buscar a massa apareceu o contr&aacute;rio:
+      <ul style="margin-top:6px">
+        <li>o ramo A/I <strong>est&aacute; ligado em produ&ccedil;&atilde;o</strong>:
+        <code>DIProcessamentoController.cs:2863</code> chama
+        <code>ObtemBuscaDuplicidadeAgrupamento</code>, e a chave muda por n&iacute;vel &mdash;
+        D&rarr;DUIMP, A&rarr;DUIMP+Adi&ccedil;&atilde;o(4) por <em>prefixo</em>, I&rarr;+Item(5)
+        <em>exato</em>;</li>
+        <li>o or&aacute;culo &eacute; trivial: <code>tb_mov_avb_int_cit.u_di LIKE
+        &lsquo;&lt;prefixo&gt;%&rsquo;</code>;</li>
+        <li>existem <strong>152 pares</strong> na AXA HML (27 na AXA-alfa): linha pendente cuja DUIMP
+        <strong>j&aacute; tem averba&ccedil;&atilde;o</strong> &mdash; o par exato de que a duplicidade
+        precisa;</li>
+        <li>o <strong>pr&oacute;prio dev</strong> anotou no teste unit&aacute;rio do card:
+        <em>&ldquo;validado tamb&eacute;m manualmente via UI (Playwright) + dado simulado no
+        HML&rdquo;</em>, na DUIMP <code>26BR00007509686</code>.</li>
+      </ul>
+    <strong><code>c_nvl_avb</code> &eacute; entrada da l&oacute;gica sob teste, n&atilde;o a
+    sa&iacute;da</strong> &mdash; quem grava &eacute; o Worker, mas o que este PBI testa &eacute; o que
+    o CITWEB faz com uma linha agregada. Produzir a entrada &eacute; criar massa, e a regra de HML
+    pro&iacute;be bloquear por massa que o QA consegue criar. Logo <strong>CT-DUP-003, 004 e 006
+    s&atilde;o execut&aacute;veis</strong> (badge <em>A EXECUTAR</em>).</li>
+    <li>CA formal ausente no card &mdash; crit&eacute;rios derivados da descri&ccedil;&atilde;o.
+    <strong>Gate 2 aprovado pela Fabiola em 24/07 15:55</strong> (<em>&ldquo;plano de teste validado.
+    Retornar as telas de evid&ecirc;ncia&rdquo;</em>), sem regra nova.</li>
+    <li><strong>O que est&aacute; com Produtos</strong> (Fabiola e Sandra, apontadas no card em 12/08)
+    <strong>n&atilde;o &eacute; massa &mdash; &eacute; escopo</strong>: o WorkerDUIMP chega a emitir
+    n&iacute;vel A/I algum dia? <em>Se sim</em>, em que situa&ccedil;&atilde;o de neg&oacute;cio
+    &mdash; para a massa que eu montar reproduzir o caso real, e n&atilde;o um arranjo que passa no
+    teste e n&atilde;o existe no mundo. <em>Se n&atilde;o</em>, metade deste PBI &eacute;
+    c&oacute;digo sem cen&aacute;rio e o correto &eacute; declarar A/I fora de escopo (N/A por
+    decis&atilde;o de produto). A execu&ccedil;&atilde;o acontece de todo jeito; a resposta muda o
+    <em>valor</em> do resultado. Mesma pergunta em aberto no <strong>#7682</strong>
+    (CT-DVM-003).</li>
+    <li><strong>CT-DUP-005</strong> segue <strong>BLOQUEADO</strong>, por motivo diferente e que
+    n&atilde;o mudou: n&atilde;o existe <em>componente inconsistente</em> na massa (411/411 com
+    <code>i_dsc_cnn_smx = N</code>). Injetar a inconsist&ecirc;ncia &agrave; m&atilde;o seria fabricar
+    a pr&oacute;pria sa&iacute;da sob teste &mdash; diferente de marcar o n&iacute;vel, que &eacute;
+    entrada.</li>
   </ul>
 </div>
 
@@ -141,8 +181,7 @@ table.matriz th{background:#21262d;color:var(--accent2);font-weight:700}
     <p>O card estava em <code>#QA-STATUS: BLOQUEADO por defeito #7930</code> desde 28/07 por falta de massa agregada.
     O WorkerDUIMP <strong>passou a agregar em 31/07</strong> (45 linhas nível 'D' em AXA HML às 17h, 27 com <code>q_itn_agp</code> &gt; 1 —
     <strong>411 linhas agregadas</strong> ao fim de 03/08, depois das cargas do CT-DUP-001),
-    então medi o que a massa real permite medir — e o resultado <strong>reclassifica 5 dos 6 CTs</strong>: o que parecia
-    "falta de massa" é, em três casos, <strong>cenário que o produto não produz</strong>.</p>
+    então medi o que a massa real permite medir — e o resultado reclassificou 5 dos 6 CTs. <strong>Ressalva de 12/08:</strong> a parte que dizia &ldquo;cen&aacute;rio que o produto n&atilde;o produz&rdquo; para A/I <strong>caiu</strong> &mdash; o Worker n&atilde;o <em>emite</em> A/I hoje, mas o CITWEB <em>trata</em> A/I e a linha de entrada &eacute; constru&iacute;vel (152 pares na AXA HML), ent&atilde;o CT-DUP-003/004/006 voltaram para <strong>a executar</strong>.</p>
 
     <table style="margin-top:10px;font-size:12px;width:100%;border-collapse:collapse" class="tbl-med">
       <tr style="background:#161b22"><th>CT</th><th>Situação após a medição</th></tr>
@@ -291,7 +330,7 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
       <li>Grupo B: migration + <span class="tbd">indicativo ativo em HML — único pré-requisito ainda em aberto</span>.
       Os outros dois foram atendidos em 03/08: <strong>cargas agregadas com <code>t_itn_org_agp</code> preenchido</strong> existem
       (411 linhas de nível <code>'D'</code>, NULL em 0 de 45 na conferência das 17h) — <em>mas somente no nível <code>'D'</code>:
-      <code>'A'</code> e <code>'I'</code> são cenário que o produto não produz, em 38 bases HML</em>; e a
+      <code>'A'</code> e <code>'I'</code> n&atilde;o s&atilde;o <em>emitidos</em> pelo Worker em 38 bases HML &mdash; mas s&atilde;o <em>tratados</em> pelo CITWEB, e a linha de entrada &eacute; constru&iacute;vel pelo QA (ver box do topo, 12/08)</em>; e a
       <strong>capacidade de recarregar o mesmo pacote está provada</strong> (CT-DUP-001, via <em>Pacotes WI → Exclusão de Pacotes → Efetuar Carga</em>)</li>
       <li>Acesso SQL HML à <code>tb_itf_smx_dcl_pnd_dui</code></li>
     </ul>
@@ -430,7 +469,7 @@ new InterfaceSiscomexDeclaracaoPendenteRepository(dbUtility).Exclui(intSmxDlcPnd
   <div class="doc-box">
     <h4 class="hist-h">Histórico — riscos mapeados no planejamento (15/07/2026), com a situação apurada até 04/08/2026</h4>
     <ul>
-    <li><strong>Duplicata não detectada (Alto) — segue vigente para 'A'/'I':</strong> chave errada por nível permitiria averbação em dobro. <em>Mitigação:</em> CT-DUP-002/003/004 (um por nível). <em>Situação:</em> coberto no nível <code>'D'</code> (invariantes verificados em dado real, 45/45); os níveis <code>'A'</code>/<code>'I'</code> permanecem sem cobertura porque o produto não os emite.</li>
+    <li><strong>Duplicata não detectada (Alto) — segue vigente para 'A'/'I':</strong> chave errada por nível permitiria averbação em dobro. <em>Mitigação:</em> CT-DUP-002/003/004 (um por nível). <em>Situação:</em> coberto no nível <code>'D'</code> (invariantes verificados em dado real, 45/45); os n&iacute;veis <code>'A'</code>/<code>'I'</code> seguem <strong>sem cobertura, e agora com caminho para obt&ecirc;-la</strong>: a massa de entrada &eacute; constru&iacute;vel e os CTs est&atilde;o marcados <em>a executar</em> desde 12/08.</li>
     <li><strong>Estorno parcial (Alto) — segue vigente:</strong> desprezar só o item inconsistente deixaria o agrupamento incompleto. <em>Mitigação:</em> CT-DUP-005 bloqueante. <em>Situação:</em> não exercido — as 411 linhas agregadas têm <code>i_dsc_cnn_smx = 'N'</code> (nenhum componente inconsistente); injetar a inconsistência seria fabricar a saída sob teste.</li>
     <li><strong>Massa dependente do Worker (Alto p/ cronograma) — não se materializou:</strong> na época se registrou que o Grupo B só andaria com cargas agregadas em HML, e a mitigação era "Grupo A executável já". <em>Desfecho:</em> o WorkerDUIMP passou a agregar em <strong>31/07</strong> e a tabela fechou 03/08 com <strong>411 linhas agregadas de nível <code>'D'</code></strong> — a massa deixou de ser o obstáculo. O que restou foi a flag (ainda desligada em HML) e o fato de o produto não emitir <code>'A'</code>/<code>'I'</code>.</li>
     <li><strong>CA não formalizado (Médio) — encerrado no Gate 2:</strong> os critérios foram derivados da descrição e a mitigação prevista era confirmar com a Fabiola. <em>Desfecho:</em> confirmado — <strong>Gate 2 aprovado em 24/07 15:55</strong> (<em>"plano de teste validado. Retornar as telas de evidência"</em>), sem regra nova. O que sobrou não é dúvida de CA: é a <strong>decisão de escopo de Gate 3 com o Wesley</strong> sobre CT-DUP-003/004 (reescrever para <code>'D'</code> ou N/A) e CT-DUP-006 (reescrever sobre as linhas <code>'D'</code>) — mesma decisão pendente no #7682.</li>
