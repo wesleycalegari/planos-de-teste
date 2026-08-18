@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de Teste — PBI #8138 &middot; ADR-010 tenant por identidade</title>
+<style>
+:root{--pri:#0078d4;--pri-d:#106ebe;--bg:#faf9f8;--surface:#fff;--border:#e1dfdd;
+      --text:#323130;--muted:#605e5c;--ok:#107c10;--rep:#d13438;--warn:#ca5010;--pend:#8a8886}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:"Segoe UI",Segoe,system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.55}
+.topbar{background:var(--pri);color:#fff;padding:6px 0;font-size:12px;text-align:center;letter-spacing:.4px}
+.hero{background:linear-gradient(135deg,var(--pri) 0%,var(--pri-d) 100%);color:#fff;padding:28px 24px}
+.hero h1{margin:0 0 6px;font-size:22px;font-weight:600}
+.hero .sub{opacity:.92;font-size:14px}
+.hero .pills{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+.pill{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+  border-radius:12px;padding:3px 11px;font-size:12px}
+.container{max-width:1120px;margin:0 auto;padding:0 24px 48px}
+.metrics{max-width:1120px;margin:20px auto 0;padding:0 24px;display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.metric{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--pri);
+  border-radius:6px;padding:12px;text-align:center}
+.metric-val{font-size:24px;font-weight:600;color:var(--pri)}
+.metric-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.m-ok{border-top-color:var(--ok)}.m-ok .metric-val{color:var(--ok)}
+.m-rep{border-top-color:var(--rep)}.m-rep .metric-val{color:var(--rep)}
+.m-pend{border-top-color:var(--pend)}.m-pend .metric-val{color:var(--pend)}
+#exec-json{max-width:1120px;margin:10px auto 0;padding:0 24px;font-size:11px;color:var(--muted);
+  font-family:ui-monospace,Consolas,monospace;word-break:break-all}
+.progress-wrap{max-width:1120px;margin:10px auto 22px;padding:0 24px}
+.progress-track{height:8px;background:#edebe9;border-radius:4px;overflow:hidden}
+.progress-bar{height:100%;background:var(--ok);width:0%}
+h2.sec-title{font-size:16px;margin:32px 0 10px;padding-bottom:7px;border-bottom:2px solid var(--pri);color:var(--pri)}
+table{width:100%;border-collapse:collapse;background:var(--surface);font-size:13px}
+th{background:var(--pri);color:#fff;text-align:left;padding:9px 11px;font-weight:600}
+td{border:1px solid var(--border);padding:9px 11px;vertical-align:top}
+tr:nth-child(even) td{background:#faf9f8}
+td.res{color:var(--pend);font-weight:600;white-space:nowrap}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin:14px 0}
+.info-cell{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--pri);
+  border-radius:4px;padding:10px 13px}
+.info-cell .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.info-cell .v{font-weight:600;margin-top:2px}
+.info-box{background:#deecf9;border:1px solid var(--pri);border-left:4px solid var(--pri);
+  border-radius:4px;padding:12px 15px;margin:14px 0}
+.warn-box{background:#fff4ce;border:1px solid var(--warn);border-left:4px solid var(--warn);
+  border-radius:4px;padding:12px 15px;margin:14px 0}
+.group{margin-top:30px}
+.group-header{background:var(--pri);color:#fff;padding:10px 15px;border-radius:5px 5px 0 0;
+  display:flex;justify-content:space-between;align-items:center;gap:12px}
+.group-header h2{margin:0;font-size:14px;font-weight:600}
+.group-header .group-count{font-size:11px;background:rgba(255,255,255,.2);padding:2px 9px;
+  border-radius:10px;white-space:nowrap}
+.group-desc{background:#deecf9;border:1px solid var(--border);border-top:0;margin:0 0 12px;
+  padding:10px 15px;font-size:13px;color:#1b3a57}
+.subgroup-header{background:#deecf9;color:#1b3a57;padding:7px 13px;font-weight:600;font-size:13px;
+  border:1px solid var(--border);border-radius:4px;margin:14px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;
+  margin-bottom:9px;overflow:hidden}
+.ct-head{display:flex;align-items:center;gap:9px;padding:11px 14px;cursor:pointer;
+  user-select:none;flex-wrap:wrap}
+.ct-head:hover{background:#f3f9fd}
+.ct-id{font-family:ui-monospace,Consolas,monospace;font-weight:700;color:var(--pri);font-size:13px}
+.ct-tit{flex:1;min-width:220px;font-weight:600}
+.badge{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;
+  white-space:nowrap;text-transform:uppercase;letter-spacing:.3px}
+.badge.bloqueante{background:#d13438}
+.badge.importante{background:#ca5010}
+.badge.desejavel{background:#605e5c}
+.badge.tipo{background:#deecf9;color:#1b3a57;font-weight:600;text-transform:none;letter-spacing:0}
+.badge.status.pendente{background:#fff4ce;color:#7a5700}
+.ct-toggle{color:var(--muted);font-size:11px;transition:transform .2s}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.sec{margin-top:13px}
+.sec h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.sec ul,.sec ol{margin:0;padding-left:22px}
+.sec li{margin-bottom:5px}
+code{background:#f3f2f1;border:1px solid var(--border);border-radius:3px;padding:1px 5px;
+  font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.ev-section{margin-top:15px;background:#faf9f8;border:1px dashed var(--border);
+  border-radius:5px;padding:11px 14px}
+.ev-section h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.ev-empty{margin:0;color:var(--muted);font-size:12.5px}
+.ev-section img{max-width:100%;border:1px solid var(--border);border-radius:4px;margin-top:8px;cursor:pointer}
+footer{max-width:1120px;margin:0 auto;padding:22px 24px 40px;color:var(--muted);font-size:12px;
+  border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div class="topbar">CITWEB Team &middot; Sprint_13_Citweb &middot; Plano de teste — Gate 1 (aguardando revisao do QA owner)</div>
+
+<div class="hero">
+  <h1>PBI #8138 — Implementacao da ADR-010: tenant por identidade do usuario autenticado</h1>
+  <div class="sub">[NSSEG] &middot; CITNET novo (atmtec, React + API .NET) &middot; resolucao de tenant,
+  autorizacao usuario&rarr;tenant e isolamento entre seguradoras</div>
+  <div class="pills">
+    <span class="pill">31 casos de teste</span>
+    <span class="pill">19 P1 &middot; 11 P2 &middot; 1 P3</span>
+    <span class="pill">6 tasks / 6 fases cobertas</span>
+    <span class="pill">Ambiente: HML atmtec</span>
+    <span class="pill">Gerado em 18/08/2026</span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric m-total"><div class="metric-val" id="exec-total">31</div><div class="metric-lbl">Total CTs</div></div>
+  <div class="metric m-ok"><div class="metric-val" id="exec-aprovados">0</div><div class="metric-lbl">Aprovados</div></div>
+  <div class="metric m-rep"><div class="metric-val" id="exec-reprovados">0</div><div class="metric-lbl">Reprovados</div></div>
+  <div class="metric m-pend"><div class="metric-val" id="exec-pendentes">31</div><div class="metric-lbl">Pendentes</div></div>
+</div>
+<div id="exec-json">EXEC_JSON: {"card": 8138, "total": 31, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 31, "na": 0, "pct_aprovado": 0, "atualizado": "2026-08-18 (plano gerado — Gate 1)"}</div>
+<div class="progress-wrap"><div class="progress-track"><div class="progress-bar" style="width:0%"></div></div></div>
+
+<div class="container">
+
+<h2 class="sec-title">1. Identifica&ccedil;&atilde;o</h2>
+<div class="info-grid">
+  <div class="info-cell"><div class="k">Projeto / M&oacute;dulo</div><div class="v">CITNET novo (atmtec) — Autentica&ccedil;&atilde;o e Tenancy</div></div>
+  <div class="info-cell"><div class="k">Card</div><div class="v">PBI #8138</div></div>
+  <div class="info-cell"><div class="k">Sprint</div><div class="v">Sprint_13_Citweb</div></div>
+  <div class="info-cell"><div class="k">Task do plano</div><div class="v">Task #8170 — [QA] Plano de teste</div></div>
+  <div class="info-cell"><div class="k">Tasks de dev</div><div class="v">#8139 &middot; #8140 &middot; #8141 &middot; #8142 &middot; #8143 &middot; #8144</div></div>
+  <div class="info-cell"><div class="k">Autor / Data</div><div class="v">QA &middot; 18/08/2026</div></div>
+</div>
+
+<h2 class="sec-title">2. Descri&ccedil;&atilde;o</h2>
+<p>O tenant (seguradora) deixa de vir de uma <b>escolha manual na tela de login</b> e passa a ser
+<b>derivado da identidade autenticada</b> (claims, grupos e roles do IdP), validado por uma relacao
+explicita de autorizacao usuario &rarr; tenant. A selecao manual vira mecanismo transitorio/fallback,
+nunca a fonte primaria de verdade.</p>
+<p><b>Por que existe:</b> misturar &ldquo;identidade&rdquo; com &ldquo;escolha operacional&rdquo; permite erro humano e
+acesso indevido, e nao escala para SaaS + on-prem + multiplos papeis. O perfil predominante do
+sistema e o <b>corretor multi-seguradora</b>: ele legitimamente acessa mais de uma seguradora, e o
+modelo precisa distinguir <b>tenants autorizados</b> (claim <code>tenants</code>) de <b>tenant
+ativo</b> (claim <code>tenant</code>).</p>
+
+<div class="info-box">
+  <b>O que o QA esta realmente protegendo aqui.</b> Esta e uma mudanca de <b>autenticacao e isolamento
+  de dados</b>: o defeito caro nao e a tela que quebra — e a que <b>continua funcionando</b> conectada
+  na base errada, ou a que devolve dado de outra seguradora. Por isso quase todo CT exige o cruzamento
+  entre o que a tela mostra e o que a <b>base do tenant</b> contem, e por isso o ADR &sect;6 e explicito:
+  falha de resolucao tem de ser <b>erro visivel</b>, nunca fallback silencioso.
+</div>
+
+<h2 class="sec-title">3. Escopo</h2>
+<p><b>Em escopo</b> — os criterios de aceite declarados nas 6 tasks filhas: manutencao do acesso durante
+a transicao (#8139); <code>ITenantResolver</code> e as claims <code>tenant</code>/<code>tenants</code>
+(#8140); validacao explicita usuario&rarr;tenant com os tres desfechos (#8141); tenant ativo por
+identidade, troca entre autorizados e rollout por allowlist (#8142); saida do seletor manual do login
+das seguradoras migradas (#8143); segredos de base em vault (#8144). Somam-se o isolamento entre
+tenants e a regressao funcional do que atravessa o pipeline de autenticacao.</p>
+<p><b>Fora de escopo</b> — teste unitario/integracao do codigo .NET (ja coberto pelo desenvolvimento:
+2.755 testes em <code>CitNet.Application.Tests</code> e 160 em <code>CitNet.Api.IntegrationTests</code>,
+reportados nas tasks); provisionamento do realm Keycloak e escolha do vault (decisoes de
+infraestrutura, ainda nao tomadas); o CITNET legado, cujo fluxo de login nao e alterado por este card.</p>
+<p><b>Ramos</b> — <b>nao se aplica</b>. A mudanca e transversal a autenticacao/tenancy e nao distingue
+ramo (21/38/54/56/58/59, importacao/exportacao). Os CTs de regressao funcional usam RCV (ramo 59)
+apenas como fluxo de prova, por ser o mais coberto por massa e automacao existentes.</p>
+
+<h2 class="sec-title">4. Pr&eacute;-requisitos</h2>
+<div class="warn-box">
+  <b>Gate de execucao (qa-delivery &sect;4).</b> Este plano e o artefato do <b>Gate 1</b>. A execucao so
+  comeca com o plano aprovado <b>e</b> o card em &ldquo;Pronto para homologacao&rdquo;/&ldquo;Em homologacao&rdquo;. Em
+  18/08/2026 o PBI #8138 esta <b>In Progress</b> e as tasks #8142/#8143/#8144 nao estao concluidas —
+  portanto <b>nenhum CT e executado ainda</b>. O CT-TNT-001 e a sonda objetiva que decide, no dia da
+  execucao, o que esta implantado.
+</div>
+<div class="info-grid">
+  <div class="info-cell"><div class="k">Ambiente</div><div class="v">CITNET novo — HML atmtec (host unico, multi-tenant)</div></div>
+  <div class="info-cell"><div class="k">Build medido em 18/08/2026</div><div class="v"><code>index-nXB9XWMV.js</code></div></div>
+  <div class="info-cell"><div class="k">Tenant &middot; Tokio Marine</div><div class="v">base <code>smt-hom-citweb-tokio</code> &middot; login <code>QAINTERNO</code> &middot; 13 usu&aacute;rios</div></div>
+  <div class="info-cell"><div class="k">Tenant &middot; AXA - HML - ALFA</div><div class="v">base <code>smt-hom-citweb-axa-alfa</code> &middot; login <code>INTERNO</code> &middot; 272 usu&aacute;rios (32 com e-mail)</div></div>
+  <div class="info-cell"><div class="k">Tenant &middot; KOVR - HML - ALFA</div><div class="v">base <code>smt-hom-citweb-kovr-alfa</code> &middot; login <code>TSTALFA1</code> &middot; 30 usu&aacute;rios (26 com e-mail)</div></div>
+  <div class="info-cell"><div class="k">Senhas</div><div class="v">apenas no <code>.env</code>, por nome de chave — nunca neste documento</div></div>
+</div>
+
+<div class="info-box">
+  <b>Massa de identidade multi-tenant (consultada, nao suposta).</b> A consulta as bases de HML em 18/08/2026
+  mediu os e-mails que existem em mais de um tenant — que e o que produz <code>tenants[]</code> com
+  N&gt;1 quando a resolucao por identidade entrar:
+  <b>AXA-alfa &cap; KOVR-alfa = 9</b> &middot; <b>Tokio &cap; AXA-alfa = 2</b> &middot; <b>Tokio &cap; KOVR-alfa = 1</b>.
+  Os enderecos nao sao transcritos aqui (dado pessoal); reproduzir com
+  <code>SELECT LOWER(LTRIM(RTRIM(n_ema_usu))) FROM tb_cit_net_usu WHERE n_ema_usu LIKE '%@%'</code>
+  em cada base e interseccionar. Esse e o perfil que deve ser usado nos CTs de troca e isolamento —
+  nao um usuario de tenant unico.
+</div>
+
+<div class="warn-box">
+  <b>Dependencias que o QA nao resolve sozinho.</b> (a) a allowlist
+  <code>TenantMiddleware:StrictTenants</code> precisa conter ao menos 1 tenant de homologacao, senao o
+  caminho estrito nao e exercitado (R-4); (b) o realm Keycloak e o <code>Keycloak:RoleTenantMap</code>
+  precisam existir para a massa multi-tenant real (R-3); (c) a leitura do Redis/vault exige
+  acompanhamento de quem opera o ambiente (grupo G6). Sem (a) e (b), os CTs correspondentes ficam
+  <b>BLOQUEADOS</b> com a causa externa comprovada — nunca aprovados &ldquo;porque nao deu erro&rdquo;.
+</div>
+
+<h2 class="sec-title">5. Casos de teste</h2>
+<p class="group-desc" style="border:1px solid var(--border);border-radius:4px">
+  Os CTs abrem ao clicar no cabecalho. Cada bloco traz pre-condicoes, passos executaveis desde o login,
+  resultado esperado e a area de evidencias daquele CT.
+  <b>Navegacao sempre por clique</b> — a unica URL digitada e a de login do HML; chamadas de API sao
+  feitas de dentro da sessao autenticada, nunca pela barra de enderecos.
+</p>
+
+<div class="group">
+  <div class="group-header"><h2>G0 — Prontidão do build em HML — porta de entrada da execução</h2><span class="group-count">1 CT(s)</span></div>
+  <p class="group-desc">Mede, antes de gastar ciclo, se a fase que o CT exercita <b>existe</b> no build implantado. É o que separa <b>BLOQUEADO</b> (causa externa comprovada) de <b>REPROVADO</b> (defeito).</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-001">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-001</span>
+      <span class="ct-tit">Sonda de prontidão: endpoints da Fase 4 existem no build de HML</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Exceção / pré-condição</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Ambiente CITNET novo (atmtec) acessível.</li><li>Nenhuma credencial necessária — a sonda mede <b>404 (rota inexistente)</b> × <b>401 (rota existe, exige autenticação)</b>.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code>.</li><li>Abrir o console do browser (F12) e executar, na origem da própria página: <code>fetch('/api/auth/me/tenants').then(r=&gt;r.status)</code>.</li><li>Repetir para <code>/api/auth/tenant/switch</code> (POST) e <code>/api/ambientes</code> (GET).</li><li>Registrar o status HTTP de cada rota e o hash do bundle (<code>document.querySelector('script[src]').src</code>) como identificação do build.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li><code>/api/auth/me/tenants</code> e <code>/api/auth/tenant/switch</code> respondem <b>401/403</b> (existem e exigem autenticação) — nunca <b>404</b>.</li><li><b>Se 404:</b> a Fase 4 (#8142) não está implantada neste build; os CTs dos grupos G4 e G5 ficam <b>BLOQUEADOS</b> por causa externa comprovada (não REPROVADOS), e a sonda é a evidência.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> <b>Baseline medido em 18/08/2026, 13h29 UTC</b> (bundle <code>index-nXB9XWMV.js</code>): <code>/api/auth/me/tenants</code> &rarr; <b>404</b> &middot; <code>/api/auth/tenant/switch</code> &rarr; <b>404</b> &middot; <code>/api/ambientes</code> &rarr; <b>401</b>. Nesta data os endpoints da Fase 4 <b>ainda não estão</b> no build de HML — coerente com a task #8142 em <i>In Progress</i>.</div>
+      <div class="ev-section" id="ev-CT-TNT-001">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-001/</code> no padr&atilde;o
+        <code>CT-TNT-001_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G1 — Fase 1/6 (#8139) — Baseline: nenhuma seguradora perde acesso</h2><span class="group-count">3 CT(s)</span></div>
+  <p class="group-desc">CA da task #8139: <i>&ldquo;nenhuma seguradora perde acesso durante a transição; fluxo atual documentado como baseline&rdquo;</i>. É o CT que protege o usuário enquanto a arquitetura muda por baixo.</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-010">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-010</span>
+      <span class="ct-tit">Login local continua funcionando em cada tenant de homologação</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo / regressão</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Tenants alvo: <b>Tokio Marine</b>, <b>AXA - HML - ALFA</b>, <b>KOVR - HML - ALFA</b>.</li><li>Logins (senhas só no <code>.env</code>): Tokio <code>QAINTERNO</code> (<code>HML_TOKIO_CITNET_INTERNO_PASS</code>) &middot; AXA-alfa <code>INTERNO</code> (<code>HML_AXA_CITNET_INTERNO_PASS</code>) &middot; KOVR-alfa <code>TSTALFA1</code> (<code>HML_KOVR_ALFA_CITNET_PASS</code>).</li><li>O usuário é <b>case-sensitive</b> — confirmado por consulta à base: em <code>smt-hom-citweb-axa-alfa</code> existe <code>INTERNO</code> (maiúsculo), não <code>interno</code>.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>Repetir o login para <b>cada um dos três tenants</b>.</li><li>Após cada login, capturar a tela inicial (rota <code>/app</code>) com o tenant em uso visível.</li><li>Registrar, por tenant: houve caminho de UI para chegar nele? Qual (seletor, host, claim)?</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Os <b>três</b> tenants são acessíveis e a home carrega autenticada.</li><li>Nenhum tenant fica inalcançável pela UI — se algum ficar, o CA da task #8139 está violado.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> <b>Risco medido R-1:</b> em 18/08/2026 o campo <b>Ambiente</b> do login está <b>travado</b> (<code>div.input-group.locked</code> &rarr; <code>span.locked-value</code> = &ldquo;Tokio Marine&rdquo;, com ícone de cadeado) e <b>não há mais <code>&lt;select&gt;</code> no DOM</b>. Como <code>/api/auth/tenant/switch</code> responde 404, <b>não existe hoje caminho de UI</b> para ativar AXA-alfa ou KOVR-alfa por este host. Este CT é o oráculo dessa questão — a medição fica para a execução, com o card liberado.</div>
+      <div class="ev-section" id="ev-CT-TNT-010">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-010/</code> no padr&atilde;o
+        <code>CT-TNT-010_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-011">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-011</span>
+      <span class="ct-tit">A sessão opera na base do tenant correto (isolamento provado por SQL)</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo / integração</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>CT-TNT-010 aprovado para o tenant sob teste.</li><li>Acesso de leitura às bases <code>smt-hom-citweb-tokio</code>, <code>smt-hom-citweb-axa-alfa</code> e <code>smt-hom-citweb-kovr-alfa</code>.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu. no tenant sob teste.</li><li>Pelo menu (clique): <b>Averbações</b> &rarr; <b>RCV</b> &rarr; <b>Consultar</b>.</li><li>Capturar a grade com os protocolos listados.</li><li>Na base do tenant, consultar <code>tb_cit_net_mov_pcl_rcv</code> filtrando pela mesma apólice/filial e comparar os protocolos <b>linha a linha</b> com a tela.</li><li>Executar a mesma consulta nas bases dos <b>outros</b> tenants e confirmar que os protocolos exibidos <b>não</b> são de lá.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Os registros exibidos coincidem com a base do tenant autenticado.</li><li>Nenhum registro exibido pertence a outra base — o tenant resolvido é o mesmo tenant conectado (requisito de segurança do ADR &sect;3).</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> Prova positiva de que o tenant foi resolvido para a base certa. &ldquo;Abriu a tela sem erro&rdquo; <b>não</b> é evidência — o cruzamento com a base é.</div>
+      <div class="ev-section" id="ev-CT-TNT-011">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-011/</code> no padr&atilde;o
+        <code>CT-TNT-011_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-012">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-012</span>
+      <span class="ct-tit">Credencial válida de um tenant não autentica em outro tenant</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Negativo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Um login que existe em um tenant e <b>não</b> existe em outro.</li><li>Confirmar antes, por SQL em <code>tb_cit_net_usu</code>, nas duas bases.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu. tentando entrar no <b>tenant B</b> com credencial válida apenas do <b>tenant A</b>.</li><li>Capturar a mensagem de retorno com o <b>texto exato</b> da tela.</li><li>Confirmar por SQL que nenhuma sessão nem registro de auditoria foi criado na base do tenant B.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Autenticação recusada, com mensagem explícita.</li><li>Não pode haver <i>fallback</i> que autentique o usuário em outro tenant onde ele exista.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-012">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-012/</code> no padr&atilde;o
+        <code>CT-TNT-012_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G2 — Fase 2/6 (#8140) — Claims <code>tenant</code>/<code>tenants</code> e scheme Keycloak inerte</h2><span class="group-count">4 CT(s)</span></div>
+  <p class="group-desc">CA da task #8140: <i>&ldquo;ITenantResolver implementado e coberto por testes, coexistindo com o fluxo atual sem substituí-lo ainda&rdquo;</i>. Observável em QA pela composição do JWT e pela ausência de regressão.</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-020">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-020</span>
+      <span class="ct-tit">JWT do login local emite a claim <code>tenants</code> (lista) além de <code>tenant</code></span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Login local funcionando no tenant sob teste (CT-TNT-010).</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>No console da sessão autenticada, obter o access token do armazenamento usado pela aplicação.</li><li>Decodificar o payload (base64url do segmento do meio) e listar as claims.</li><li>Registrar os valores de <code>tenant</code> e <code>tenants</code>.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>O payload contém <code>tenant</code> (singular, o <b>tenant ativo</b>) <b>e</b> <code>tenants</code> (lista de <b>tenants autorizados</b>) — ADR &sect;5.2.1.</li><li>No login local, <code>tenants</code> tem <b>1 item</b>, igual ao <code>tenant</code> ativo.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> Chamada de API executada <b>de dentro da sessão autenticada</b> (console do browser, mesma origem, token da própria sessão) — <b>nunca</b> digitando a rota na barra de endereços.</div>
+      <div class="ev-section" id="ev-CT-TNT-020">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-020/</code> no padr&atilde;o
+        <code>CT-TNT-020_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-021">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-021</span>
+      <span class="ct-tit">Token legado (só <code>tenant</code>, sem <code>tenants</code>) continua aceito</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Limite / compatibilidade</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Um access token emitido <b>antes</b> desta entrega, ainda dentro da validade, ou reemitido sem a claim <code>tenants</code>.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar e capturar o token atual.</li><li>Repetir uma chamada tenant-scoped da aplicação usando o token <b>sem</b> a claim <code>tenants</code>.</li><li>Registrar o status HTTP e o corpo da resposta.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A requisição é atendida normalmente pelo <i>fallback</i> de compatibilidade (<code>tenants</code> ausente &rArr; usa <code>tenant</code>).</li><li>Nenhuma sessão em curso é derrubada pela introdução da claim nova.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-021">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-021/</code> no padr&atilde;o
+        <code>CT-TNT-021_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-022">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-022</span>
+      <span class="ct-tit">Scheme Keycloak configurado permanece inerte com <code>RoleTenantMap</code> vazio</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Negativo / regressão</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li><code>Keycloak:Authority</code> = <code>https://dev.nstech.com.br/auth/realms/insurance_market</code> e <code>Keycloak:Audience</code> = <code>portal-transporte-api</code> configurados; <code>Keycloak:RoleTenantMap</code> <b>vazio</b> (situação declarada pelo desenvolvimento em 17/08/2026).</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu. pelo fluxo local, nos três tenants.</li><li>Executar um fluxo de leitura completo (<b>Averbações</b> &rarr; <b>RCV</b> &rarr; <b>Consultar</b>).</li><li>Registrar se algum redirecionamento, prompt de SSO ou erro de token aparece.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>O login local funciona exatamente como antes — o scheme Keycloak não intercepta nem redireciona.</li><li>Nenhum tenant é resolvido via Keycloak enquanto o mapa de roles estiver vazio.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-022">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-022/</code> no padr&atilde;o
+        <code>CT-TNT-022_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-023">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-023</span>
+      <span class="ct-tit">Identidade vinda do Keycloak é casada por e-mail, não pelo <code>sub</code></span>
+      <span class="badge desejavel">P3 &middot; Desejavel</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Depende do realm Keycloak provisionado e de <code>Keycloak:RoleTenantMap</code> preenchido — decisão de infraestrutura ainda <b>não tomada</b> (registrada pelo desenvolvimento na task #8140).</li><li>Usuário do CitNET com <code>n_ema_usu</code> preenchido na base do tenant.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar via Keycloak (quando disponível) e capturar o token.</li><li>Conferir que o <code>sub</code> é um UUID do IdP, diferente do <code>c_usu</code> do CitNET.</li><li>Confirmar que a sessão resolveu o usuário correto do CitNET, cruzando com <code>tb_cit_net_usu</code> por <code>n_ema_usu</code>.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A identidade é resolvida pelo <b>e-mail</b> (claim canônica <code>unique_name</code>), nunca pelo <code>sub</code> do IdP.</li><li>A auditoria registra o usuário do CitNET, não o UUID do Keycloak.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-023">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-023/</code> no padr&atilde;o
+        <code>CT-TNT-023_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G3 — Fase 3/6 (#8141) — Validação explícita usuário &rarr; tenant e os três desfechos</h2><span class="group-count">5 CT(s)</span></div>
+  <p class="group-desc">CA da task #8141: <i>&ldquo;falha de resolução sempre tratada como erro de autorização/configuração, nunca como fallback silencioso; troca de tenant ativo revalidada a cada troca&rdquo;</i> (ADR &sect;5.2.1).</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-030">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-030</span>
+      <span class="ct-tit">Desfecho <b>Sucesso</b>: usuário autorizado no tenant ativo prossegue</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Usuário existe e está ativo na base do tenant candidato.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>Executar uma operação tenant-scoped pelo menu (clique): <b>Averbações</b> &rarr; <b>RCV</b> &rarr; <b>Consultar</b>.</li><li>Capturar a grade renderizada e o status da chamada de rede correspondente.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Operação concluída, com dados da base do tenant ativo (cruzar com SQL, como em CT-TNT-011).</li><li>Nenhum 403 nem 409 no caminho feliz.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-030">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-030/</code> no padr&atilde;o
+        <code>CT-TNT-030_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-031">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-031</span>
+      <span class="ct-tit">Desfecho <b>Falha</b>: tenant fora dos autorizados &rarr; 403 fail-closed, sem conectar na base</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Token com <code>tenants</code> = [A] e tentativa de operar como tenant B.</li><li>O tenant B deve estar na allowlist <code>TenantMiddleware:StrictTenants</code> para o modo estrito valer.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar no tenant A.</li><li>Na sessão autenticada, repetir uma chamada tenant-scoped forçando o tenant B (cabeçalho/claim manipulada, conforme o contrato do middleware).</li><li>Registrar o status HTTP, o código de erro do corpo e o registro de auditoria gerado.</li><li>Na base do tenant B, verificar que <b>nenhuma</b> consulta ou registro foi produzido pela tentativa.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Resposta <b>403</b> com motivo <code>TENANT_NOT_AUTHORIZED</code> — não um 403 genérico.</li><li>A tentativa é <b>auditada</b>.</li><li>Nenhuma conexão é aberta na base do tenant B — <i>fail-closed</i>.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-031">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-031/</code> no padr&atilde;o
+        <code>CT-TNT-031_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-032">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-032</span>
+      <span class="ct-tit">Desfecho <b>Seleção pendente</b>: N tenants e nenhum ativo &rarr; 409, não 403</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Limite</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade autorizada em <b>2 ou mais</b> tenants (<code>tenants[]</code> com N&gt;1) e <b>nenhum</b> tenant ativo.</li><li>A massa depende do Keycloak (no login local <code>tenants[]</code> tem sempre 1 item) — ver risco R-3.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar com a identidade multi-tenant, sem escolher tenant ativo.</li><li>Executar uma chamada tenant-scoped.</li><li>Registrar o status HTTP e o código do corpo.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Resposta <b>409</b> com <code>TENANT_SELECTION_REQUIRED</code> — o sistema está aguardando a escolha.</li><li>Não pode ser 403: seleção pendente <b>não</b> é falha de segurança (ADR &sect;5.2.1).</li><li>Não pode escolher um tenant sozinho — claim com N tenants não é ambiguidade a rejeitar nem a resolver por conta própria.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-032">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-032/</code> no padr&atilde;o
+        <code>CT-TNT-032_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-033">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-033</span>
+      <span class="ct-tit">Falha de resolução gera erro explícito — nunca fallback silencioso</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Cenário de resolução impossível: conflito entre a claim de tenant e o host pinado, ou tenant inexistente no registry.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Produzir o conflito (claim de tenant A com host pinado em B, conforme o contrato do resolver).</li><li>Executar uma operação tenant-scoped.</li><li>Registrar o status, a mensagem exata e a auditoria.</li><li>Confirmar em qual base a operação (se houver) tocou.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Erro <b>explícito</b> de autorização/configuração, com motivo rastreável.</li><li>O sistema <b>não</b> pode cair num tenant padrão, no último usado ou no primeiro da lista — e não pode &ldquo;funcionar&rdquo; sem dizer qual tenant usou (ADR &sect;6, Backend).</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> Este é o defeito de maior custo do card: passa despercebido em teste de tela porque a aplicação <i>parece</i> funcionar. A aprovação exige a mensagem de erro <b>e</b> a prova de que nenhuma base foi tocada.</div>
+      <div class="ev-section" id="ev-CT-TNT-033">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-033/</code> no padr&atilde;o
+        <code>CT-TNT-033_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-034">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-034</span>
+      <span class="ct-tit">Revogação de acesso vale sem esperar a sessão expirar</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Usuário autenticado, com sessão ativa e válida, autorizado no tenant.</li><li>Alteração de massa em HML — reversível: guardar o estado anterior antes e restaurar depois.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar e confirmar uma operação bem-sucedida.</li><li>Com a sessão <b>ainda aberta</b>, revogar o acesso do usuário na base do tenant (desativar/suspender em <code>tb_cit_net_usu</code>), registrando o valor original.</li><li>Repetir a operação tenant-scoped e/ou a troca de tenant.</li><li>Restaurar o estado original da massa e registrar a restauração.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A operação passa a ser recusada mesmo com o token ainda válido — a autorização é revalidada a cada uso, não só no login (ADR &sect;5.2.1).</li><li>Massa restaurada ao estado original ao fim do CT.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-034">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-034/</code> no padr&atilde;o
+        <code>CT-TNT-034_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G4 — Fase 4/6 (#8142) — Tenant ativo por identidade, troca e rollout controlado</h2><span class="group-count">9 CT(s)</span></div>
+  <p class="group-desc">CA da task #8142: <i>&ldquo;novas sessões resolvem tenant via identidade por padrão; usuário com N seguradoras troca o tenant ativo sem novo login, com cada troca revalidada e auditada; tentativa fora da lista autorizada é sempre rejeitada (403, auditada), nunca conecta na base errada&rdquo;</i>.</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-040">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-040</span>
+      <span class="ct-tit"><code>GET /api/auth/me/tenants</code> devolve só os tenants autorizados da identidade</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>CT-TNT-001 confirmando que a rota existe (diferente de 404).</li><li>Identidade cujo conjunto autorizado é conhecido e conferido por SQL.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>No console da sessão autenticada, chamar <code>GET /api/auth/me/tenants</code>.</li><li>Comparar a lista devolvida com o conjunto autorizado apurado por SQL.</li><li>Comparar também com a lista <b>completa</b> de seguradoras que o legado <code>/api/ambientes</code> devolve.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A resposta contém <b>exatamente</b> os tenants autorizados daquela identidade.</li><li>Nunca a lista pública completa de seguradoras — expor as demais é vazamento de informação (era esse o problema da Opção A do ADR &sect;4).</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> Chamada de API executada <b>de dentro da sessão autenticada</b> (console do browser, mesma origem, token da própria sessão) — <b>nunca</b> digitando a rota na barra de endereços.</div>
+      <div class="ev-section" id="ev-CT-TNT-040">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-040/</code> no padr&atilde;o
+        <code>CT-TNT-040_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-041">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-041</span>
+      <span class="ct-tit"><code>POST /api/auth/tenant/switch</code> troca o tenant ativo sem novo login</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade autorizada em 2 ou mais tenants (ver risco R-3).</li><li>Token atual capturado antes da troca.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu. no tenant A.</li><li>Decodificar o token e registrar a claim <code>tenant</code> (= A).</li><li>Chamar <code>POST /api/auth/tenant/switch</code> pedindo o tenant B autorizado.</li><li>Decodificar o <b>novo</b> access token e registrar a claim <code>tenant</code>.</li><li>Confirmar que não houve novo login (nenhum retorno à tela de credenciais).</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Resposta de sucesso com <b>novos</b> access e refresh tokens.</li><li>A claim <code>tenant</code> do novo token é <b>B</b>; <code>tenants</code> permanece a lista autorizada.</li><li>A sessão continua — sem reautenticação.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-041">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-041/</code> no padr&atilde;o
+        <code>CT-TNT-041_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-042">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-042</span>
+      <span class="ct-tit">Troca para tenant fora dos autorizados &rarr; 403 auditado, sem trocar</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade autorizada em A (e B); tenant C <b>não</b> autorizado, existente no sistema.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar no tenant A.</li><li>Chamar <code>POST /api/auth/tenant/switch</code> pedindo o tenant <b>C</b>.</li><li>Registrar status, corpo e auditoria.</li><li>Decodificar o token vigente após a tentativa.</li><li>Confirmar na base de C que nenhuma consulta foi produzida.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Resposta <b>403</b>; nenhum token novo é emitido; o tenant ativo continua <b>A</b>.</li><li>A tentativa é auditada com usuário, tenant de origem e tenant pedido.</li><li>Nunca conecta na base de C.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-042">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-042/</code> no padr&atilde;o
+        <code>CT-TNT-042_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-043">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-043</span>
+      <span class="ct-tit">Cada troca revalida no autorizador — não confia na claim validada no login</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade autorizada em A e B (claim <code>tenants</code> = [A,B]).</li><li>Alteração reversível de massa: desativar o usuário na base de <b>B</b> depois do login.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar no tenant A (a claim já traz B como autorizado).</li><li>Com a sessão aberta, <b>desativar</b> o usuário na base do tenant B, guardando o valor original.</li><li>Chamar <code>POST /api/auth/tenant/switch</code> pedindo B.</li><li>Registrar status e auditoria; restaurar a massa.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A troca é <b>recusada</b>, mesmo com B presente na claim emitida no login.</li><li>Prova que a revalidação consulta o autorizador a cada troca (ADR &sect;5.2.1) e que uma revogação tem efeito sem esperar a sessão expirar.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-043">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-043/</code> no padr&atilde;o
+        <code>CT-TNT-043_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-044">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-044</span>
+      <span class="ct-tit">Depois da troca, os dados vêm da base do novo tenant</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Positivo / integração</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>CT-TNT-041 aprovado.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar em A; abrir <b>Averbações</b> &rarr; <b>RCV</b> &rarr; <b>Consultar</b> e capturar a grade.</li><li>Trocar para B via switch.</li><li>Repetir a mesma tela por clique e capturar a grade.</li><li>Cruzar cada grade com <code>tb_cit_net_mov_pcl_rcv</code> da base correspondente.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A segunda grade corresponde à base de <b>B</b>, não à de A.</li><li>Nenhum dado de A permanece em cache ou em exibição após a troca.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-044">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-044/</code> no padr&atilde;o
+        <code>CT-TNT-044_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-045">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-045</span>
+      <span class="ct-tit">Tenant ativo padrão é o último usado; sem histórico válido, exige seleção explícita</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Limite</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade multi-tenant.</li><li>Chave de histórico do frontend: <code>localStorage["citnet_ultimo_ambiente"]</code>.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar e ativar o tenant B; confirmar que a chave de histórico foi gravada.</li><li>Encerrar a sessão e autenticar de novo — registrar qual tenant vem ativo.</li><li>Limpar o <code>localStorage</code> (histórico ausente) e autenticar de novo.</li><li>Gravar no histórico um tenant ao qual a identidade <b>não</b> tem mais acesso e autenticar.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Com histórico válido: o tenant ativo é o último usado.</li><li>Sem histórico: o sistema <b>exige seleção explícita</b> e bloqueia endpoints tenant-scoped até a escolha.</li><li>Com histórico inválido ou não autorizado: o valor é descartado e a seleção é exigida — nunca ativa um tenant não autorizado por ele vir do armazenamento local.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> Medido em 18/08/2026: o <code>localStorage</code> continha apenas <code>citnet-lang</code> — ou seja, o &ldquo;Tokio Marine&rdquo; travado no login <b>não</b> vinha do histórico local.</div>
+      <div class="ev-section" id="ev-CT-TNT-045">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-045/</code> no padr&atilde;o
+        <code>CT-TNT-045_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-046">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-046</span>
+      <span class="ct-tit">Allowlist <code>StrictTenants</code>: fora dela o comportamento é o legado</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Positivo / rollout</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Configuração <code>TenantMiddleware:StrictTenants</code> — vazia por padrão.</li><li>Requer que a operação habilite a allowlist para 1 tenant de homologação (risco R-4).</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Com a allowlist <b>vazia</b>, executar o fluxo completo de leitura nos 3 tenants e registrar o comportamento.</li><li>Pedir a inclusão de <b>um</b> tenant de homologação na allowlist.</li><li>Repetir o fluxo no tenant incluído e nos não incluídos.</li><li>Esvaziar a allowlist e repetir uma vez mais.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Tenant <b>fora</b> da allowlist: comportamento idêntico ao anterior à fase (rollout sem risco).</li><li>Tenant <b>dentro</b>: passa pelo resolver e pelo autorizador, com os três desfechos do grupo G3.</li><li>Esvaziar a allowlist reverte o comportamento — o rollback é por configuração.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-046">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-046/</code> no padr&atilde;o
+        <code>CT-TNT-046_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-047">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-047</span>
+      <span class="ct-tit">Regressão dirigida: a allowlist considera <code>tenants[]</code> e o host pinado, não só o tenant ativo</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / regressão</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Allowlist com o tenant <b>A</b>; identidade com <code>tenants</code> = [A,B]; tenant ativo <b>B</b> (fora da allowlist).</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar de forma que o tenant ativo seja B e A esteja na claim <code>tenants</code>.</li><li>Executar uma operação tenant-scoped.</li><li>Registrar se a requisição passou pelo caminho <b>estrito</b> (resolver e autorizador) ou pelo legado.</li><li>Repetir com o tenant pinado por host fora da allowlist.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A requisição é avaliada pelo caminho estrito — a decisão considera <code>tenants[]</code> e o host pinado.</li><li>Um tenant ativo fora da allowlist <b>não</b> pode desviar a sessão para o caminho legado sem validação.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> CT escrito a partir do achado relatado pelo próprio desenvolvimento na task #8142 (17/08/2026): a checagem inicial olhava só a claim do tenant ativo, e um tenant ativo fora da allowlist caía no legado <b>sem validação nenhuma</b>. Foi corrigido antes de fechar a fase — este CT é a contraprova em HML.</div>
+      <div class="ev-section" id="ev-CT-TNT-047">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-047/</code> no padr&atilde;o
+        <code>CT-TNT-047_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-048">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-048</span>
+      <span class="ct-tit">Toda troca de tenant é auditada com usuário, origem e destino</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Positivo / auditoria</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Trilha de auditoria acessível (log ou tabela) para o período do teste.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Executar uma troca bem-sucedida (CT-TNT-041) e uma recusada (CT-TNT-042).</li><li>Localizar os dois eventos na trilha de auditoria.</li><li>Conferir os campos: identidade, tenant de origem, tenant pedido, desfecho e carimbo de tempo.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Os <b>dois</b> eventos aparecem — sucesso e recusa.</li><li>Cada evento identifica usuário e tenant (ADR &sect;6, Observabilidade).</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-048">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-048/</code> no padr&atilde;o
+        <code>CT-TNT-048_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G5 — Fase 5/6 (#8143) — Seletor manual fora do login das seguradoras migradas</h2><span class="group-count">3 CT(s)</span></div>
+  <p class="group-desc">CA da task #8143: <i>&ldquo;critério explícito de &lsquo;seguradora migrada&rsquo; definido e aplicado; seletor manual não aparece mais no login das migradas; front-end não depende mais do tenant como entrada primária&rdquo;</i> (ADR &sect;4 Opção D, &sect;6 Frontend).</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-050">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-050</span>
+      <span class="ct-tit">Login de seguradora migrada não exibe seletor de tenant</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Critério de &ldquo;seguradora migrada&rdquo; <b>documentado</b> pelo time e informado ao QA.</li><li>Ao menos uma seguradora classificada como migrada e uma como não migrada.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> para a seguradora migrada.</li><li>Inspecionar o DOM do campo <b>Ambiente</b>: registrar se existe <code>&lt;select&gt;</code>, campo travado ou nenhum campo.</li><li>Capturar a tela com o campo visível e legível.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Nenhum <code>&lt;select&gt;</code> de seguradoras no login da migrada.</li><li>O tenant não é entrada primária do login — vem da identidade ou do host.</li></ul></div>
+      <div class="warn-box"><b>Observa&ccedil;&atilde;o de planejamento:</b> <b>Medido em 18/08/2026:</b> o campo já aparece <b>travado</b> — <code>&lt;div class="input-group locked"&gt;&lt;span class="locked-value"&gt;Tokio Marine&lt;/span&gt;&lt;span class="lock-badge"&gt;(cadeado)&lt;/span&gt;&lt;/div&gt;</code> — e não há <code>&lt;select&gt;</code> no DOM. Evidência de baseline em <code>evidencias/_baseline/8138_login_ambiente_locked.png</code>. A task #8143 está em <b>To Do</b> — a mudança de frontend chegou antes do rollout controlado que a acompanha.</div>
+      <div class="ev-section" id="ev-CT-TNT-050">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-050/</code> no padr&atilde;o
+        <code>CT-TNT-050_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-051">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-051</span>
+      <span class="ct-tit">Seletor pós-login vive em controle persistente e é populado só por <code>/me/tenants</code></span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identidade multi-tenant (risco R-3).</li><li>CT-TNT-040 aprovado.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>Localizar o seletor de seguradora no <b>header/sidebar</b> da aplicação (controle persistente).</li><li>Abrir o seletor e listar as opções exibidas.</li><li>Capturar as chamadas de rede que populam o controle.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>O seletor existe <b>depois</b> do login, disponível durante toda a sessão.</li><li>As opções vêm de <code>GET /api/auth/me/tenants</code> e são <b>apenas</b> as autorizadas.</li><li>Não pode ser populado por <code>/api/ambientes</code> (lista completa) nem por lista estática.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-051">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-051/</code> no padr&atilde;o
+        <code>CT-TNT-051_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-052">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-052</span>
+      <span class="ct-tit">Seguradora ainda não migrada mantém o acesso pelo caminho atual</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo / regressão</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Uma seguradora classificada como <b>não migrada</b> pelo critério do CT-TNT-050.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar na seguradora não migrada pelo caminho vigente e registrar qual é esse caminho.</li><li>Executar um fluxo de leitura completo.</li><li>Confirmar por SQL que os dados vêm da base correta.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Acesso preservado — o rollout por seguradora não derruba quem ainda não migrou (mesmo CA da task #8139).</li><li>Se não houver caminho de acesso, o CA da Fase 1 está violado — ver risco R-1.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-052">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-052/</code> no padr&atilde;o
+        <code>CT-TNT-052_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G6 — Fase 6/6 (#8144) — Segredos das bases em vault, Redis só como cache</h2><span class="group-count">3 CT(s)</span></div>
+  <p class="group-desc">CA da task #8144: <i>&ldquo;nenhuma credencial de base em texto/Redis como fonte de verdade; leitura de segredo por tenant via vault, com auditoria da resolução&rdquo;</i> (ADR &sect;5.3). Verificação de configuração e infraestrutura, com apoio de quem opera o ambiente.</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-060">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-060</span>
+      <span class="ct-tit">Nenhuma credencial de base como fonte de verdade no Redis</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Acesso de leitura ao Redis de homologação, acompanhado por quem opera o ambiente.</li><li>Não extrair nem transcrever valor de segredo para o plano, evidência ou card — registrar apenas <b>a existência</b> da chave e o seu tipo.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Listar as chaves do Redis relacionadas a conexão ou tenant.</li><li>Para cada chave encontrada, classificar: <b>cache</b> (com TTL) ou <b>fonte primária</b> (sem TTL, consultada antes do vault).</li><li>Limpar a chave de cache e confirmar que a aplicação continua conectando (prova de que a fonte de verdade não é o Redis).</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Nenhuma credencial de base é fonte de verdade no Redis.</li><li>Com o cache limpo, a aplicação resolve o segredo na fonte primária e segue operando.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-060">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-060/</code> no padr&atilde;o
+        <code>CT-TNT-060_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-061">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-061</span>
+      <span class="ct-tit">Resolução de segredo por tenant é auditada</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Positivo / auditoria</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Vault ou secret manager em uso e trilha de auditoria acessível.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Forçar uma resolução de segredo (cache frio) para um tenant.</li><li>Localizar o evento correspondente na auditoria.</li><li>Conferir tenant, momento e origem da resolução — sem transcrever o segredo.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Cada resolução de segredo por tenant gera um evento auditável (ADR &sect;5.3 e &sect;6).</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-061">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-061/</code> no padr&atilde;o
+        <code>CT-TNT-061_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-062">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-062</span>
+      <span class="ct-tit">Cache de segredo respeita o TTL controlado</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Limite</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>TTL configurado e informado pelo time.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Resolver o segredo e registrar o instante.</li><li>Alterar o segredo na fonte primária (em ambiente de homologação, com acompanhamento).</li><li>Antes do TTL, confirmar o comportamento; depois do TTL, confirmar a nova resolução.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Após o TTL, a aplicação lê a fonte primária de novo — o cache não perpetua valor obsoleto.</li><li>Nenhum segredo é escrito em log.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-062">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-062/</code> no padr&atilde;o
+        <code>CT-TNT-062_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="group">
+  <div class="group-header"><h2>G7 — Regressão transversal e isolamento entre tenants</h2><span class="group-count">3 CT(s)</span></div>
+  <p class="group-desc">Mudança de autenticação e tenancy é transversal: o risco não está só no que foi alterado, mas em tudo o que passa por ele. Estes CTs protegem o que já funcionava.</p>
+  
+  <div class="ct-block" id="ct-CT-TNT-070">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-070</span>
+      <span class="ct-tit">Regressão funcional: averbação RCV grava na base do tenant autenticado</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Positivo / regressão</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Tenant com massa de RCV conhecida (apólice, filial e subgrupo fixados na execução).</li><li>Scripts reaproveitáveis em <code>testes-automatizados/sprint-12-citweb/pbi-7792/</code> (<code>ct_rcs_consulta_paridade.py</code> tem o helper de login do CITNET novo).</li><li>Ver risco R-5: o helper usa <code>select_option("select")</code> no login e precisa ser atualizado antes do reuso — o seletor não existe mais.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>No browser, abrir <code>https://hmlcitfaturamento.atmtec.com.br/login</code> (única URL digitada — é o login do HML). Preencher <code>#usuario</code> e <code>#senha</code> e clicar no botão <b>Entrar no nsseg</b>. Toda navegação seguinte é por <b>clique</b> no menu.</li><li>Pelo menu (clique): <b>Averbações</b> &rarr; <b>RCV</b>, e gravar uma averbação com massa conhecida.</li><li>Registrar o protocolo gerado.</li><li>Confirmar o registro em <code>tb_cit_net_mov_pcl_rcv</code> na base <b>daquele</b> tenant.</li><li>Confirmar que o protocolo <b>não</b> existe nas bases dos outros tenants.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>A averbação é gravada e o protocolo aparece na base do tenant autenticado, e só nela.</li><li>Nenhuma regressão de cálculo ou gravação introduzida pela mudança de resolução de tenant.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-070">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-070/</code> no padr&atilde;o
+        <code>CT-TNT-070_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-071">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-071</span>
+      <span class="ct-tit">Isolamento A&rarr;B: sessão do tenant A não alcança dado do tenant B</span>
+      <span class="badge bloqueante">P1 &middot; Bloqueante</span>
+      <span class="badge tipo">Negativo / segurança</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Identificador (apólice ou protocolo) que existe em B e não em A — apurado por SQL antes do CT.</li><li>Executar com uma das identidades multi-tenant reais (ver risco R-6), não com usuário de tenant único.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Autenticar no tenant A.</li><li>Nas telas de consulta, pesquisar o identificador que só existe em <b>B</b>.</li><li>Repetir a busca pelas chamadas da própria sessão, variando o identificador.</li><li>Registrar a resposta e conferir a auditoria.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Nenhum dado de B é retornado — resposta vazia ou negada, com mensagem explícita.</li><li>Nenhum vazamento entre tenants, mesmo com identificador válido em outra base (requisito de isolamento forte, ADR &sect;3).</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-071">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-071/</code> no padr&atilde;o
+        <code>CT-TNT-071_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="ct-block" id="ct-CT-TNT-072">
+    <div class="ct-head">
+      <span class="ct-id">CT-TNT-072</span>
+      <span class="ct-tit">Observabilidade: operações sensíveis registram tenant e usuário</span>
+      <span class="badge importante">P2 &middot; Importante</span>
+      <span class="badge tipo">Positivo / auditoria</span>
+      <span class="badge status pendente">PENDENTE</span>
+      <span class="ct-toggle">&#9654;</span>
+    </div>
+    <div class="ct-body">
+      <div class="sec"><h4>Pr&eacute;-condi&ccedil;&otilde;es</h4><ul><li>Trilha de logs e auditoria acessível para o período do teste.</li></ul></div>
+      <div class="sec"><h4>Passos</h4><ol><li>Executar uma operação sensível (gravação de averbação) num tenant.</li><li>Localizar os registros de log e auditoria correspondentes.</li><li>Conferir a presença de <b>tenant resolvido</b> e <b>usuário</b> em cada registro.</li></ol></div>
+      <div class="sec"><h4>Resultado esperado</h4><ul><li>Toda operação sensível é rastreável a um par (usuário, tenant) — ADR &sect;6, Observabilidade.</li></ul></div>
+      
+      <div class="ev-section" id="ev-CT-TNT-072">
+        <h4>Evid&ecirc;ncias</h4>
+        <p class="ev-empty">Sem evid&ecirc;ncias — CT ainda n&atilde;o executado. Ao executar, salvar em
+        <code>evidencias/CT-TNT-072/</code> no padr&atilde;o
+        <code>CT-TNT-072_&lt;seq&gt;_&lt;descricao&gt;.png</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="sec-title">6. Matriz de rastreabilidade</h2>
+<table>
+  <thead><tr><th style="width:130px">Origem</th><th>Crit&eacute;rio de aceite</th>
+  <th style="width:290px">CT(s)</th><th style="width:100px">Resultado</th></tr></thead>
+  <tbody><tr><td><b>#8139 Fase 1/6</b></td><td>Nenhuma seguradora perde acesso durante a transição; fluxo atual documentado como baseline</td><td><code>CT-TNT-010</code> &middot; <code>CT-TNT-011</code> &middot; <code>CT-TNT-012</code> &middot; <code>CT-TNT-052</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>#8140 Fase 2/6</b></td><td>ITenantResolver implementado e coberto por testes, coexistindo com o fluxo atual sem substituí-lo</td><td><code>CT-TNT-020</code> &middot; <code>CT-TNT-021</code> &middot; <code>CT-TNT-022</code> &middot; <code>CT-TNT-023</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>#8141 Fase 3/6</b></td><td>Falha de resolução sempre tratada como erro de autorização/configuração, nunca fallback silencioso; troca revalidada a cada troca</td><td><code>CT-TNT-030</code> &middot; <code>CT-TNT-031</code> &middot; <code>CT-TNT-032</code> &middot; <code>CT-TNT-033</code> &middot; <code>CT-TNT-034</code> &middot; <code>CT-TNT-043</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>#8142 Fase 4/6</b></td><td>Novas sessões resolvem tenant via identidade; troca entre autorizados sem novo login, revalidada e auditada; tentativa fora da lista rejeitada (403), nunca conecta na base errada</td><td><code>CT-TNT-040</code> &middot; <code>CT-TNT-041</code> &middot; <code>CT-TNT-042</code> &middot; <code>CT-TNT-043</code> &middot; <code>CT-TNT-044</code> &middot; <code>CT-TNT-045</code> &middot; <code>CT-TNT-046</code> &middot; <code>CT-TNT-047</code> &middot; <code>CT-TNT-048</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>#8143 Fase 5/6</b></td><td>Critério de &ldquo;seguradora migrada&rdquo; aplicado; seletor manual fora do login das migradas; front-end não depende do tenant como entrada primária</td><td><code>CT-TNT-050</code> &middot; <code>CT-TNT-051</code> &middot; <code>CT-TNT-052</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>#8144 Fase 6/6</b></td><td>Nenhuma credencial de base em texto/Redis como fonte de verdade; leitura via vault com auditoria</td><td><code>CT-TNT-060</code> &middot; <code>CT-TNT-061</code> &middot; <code>CT-TNT-062</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>ADR &sect;3 (segurança)</b></td><td>Isolamento forte entre tenants; tenant conectado = tenant autorizado para a identidade; fluxo auditável</td><td><code>CT-TNT-011</code> &middot; <code>CT-TNT-031</code> &middot; <code>CT-TNT-071</code> &middot; <code>CT-TNT-072</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>ADR &sect;5.2.1</b></td><td>Três desfechos: sucesso, seleção pendente e falha — <code>tenants[]</code> com N&gt;1 não é erro</td><td><code>CT-TNT-030</code> &middot; <code>CT-TNT-032</code> &middot; <code>CT-TNT-040</code> &middot; <code>CT-TNT-041</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>ADR &sect;6 (Backend)</b></td><td>Falha de resolução nunca é fallback silencioso</td><td><code>CT-TNT-033</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>Prontidão de build</b></td><td>A fase exercitada existe no build implantado (separa BLOQUEADO de REPROVADO)</td><td><code>CT-TNT-001</code></td><td class='res'>PENDENTE</td></tr><tr><td><b>Regressão funcional</b></td><td>O que já funcionava continua funcionando após a mudança de tenancy</td><td><code>CT-TNT-070</code> &middot; <code>CT-TNT-022</code></td><td class='res'>PENDENTE</td></tr></tbody>
+</table>
+<p style="font-size:12.5px;color:var(--muted)">Os criterios de aceite vivem nas <b>tasks filhas</b> — o
+campo &ldquo;Criterios de Aceite&rdquo; do PBI esta vazio, e o detalhe foi registrado por fase, como prevem as
+convencoes de DoR (&sect;2).</p>
+
+<h2 class="sec-title">7. M&eacute;tricas</h2>
+<table>
+  <thead><tr><th>Indicador</th><th style="width:150px">Valor</th></tr></thead>
+  <tbody>
+    <tr><td>Total de casos de teste</td><td><b>31</b></td></tr>
+    <tr><td>P1 &middot; Bloqueante</td><td>19</td></tr>
+    <tr><td>P2 &middot; Importante</td><td>11</td></tr>
+    <tr><td>P3 &middot; Desejavel</td><td>1</td></tr>
+    <tr><td>Crit&eacute;rios de aceite cobertos</td><td>6/6 tasks (100%) + 4 requisitos do ADR</td></tr>
+    <tr><td>Executados</td><td>0 — plano em Gate 1</td></tr>
+  </tbody>
+</table>
+
+<h2 class="sec-title">8. Riscos</h2>
+<table>
+  <thead><tr><th style="width:48px">ID</th><th style="width:74px">Probab.</th>
+  <th style="width:74px">Impacto</th><th>Risco</th><th style="width:300px">Mitigacao</th></tr></thead>
+  <tbody><tr><td><b>R-1</b></td><td>Alta</td><td>Alto</td><td>O seletor de <b>Ambiente</b> já saiu do login (campo travado em &ldquo;Tokio Marine&rdquo;, medido em 18/08/2026) enquanto <code>/api/auth/tenant/switch</code> responde <b>404</b> e a task #8143 está em <b>To Do</b>. Sem seletor e sem endpoint de troca, não há caminho de UI para ativar outra seguradora por este host.</td><td>CT-TNT-010 e CT-TNT-052 medem exatamente isso na execução. Antes de executar, confirmar com o time se o host de HML foi pinado à Tokio deliberadamente e qual o caminho previsto para os demais tenants.</td></tr><tr><td><b>R-2</b></td><td>Média</td><td>Crítico</td><td><b>Fallback silencioso</b> em falha de resolução: a aplicação parece funcionar e conecta num tenant que não é o autorizado. É o defeito que passa em teste de tela.</td><td>CT-TNT-033 exige a mensagem de erro <b>e</b> a prova de que nenhuma base foi tocada; CT-TNT-011, CT-TNT-044 e CT-TNT-070 cruzam a tela com a base por SQL, em vez de confiar no &ldquo;abriu sem erro&rdquo;.</td></tr><tr><td><b>R-3</b></td><td>Alta</td><td>Médio</td><td>A massa de <b>corretor multi-seguradora</b> (<code>tenants[]</code> com N&gt;1) depende do Keycloak: no login local a lista tem sempre 1 item, e o realm e o <code>RoleTenantMap</code> ainda não foram decididos.</td><td>Levantados por SQL os candidatos reais: <b>9</b> e-mails coincidentes entre AXA-alfa e KOVR-alfa, 2 entre Tokio e AXA-alfa e 1 entre Tokio e KOVR-alfa. Servem de massa assim que o mapeamento existir. Até lá, CT-TNT-032, 041, 042, 043 e 051 ficam <b>BLOQUEADOS</b> por dependência externa comprovada.</td></tr><tr><td><b>R-4</b></td><td>Média</td><td>Médio</td><td><code>TenantMiddleware:StrictTenants</code> está <b>vazia</b> por padrão: sem ela, o caminho estrito não é exercitado e os CTs dos grupos G3 e G4 medem apenas o comportamento legado.</td><td>CT-TNT-046 trata a allowlist como pré-condição operacional. Solicitar a inclusão de 1 tenant de homologação antes da execução do G3/G4 — do contrário o resultado é falso-verde.</td></tr><tr><td><b>R-5</b></td><td>Alta</td><td>Médio</td><td>A automação de QA existente quebra: os scripts de sprint-11 e sprint-12 fazem <code>page.select_option("select", label=...)</code> no login do CITNET novo, e o <code>&lt;select&gt;</code> não existe mais no DOM.</td><td>Atualizar o helper de login em <code>testes-automatizados/sprint-12-citweb/pbi-7792/ct_rcs_consulta_paridade.py</code> antes de reusar qualquer script; o impacto atinge também o regressivo de paridade CITNET novo × legado.</td></tr><tr><td><b>R-6</b></td><td>Média</td><td>Alto</td><td>Os 9 e-mails coincidentes entre bases já são, na prática, identidades multi-tenant. Quando a resolução por identidade entrar, esses usuários passam a ter <code>tenants[]</code> com N&gt;1 em produção.</td><td>CT-TNT-071 (isolamento A&rarr;B) e CT-TNT-042/043 devem ser executados usando justamente esse perfil, não um usuário de tenant único.</td></tr></tbody>
+</table>
+
+<h2 class="sec-title">9. Refer&ecirc;ncias</h2>
+<ul>
+  <li><b>ADR-010 — Resolucao de tenant e isolamento de bases por identidade</b> (anexo do PBI #8138):
+      &sect;3 requisitos de seguranca &middot; &sect;4 Opcao D &middot; &sect;5.2 camada de resolucao &middot;
+      &sect;5.2.1 corretor multi-seguradora &middot; &sect;5.3 segredos &middot; &sect;6 implementacao e
+      observabilidade &middot; &sect;9 plano de migracao.</li>
+  <li><b>Tasks filhas</b> — origem dos criterios de aceite e do detalhe tecnico (endpoints, codigos de
+      erro, allowlist, claims): #8139, #8140, #8141, #8142, #8143 e #8144, incluindo os comentarios de
+      progresso do desenvolvimento de 17/08/2026.</li>
+  <li><b>Base de conhecimento do time</b> — <code>.speckit/quality/citnet-login.md</code> e
+      <code>hml-environments.md</code> (acesso ao CITNET novo, tenants e case-sensitivity de usuario);
+      <code>features/averbacao/rcv-citnet.md</code> (fluxo RCV usado na regressao).</li>
+  <li><b>Automacao reaproveitavel</b> — <code>testes-automatizados/sprint-12-citweb/pbi-7792/</code>
+      (helper de login do CITNET novo e comparacao tela x base). Ver risco R-5 antes de reusar.</li>
+</ul>
+
+</div>
+
+<footer>
+  Plano de teste gerado em 18/08/2026 para o PBI #8138 (Sprint_13_Citweb) &middot; CITWEB Team &middot;
+  Estado: <b>Gate 1 — aguardando revisao do QA owner</b> &middot; Nenhum CT executado &middot;
+  Baseline de ambiente medido em 18/08/2026 (bundle <code>index-nXB9XWMV.js</code>).
+</footer>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(function (h) {
+  h.addEventListener('click', function () {
+    h.closest('.ct-block').classList.toggle('expanded');
+  });
+});
+</script>
+</body>
+</html>
