@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Provar que Funciona — Área de Qualidade</title>
+<style>
+  /* Deck de apresentação: tema único e explícito de propósito — projetor não deve
+     depender do tema do sistema operacional de quem abre o link. */
+  :root{
+    --deep:#0F2544; --deep-2:#16304F; --deep-3:#0A1A2E;
+    --paper:#F4F6F8; --surface:#FFFFFF; --surface-2:#E9EEF3;
+    --ink:#0F2544; --ink-2:#4A5771; --ink-3:#7C8AA3;
+    --on-deep:#EEF3F9; --on-deep-2:#9FB3CC;
+    --accent:#DC5230; --accent-2:#FF8259;
+    --ok:#177A4A; --ok-soft:#E4F2EA; --bad:#B22A17; --bad-soft:#FBEAE6;
+    --rule:#D9E0E9; --rule-2:#BFCAD8;
+    --display:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --body:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    --mono:"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--deep-3); color:var(--ink);
+    font-family:var(--body); overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,p{margin:0}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+  /* ---------- estrutura de slide ---------- */
+  .slide{
+    position:fixed; inset:0; display:none;
+    padding:clamp(28px,5vh,64px) clamp(26px,6vw,96px);
+    /* espaco reservado embaixo para o HUD/contador nao encavalar no conteudo */
+    padding-bottom:clamp(58px,8vh,92px);
+    overflow-y:auto;
+  }
+  .slide.tight h2{font-size:clamp(22px,3.1vw,40px)}
+  .slide.on{display:flex; flex-direction:column; justify-content:center}
+  .slide.light{background:var(--paper)}
+  .slide.dark{background:var(--deep); color:var(--on-deep)}
+  .slide.dark2{background:var(--deep-2); color:var(--on-deep)}
+  .inner{width:100%; max-width:1180px; margin:0 auto}
+
+  .kicker{
+    font-family:var(--mono); font-size:clamp(10px,1.05vw,12.5px); letter-spacing:.18em;
+    text-transform:uppercase; color:var(--accent); margin-bottom:clamp(14px,2.4vh,26px);
+  }
+  .dark .kicker,.dark2 .kicker{color:var(--accent-2)}
+  h1{
+    font-family:var(--display); font-weight:400; letter-spacing:-.018em; line-height:1.05;
+    font-size:clamp(30px,5.2vw,66px); text-wrap:balance; max-width:23ch;
+  }
+  h2{
+    font-family:var(--display); font-weight:400; letter-spacing:-.014em; line-height:1.1;
+    font-size:clamp(25px,3.9vw,48px); text-wrap:balance; max-width:26ch;
+  }
+  .sub{
+    margin-top:clamp(14px,2.4vh,24px); color:var(--ink-2);
+    font-size:clamp(15px,1.5vw,21px); line-height:1.55; max-width:62ch;
+  }
+  .dark .sub,.dark2 .sub{color:var(--on-deep-2)}
+  .big{
+    font-family:var(--display); font-size:clamp(26px,4.4vw,54px); line-height:1.22;
+    letter-spacing:-.012em; max-width:34ch;
+  }
+  .big u{text-decoration:none; color:var(--accent-2)}
+  .light .big u{color:var(--accent)}
+
+  /* ---------- blocos ---------- */
+  .cols{
+    display:grid; gap:clamp(14px,2vw,26px); margin-top:clamp(20px,3.6vh,40px);
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));
+  }
+  .card{
+    background:var(--surface); border:1px solid var(--rule); border-radius:4px;
+    padding:clamp(16px,2vw,26px);
+  }
+  .dark .card,.dark2 .card{background:rgba(255,255,255,.055); border-color:rgba(255,255,255,.14)}
+  .card b.t{
+    display:block; font-family:var(--mono); font-size:clamp(9.5px,.95vw,11.5px);
+    letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-bottom:10px;
+  }
+  .dark .card b.t,.dark2 .card b.t{color:var(--accent-2)}
+  .card h3{font-size:clamp(17px,1.75vw,23px); font-weight:600; margin-bottom:8px}
+  .card p{font-size:clamp(13.5px,1.35vw,17px); line-height:1.5; color:var(--ink-2)}
+  .dark .card p,.dark2 .card p{color:var(--on-deep-2)}
+  .ex{
+    margin-top:12px; padding:11px 13px; background:var(--surface-2); border-left:2px solid var(--accent);
+    border-radius:2px; font-size:clamp(12.5px,1.25vw,15.5px); color:var(--ink); line-height:1.45;
+  }
+  .dark .ex,.dark2 .ex{background:rgba(255,255,255,.07); color:var(--on-deep); border-left-color:var(--accent-2)}
+  .ex em{
+    display:block; font-style:normal; font-family:var(--mono); color:var(--ink-3);
+    font-size:clamp(9px,.9vw,10.5px); letter-spacing:.12em; text-transform:uppercase; margin-bottom:5px;
+  }
+  .dark .ex em,.dark2 .ex em{color:var(--on-deep-2)}
+
+  .figs{display:flex; flex-wrap:wrap; gap:clamp(18px,3.4vw,56px); margin-top:clamp(20px,3.4vh,38px)}
+  .fig .n{
+    font-family:var(--display); font-size:clamp(40px,6.4vw,84px); line-height:.95;
+    color:var(--accent); font-variant-numeric:tabular-nums;
+  }
+  .dark .fig .n,.dark2 .fig .n{color:var(--accent-2)}
+  .fig .l{font-size:clamp(13px,1.3vw,16.5px); color:var(--ink-2); margin-top:8px; max-width:22ch}
+  .dark .fig .l,.dark2 .fig .l{color:var(--on-deep-2)}
+
+  ul.pts{list-style:none; margin:clamp(18px,3.2vh,36px) 0 0; padding:0;
+         display:flex; flex-direction:column; gap:clamp(12px,2vh,20px)}
+  ul.pts li{
+    display:grid; grid-template-columns:auto 1fr; gap:16px; align-items:baseline;
+    font-size:clamp(15px,1.6vw,22px); line-height:1.45; color:var(--ink-2);
+  }
+  .dark ul.pts li,.dark2 ul.pts li{color:var(--on-deep-2)}
+  ul.pts .num{
+    font-family:var(--mono); font-size:clamp(11px,1.1vw,14px); color:var(--accent);
+    letter-spacing:.08em; padding-top:.35em;
+  }
+  .dark ul.pts .num,.dark2 ul.pts .num{color:var(--accent-2)}
+  ul.pts b{color:var(--ink); font-weight:600}
+  .dark ul.pts b,.dark2 ul.pts b{color:var(--on-deep)}
+
+  .chips{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .chip{
+    font-family:var(--mono); font-size:clamp(10.5px,1.05vw,13px); padding:4px 10px;
+    border-radius:2px; border:1px solid var(--rule-2); color:var(--ink-2); background:var(--surface);
+  }
+  .dark .chip,.dark2 .chip{border-color:rgba(255,255,255,.2); color:var(--on-deep-2); background:rgba(255,255,255,.05)}
+  .flag{border-left:3px solid var(--bad); background:var(--bad-soft); padding:clamp(14px,2vw,22px); border-radius:2px}
+  .flag.good{border-left-color:var(--ok); background:var(--ok-soft)}
+  .flag h3{font-size:clamp(17px,1.9vw,24px); font-weight:600; color:var(--bad); margin-bottom:8px}
+  .flag.good h3{color:var(--ok)}
+  .flag p{font-size:clamp(13.5px,1.4vw,17.5px); line-height:1.5; color:var(--ink-2)}
+
+  /* ---------- video ---------- */
+  .vwrap{
+    margin-top:clamp(14px,2.2vh,24px); background:#000; border-radius:5px; overflow:hidden;
+    border:1px solid rgba(255,255,255,.16); box-shadow:0 20px 50px rgba(0,0,0,.45);
+    max-height:min(52vh,520px); display:flex;
+  }
+  .vwrap video{width:100%; height:auto; max-height:min(52vh,520px); display:block; margin:0 auto}
+  .vnote{margin-top:12px; font-size:clamp(11px,1.05vw,13.5px); color:var(--on-deep-2); max-width:88ch; line-height:1.5}
+
+  /* ---------- chrome do deck ---------- */
+  .bar{position:fixed; left:0; right:0; bottom:0; height:3px; background:rgba(255,255,255,.14); z-index:60}
+  .light ~ .bar{background:rgba(15,37,68,.12)}
+  .bar i{display:block; height:100%; background:var(--accent); transition:width .25s ease}
+  .hud{
+    position:fixed; bottom:18px; right:20px; z-index:70; display:flex; align-items:center; gap:10px;
+    font-family:var(--mono); font-size:12px; color:var(--ink-3);
+  }
+  .hud button{
+    font:inherit; cursor:pointer; background:rgba(127,141,166,.14); color:inherit;
+    border:1px solid rgba(127,141,166,.34); border-radius:3px; padding:5px 10px; line-height:1;
+  }
+  .hud button:hover{background:rgba(127,141,166,.26)}
+  .hud button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  #cnt{font-variant-numeric:tabular-nums; min-width:52px; text-align:right}
+  .hint{
+    position:fixed; bottom:18px; left:20px; z-index:70; font-family:var(--mono); font-size:11.5px;
+    color:var(--ink-3); letter-spacing:.06em;
+  }
+  @media (max-width:700px){.hint{display:none}}
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="slide dark on">
+  <div class="inner">
+    <div class="kicker">Área de Qualidade · o que é e por que vale</div>
+    <h1>Software só está pronto quando alguém <u style="color:var(--accent-2)">prova</u> que ele faz o que foi combinado.</h1>
+    <p class="sub">
+      Três ideias simples, um teste rodando de verdade e um caso real — do pedido do negócio
+      até o defeito corrigido.
+    </p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">01 · O que acontece sem isso</div>
+    <h2>Sem uma área de qualidade, quem aprova é quem construiu</h2>
+    <p class="sub">Não por má fé. É que ninguém enxerga o próprio ponto cego.</p>
+    <div class="cols">
+      <div class="card"><b class="t">A régua não existe</b><p>"Está pronto" quer dizer coisas diferentes para quem pediu, quem programou e quem vai usar. Cada um usa a sua.</p></div>
+      <div class="card"><b class="t">A prova é uma frase</b><p>"Testei aqui e funcionou." Não dá para conferir depois, não dá para repetir, e não sobrevive à próxima mudança.</p></div>
+      <div class="card"><b class="t">Quem acha é o cliente</b><p>O defeito aparece para quem paga pelo sistema, no pior momento: quando já está em uso e já gerou consequência.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="slide dark2">
+  <div class="inner">
+    <p class="big">Um cálculo errado em produção não é um bug.<br>É uma <u>cobrança errada</u> — e ela já saiu.</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">02 · Como funciona</div>
+    <h2>Três ideias, em português</h2>
+    <p class="sub">Todo o resto do processo é consequência destas três.</p>
+    <div class="cols">
+      <div class="card">
+        <b class="t">Ideia 1</b><h3>Requisito</h3>
+        <p>O que o negócio pediu, escrito de um jeito que dê para verificar. Se não dá para verificar, não é requisito — é desejo.</p>
+        <div class="ex"><em>exemplo real</em>Cobrar o frete pela cidade de origem, não só pelo estado.</div>
+      </div>
+      <div class="card">
+        <b class="t">Ideia 2</b><h3>Critério de aceite</h3>
+        <p>A régua do "pronto", combinada antes de programar. Transforma discussão de opinião em conferência de fato.</p>
+        <div class="ex"><em>exemplo real</em>Se a rota não tiver taxa cadastrada, o sistema deve avisar — não pode cobrar zero.</div>
+      </div>
+      <div class="card">
+        <b class="t">Ideia 3</b><h3>Evidência</h3>
+        <p>A imagem da tela mostrando o resultado, guardada e datada. Sem ela, o "passou" é palavra de alguém.</p>
+        <div class="ex"><em>exemplo real</em>Print da mensagem de recusa, com o texto exato lido da tela.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide dark2">
+  <div class="inner">
+    <div class="kicker">02 · Como funciona</div>
+    <p class="big">Um <u>caso de teste</u> é um passo a passo curto que verifica um critério e termina com prova.</p>
+    <p class="sub">
+      Um <b style="color:var(--on-deep)">plano de teste</b> é a lista desses casos, com a tabela que mostra qual
+      caso cobre qual critério. É o que permite responder "o que foi testado?" sem depender da memória de ninguém.
+    </p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide dark2 tight">
+  <div class="inner">
+    <div class="kicker">03 · Veja rodando</div>
+    <h2 style="max-width:38ch">Um teste automatizado, executando sozinho</h2>
+    <div class="vwrap">
+      <video controls muted playsinline preload="metadata" poster="poster.png">
+        <source src="execucao.webm" type="video/webm">
+        Seu navegador não reproduz este vídeo.
+      </video>
+    </div>
+    <p class="vnote">
+      Gravação real em ambiente de teste, sem ninguém no teclado. O teste abre o sistema, tenta entrar com
+      senha inválida para conferir se o sistema recusa, lê o texto exato da tela — <b style="color:var(--on-deep)">"Senha inválida."</b> —
+      e então entra com a credencial correta. Os rótulos azuis foram sobrepostos para o vídeo se explicar
+      sozinho; o nome de usuário está mascarado de propósito.
+    </p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">04 · Caso real</div>
+    <h2>Do pedido do negócio até o defeito corrigido</h2>
+    <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))">
+      <div class="card">
+        <b class="t">O pedido</b><h3>Cobrar por cidade, não por estado</h3>
+        <p>Mudança no cálculo de taxa, passando a considerar o município de origem. Mexer em cálculo é o tipo de mudança que ninguém percebe quando dá errado — o número sai, só sai errado.</p>
+      </div>
+      <div class="card">
+        <b class="t">O plano</b><h3>16 casos, publicados antes de executar</h3>
+        <p>Cada caso amarrado a um critério, incluindo os chatos: rota sem taxa, cidade inexistente, e a conferência de que o cálculo antigo continuava certo. Revisado por quem pediu a mudança.</p>
+        <div class="chips"><span class="chip">16 casos</span><span class="chip">revisado pelo negócio</span></div>
+      </div>
+      <div class="card">
+        <b class="t">A execução</b><h3>55 imagens de evidência</h3>
+        <p>Cada caso gerou o antes, a ação e o depois. Alguém pode abrir esse plano seis meses depois e ver o que foi verificado, em qual ambiente, em que dia.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">04 · Caso real · o achado</div>
+    <h2 style="max-width:30ch">Dois defeitos, encontrados no mesmo dia</h2>
+    <div class="cols" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
+      <div class="flag">
+        <h3>O grave</h3>
+        <p>Quando a rota não tinha taxa cadastrada, o sistema devolvia <b>zero</b> — sem mensagem, sem alerta, sem impedir. Ou seja: emitia a apólice com prêmio zerado, e ninguém saberia.</p>
+      </div>
+      <div class="flag">
+        <h3>O segundo</h3>
+        <p>Erro de servidor ao gravar sem o município de origem. O usuário perdia o preenchimento e não recebia explicação.</p>
+      </div>
+      <div class="flag good">
+        <h3>O desfecho</h3>
+        <p>Os dois viraram itens de trabalho atribuídos no mesmo dia a quem ia corrigir, com a evidência anexada. Depois da correção, os mesmos passos foram repetidos e fotografados de novo.</p>
+        <div class="chips"><span class="chip">13/07/2026</span><span class="chip">16/16 aprovado hoje</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="slide dark">
+  <div class="inner">
+    <p class="big">O ganho não foi o relatório bonito.<br>Foi o <u>zero que não chegou</u> na fatura do cliente.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">05 · Automação e regressão</div>
+    <h2>Teste feito uma vez, cobrado para sempre</h2>
+    <p class="sub">
+      <b style="color:var(--ink)">Regressão</b> é conferir se o que já funcionava continua funcionando depois da
+      mudança nova. É onde mais se perde dinheiro sem perceber: a novidade é testada, o resto ninguém olha —
+      até um cliente ligar dizendo que algo antigo parou.
+    </p>
+    <div class="figs">
+      <div class="fig"><div class="n">296</div><div class="l">testes já automatizados</div></div>
+      <div class="fig"><div class="n">~20</div><div class="l">ambientes de cliente cobertos pelos mesmos scripts</div></div>
+      <div class="fig"><div class="n">176</div><div class="l">planos publicados em 4 meses</div></div>
+    </div>
+    <p class="sub" style="margin-top:clamp(16px,2.6vh,28px)">
+      Todo caso aprovado vira script antes de o trabalho fechar. Aprovado duas vezes, entra na bateria
+      permanente que roda a cada entrega — o esforço de hoje vira cobertura de graça nas entregas seguintes.
+    </p>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="slide light">
+  <div class="inner">
+    <div class="kicker">06 · O retorno</div>
+    <h2>O que muda na empresa</h2>
+    <div class="cols">
+      <div class="card"><h3>"Pronto" passa a ter definição</h3><p>Escrita antes, combinada com quem pediu. Menos retrabalho por mal-entendido — o desperdício mais barato de eliminar.</p></div>
+      <div class="card"><h3>O defeito é achado por quem procura</h3><p>Não por quem paga. Muda o custo e muda a conversa com o cliente.</p></div>
+      <div class="card"><h3>O conhecimento fica escrito</h3><p>Como cada tela funciona, o que já foi testado, o que deu errado antes. Deixa de morar na cabeça de uma pessoa.</p></div>
+      <div class="card"><h3>Subir para produção deixa de ser fé</h3><p>Existe uma lista do que foi verificado, com prova e data. Dá para decidir com informação — inclusive assumir um risco conhecido.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="slide dark2">
+  <div class="inner">
+    <div class="kicker">07 · Implantação</div>
+    <h2 style="max-width:28ch">Como começa, na prática</h2>
+    <p class="sub">Sem ferramenta nova, sem licença, sem time grande para o primeiro ciclo.</p>
+    <ul class="pts">
+      <li><span class="num">01</span><span><b>Escolher um fluxo que dói.</b> O que mais gera reclamação ou retrabalho hoje — resultado visível na primeira semana.</span></li>
+      <li><span class="num">02</span><span><b>Escrever os critérios de aceite com quem pediu.</b> Meia hora de conversa. É aqui que a maior parte dos defeitos é evitada, antes de existir código.</span></li>
+      <li><span class="num">03</span><span><b>Um plano, executado com evidência, publicado.</b> Poucos casos, bem escolhidos, cada um com prova, num link que qualquer pessoa abre.</span></li>
+      <li><span class="num">04</span><span><b>Transformar o que passou em script</b> e repetir no próximo fluxo. A cobertura cresce sozinha, entrega após entrega.</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide dark">
+  <div class="inner">
+    <p class="big">O primeiro ciclo cabe em uma sprint.<br>O que ele deixa — a <u>régua escrita</u> e a <u>prova guardada</u> — não se perde mais.</p>
+    <p class="sub" style="margin-top:clamp(20px,3.4vh,36px)">
+      Caso real e números conferidos no repositório de planos de teste e no sistema de gestão da equipe,
+      abril a agosto de 2026. Vídeo gravado em ambiente de homologação, sem intervenção humana.
+    </p>
+  </div>
+</section>
+
+<div class="bar"><i id="prog"></i></div>
+<div class="hint">← → navega · F tela cheia</div>
+<div class="hud">
+  <button id="prev" type="button" aria-label="Slide anterior">←</button>
+  <span id="cnt">1 / 13</span>
+  <button id="next" type="button" aria-label="Próximo slide">→</button>
+  <button id="fs" type="button" aria-label="Tela cheia">⤢</button>
+</div>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var cnt = document.getElementById('cnt'), prog = document.getElementById('prog');
+  var i = 0;
+
+  function show(n, push){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){ s.classList.toggle('on', k === i); });
+    cnt.textContent = (i + 1) + ' / ' + slides.length;
+    prog.style.width = ((i + 1) / slides.length * 100) + '%';
+    // pausa qualquer vídeo que não esteja no slide atual
+    slides.forEach(function(s, k){
+      var v = s.querySelector('video');
+      if (v && k !== i) { v.pause(); }
+    });
+    if (push !== false) { history.replaceState(null, '', '#' + (i + 1)); }
+  }
+
+  document.getElementById('next').addEventListener('click', function(e){ e.stopPropagation(); show(i + 1); });
+  document.getElementById('prev').addEventListener('click', function(e){ e.stopPropagation(); show(i - 1); });
+  document.getElementById('fs').addEventListener('click', function(e){
+    e.stopPropagation();
+    if (document.fullscreenElement) { document.exitFullscreen(); }
+    else { document.documentElement.requestFullscreen(); }
+  });
+
+  document.addEventListener('keydown', function(e){
+    var k = e.key;
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Enter'){ e.preventDefault(); show(i + 1); }
+    else if (k === 'ArrowLeft' || k === 'PageUp'){ e.preventDefault(); show(i - 1); }
+    else if (k === 'Home'){ show(0); }
+    else if (k === 'End'){ show(slides.length - 1); }
+    else if (k === 'f' || k === 'F'){
+      if (document.fullscreenElement) { document.exitFullscreen(); }
+      else { document.documentElement.requestFullscreen(); }
+    }
+  });
+
+  // clique avança, exceto sobre vídeo, links e controles
+  document.addEventListener('click', function(e){
+    if (e.target.closest('video, a, button')) { return; }
+    show(i + 1);
+  });
+
+  // swipe no celular
+  var x0 = null;
+  document.addEventListener('touchstart', function(e){ x0 = e.touches[0].clientX; }, {passive:true});
+  document.addEventListener('touchend', function(e){
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 55) { show(i + (dx < 0 ? 1 : -1)); }
+    x0 = null;
+  }, {passive:true});
+
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  show(isNaN(start) ? 0 : start - 1, false);
+})();
+</script>
+</body>
+</html>
