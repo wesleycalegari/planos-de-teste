@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI 8255 · [WORKER] DUIMP — Não desprezar DUIMP sem data de saída</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--azul-forte);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:14px;text-align:center}
+  .stat-item .num{font-size:26px;font-weight:700;color:var(--azul)}
+  .stat-item .lbl{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em}
+  .progress{background:#21262d;border-radius:999px;height:10px;overflow:hidden;margin:8px 0 4px}
+  .progress .bar{background:var(--ok);height:100%;width:0%}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <h1>Plano de Teste — PBI 8255 · [WORKER] DUIMP — Não desprezar DUIMP sem data de saída</h1>
+  <div class="sub">Worker <code style="background:rgba(255,255,255,.15);border:0;color:#fff">IntegracaoWI</code> — reter DUIMP sem data de saída como Inconsistente ('I') e reprocessar sozinho após correção ('R'), sem nova chamada à WI/Quorum</div>
+  <div class="badges">
+    <span class="badge">PBI #8255</span>
+    <span class="badge">Sprint 13 Citweb</span>
+    <span class="badge">CORE · DUIMP · Regulatório · WORKER DUIMP</span>
+    <span class="badge">10 CTs — 5×P1 · 4×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">PBI #8255 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_13_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Worker <code>IntegracaoWI</code> — carga/processamento de DUIMP (<code>tb_itf_smx_ctl_prc_dui</code>)</div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML AXA — base <code>smt-hom-citweb-axa</code> + Worker IntegracaoWI</div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">27/08/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8313 (dev, In Progress) · #8378 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">In Progress — plano gerado com DoR ok; execução aguarda DoD (deploy do worker em HML)</div></div>
+  <div class="info-item"><div class="k">Cards relacionados</div><div class="v">#8256 (tela de acerto — Stand by, aguarda ESTE card) · Epic #7466 DUIMP</div></div>
+</div>
+
+<div class="info-box">
+  <b>Natureza do card (leia antes de executar):</b> este PBI altera um <b>worker de backend</b>
+  (<code>IntegracaoWI</code>, repositório/time separado do CITWEB — dev José Ribeiro Carvalho), sem tela
+  própria. Os <b>oráculos</b> deste plano são o <b>banco HML</b> (<code>tb_itf_smx_ctl_prc_dui</code> —
+  status, mensagem e JSON — e <code>tb_mov_avb_int_cit</code> para a averbação resultante), consultado por
+  SQL <b>read-only</b>. Os passos em tela (carga e exclusão/recarga de pacote no módulo
+  <b>Interface WI / Siscomex</b>) seguem a regra de navegação por clique. A tela de correção da data é o
+  card <b>#8256</b> (dependente deste) — enquanto ela não estiver deployada, o estado <code>'R'</code> é
+  semeado pelo <b>contrato documentado no card</b> (ver Pré-requisitos, item 4).
+</div>
+
+<div class="warn-box">
+  <b>⚠️ Condições de execução:</b> nenhum CT é executado antes da aprovação do plano (Gate 1 → Gate 2)
+  <b>e</b> do DoD do dev (card em "Pronto para homologação" com o worker deployado em HML AXA — hoje o card
+  está In Progress). Além disso: o DoR do próprio card exige <b>"pacote real de teste com pelo menos uma
+  DUIMP sem data de saída"</b> (dado que vem da Quorum/WI — dependência externa); em 27/08/2026 a base HML AXA
+  tem <b>zero</b> linhas <code>'I'</code>/<code>'R'</code> e nenhum pacote real novo com o cenário. A massa
+  fictícia usada pelo dev do #8256 (<code>26BR00009999999</code> / <code>26BR00009999997</code>) está hoje em
+  <code>'E'</code> e <b>não substitui</b> o pacote real para o veredito final.
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p>
+Hoje, ao dar carga, o worker grava o JSON inteiro da DUIMP em <code>tb_itf_smx_ctl_prc_dui</code>
+independente do resultado — mas quando a DUIMP <b>não tem data de saída</b>, ele a <b>despreza
+definitivamente</b> (grava <code>sts_prc='D'</code> com a mensagem exata
+<code>Desprezada - DUIMP com data de saída inválida</code> — 109 linhas nessa condição em HML AXA,
+medido em 27/08/2026). A averbação se perde e é preciso esperar novo envio da Quorum.
+</p>
+<p>
+O #8255 muda o <b>destino</b> desse caso: a DUIMP sem data de saída passa a ser retida como
+<b>Inconsistente</b> (<code>sts_prc='I'</code>) na mesma linha, com o JSON preservado. Quando a data for
+corrigida pelo CITWEB (tela do #8256), a linha vira <code>sts_prc='R'</code> (Reprocessar) com o JSON já
+atualizado — e, no ciclo seguinte, o worker <b>lê o JSON gravado na própria tabela</b> (tag de data de
+saída), <b>sem nova chamada à WI/Quorum</b>, seguindo o fluxo normal de enquadramento/averbação.
+Nenhuma tabela ou coluna nova: só dois valores novos na coluna de status (hoje <code>P/E/C/D</code>).
+</p>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Critérios de aceite consolidados (PBI #8255)</h3>
+<table>
+  <tr><th style="width:70px">CA</th><th>Critério</th><th style="width:120px">Origem</th></tr>
+  <tr><td>CA-1</td><td>DUIMP sem data de saída não é mais desprezada: <code>sts_prc='I'</code> gravado em <code>tb_itf_smx_ctl_prc_dui</code>, JSON original mantido na mesma linha</td><td>PBI #8255</td></tr>
+  <tr><td>CA-2</td><td>DUIMP com data de saída preenchida segue o fluxo atual sem alteração de comportamento</td><td>PBI #8255</td></tr>
+  <tr><td>CA-3</td><td>Linha com <code>sts_prc='R'</code>: worker lê o JSON já gravado na tabela, <b>não</b> faz nova chamada à WI/Quorum e segue enquadramento/averbação normal</td><td>PBI #8255</td></tr>
+  <tr><td>DoD-1</td><td>Nenhuma tabela ou coluna nova criada</td><td>DoD do card</td></tr>
+  <tr><td>DoD-2</td><td>Excluir e recarregar o pacote não reseta acidentalmente linha já em <code>'R'</code></td><td>DoR do card</td></tr>
+</table>
+
+<div class="info-box">
+  <b>Contrato técnico verificado (fontes: validações do dev Diego Almeida no card em 25–27/08 +
+  consulta SQL read-only própria em 27/08/2026):</b><br>
+  • JSON <code>t_json_wi</code>: chave <code>"DT_SAIDA"</code>, valor ISO
+    (<code>"DT_SAIDA":"2024-08-30"</code>) quando presente; <code>"DT_SAIDA":null</code> (null literal JSON)
+    quando ausente.<br>
+  • Status vigentes na coluna <code>sts_prc</code> (char 1): <code>C</code> Concluído ·
+    <code>D</code> Desprezada · <code>E</code> Erro (retry) · <code>P</code> previsto no card; novos:
+    <code>I</code> Inconsistente · <code>R</code> Reprocessar.<br>
+  • Mensagem de sucesso do fluxo normal (coluna <code>t_sts_prc</code>): <code>DUIMP Gravada</code>.<br>
+  • Mensagem de erro quando o worker consulta a WI e não encontra a DUIMP:
+    <code>Nenhum registro encontrado na WI para a DUIMP de número {duimp} e CNPJ 00000000000000.
+    Será reprocessada no próximo ciclo.</code> (medida em 27/08 nas 2 DUIMPs fictícias — este texto é o
+    <b>detector</b> de chamada indevida à WI no CT-WDU-006).
+</div>
+
+<div class="warn-box">
+  <b>⚠️ Ponto de atenção herdado do card (Diego, 27/08):</b> um registro que estava em <code>'R'</code>
+  (massa fictícia, data corrigida pela tela do #8256 em ambiente local) foi processado pelo worker com
+  <b>nova consulta à WI</b> — o que contraria o DoD ("usa o JSON já gravado... sem nova chamada ao WI").
+  Pode ser efeito colateral de a DUIMP ser fictícia (falha em validação anterior), mas é exatamente o que o
+  <b>CT-WDU-006</b> precisa cravar com massa de JSON válido.
+</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:50%">In scope</th><th>Out of scope (e por quê)</th></tr>
+  <tr>
+    <td>
+      • Carga de DUIMP <b>sem</b> data de saída → retenção como <code>'I'</code> com JSON íntegro (CA-1)<br>
+      • Regressão do fluxo normal: DUIMP <b>com</b> data de saída → <code>'C'</code> + averbação (CA-2)<br>
+      • Reprocessamento de linha <code>'R'</code> a partir do JSON gravado, sem nova chamada WI (CA-3)<br>
+      • Estabilidade da linha <code>'I'</code> entre ciclos (só retoma após virar <code>'R'</code>)<br>
+      • Guarda do DoR: excluir/recarregar pacote não reseta linha <code>'R'</code> (DoD-2)<br>
+      • Contrato de schema: nenhuma tabela/coluna nova (DoD-1)<br>
+      • Regressão dos demais destinos: outras desprezas e o fluxo de erro <code>'E'</code> continuam como hoje
+    </td>
+    <td>
+      • <b>Tela "DUIMP sem Data de Saída"</b> — é o card #8256 (Stand by), com plano próprio<br>
+      • <b>Revival retroativo</b> das 109 linhas <code>'D'</code> antigas — decisão de negócio pendente com
+        Produto (levantada em 25/08 no #8256); o texto do #8255 cobre só cargas novas — ver Riscos<br>
+      • <b>Fluxo de DI</b> (DI sem data de saída tem fluxo/tela próprios já existentes) — o card é exclusivo
+        de DUIMP; regra de um fluxo não se generaliza<br>
+      • Agrupamento/níveis de averbação DUIMP (<code>c_nvl_avb</code>) — família #7802/#7803/#7683<br>
+      • Homologação em outras seguradoras — a mudança é do worker CORE, mas a rodada valida em HML AXA
+        (base onde o dev validou e onde há massa); replicação a outras bases segue decisão do time
+    </td>
+  </tr>
+</table>
+<div class="info-box">
+  <b>Ramo:</b> DUIMP = Declaração Única de Importação → fluxo internacional de <b>Importação (ramo 25)</b>
+  — inferência documentada a partir do domínio (o card não declara ramo numérico; tags:
+  <code>CORE; DUIMP; Regulatório; WORKER DUIMP</code>). <b>Sistema:</b> worker <code>IntegracaoWI</code>
+  do ecossistema CITWEB (tag <code>CORE</code> = NSTECH). <b>Seguradora de homologação:</b> AXA (HML).
+</div>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:250px">Item</th><th>Detalhe</th></tr>
+  <tr><td>1. Worker IntegracaoWI em HML</td><td>Deployado em HML AXA com ciclo ativo (DoD do dev — sinalizado pelo estado do card). <b>Confirmar com o dev no card o gatilho/intervalo do ciclo</b> antes da execução (o QA não dispara o worker; aguarda o ciclo ou pede acionamento ao dev).</td></tr>
+  <tr><td>2. Acesso SQL read-only</td><td>Servidor Azure SQL do HML, base <code>smt-hom-citweb-axa</code> (credenciais no <code>.env</code> do workspace — nunca no plano). Todas as consultas de oráculo deste plano são <code>SELECT</code>.</td></tr>
+  <tr><td>3. Pacote real de teste</td><td>Pacote com <b>≥ 1 DUIMP sem data de saída real</b> (item do DoR do card — dado vem da Quorum/WI, dependência externa). Solicitar ao dev/analista junto com o deploy. Sem ele, CT-WDU-001/002 ficam BLOQUEADOS por causa externa (nunca aprovar com massa fictícia).</td></tr>
+  <tr><td>4. Semeadura do estado <code>'R'</code> (CT-WDU-006/007/008)</td><td><b>Preferencial:</b> tela do #8256 quando deployada (Interface WI x Siscomex → DE/PARA → DI/DUIMP sem data de saída → aba "DUIMP sem Data de Saída"). <b>Andaime documentado</b> (enquanto #8256 não sobe): <code>UPDATE</code> pontual seguindo o contrato do card — <code>REPLACE</code> de <code>"DT_SAIDA":null</code> por <code>"DT_SAIDA":"&lt;data ISO&gt;"</code> no <code>t_json_wi</code> + <code>sts_prc='R'</code> na MESMA linha — registrando no CT o <code>u_seq</code> alterado e o antes/depois. É a mesma semeadura que o dev usou; o contrato (chave, formato ISO, null literal) foi medido em banco.</td></tr>
+  <tr><td>5. Credenciais das telas WI</td><td>Usuário CITWEB AXA com acesso ao módulo Interface WI / Siscomex (chaves <code>HML_AXA_CITWEB_WI2_USER/PASS</code> no <code>.env</code>; ADMCIT não tem acesso ao WI).</td></tr>
+  <tr><td>6. Baseline de contadores</td><td>Registrar ANTES de cada carga: distribuição de <code>sts_prc</code> e contagem de <code>'D'</code> por data inválida (query Q1/Q2 abaixo) — o veredito de vários CTs é por contraste de contagem.</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Massa de dados verificada (SQL read-only, 27/08/2026 — base <code>smt-hom-citweb-axa</code>)</h3>
+<table>
+  <tr><th>Referência</th><th>Valor medido</th><th>Uso no plano</th></tr>
+  <tr><td>Distribuição <code>sts_prc</code></td><td><code>C</code>=7.251 · <code>D</code>=5.073 · <code>E</code>=3 · <code>I</code>=0 · <code>R</code>=0</td><td>Baseline global (CT-WDU-001/002/003/010)</td></tr>
+  <tr><td><code>'D'</code> com <code>Desprezada - DUIMP com data de saída inválida</code></td><td><b>109 linhas</b> (mais recente 07/08/2026)</td><td>Baseline do destino antigo (CT-WDU-002/003)</td></tr>
+  <tr><td>Amostra real do cenário "sem data"</td><td>DUIMP <code>26BR00001226089</code> — 3 linhas (<code>u_seq</code> 10048/10416/10694, carga 07/08), JSON com <code>"DT_SAIDA":null</code></td><td>Prova de que o cenário ocorre com dado real; candidata a recarga (CT-WDU-001) e guarda retroativa (CT-WDU-003)</td></tr>
+  <tr><td>Massa fictícia do dev (#8256)</td><td><code>26BR00009999999</code> (<code>u_seq</code> 12415) e <code>26BR00009999997</code> (12416) — hoje em <code>'E'</code></td><td>Detector de chamada WI (CT-WDU-006) e regressão do fluxo E (CT-WDU-010)</td></tr>
+  <tr><td>Fluxo normal (referência)</td><td><code>26BR00001615930</code> / <code>26BR00001616600</code> — <code>'C'</code>, <code>DUIMP Gravada</code>, 14/08</td><td>Padrão de resultado esperado do CT-WDU-004</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Consultas de oráculo (read-only, reutilizadas nos CTs)</h3>
+<pre>-- Q1: distribuição de status (baseline / pós-ciclo)
+SELECT sts_prc, COUNT(*) qtd, MAX(d_usu_inc) mais_recente
+FROM tb_itf_smx_ctl_prc_dui GROUP BY sts_prc ORDER BY sts_prc;
+
+-- Q2: contagem do destino antigo (não pode crescer após o deploy)
+SELECT COUNT(*) FROM tb_itf_smx_ctl_prc_dui
+WHERE sts_prc='D' AND t_sts_prc LIKE 'Desprezada - DUIMP com data de sa%';
+
+-- Q3: linha(s) de uma DUIMP específica (status, mensagem, JSON)
+SELECT u_seq, u_dcl_imt_smx, sts_prc, t_sts_prc, d_usu_inc,
+       SUBSTRING(t_json_wi, CHARINDEX('DT_SAIDA', t_json_wi), 30) dt_saida_json, LEN(t_json_wi) tam_json
+FROM tb_itf_smx_ctl_prc_dui WHERE u_dcl_imt_smx = '&lt;DUIMP&gt;' ORDER BY u_seq;
+
+-- Q4: averbação resultante do fluxo normal/reprocessamento
+SELECT u_avb_dfv, d_mov_vgm FROM tb_mov_avb_int_cit WHERE u_di LIKE '&lt;DUIMP&gt;%';</pre>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+<p style="font-size:12.5px;color:var(--cinza)">Clique no cabeçalho de cada CT para expandir pré-condições, passos e resultado esperado. Nenhum CT é executado antes do Gate 2 e do DoD do dev.</p>
+
+<div class="group-header">Grupo 1 — Carga: DUIMP sem data de saída (CA-1)</div>
+<div class="group-note">A carga chega ao worker via pacote WI (Quorum). Em tela, a carga/recarga usa
+Interface WI / Siscomex (nova aba) → <b>Declarações Adições</b> → <b>Carga</b> (Listar Pacotes → Efetuar Carga).</div>
+
+<div class="ct-block" id="CT-WDU-001">
+  <div class="ct-head"><span class="ct-id">CT-WDU-001</span><span class="ct-title">DUIMP sem data de saída é retida como 'I' com o JSON íntegro na mesma linha</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado em HML AXA (pré-req 1). Pacote real com ≥1 DUIMP sem data de saída disponível para carga (pré-req 3). Baseline registrada (Q1 e Q2 — em 27/08: <code>I</code>=0 e destino antigo=109).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar a baseline: executar Q1 e Q2 e guardar o resultado (screenshot/summary da consulta).</li>
+      <li>Login no CITWEB HML AXA → clicar no botão <b>Interface WI / Siscomex</b> (menu principal — abre nova aba) → menu <b>Declarações Adições</b> → <b>Carga</b>.</li>
+      <li>Carregar o pacote de teste (Listar Pacotes → selecionar o pacote → <b>Efetuar Carga</b>) e registrar o nº da DUIMP sem data de saída contida nele.</li>
+      <li>Aguardar o ciclo do worker processar a carga (gatilho/intervalo confirmado com o dev — pré-req 1).</li>
+      <li>Executar Q3 com a DUIMP do passo 3.</li>
+      <li>Conferir no resultado: <code>sts_prc</code>, mensagem (<code>t_sts_prc</code>), fragmento <code>DT_SAIDA</code> do JSON e o tamanho do JSON (<code>tam_json</code> &gt; 0). Conferir também que o <code>u_seq</code> é o MESMO da linha criada na carga (não linha nova).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A linha da DUIMP termina com <code>sts_prc='I'</code> (Inconsistente) — <b>não</b> <code>'D'</code> — com o JSON original preservado na mesma linha (<code>"DT_SAIDA":null</code> presente, <code>tam_json</code> &gt; 0, mesmo <code>u_seq</code>). A DUIMP não foi desprezada nem perdida.</div>
+    <div class="ev-section" id="ev-CT-WDU-001">📎 Evidências desta execução serão inseridas aqui (baseline Q1/Q2 + tela de carga + resultado Q3).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-002">
+  <div class="ct-head"><span class="ct-id">CT-WDU-002</span><span class="ct-title">Destino antigo extinto: nenhuma linha nova 'D' por "data de saída inválida" após o deploy</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Mesma carga do CT-WDU-001 concluída (executar em sequência, na mesma rodada). Baseline Q2 registrada antes da carga (27/08: <b>109</b>).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Após o ciclo do worker do CT-WDU-001, executar Q2 novamente.</li>
+      <li>Comparar com a baseline registrada antes da carga.</li>
+      <li>Executar Q1 e conferir que o incremento da rodada apareceu em <code>'I'</code> (e/ou <code>'C'</code> para as DUIMPs com data), não em <code>'D'</code>.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A contagem de <code>'D'</code> com <code>Desprezada - DUIMP com data de saída inválida</code> <b>não cresce</b> (permanece na baseline). O caso "sem data de saída" deixou de gerar despreza — o destino agora é <code>'I'</code>.</div>
+    <div class="ev-section" id="ev-CT-WDU-002">📎 Evidências desta execução serão inseridas aqui (Q2 antes/depois lado a lado).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-003">
+  <div class="ct-head"><span class="ct-id">CT-WDU-003</span><span class="ct-title">Linhas 'D' antigas permanecem 'D' (sem revival retroativo automático)</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado e ≥1 ciclo executado após o deploy. Baseline de 27/08: 109 linhas <code>'D'</code> por data inválida; amostra <code>26BR00001226089</code> (<code>u_seq</code> 10048/10416/10694).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q2 e comparar com a baseline (reconferir a baseline no dia da execução, antes do deploy).</li>
+      <li>Executar Q3 para <code>26BR00001226089</code>.</li>
+      <li>Conferir que as 3 linhas seguem <code>sts_prc='D'</code> com a mensagem original, sem alteração de <code>d_usu_inc</code>/conteúdo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Nenhuma linha <code>'D'</code> antiga muda de status sozinha: o card cobre <b>cargas novas</b>; não há data-fix retroativo no escopo. (Se Produto decidir reviver os retroativos — decisão pendente registrada no #8256 em 25/08 — isso será card/data-fix próprio, fora deste plano.)</div>
+    <div class="ev-section" id="ev-CT-WDU-003">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 2 — Fluxo normal preservado (CA-2)</div>
+<div class="group-note">Regressão: a mudança de destino vale <b>só</b> para "data de saída ausente" — todo o resto do processamento DUIMP continua idêntico.</div>
+
+<div class="ct-block" id="CT-WDU-004">
+  <div class="ct-head"><span class="ct-id">CT-WDU-004</span><span class="ct-title">DUIMP com data de saída segue o fluxo normal: 'C' + "DUIMP Gravada" + averbação gerada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado. Pacote de carga contendo ≥1 DUIMP <b>com</b> data de saída válida (pode ser o mesmo pacote do pré-req 3, se misto — registrar qual DUIMP é qual). Referência do comportamento atual: <code>26BR00001615930</code>/<code>26BR00001616600</code> → <code>'C'</code> · <code>DUIMP Gravada</code> (14/08).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar baseline Q1/Q4 (Q4 com a DUIMP com data do pacote — confirmar que ainda não há averbação).</li>
+      <li>Efetuar a carga do pacote (mesma navegação do CT-WDU-001, passos 2–3).</li>
+      <li>Aguardar o ciclo do worker.</li>
+      <li>Executar Q3 com a DUIMP com data → conferir <code>sts_prc</code> e <code>t_sts_prc</code>.</li>
+      <li>Executar Q4 com a mesma DUIMP → conferir a averbação criada (<code>u_avb_dfv</code> preenchido).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Comportamento idêntico ao de antes do deploy: linha termina <code>sts_prc='C'</code> com mensagem <code>DUIMP Gravada</code> e a averbação existe em <code>tb_mov_avb_int_cit</code> (Q4 retorna <code>u_avb_dfv</code>). Nenhuma mudança de comportamento para DUIMP com data preenchida.</div>
+    <div class="ev-section" id="ev-CT-WDU-004">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-005">
+  <div class="ct-head"><span class="ct-id">CT-WDU-005</span><span class="ct-title">Outras desprezas continuam funcionando — 'D' segue existindo para os demais motivos</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado. Massa: DUIMP cuja averbação <b>já existe</b> (motivo de despreza por duplicidade — ex.: reprocessar/recarregar uma DUIMP <code>'C'</code> como <code>26BR00001615930</code>, que já tem averbação gravada).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Escolher via Q4 uma DUIMP com averbação existente e recarregar o pacote correspondente (ou incluí-la no pacote de teste — combinar com o dev na entrega da massa).</li>
+      <li>Aguardar o ciclo do worker.</li>
+      <li>Executar Q3 → conferir status e mensagem da nova linha de controle.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A DUIMP duplicada é <b>desprezada normalmente</b> (<code>sts_prc='D'</code> com a mensagem de duplicidade — padrão da família: <code>DUIMP já cadastrada na averbação NNNNNNNNNN no Movimento de DD/MM/AAAA</code>). O fim do destino "D por data inválida" NÃO extinguiu as demais desprezas — regra de um caso não se generaliza.</div>
+    <div class="ev-section" id="ev-CT-WDU-005">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 3 — Reprocessamento via status 'R' (CA-3 e DoD-2)</div>
+<div class="group-note">O estado <code>'R'</code> é gravado pela tela do #8256 (JSON já corrigido). Enquanto ela não estiver em HML, semear pelo contrato documentado (Pré-req 4), registrando antes/depois.</div>
+
+<div class="ct-block" id="CT-WDU-006">
+  <div class="ct-head"><span class="ct-id">CT-WDU-006</span><span class="ct-title">Linha 'R' é reprocessada a partir do JSON gravado — SEM nova chamada à WI/Quorum</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado. Linha em <code>sts_prc='I'</code> gerada pelo CT-WDU-001 (DUIMP real). Estado <code>'R'</code> semeado conforme pré-req 4 (tela #8256 ou andaime SQL documentado), com <code>"DT_SAIDA":"&lt;data ISO válida dentro da vigência da apólice&gt;"</code> no JSON. Registrar <code>u_seq</code>, JSON antes/depois e quem semeou.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar via Q3 o estado de partida: <code>sts_prc='R'</code> + <code>"DT_SAIDA":"..."</code> preenchida.</li>
+      <li>Aguardar o ciclo seguinte do worker (sem excluir/recarregar o pacote — o card promete retomada automática).</li>
+      <li>Executar Q3 → status e mensagem finais da linha.</li>
+      <li>Executar Q4 → averbação resultante.</li>
+      <li><b>Detector de chamada indevida à WI:</b> conferir que a linha NÃO foi para <code>'E'</code> com <code>Nenhum registro encontrado na WI para a DUIMP de número ...</code> (mensagem que só surge quando o worker re-consulta a WI — foi o comportamento observado em 27/08 com a massa fictícia, contrariando o DoD).</li>
+      <li>Se disponível, coletar com o dev o log do worker do ciclo para confirmar a ausência de requisição à WI para essa DUIMP (evidência complementar, não substitui o passo 5).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">O worker retoma a DUIMP <b>sozinho</b> no ciclo normal, lê o JSON já gravado (com a data corrigida), <b>não</b> faz nova chamada à WI/Quorum e segue o enquadramento/averbação: linha termina <code>sts_prc='C'</code> (<code>DUIMP Gravada</code>) e a averbação existe em <code>tb_mov_avb_int_cit</code>. Ir para <code>'E'</code> com "Nenhum registro encontrado na WI..." = REPROVADO (nova chamada à WI, DoD violado).</div>
+    <div class="ev-section" id="ev-CT-WDU-006">📎 Evidências desta execução serão inseridas aqui (Q3 antes/depois + Q4 + detector).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-007">
+  <div class="ct-head"><span class="ct-id">CT-WDU-007</span><span class="ct-title">Excluir e recarregar o pacote não reseta linha já em 'R'</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Linha em <code>sts_prc='R'</code> (mesma preparação do CT-WDU-006, em rodada separada OU segunda DUIMP sem data no pacote de teste). Pacote de origem identificado (<code>d_grc_pct_str</code>/<code>c_etm_str</code> da linha — Q3 traz a chave; conferir o pacote correspondente na tela).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar via Q3: linha em <code>'R'</code> com JSON corrigido (guardar <code>u_seq</code> e o fragmento <code>DT_SAIDA</code>).</li>
+      <li>Na aba Interface WI / Siscomex → menu <b>Pacotes WI</b> → <b>Exclusão de Pacotes</b> → excluir o pacote de origem da linha.</li>
+      <li>Recarregar o mesmo pacote (menu <b>Declarações Adições</b> → <b>Carga</b> → Listar Pacotes → Efetuar Carga).</li>
+      <li>Aguardar o ciclo do worker.</li>
+      <li>Executar Q3 novamente para a DUIMP.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A linha que estava em <code>'R'</code> <b>não é resetada</b> pela exclusão/recarga do pacote (item explícito do DoR do card): o <code>u_seq</code> em <code>'R'</code> preserva status e JSON corrigido (ou já concluiu como <code>'C'</code> se o ciclo passou antes) — a recarga não a devolve para <code>'I'</code>/<code>'P'</code> nem despreza a correção manual feita.</div>
+    <div class="ev-section" id="ev-CT-WDU-007">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-008">
+  <div class="ct-head"><span class="ct-id">CT-WDU-008</span><span class="ct-title">Linha 'I' é estável entre ciclos — worker não a reprocessa nem re-consulta a WI antes da correção</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Linha em <code>sts_prc='I'</code> gerada pelo CT-WDU-001, SEM correção de data aplicada.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar via Q3 o estado da linha (<code>sts_prc='I'</code>, mensagem, <code>d_usu_inc</code>).</li>
+      <li>Aguardar ≥ 2 ciclos completos do worker (janela combinada com o dev), sem tocar na linha.</li>
+      <li>Executar Q3 novamente e comparar campo a campo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A linha permanece <code>sts_prc='I'</code>, inalterada, entre ciclos: o worker só a retoma <b>depois de corrigida</b> (quando virar <code>'R'</code> — regra do card: "a retome sozinho depois de corrigida"). Ela não vira <code>'E'</code>, não gera nova consulta à WI e não é desprezada. <i>(Inferência documentada: o card define retomada apenas via 'R'; estabilidade de 'I' é o complemento necessário — qualquer outro comportamento deve ser confrontado com Produto antes de virar bug.)</i></div>
+    <div class="ev-section" id="ev-CT-WDU-008">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 4 — Contratos e integridade (DoD-1 e robustez)</div>
+<div class="group-note">Guardas estruturais baratas — todas por SQL read-only.</div>
+
+<div class="ct-block" id="CT-WDU-009">
+  <div class="ct-head"><span class="ct-id">CT-WDU-009</span><span class="ct-title">Nenhuma tabela ou coluna nova — schema de tb_itf_smx_ctl_prc_dui congelado</span><span class="prio importante">P2</span><span class="tipo-tag">Estrutural</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado. Baseline de schema medida em 27/08/2026: 14 colunas — <code>u_seq, u_dcl_imt_smx, n_usu_inc, d_usu_inc, sts_prc, t_sts_prc, e_etm_str, c_etm_str, c_usr_str, d_grc_pct_str, e_itf_str, t_json_wi, t_prt_prc, t_dsc_err</code>.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar: <code>SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='tb_itf_smx_ctl_prc_dui' ORDER BY ORDINAL_POSITION</code> e comparar com a baseline.</li>
+      <li>Executar: <code>SELECT DISTINCT sts_prc FROM tb_itf_smx_ctl_prc_dui</code> — conferir que o conjunto de valores está contido em {<code>P,E,C,D,I,R</code>}.</li>
+      <li>Confirmar com o dev (comentário no card) que o deploy não criou tabela auxiliar nova para o fluxo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mesmas 14 colunas (nenhuma coluna nova); os únicos valores novos de <code>sts_prc</code> são <code>'I'</code> e <code>'R'</code>, sem conflito com os já existentes (<code>P/E/C/D</code>); nenhuma tabela nova criada para o fluxo (DoD-1).</div>
+    <div class="ev-section" id="ev-CT-WDU-009">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDU-010">
+  <div class="ct-head"><span class="ct-id">CT-WDU-010</span><span class="ct-title">Fluxo de erro 'E' preservado — retry continua e não é confundido com 'I'/'R'</span><span class="prio desejavel">P3</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8255 deployado. Massa existente: <code>26BR00009999999</code> (<code>u_seq</code> 12415) e <code>26BR00009999997</code> (12416), hoje em <code>'E'</code> com <code>Nenhum registro encontrado na WI para a DUIMP de número ... Será reprocessada no próximo ciclo.</code></p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q3 para as duas DUIMPs fictícias e registrar o estado.</li>
+      <li>Aguardar ≥ 1 ciclo do worker após o deploy.</li>
+      <li>Executar Q3 novamente e comparar.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">O fluxo de erro continua como hoje: linhas <code>'E'</code> seguem no ciclo de retry (mensagem "Será reprocessada no próximo ciclo"), <b>não</b> são convertidas indevidamente para <code>'I'</code>/<code>'R'</code> nem desprezadas pelo novo código. (Erro de consulta WI ≠ inconsistência de data — estados distintos com destinos distintos.)</div>
+    <div class="ev-section" id="ev-CT-WDU-010">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<!-- ============ 6. MATRIZ ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de aceite</th><th style="width:110px">Origem</th><th style="width:220px">CT(s)</th><th style="width:100px">Resultado</th></tr>
+  <tr><td>CA-1 — DUIMP sem data de saída não é desprezada; <code>'I'</code> + JSON na mesma linha</td><td>PBI #8255</td><td>CT-WDU-001, CT-WDU-002</td><td>Pendente</td></tr>
+  <tr><td>CA-2 — DUIMP com data de saída segue o fluxo normal</td><td>PBI #8255</td><td>CT-WDU-004, CT-WDU-005</td><td>Pendente</td></tr>
+  <tr><td>CA-3 — <code>'R'</code> reprocessa do JSON gravado, sem nova chamada WI</td><td>PBI #8255</td><td>CT-WDU-006, CT-WDU-008</td><td>Pendente</td></tr>
+  <tr><td>DoD-1 — nenhuma tabela ou coluna nova</td><td>DoD do card</td><td>CT-WDU-009</td><td>Pendente</td></tr>
+  <tr><td>DoD-2 — excluir/recarregar pacote não reseta linha <code>'R'</code></td><td>DoR do card</td><td>CT-WDU-007</td><td>Pendente</td></tr>
+  <tr><td>Robustez — retroativos estáveis e fluxo <code>'E'</code> preservado</td><td>Análise QA</td><td>CT-WDU-003, CT-WDU-010</td><td>Pendente</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--cinza)">Cobertura: 3/3 critérios de aceite do card + 2 itens de DoD/DoR com pelo menos 1 CT cada (100%). Sessão exploratória (NOR_QA_002 §11) prevista após os CTs formais — foco: JSON malformado após correção, datas-limite de vigência, pacote com mistura DI+DUIMP.</p>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<h2 class="section">7. Métricas</h2>
+<div class="metrics">
+  <div class="stat-item"><div class="num" id="exec-total">10</div><div class="lbl">Total</div></div>
+  <div class="stat-item"><div class="num" id="exec-aprovados" style="color:var(--ok)">0</div><div class="lbl">OK</div></div>
+  <div class="stat-item"><div class="num" id="exec-pendentes" style="color:#d29922">10</div><div class="lbl">Pendente</div></div>
+  <div class="stat-item"><div class="num">5 / 4 / 1</div><div class="lbl">P1 / P2 / P3</div></div>
+</div>
+<div class="progress"><div class="bar" style="width:0%"></div></div>
+<div style="font-size:12px;color:var(--cinza)">Execução: 0 de 10 CTs (0%) · <span id="exec-json" style="display:none">EXEC_JSON:{"total":10,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":10}</span></div>
+
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th style="width:110px">Probabilidade</th><th style="width:90px">Impacto</th><th>Mitigação</th></tr>
+  <tr><td>Worker re-consultar a WI ao processar linha <code>'R'</code> — comportamento JÁ observado em 27/08 com massa fictícia (contraria o DoD)</td><td>Média–alta</td><td>Alto</td><td>CT-WDU-006 com massa de JSON válido + detector pela mensagem exata de consulta WI; log do worker como evidência complementar</td></tr>
+  <tr><td>Pacote real com DUIMP sem data de saída indisponível (dado vem da Quorum — dependência externa; item do DoR do card ainda não atendido)</td><td>Média</td><td>Alto</td><td>Solicitar ao dev junto com o deploy; sem ele, CT-WDU-001/002 ficam BLOQUEADOS por causa externa (não aprovar com massa fictícia)</td></tr>
+  <tr><td>Deploy do worker é de repositório/time separado — QA sem visibilidade do build; risco de testar versão errada</td><td>Média</td><td>Médio</td><td>Gate de DoD pelo estado do card + confirmação do dev no card (build/versão) antes da rodada</td></tr>
+  <tr><td>Decisão pendente sobre os 109 retroativos <code>'D'</code> (reviver ou não) — escopo pode crescer depois do plano aprovado</td><td>Média</td><td>Médio</td><td>Out-of-scope explícito + CT-WDU-003 congela o comportamento default; decisão de Produto vira card/data-fix próprio</td></tr>
+  <tr><td>Semeadura de <code>'R'</code> por SQL divergir do que a tela #8256 gravará (formato/normalização da data)</td><td>Baixa–média</td><td>Médio</td><td>Contrato medido em banco (<code>"DT_SAIDA":"YYYY-MM-DD"</code> ISO; null literal quando ausente); preferir a tela #8256 assim que deployada; registrar antes/depois de cada semeadura</td></tr>
+</table>
+
+<footer>
+  Plano de teste gerado em 27/08/2026 · PBI #8255 · Sprint 13 Citweb · CITWEB Team ·
+  Task do plano: #8378 · Referências: PBI #8255 (descrição + DoR/DoD), validações em banco do dev
+  Diego Almeida (comentários de 25–27/08 nos cards #8255/#8256), consultas SQL read-only próprias de
+  27/08/2026 em <code>smt-hom-citweb-axa</code> (distribuição de status, schema, amostras),
+  memória institucional QA da família DUIMP (#7802/#7803/#7683). Execução condicionada a:
+  Gate 1 (Wesley) → Gate 2 (Produtos) → DoD do dev (worker em HML).
+</footer>
+</div>
+
+<div class="assinatura">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
