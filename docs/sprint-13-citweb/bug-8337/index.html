@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG 8337 · [NOVO CITNET] Erro ao tentar trocar de senha</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d; --bug:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--bug);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .ev-plan img{max-width:100%;border:1px solid var(--borda);border-radius:4px;margin:6px 0}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">BUG-8337 · Sprint 13 Citweb</div><h1>Plano de Teste — BUG 8337 · [NOVO CITNET] Erro ao tentar trocar de senha</h1>
+  <div class="sub">Troca de senha do CITNET novo (<b>Meu Perfil → Trocar senha</b>, tenant Tokio Marine): a escrita gravava em colunas que não existem na base (<code style="background:rgba(255,255,255,.15);border:0;color:#fff">c_pwd_usu_v2</code>/<code style="background:rgba(255,255,255,.15);border:0;color:#fff">d_dia_exp</code> → Msg 207 → HTTP 500 → texto genérico). Correção: escrita guardada por capability (formato legado em <code style="background:rgba(255,255,255,.15);border:0;color:#fff">C_PWD_USU</code>) + política por tenant lida do banco + mensagens do legado palavra por palavra</div>
+  <div class="badges">
+    <span class="badge">BUG #8337</span>
+    <span class="badge">Sprint 13 Citweb</span>
+    <span class="badge">citnet-novo · TOKIO</span>
+    <span class="badge">12 CTs — 5×P1 · 6×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (5×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">BUG #8337 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_13_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">CITNET novo (nsseg) → avatar do usuário → <b>Meu Perfil</b> → card <b>Trocar senha</b></div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML TOKIO — <code>hmlcitfaturamento.atmtec.com.br</code> (tenant travado "Tokio Marine") + base <code>smt-hom-citweb-tokio</code></div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">28/08/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8355 (análise do erro, Done) · #8386 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">Pronto para homologação — PRs #17008 (main), #17010 (hml), #17011 (stg), #17012 (develop) completados; fix confirmado no ar em 28/08 (verificação de planejamento abaixo)</div></div>
+  <div class="info-item"><div class="k">Dev</div><div class="v">Fabiano Souza</div></div>
+</div>
+
+<div class="info-box">
+  <b>Natureza do card:</b> a Tokio não conseguia trocar a senha dos usuários criados no novo CITNET — a tela
+  devolvia sempre o texto genérico <i>"Não foi possível trocar a senha"</i>. Causa raiz (análise do dev,
+  reproduzida em banco): o UPDATE gravava nas colunas <code>c_pwd_usu_v2</code> (hash novo) e
+  <code>d_dia_exp</code>, que <b>não existem</b> na base da Tokio (nem <code>c_pwd_usu_v2</code> em nenhuma
+  das 33 bases de HML) → <code>Msg 207</code> → HTTP 500 disfarçado de erro de validação. A correção guarda a
+  escrita por <b>capability</b>: onde a coluna nova não existe, grava no <b>formato legado</b> em
+  <code>C_PWD_USU</code> — a mesma coluna que o CITNET legado lê — com política de senha por tenant lida do
+  banco e as <b>mensagens do legado palavra por palavra</b> no lugar do texto genérico, além do painel
+  "Regras para definição da senha" na tela.
+</div>
+
+<div class="info-box">
+  <b>Derivação dos critérios de aceite (registro de DoR):</b> o campo "Acceptance Criteria" do card está vazio.
+  Os critérios abaixo foram <b>derivados por interpretação do card inteiro</b> — "Cenário desejado" dos repro
+  steps, seções "O que foi corrigido"/"Como homologar" da descrição e comentário do dev — conforme a norma de
+  DoR do time (ler e interpretar descrição + comentários + tasks + anexos). Produtos validou internamente e
+  comunicou a Tokio em 28/08 (comentário no card), destravando o <code>#QA-STATUS: AGUARDANDO_INFO</code> de 26/08.
+</div>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Critérios de aceite consolidados (derivados — BUG #8337)</h3>
+<table>
+  <tr><th style="width:70px">CA</th><th>Critério</th><th style="width:160px">Origem</th></tr>
+  <tr><td>CA-1</td><td>Usuário consegue trocar a senha com valor válido → mensagem exata do legado <code>Alteração efetuada com sucesso.</code></td><td>Repro steps ("cenário desejado") + descrição</td></tr>
+  <tr><td>CA-2</td><td>Senha fora da política é recusada com a mensagem <b>específica da regra que faltou</b> (palavra por palavra do legado) — nunca mais o genérico "Não foi possível trocar a senha". Regras portadas: mínimo de caracteres, maiúscula, minúscula, número, caracter especial, primeiro e último caracter = letra, histórico, uma troca por dia</td><td>Repro steps + descrição ("mensagens do legado")</td></tr>
+  <tr><td>CA-3</td><td>Persistência no formato legado: <code>C_PWD_USU</code> = cifra da senha nova; <code>C_PWD_CTL1</code> = cifra da senha antiga (rotação do histórico); <code>D_CAD_USU</code> = hoje + 3 meses; nenhuma coluna nova exigida (tokio segue com 17 colunas)</td><td>Descrição ("Dado gravado")</td></tr>
+  <tr><td>CA-4</td><td>Login no CITNET novo com a senha nova funciona (o que foi gravado é verificável na volta)</td><td>Descrição ("invariante mais crítico")</td></tr>
+  <tr><td>CA-5</td><td>Reutilizar senha do histórico é barrado: <code>Senha já utilizada nos últimos 3 meses!</code></td><td>Descrição ("Como homologar")</td></tr>
+  <tr><td>CA-6</td><td>Painel "Regras para definição da senha" na tela, alimentado pela política do próprio tenant (tokio = política padrão)</td><td>Descrição ("O que foi corrigido")</td></tr>
+  <tr><td>CA-7</td><td>Regra "uma troca por dia" vigente (portada do legado)</td><td>Descrição (regras portadas)</td></tr>
+  <tr><td>CA-8</td><td>Paridade cross-sistema: a senha trocada no novo loga também no CITNET <b>legado</b> (mesma coluna <code>C_PWD_USU</code>; gravar hash novo ali trancaria o usuário nos dois sistemas)</td><td>Descrição (causa raiz/correção) — guarda de QA</td></tr>
+</table>
+
+<div class="warn-box">
+  <b>⚠️ Condições e cuidados de execução:</b><br>
+  • Nenhum CT é executado antes da aprovação do plano (Gate 1 → Gate 2). O DoD do dev <b>já está comprovado</b>:
+    em 28/08, na verificação de planejamento, a senha <code>Tokioteste@2026</code> foi recusada com a mensagem
+    específica (fix no ar — se voltar o texto genérico, é código velho/cache: dar hard refresh, o
+    <code>index.html</code> não tem <code>Cache-Control</code>).<br>
+  • <b>Não usar os usuários JORGE e EDUARDO</b> — são a massa da homologação da própria Tokio (o JORGE teve a
+    senha trocada em 27/08 na validação interna de Produtos). A rodada usa exclusivamente os usuários QA do
+    tenant (<code>QAINTERNO</code>, <code>QACORRETOR</code>; reserva <code>QASEGURADO</code>/<code>QAASSESS</code>).<br>
+  • <b>Uma troca válida por usuário por dia</b> (CA-7): a ordem dos grupos abaixo respeita isso. Re-execução da
+    rodada no mesmo dia exige trocar de usuário QA (reserva) — planejar antes de repetir o Grupo 2.<br>
+  • Após a rodada, atualizar o registro local (privado) de credenciais com a senha final de cada usuário QA —
+    a senha nunca vai neste plano nem em screenshot legível (campos da tela são mascarados).
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p>
+A Tokio homologa o novo CITNET (RCV) e pediu usuários novos; ao tentar trocar a senha genérica, JORGE e
+EDUARDO recebiam <i>"Não foi possível trocar a senha"</i> — sem indicação do motivo. O dev mediu as 33 bases
+de HML: <code>c_pwd_usu_v2</code> não existe em nenhuma e <code>d_dia_exp</code> falta em onze delas (tokio
+incluída) — ou seja, troca de senha, reset pelo admin e criação de usuário estavam quebrados em todos os tenants;
+a Tokio foi só a primeira a exercitar a tela. A correção entregue: escrita guardada por capability (formato
+legado onde as colunas novas não existem), política de senha por seguradora lida do banco do tenant
+(indicativo <code>Ind_Formato_Senha_CitNet</code> + <code>tb_com_cit</code> — existem só na família AXA;
+as outras 29 bases usam a regra padrão), mensagens do legado palavra por palavra, painel de regras na tela e
+erro de servidor deixando de se disfarçar de erro de validação.
+</p>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Verificação in loco do planejamento (28/08/2026 — sem mutação)</h3>
+<p style="font-size:12.5px">
+Jornada navegada por clique no tenant Tokio com o usuário <code>QAINTERNO</code>: login → avatar →
+<b>Meu Perfil</b>. Três mensagens capturadas com texto exato (nenhuma troca de senha foi efetivada — todos os
+cenários abaixo são recusas, estado do banco intocado). O passo a passo completo ficou registrado em
+<code>features/CITNET/Usuarios/troca-senha-perfil.md</code>.
+</p>
+<table>
+  <tr><th>Cenário exercitado</th><th>Mensagem exata vista em tela</th></tr>
+  <tr><td>Nova senha terminando em dígito (<code>Tokioteste@2026</code> — a senha do ticket da Tokio)</td><td><code>Último caracter da Senha deve ser uma letra!</code></td></tr>
+  <tr><td>Confirmação diferente da nova senha</td><td><code>A nova Senha e a confirmação devem ser iguais</code></td></tr>
+  <tr><td>Senha atual incorreta</td><td><code>Usuário/Senha inválido!</code></td></tr>
+  <tr><td>Painel de regras do tenant tokio (política padrão)</td><td><code>Regras: mínimo de 8 caracteres; 1 letra minúscula; 1 letra maiúscula; 1 número; 1 caracter especial; primeiro e último caracter devem ser letra; diferente das últimas 3 senhas.</code></td></tr>
+</table>
+<div class="ev-plan">
+  <img src="evidencias/verificacao-plano/8337_01_perfil_painel_regras.png" alt="Tela Meu Perfil com painel de regras (tenant Tokio)">
+  <img src="evidencias/verificacao-plano/8337_02_msg_ultimo_caracter_letra.png" alt="Mensagem: Último caracter da Senha deve ser uma letra!">
+</div>
+
+<div class="warn-box">
+  <b>⚠️ Decisão de produto registrada no card (não bloqueia esta correção):</b> o painel exibe os
+  <b>números reais do tenant</b> (mín. 8 na Tokio), enquanto o legado exibe texto fixo dizendo "mínimo 14";
+  o mínimo de 8 para tokio/kovr é paridade com o legado, mas afrouxa em relação ao texto anterior. Registrado
+  como pendência de Produtos no próprio card — o CT-SNH-012 valida o comportamento <b>entregue</b> (números
+  reais), não o texto fixo antigo.
+</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:50%">In scope</th><th>Out of scope (e por quê)</th></tr>
+  <tr>
+    <td>
+      • Troca de senha em <b>Meu Perfil</b> no tenant Tokio (CITNET novo): validações da política padrão com
+        mensagem específica por regra (CA-2)<br>
+      • Caminho feliz da troca + persistência no formato legado, conferida no banco (CA-1, CA-3)<br>
+      • Round-trip: login com a senha nova no CITNET novo (CA-4)<br>
+      • Histórico: reutilização de senha barrada (CA-5) e rotação <code>C_PWD_CTL1..3</code><br>
+      • Regra "uma troca por dia" (CA-7)<br>
+      • Painel de regras com a política do tenant (CA-6)<br>
+      • Regressão cross-sistema: login no CITNET <b>legado</b> tokio com a senha trocada no novo (CA-8)
+    </td>
+    <td>
+      • <b>Rota de troca de senha expirada</b> — não existe no novo (115 usuários AXA no beco); card próprio
+        registrado como pendência no #8337<br>
+      • <b>Criação/edição de usuário (Admin &gt; Usuários)</b> — mesma causa raiz, quebrada em 33/33 bases;
+        card próprio (não usar como massa desta rodada)<br>
+      • <b>Bloqueio de tentativas de login (AXA)</b> — não implementado; card próprio<br>
+      • <b>Política customizada da família AXA</b> (mín 14/máx 20/42 dias/24 senhas) — regra de outro tenant;
+        esta rodada é no tokio (política padrão). Regra de um tenant não se generaliza<br>
+      • <b>Reset de senha pelo admin</b> — depende da tela de Admin &gt; Usuários (acima)<br>
+      • <b>Medição das colunas em DEV e PROD</b> — pendência registrada no card (medido apenas HML)
+    </td>
+  </tr>
+</table>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:34%">Item</th><th>Detalhe</th></tr>
+  <tr><td>1. Ambiente CITNET novo (tenant Tokio)</td><td>Login (única URL direta permitida): <code>https://hmlcitfaturamento.atmtec.com.br/login</code> — campo "Ambiente" travado pelo host em <b>Tokio Marine</b> (cadeado, sem select). Botão <b>"Entrar no nsseg"</b>. Após deploy, dar <b>hard refresh</b> (index sem Cache-Control).</td></tr>
+  <tr><td>2. Ambiente CITNET legado (tenant Tokio) — só CT-SNH-011</td><td>Login direto: <code>https://tokio-hml-faturamento.nsseg.com.br/citnet/</code> (formulário Usuário/Senha, botão "Acessar"). Usado apenas para provar o login cross-sistema — nenhuma operação além do login/logout.</td></tr>
+  <tr><td>3. Massa — usuários QA do tenant</td><td><code>QAINTERNO</code> (grupos 1–4) e <code>QACORRETOR</code> (CT-SNH-010); reserva <code>QASEGURADO</code>/<code>QAASSESS</code> para re-execução no mesmo dia. Existência confirmada em banco em 28/08/2026 (<code>tb_cit_net_usu</code>, base tokio). Senhas atuais nas chaves <code>HML_TOKIO_CITNET_*_USER/PASS</code> do <code>.env</code> — nunca no plano. ⛔ JORGE/EDUARDO não são massa de QA (homologação do cliente).</td></tr>
+  <tr><td>4. Acesso SQL read-only</td><td>Base <code>smt-hom-citweb-tokio</code> (credenciais no <code>.env</code>). Todas as consultas deste plano são <code>SELECT</code> (Q1–Q4 abaixo) — nenhuma escrita em banco é necessária: a massa são os usuários QA já existentes.</td></tr>
+  <tr><td>5. Baseline antes do Grupo 2</td><td>Executar Q1+Q3 e guardar o resultado (cifras truncadas nos registros públicos — hash não é segredo, mas evita ruído).</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Consultas de oráculo (SQL read-only — base <code>smt-hom-citweb-tokio</code>)</h3>
+<pre>
+-- Q1: estado do usuário (antes/depois da troca)
+SELECT C_USU, C_PWD_USU, C_PWD_CTL1, C_PWD_CTL2, C_PWD_CTL3,
+       CONVERT(varchar(19), D_CAD_USU, 120) AS D_CAD_USU
+  FROM tb_cit_net_usu WHERE C_USU = 'QAINTERNO';
+
+-- Q2: contrato de schema (capability): 17 colunas; SEM c_pwd_usu_v2 e SEM d_dia_exp
+SELECT COUNT(*) AS n_colunas FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'TB_CIT_NET_USU';
+SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+ WHERE TABLE_NAME = 'TB_CIT_NET_USU' AND COLUMN_NAME IN ('c_pwd_usu_v2','d_dia_exp');  -- esperado: 0 linhas
+
+-- Q3: histórico de senha (4 colunas; 0 linhas p/ QAINTERNO no baseline de 28/08)
+SELECT c_usu, c_org_prd, CONVERT(varchar(19), d_usu_inc, 120) AS d_usu_inc, c_pwd_usu
+  FROM tb_hst_pwd_cit WHERE c_usu = 'QAINTERNO' ORDER BY d_usu_inc;
+
+-- Q4: política custom inexistente no tokio (usa regra padrão)
+SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'tb_com_cit';          -- esperado: 0 linhas
+SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE COLUMN_NAME LIKE '%Formato_Senha%'; -- esperado: 0 linhas
+</pre>
+<p style="font-size:12.5px;color:var(--cinza)">Baseline medido em 28/08/2026: <code>TB_CIT_NET_USU</code> com 17 colunas
+(sem <code>c_pwd_usu_v2</code>/<code>d_dia_exp</code>); <code>tb_hst_pwd_cit</code> com 0 linhas;
+<code>tb_com_cit</code> inexistente — política padrão confirmada também pelo painel da tela.</p>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+<p style="font-size:12.5px;color:var(--cinza)">Clique no cabeçalho de cada CT para expandir. Ordem de execução:
+Grupo 1 (não muta estado) → Grupo 2 (1 troca do QAINTERNO) → Grupo 3 → Grupo 4. Navegação sempre por clique:
+login → avatar do usuário (canto superior direito) → <b>Meu Perfil</b>. Toda recusa deve exibir a mensagem
+<b>específica</b> — se em qualquer CT aparecer o genérico "Não foi possível trocar a senha", o CT REPROVA (é a
+assinatura do bug original).</p>
+
+<div class="group-header">Grupo 1 — Validações da política com mensagem específica (CA-2, CA-6) — sem mutação</div>
+<div class="group-note">Usuário <code>QAINTERNO</code>, senha atual da chave <code>.env</code>. Nenhum destes CTs
+efetiva troca — podem ser repetidos à vontade. Em todos: campo "Senha atual" correto (exceto CT-SNH-006), "Nova
+senha" = "Confirme a nova senha" (exceto CT-SNH-005).</div>
+
+<div class="ct-block" id="CT-SNH-001">
+  <div class="ct-head"><span class="ct-id">CT-SNH-001</span><span class="ct-title">Senha do ticket da Tokio (termina em dígito) recusada com a mensagem específica do legado</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Login OK no tenant Tokio com <code>QAINTERNO</code>; tela <b>Meu Perfil</b> aberta por clique (avatar → Meu Perfil).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>No card <b>Trocar senha</b>: "Senha atual" = senha vigente do QAINTERNO (chave <code>.env</code>).</li>
+      <li>"Nova senha" e "Confirme a nova senha" = <code>Tokioteste@2026</code> (exatamente a senha que a Tokio tentou usar no ticket).</li>
+      <li>Clicar <b>Trocar senha</b>.</li>
+      <li>Capturar o alert acima do painel de regras (screenshot com a mensagem legível).</li>
+      <li>Confirmar via Q1 que <code>C_PWD_USU</code>/<code>D_CAD_USU</code> não mudaram (troca não efetivada).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mensagem exata: <code>Último caracter da Senha deve ser uma letra!</code> — nunca o genérico
+    "Não foi possível trocar a senha". Banco intocado (Q1 idêntico ao baseline). Esta mensagem foi vista em tela na
+    verificação de planejamento de 28/08 — o CT formaliza a evidência da rodada.</div>
+    <div class="ev-section" id="ev-CT-SNH-001">📎 Evidências desta execução serão inseridas aqui (form preenchido + alert legível + Q1 antes/depois).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-002">
+  <div class="ct-head"><span class="ct-id">CT-SNH-002</span><span class="ct-title">Primeiro caracter não-letra recusado com a mensagem da regra</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Mesmas do CT-SNH-001.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>"Nova senha" = "Confirme" = <code>1Tokioteste@a</code> (começa em dígito, resto conforme política).</li>
+      <li>Clicar <b>Trocar senha</b> e capturar o alert.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Recusa com a mensagem <b>específica</b> da regra do primeiro caracter (família da mensagem do
+    último caracter — texto exato registrado como evidência na execução; a regra consta no painel: "primeiro e último
+    caracter devem ser letra"). Nunca o texto genérico. Banco intocado.</div>
+    <div class="ev-section" id="ev-CT-SNH-002">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-003">
+  <div class="ct-head"><span class="ct-id">CT-SNH-003</span><span class="ct-title">Senha abaixo do mínimo (8) recusada com a mensagem de mínimo de caracteres</span><span class="prio importante">P2</span><span class="tipo-tag">Limite</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Mesmas do CT-SNH-001. Política padrão do tokio: mínimo 8 (painel).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>"Nova senha" = "Confirme" = <code>Tk@26aa</code> (7 caracteres — 1 abaixo do limite; cumpre as demais regras).</li>
+      <li>Clicar <b>Trocar senha</b> e capturar o alert.</li>
+      <li>(Contraprova de limite — executada no CT-SNH-007: a senha válida terá exatamente 8+ caracteres.)</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Recusa com a mensagem específica de mínimo de caracteres citando o número da política do
+    tenant (8) — texto exato registrado na execução. Banco intocado.</div>
+    <div class="ev-section" id="ev-CT-SNH-003">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-004">
+  <div class="ct-head"><span class="ct-id">CT-SNH-004</span><span class="ct-title">Composição obrigatória: sem maiúscula / sem minúscula / sem número / sem caracter especial — 4 recusas com mensagem própria</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Mesmas do CT-SNH-001.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Sub-passo A — sem maiúscula: <code>tokioteste@2026a</code> → Trocar senha → capturar alert.</li>
+      <li>Sub-passo B — sem minúscula: <code>TOKIOTESTE@2026A</code> → Trocar senha → capturar alert.</li>
+      <li>Sub-passo C — sem número: <code>Tokioteste@aa</code> → Trocar senha → capturar alert.</li>
+      <li>Sub-passo D — sem caracter especial: <code>Tokioteste2026a</code> → Trocar senha → capturar alert.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Cada sub-passo recusado com a mensagem <b>da regra correspondente</b> (texto exato de cada uma
+    registrado na execução; o conjunto de caracteres especiais aceitos é o conjunto fechado do legado). Nunca o texto
+    genérico. Banco intocado nos 4 sub-passos.</div>
+    <div class="ev-section" id="ev-CT-SNH-004">📎 Evidências desta execução serão inseridas aqui (1 print por sub-passo).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-005">
+  <div class="ct-head"><span class="ct-id">CT-SNH-005</span><span class="ct-title">Confirmação divergente da nova senha bloqueia a troca</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Mesmas do CT-SNH-001.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>"Nova senha" = <code>Qateste@2026a</code>; "Confirme a nova senha" = <code>Qateste@2026b</code>.</li>
+      <li>Clicar <b>Trocar senha</b> e capturar o alert.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mensagem exata: <code>A nova Senha e a confirmação devem ser iguais</code> (vista em tela em
+    28/08). Banco intocado.</div>
+    <div class="ev-section" id="ev-CT-SNH-005">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-006">
+  <div class="ct-head"><span class="ct-id">CT-SNH-006</span><span class="ct-title">Senha atual incorreta bloqueia a troca com mensagem específica</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Mesmas do CT-SNH-001. Card #8337 registra que bloqueio por tentativas não existe (pendência
+    de card próprio) — ainda assim, executar <b>uma única</b> tentativa errada.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>"Senha atual" = <code>SenhaErrada@1x</code> (valor sabidamente errado); "Nova senha" = "Confirme" = <code>Qateste@2026a</code>.</li>
+      <li>Clicar <b>Trocar senha</b> e capturar o alert.</li>
+      <li>Confirmar em seguida que o login do QAINTERNO segue funcionando com a senha vigente (sem bloqueio de conta).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mensagem exata: <code>Usuário/Senha inválido!</code> (vista em tela em 28/08). Troca não
+    efetivada; conta não bloqueada.</div>
+    <div class="ev-section" id="ev-CT-SNH-006">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 2 — Caminho feliz: troca válida + persistência + round-trip (CA-1, CA-3, CA-4)</div>
+<div class="group-note">Usuário <code>QAINTERNO</code>. ⚠️ Consome a única troca do dia do usuário (CA-7). Executar Q1+Q3
+imediatamente ANTES do CT-SNH-007 (baseline da rodada) e imediatamente DEPOIS (delta). A senha nova é definida na hora
+da execução (mín. 8, começa e termina com letra, com maiúscula/minúscula/número/especial), registrada só no cofre local.</div>
+
+<div class="ct-block" id="CT-SNH-007">
+  <div class="ct-head"><span class="ct-id">CT-SNH-007</span><span class="ct-title">Troca válida: mensagem de sucesso do legado + persistência no formato legado (banco)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Login OK com <code>QAINTERNO</code> (senha vigente); Q1+Q3 baseline capturados; nenhuma troca válida do QAINTERNO hoje.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>"Senha atual" = senha vigente; "Nova senha" = "Confirme" = senha nova conforme política (registrar no cofre local).</li>
+      <li>Clicar <b>Trocar senha</b> e capturar a mensagem de sucesso legível.</li>
+      <li>Executar Q1 e comparar com o baseline: <code>C_PWD_USU</code> mudou; <code>C_PWD_CTL1</code> = valor ANTERIOR de <code>C_PWD_USU</code> (rotação); <code>D_CAD_USU</code> = data de hoje + 3 meses.</li>
+      <li>Executar Q3 e registrar o delta do histórico (<code>tb_hst_pwd_cit</code> — baseline 0 linhas).</li>
+      <li>Executar Q2 e confirmar que o schema segue com 17 colunas (nenhuma coluna nova criada/exigida).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mensagem exata: <code>Alteração efetuada com sucesso.</code> (frase idêntica à do legado — fonte:
+    card #8337). Banco: <code>C_PWD_USU</code> = cifra nova, <code>C_PWD_CTL1</code> = cifra antiga, <code>D_CAD_USU</code>
+    = hoje + 3 meses, schema inalterado. "Não deu erro" não aprova — a assinatura é o delta do banco + a mensagem de sucesso.</div>
+    <div class="ev-section" id="ev-CT-SNH-007">📎 Evidências desta execução serão inseridas aqui (mensagem de sucesso + Q1/Q3 antes/depois com cifras truncadas).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-008">
+  <div class="ct-head"><span class="ct-id">CT-SNH-008</span><span class="ct-title">Round-trip: login no CITNET novo com a senha nova funciona; senha antiga é recusada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>CT-SNH-007 aprovado (senha do QAINTERNO trocada nesta rodada).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Sair (avatar → <b>Sair</b>).</li>
+      <li>Login com <code>QAINTERNO</code> + senha ANTIGA → capturar a recusa.</li>
+      <li>Login com <code>QAINTERNO</code> + senha NOVA → home "Bem-vindo, QA INTERNO TOKIO".</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Senha antiga recusada no login; senha nova autentica e chega à home do tenant Tokio — o que foi
+    gravado é verificável na volta (CA-4).</div>
+    <div class="ev-section" id="ev-CT-SNH-008">📎 Evidências desta execução serão inseridas aqui (recusa com a antiga + home com a nova).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 3 — Histórico e regra diária (CA-5, CA-7)</div>
+<div class="group-note">CT-SNH-009 usa o <code>QAINTERNO</code> (não muta — recusa). CT-SNH-010 usa o
+<code>QACORRETOR</code> (consome a troca do dia DESTE usuário; senha atual na chave <code>.env</code>).</div>
+
+<div class="ct-block" id="CT-SNH-009">
+  <div class="ct-head"><span class="ct-id">CT-SNH-009</span><span class="ct-title">Reutilizar a senha anterior é barrado pelo histórico</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>CT-SNH-007 executado (senha antiga do QAINTERNO está no histórico/CTL1). Logado com a senha nova.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Meu Perfil → Trocar senha: "Senha atual" = senha NOVA (vigente); "Nova senha" = "Confirme" = a senha ANTIGA (pré CT-SNH-007).</li>
+      <li>Clicar <b>Trocar senha</b> e capturar o alert.</li>
+      <li>Q1: confirmar que nada mudou.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Mensagem exata: <code>Senha já utilizada nos últimos 3 meses!</code> (fonte: card #8337 — jornada
+    do dev na mesma tela/tenant). Banco intocado. Mesma jornada do roteiro "Como homologar" do card.</div>
+    <div class="ev-section" id="ev-CT-SNH-009">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-010">
+  <div class="ct-head"><span class="ct-id">CT-SNH-010</span><span class="ct-title">Segunda troca válida no mesmo dia é recusada (uma troca por dia)</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Usuário <code>QACORRETOR</code> sem troca válida hoje (senha atual na chave <code>.env</code>).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Login com <code>QACORRETOR</code> → Meu Perfil → troca válida nº 1 (senha nova conforme política, registrada no cofre local) → esperar <code>Alteração efetuada com sucesso.</code></li>
+      <li>Sem trocar de dia: tentar troca válida nº 2 (outra senha válida, diferente das anteriores).</li>
+      <li>Capturar o alert da recusa; Q1 (para QACORRETOR): confirmar que a cifra vigente é a da troca nº 1.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Troca nº 1 efetivada; troca nº 2 recusada com a mensagem específica da regra "uma troca por dia"
+    (texto exato registrado na execução — regra portada do legado, listada no card). Banco permanece com a cifra da troca nº 1.</div>
+    <div class="ev-section" id="ev-CT-SNH-010">📎 Evidências desta execução serão inseridas aqui (sucesso da 1ª + recusa da 2ª + Q1).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 4 — Regressão cross-sistema e painel de regras (CA-6, CA-8)</div>
+<div class="group-note">O invariante que motivou o formato legado: a MESMA coluna serve os dois sistemas. Gravar o hash
+novo em <code>C_PWD_USU</code> trancaria o usuário no novo E no legado.</div>
+
+<div class="ct-block" id="CT-SNH-011">
+  <div class="ct-head"><span class="ct-id">CT-SNH-011</span><span class="ct-title">Regressão cross-sistema: senha trocada no novo loga no CITNET legado tokio</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>CT-SNH-007 aprovado (QAINTERNO com senha nova gravada pelo CITNET novo).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://tokio-hml-faturamento.nsseg.com.br/citnet/</code> (login direto do legado — URL de login permitida).</li>
+      <li>Usuário <code>QAINTERNO</code> + a senha NOVA (trocada no CITNET novo) → "Acessar".</li>
+      <li>Capturar a home do legado autenticada (evidência de que a escrita foi no formato que o legado lê).</li>
+      <li>Sair do legado.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Login no CITNET <b>legado</b> aceito com a senha trocada no CITNET <b>novo</b> — prova da
+    persistência em formato legado na coluna compartilhada (CA-8). Se o legado recusar, a escrita saiu do contrato
+    (ex.: hash novo em <code>C_PWD_USU</code>) → REPROVADO com evidência.</div>
+    <div class="ev-section" id="ev-CT-SNH-011">📎 Evidências desta execução serão inseridas aqui (login legado + home autenticada).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-SNH-012">
+  <div class="ct-head"><span class="ct-id">CT-SNH-012</span><span class="ct-title">Painel "Regras para definição da senha" reflete a política do tenant (padrão tokio)</span><span class="prio desejavel">P3</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4><p>Logado no tenant Tokio (qualquer usuário QA); Q4 confirmando ausência de política custom.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Meu Perfil → card Trocar senha: capturar o painel "Regras para definição da senha" com o texto legível.</li>
+      <li>Comparar palavra por palavra com o texto medido em 28/08 (política padrão): <i>"Regras: mínimo de 8 caracteres; 1 letra minúscula; 1 letra maiúscula; 1 número; 1 caracter especial; primeiro e último caracter devem ser letra; diferente das últimas 3 senhas."</i></li>
+      <li>Cruzar com Q4 (tenant sem <code>tb_com_cit</code>/indicativo → regra padrão).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Painel presente e com a política padrão do tenant (números reais — mín. 8), coerente com Q4.
+    A divergência com o texto fixo do legado ("mínimo 14") é decisão de produto registrada no card — não reprova este CT.</div>
+    <div class="ev-section" id="ev-CT-SNH-012">📎 Evidências desta execução serão inseridas aqui (painel + Q4).</div>
+  </div>
+</div>
+
+<!-- ============ 6. MATRIZ ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério</th><th style="width:130px">Origem</th><th style="width:230px">CT(s)</th><th style="width:100px">Resultado</th></tr>
+  <tr><td>CA-1 — Troca válida com mensagem de sucesso do legado</td><td>Repro steps + descrição</td><td>CT-SNH-007</td><td>Pendente</td></tr>
+  <tr><td>CA-2 — Recusa com mensagem específica por regra (nunca o genérico)</td><td>Repro steps + descrição</td><td>CT-SNH-001..006</td><td>Pendente</td></tr>
+  <tr><td>CA-3 — Persistência no formato legado (C_PWD_USU/CTL1/D_CAD_USU; schema intacto)</td><td>Descrição</td><td>CT-SNH-007</td><td>Pendente</td></tr>
+  <tr><td>CA-4 — Login com a senha nova (round-trip)</td><td>Descrição</td><td>CT-SNH-008</td><td>Pendente</td></tr>
+  <tr><td>CA-5 — Histórico barra reutilização</td><td>Descrição</td><td>CT-SNH-009</td><td>Pendente</td></tr>
+  <tr><td>CA-6 — Painel de regras com a política do tenant</td><td>Descrição</td><td>CT-SNH-012 (e visível em todos)</td><td>Pendente</td></tr>
+  <tr><td>CA-7 — Uma troca por dia</td><td>Descrição</td><td>CT-SNH-010</td><td>Pendente</td></tr>
+  <tr><td>CA-8 — Paridade cross-sistema (legado loga com a senha do novo)</td><td>Causa raiz — guarda QA</td><td>CT-SNH-011</td><td>Pendente</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--cinza)">Cobertura: 8/8 critérios derivados, com pelo menos 1 CT cada (100%).
+Sessão exploratória (NOR_QA_002 §11) prevista após os CTs formais — foco: caracteres fora do conjunto fechado do
+legado (acentos, espaço, emoji), colar senha longa (máximo da política padrão?), comportamento do painel/alerts em
+EN/ES (i18n citada na entrega), duplo clique no botão Trocar senha, sessão expirada no meio da troca.</p>
+
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th style="width:110px">Probabilidade</th><th style="width:90px">Impacto</th><th>Mitigação</th></tr>
+  <tr><td>Regra "uma troca por dia" impede reteste do Grupo 2 no mesmo dia (usuário fica travado até o dia seguinte)</td><td>Alta (por design)</td><td>Médio</td><td>Um usuário QA por rodada de troca válida; reserva QASEGURADO/QAASSESS para re-execução; grupos que não mutam vêm primeiro</td></tr>
+  <tr><td>Trocar senha de usuário errado (JORGE/EDUARDO) quebraria a homologação da Tokio em curso</td><td>Baixa (guardado no plano)</td><td>Alto</td><td>Massa exclusiva QA*; warn-box; JORGE/EDUARDO citados apenas como contexto do ticket</td></tr>
+  <tr><td>Senhas novas da rodada se perderem (cofre local desatualizado) → usuários QA inacessíveis</td><td>Média</td><td>Médio</td><td>Registrar a senha final no cofre local (.env) imediatamente após cada troca; reset por procedimento privado é o fallback</td></tr>
+  <tr><td>Mensagens das regras ainda não vistas em tela (mínimo, composição, 1/dia) podem divergir do legado palavra a palavra</td><td>Média</td><td>Baixo</td><td>Texto exato capturado na execução vira oráculo registrado em <code>features/CITNET/Usuarios/troca-senha-perfil.md</code>; divergência de conteúdo (regra errada) reprova, divergência apenas tipográfica vira apontamento</td></tr>
+  <tr><td>Cache do front (index sem Cache-Control) mostrando tela velha após novo deploy durante a rodada</td><td>Média</td><td>Médio</td><td>Hard refresh antes de qualquer suspeita; assinatura do código velho = texto genérico no lugar da mensagem específica</td></tr>
+  <tr><td>Política padrão global: se outra família de tenant (AXA, mín 14) for exercitada por engano, os valores de massa deste plano não valem</td><td>Baixa</td><td>Baixo</td><td>Tenant travado pelo host (cadeado); plano restrito ao tokio; política AXA fora de escopo declarada</td></tr>
+</table>
+
+<footer>
+  Plano de teste gerado em 28/08/2026 · BUG #8337 · Sprint 13 Citweb · CITWEB Team ·
+  Task do plano: #8386 · Referências: BUG #8337 (repro steps + descrição com causa raiz, correção, evidências do dev
+  e roteiro "Como homologar"; comentário do dev Fabiano Souza de 26/08; validação interna de Produtos em 28/08),
+  PRs #17008/#17010/#17011/#17012, verificação in loco de planejamento em 28/08/2026 (tenant Tokio, usuário QAINTERNO,
+  zero mutação — 3 mensagens e o painel de regras medidos em tela), baseline de banco em 28/08/2026 na base
+  <code>smt-hom-citweb-tokio</code> (Q1–Q4), fluxo documentado em <code>features/CITNET/Usuarios/troca-senha-perfil.md</code>.
+  Execução condicionada a: Gate 1 (QA owner) → Gate 2 (Produtos).
+</footer>
+</div>
+
+<div class="assinatura">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
