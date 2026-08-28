@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG 8374 · [CNPJ ALFANUMÉRICO] Integração Fatura EZZE</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d; --bug:#b91c1c;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--bug);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">BUG-8374 · Sprint 13 Citweb</div><h1>Plano de Teste — BUG 8374 · [CNPJ ALFANUMÉRICO] Integração Fatura EZZE</h1>
+  <div class="sub">Verificação da configuração da integração de <b>fatura</b> entre o CITWEB/CITNET e o ERP da EZZE no
+  ambiente de homologação <b>alfa</b> (<code style="background:rgba(255,255,255,.15);border:0;color:#fff">hml-ezze-alfa</code>).
+  Não é correção de bug — é a homologação do ambiente: endpoint, credenciais, parâmetros, conectividade, isolamento
+  (HML nunca aponta para produção) e um envio de fatura de teste processado de ponta a ponta pelo ERP de homologação.
+  O dev instalou <code style="background:rgba(255,255,255,.15);border:0;color:#fff">apiEmissaofaturas</code> e
+  <code style="background:rgba(255,255,255,.15);border:0;color:#fff">nsretornofatura</code> no alfa em 28/08 e comprovou uma emissão com sucesso.</div>
+  <div class="badges">
+    <span class="badge">BUG #8374</span>
+    <span class="badge">Sprint 13 Citweb</span>
+    <span class="badge">citweb · EZZE · alfanumérico · fatura</span>
+    <span class="badge">8 CTs — 3×P1 · 4×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (3×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">BUG #8374 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_13_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Faturamento — integração fatura CITWEB/CITNET × ERP EZZE (apiEmissaofaturas + nsretornofatura)</div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML EZZE <b>alfa</b> — <code>ezze-hml-faturamento.nsseg.com.br</code> (<code>/alfa/login/</code> e <code>/alfa/citnet/</code>, ambos HTTP 200 em 28/08) + base <code>smt-hom-citweb-ezze-alfa</code></div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">28/08/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8375 (análise do erro — dev) · #8390 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">Pronto para homologação — dev instalou as APIs no alfa e comprovou emissão em 28/08 (comentário + prints no card)</div></div>
+  <div class="info-item"><div class="k">Dev</div><div class="v">Fabiano Souza</div></div>
+</div>
+
+<div class="info-box">
+  <b>Natureza do card:</b> verificação de <b>configuração de ambiente</b>, não correção de código. O ambiente
+  <code>hml-ezze-alfa</code> precisa da integração de fatura operacional para que os testes de faturamento da
+  iniciativa CNPJ alfanumérico rodem sem bloqueio de ambiente — e sem que problema de configuração seja confundido
+  com defeito de produto (o próprio card cita os defects <b>DEF-15</b> — Consulta de Histórico de Faturas vazia — e
+  <b>DEF-13</b> — Resumo do Cálculo com FOB divergente — já abertos nesse ambiente). O ponto crítico do card é o
+  <b>isolamento</b>: a integração de HML jamais pode transmitir para o ERP <b>produtivo</b> da seguradora
+  (geraria faturas fictícias no sistema da EZZE).
+</div>
+
+<div class="info-box">
+  <b>Derivação de DoR (registro):</b> o card traz três "⚠️ A PREENCHER" (qual ERP / nome da integração / ajustes).
+  Foram <b>resolvidos por interpretação do card inteiro</b>, conforme a norma de DoR do time:
+  o comentário do dev (28/08 14:53) identifica a integração — <code>apiEmissaofaturas</code> e
+  <code>nsretornofatura</code>, instaladas no ambiente alfa — e comprova uma emissão com sucesso, com a ressalva
+  operacional de que <i>"tem que ter certeza que existe a apólice cadastrada no ERP da Ezze, pois senão a emissão é
+  rejeitada"</i>. O nome comercial do ERP da EZZE não é declarado e <b>não bloqueia</b> a verificação (o objeto
+  testável é o contrato da integração, observável em tela e em banco); fica registrado como pendência informativa
+  no relatório final. <b>Ramo</b> não é declarado porque a integração é transversal a ramos — a massa medida em
+  banco é de ramo 54 (RCTR-C), o mesmo usado pelo dev.
+</div>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Critérios de aceite consolidados (do card — campo AC + escopo da verificação)</h3>
+<table>
+  <tr><th style="width:70px">CA</th><th>Critério</th><th style="width:170px">Origem</th></tr>
+  <tr><td>CA-1</td><td>Relatório do <b>estado atual</b> da configuração da integração de fatura no alfa, item a item (endpoint, credenciais, parâmetros, flag de habilitação)</td><td>AC funcional 1 + escopo itens 1–4</td></tr>
+  <tr><td>CA-2</td><td><b>Endpoint aponta para o ERP de homologação</b> — nenhuma URL de integração do tenant aponta para produção (isolamento; dado de teste jamais chega ao produtivo)</td><td>AC funcional 2 + escopo itens 1 e 8 (ponto crítico)</td></tr>
+  <tr><td>CA-3</td><td><b>Credenciais e parâmetros preenchidos e válidos</b> — a integração não falha por configuração ausente/expirada</td><td>AC funcional 3 + escopo itens 2–3</td></tr>
+  <tr><td>CA-4</td><td><b>Conectividade</b> entre o ambiente alfa e o ERP de homologação — as chamadas chegam ao destino e a resposta volta</td><td>AC funcional 4 + escopo item 5</td></tr>
+  <tr><td>CA-5</td><td><b>Divergências/pendências documentadas com encaminhamento</b> para regularização</td><td>AC funcional 5 + DoD</td></tr>
+  <tr><td>CA-6</td><td><b>Integração operacional em HML</b> — testes de fatura liberados sem bloqueio de ambiente</td><td>AC funcional 6 + medição de sucesso</td></tr>
+  <tr><td>CA-7</td><td><b>Envio de fatura de teste processado corretamente pelo ERP de homologação</b>, com retorno refletido no sistema e logs sem erros</td><td>AC técnico (Q.A) + plano de testes sugerido no card</td></tr>
+  <tr><td>CA-8</td><td><b>Contrato de dados/logs</b>: cada tentativa de transmissão registrada com status e retorno legível (inclusive rejeição controlada quando a apólice não existe no ERP)</td><td>Escopo itens 6–7 + OBS do dev</td></tr>
+</table>
+
+<div class="warn-box">
+  <b>⚠️ Condições e cuidados de execução:</b><br>
+  • Nenhum CT é executado antes da aprovação do plano (Gate 1 → Gate 2).<br>
+  • <b>Isolamento primeiro:</b> o CT-ITG-002 (isolamento HML×produção) executa <b>antes</b> de qualquer emissão da
+    rodada — se alguma URL produtiva for encontrada, os CTs funcionais ficam suspensos e o achado é escalado
+    imediatamente (encaminhamento no relatório, CA-5).<br>
+  • <b>Emissão de fatura muta o ambiente HML</b> (fatura real emitida no alfa + registro transmitido ao ERP de
+    homologação). Registrar no relatório o nº de cada fatura gerada pela rodada.<br>
+  • <b>Apólice precisa existir no ERP da EZZE</b> (OBS do dev): o cenário positivo usa exclusivamente a apólice
+    <code>1065406002438</code> (comprovada no ERP em 28/08 — retorno "Código 0"); os cenários negativos usam
+    <code>333</code>/<code>7777</code> (comprovadas como ausentes no ERP em 28/08).<br>
+  • Credenciais de UI e de banco ficam nas chaves <code>HML_EZZE_*</code> / <code>DB_*</code> do cofre local
+    (<code>.env</code>) — nunca neste plano. ⚠️ A senha do usuário interno do CITNET EZZE sofreu rotação em 17/07;
+    validar o login antes da rodada (risco R1).
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p>
+O time de sustentação precisa confirmar que a integração de fatura do ambiente <code>hml-ezze-alfa</code> está
+corretamente parametrizada e operacional. Em 28/08 o dev fez os ajustes de configuração e instalou as APIs
+<code>apiEmissaofaturas</code> e <code>nsretornofatura</code> no alfa; na sequência emitiu uma fatura de teste com
+sucesso (prints no card: grid de emissão com a apólice <code>1065406002438</code> e a mensagem
+<i>"Fatura 1016244 emitida."</i>). Este plano formaliza a verificação em 3 camadas: <b>configuração</b> (o que está
+parametrizado, com isolamento HML×produção), <b>funcional</b> (uma fatura de teste atravessa a integração de ponta a
+ponta, com retorno do ERP refletido no sistema) e <b>regressão</b> (o comportamento dos defects DEF-15/DEF-13 é
+reavaliado após os ajustes de configuração, como o próprio card pede).
+</p>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Verificação de planejamento (28/08/2026 — SQL read-only, zero mutação)</h3>
+<p style="font-size:12.5px">
+Consultas na base <code>smt-hom-citweb-ezze-alfa</code> durante a montagem deste plano — todos os valores abaixo
+são <b>medidos</b>, não supostos:
+</p>
+<table>
+  <tr><th>Fato medido</th><th>Evidência (banco, 28/08/2026)</th></tr>
+  <tr><td>Transmissão de fatura com <b>sucesso</b> hoje</td><td><code>tb_interface_faturas</code>: fechamento <code>33</code>, apólice <code>1065406002438</code>, status <code>S</code>, inclusão <code>2026-08-28 09:32</code>, retorno <code>Código 0: Processamento efetuado com sucesso</code></td></tr>
+  <tr><td>Rejeição controlada por apólice ausente no ERP (OBS do dev)</td><td>Apólices <code>7777</code> (28/08 09:08) e <code>333</code> (27/08 18:04): status <code>S</code>, retorno <code>Apólice não encontrada. Nrº Apolice = 7777 Nrº Sub = 1</code> (idem p/ 333)</td></tr>
+  <tr><td>Massa do cenário positivo existe no CITWEB alfa</td><td><code>tb_apo_cit</code>: apólice <code>1065406002438</code> — filial <code>1</code>, ramo <code>54</code> (RCTR-C); subgrupo <code>001</code>; corretora e segurado visíveis no print do dev</td></tr>
+  <tr><td>Massa dos cenários negativos existe no CITWEB alfa (e não no ERP)</td><td><code>tb_apo_cit</code>: apólices <code>333</code> e <code>7777</code> — filial <code>5555</code>, cadastradas em 7 ramos (21/22/32/38/54/56/58); base com 151 apólices no total</td></tr>
+  <tr><td>Parâmetros do tenant presentes</td><td><code>TB_CIT_NET_PARAM_GERAL</code>: <code>N_CIA=EZZE</code>, <code>N_FUNCIONALIDADE=SCOBPRMIN.SSOLICCOB</code>, usuário e senha de consumo <b>preenchidos</b> (valores não expostos); <code>url_cnseg</code> aponta para host com sufixo <code>-hmlg</code> (homologação)</td></tr>
+  <tr><td>UI do ambiente alfa no ar</td><td><code>https://ezze-hml-faturamento.nsseg.com.br/alfa/login/</code> e <code>/alfa/citnet/</code> → HTTP 200 em 28/08 (o alfa da EZZE passou a existir nesta sprint — atualizar <code>features/</code> na execução)</td></tr>
+</table>
+<div class="info-box">
+  <b>Nota sobre o endpoint do ERP de fatura:</b> o endpoint das APIs <code>apiEmissaofaturas</code>/<code>nsretornofatura</code>
+  é configuração de aplicação (config dos serviços instalados no alfa), não linha das tabelas de parâmetro do banco —
+  a verificação direta do valor (CA-2) usa o print de configuração do dev/sustentação como evidência complementar
+  (o próprio card, nos CAs técnicos, prevê "prints de configuração" como evidência), e a prova funcional vem do
+  par emissão + retorno (CT-ITG-004/005). O que é legível em banco (ex.: <code>url_cnseg</code>) é conferido diretamente.
+</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:50%">In scope</th><th>Out of scope (e por quê)</th></tr>
+  <tr>
+    <td>
+      • Estado da configuração da integração de fatura no <b>alfa EZZE</b>: parâmetros, credenciais (preenchidas/válidas),
+        flag/operacionalidade, item a item (CA-1, CA-3)<br>
+      • Isolamento HML×produção — nenhuma URL de integração produtiva no tenant (CA-2)<br>
+      • Conectividade alfa ↔ ERP de homologação comprovada por chamada real (CA-4)<br>
+      • Emissão de fatura de teste de ponta a ponta com retorno do ERP refletido no sistema (CA-6, CA-7)<br>
+      • Rejeição controlada quando a apólice não existe no ERP — contrato de erro legível (CA-8)<br>
+      • Rastro por tentativa em <code>tb_interface_faturas</code> (status + retorno) (CA-8)<br>
+      • Regressão dos defects <b>DEF-15</b> (Histórico de Faturas) e <b>DEF-13</b> (Resumo do Cálculo/FOB) após os
+        ajustes — o card pede explicitamente essa avaliação
+    </td>
+    <td>
+      • <b>Correção dos defects DEF-15/DEF-13 em si</b> — são defects próprios da plataforma de teste do ambiente;
+        aqui só se avalia se a configuração tem relação com eles<br>
+      • <b>ERP interno da EZZE</b> — sistema de terceiro; valida-se o contrato (envio/retorno), não o processamento
+        interno da seguradora<br>
+      • <b>Infraestrutura de rede</b> (firewall, certificados, portas — item 5 do escopo do card): verificada
+        <b>indiretamente</b> pela conectividade efetiva; inspeção direta de infra é da sustentação<br>
+      • <b>Revisão "2 pessoas" dos ajustes de config</b> (CA técnico da DoD) — controle de processo do dev/tech lead;
+        QA registra no relatório que os ajustes de 28/08 foram feitos pelo dev, com encaminhamento se faltar a revisão<br>
+      • <b>Ambiente EZZE padrão (não-alfa) e produção</b> — o card é exclusivo do <code>hml-ezze-alfa</code><br>
+      • <b>Regras de faturamento por ramo</b> (suspensão, PMM etc.) — não é objeto; a massa é ramo 54 e nada aqui se
+        generaliza para outros ramos
+    </td>
+  </tr>
+</table>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:34%">Item</th><th>Detalhe</th></tr>
+  <tr><td>1. CITWEB alfa EZZE</td><td>Login (única URL direta permitida): <code>https://ezze-hml-faturamento.nsseg.com.br/alfa/login/</code> (HTTP 200 em 28/08). Usuário operador da EZZE nas chaves <code>HML_EZZE_CITWEB_*</code> do cofre local — <b>não</b> usar usuário de automação genérico (não vale para EZZE).</td></tr>
+  <tr><td>2. CITNET alfa EZZE (se a tela de emissão for a do CITNET)</td><td>Login: <code>https://ezze-hml-faturamento.nsseg.com.br/alfa/citnet/</code> (HTTP 200 em 28/08). Usuário interno nas chaves <code>HML_EZZE_CITNET_*</code>. ⚠️ Senha sofreu rotação em 17/07 — confirmar antes da rodada (risco R1).</td></tr>
+  <tr><td>3. Caminho de tela da emissão</td><td>Navegação por clique a partir do login. Caminho de referência: menu <b>Nacional → Fechamento Mensal → Emissão</b> (CITWEB) <b>[⚠️ a validar em tela na execução — o alfa EZZE é novo e o fluxo ainda não está em <code>features/</code>; o grid do print do dev — colunas Filial/Ramo/Apólice/Subgrupo/Corretora/Segurado com checkbox por linha — será usado para confirmar a tela]</b>. O caminho medido vira <code>features/faturamento/emissao.md</code>.</td></tr>
+  <tr><td>4. Massa — cenário positivo</td><td>Apólice <code>1065406002438</code> · filial <code>1</code> (0001) · ramo <code>54</code> RCTR-C · subgrupo <code>001</code> — existe no CITWEB alfa <b>e</b> no ERP de homologação (comprovado em 28/08). Para nova emissão é preciso movimento aberto na competência: confirmar averbações abertas antes do CT-ITG-004 e, se não houver, <b>criar averbação via UI</b> (nunca bloquear por falta de massa).</td></tr>
+  <tr><td>5. Massa — cenário negativo</td><td>Apólices <code>333</code> ou <code>7777</code> · filial <code>5555</code> · qualquer ramo cadastrado (21/22/32/38/54/56/58) — existem no CITWEB alfa e <b>não</b> existem no ERP (retorno "Apólice não encontrada" medido em 28/08).</td></tr>
+  <tr><td>6. Acesso SQL read-only</td><td>Base <code>smt-hom-citweb-ezze-alfa</code> (credenciais no <code>.env</code>). Consultas de oráculo Q1–Q3 abaixo — todas <code>SELECT</code>.</td></tr>
+  <tr><td>7. Baseline antes do Grupo 2</td><td>Executar Q1 e guardar o resultado (quantidade de registros da interface + último fechamento) para comparar com o pós-emissão.</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Consultas de oráculo (SQL read-only — base <code>smt-hom-citweb-ezze-alfa</code>)</h3>
+<pre>
+-- Q1: rastro da integração (antes/depois de cada emissão da rodada)
+SELECT TOP 20 fechamentoNumero, CAST(apoliceCodigo AS bigint) AS apolice,
+       statusInterfaceIndicador AS sts, CONVERT(varchar(16), inclusaoData, 120) AS inclusao,
+       LEFT(descricaoRetorno, 120) AS retorno
+  FROM tb_interface_faturas ORDER BY inclusaoData DESC;
+
+-- Q2: parâmetros do tenant (credenciais só como preenchido/vazio — nunca expor valor)
+SELECT N_CIA, N_FUNCIONALIDADE, url_cnseg,
+       CASE WHEN c_usu_cns IS NULL OR c_usu_cns='' THEN 'VAZIO' ELSE 'preenchido' END AS usu_cns,
+       CASE WHEN c_pwd_cns IS NULL OR c_pwd_cns='' THEN 'VAZIO' ELSE 'preenchido' END AS pwd_cns
+  FROM TB_CIT_NET_PARAM_GERAL;
+
+-- Q3: massa (u_apo_pnc é float — sempre CAST para exibir)
+SELECT c_org_prd, c_rmo, CAST(u_apo_pnc AS bigint) AS apolice
+  FROM tb_apo_cit WHERE u_apo_pnc IN (333, 7777, 1065406002438) ORDER BY u_apo_pnc, c_rmo;
+</pre>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+
+<div class="group-header">Grupo 1 — Verificação de configuração (read-only, sem mutação)</div>
+<div class="group-note">Estado do ambiente item a item. O CT-ITG-002 (isolamento) executa <b>antes</b> de qualquer emissão da rodada.</div>
+
+<div class="ct-block" id="CT-ITG-001">
+  <div class="ct-head"><span class="ct-id">CT-ITG-001</span><span class="ct-title">Relatório do estado atual da configuração da integração (item a item)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Configuração</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Acesso SQL read-only à base <code>smt-hom-citweb-ezze-alfa</code>; comentário e prints do dev no card #8374 à mão.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q2 e capturar o resultado (parâmetros do tenant EZZE; credenciais reportadas apenas como preenchido/vazio).</li>
+      <li>Executar Q1 e capturar o rastro atual da integração (registros de 27–28/08 incluídos).</li>
+      <li>Registrar o estado de cada item do escopo do card: (1) endpoint/URL, (2) credenciais, (3) parâmetros, (4) flag/operacionalidade — citando a fonte de cada um (banco, tela, config das APIs instaladas, comentário do dev).</li>
+      <li>Para itens de configuração de aplicação (endpoint das APIs <code>apiEmissaofaturas</code>/<code>nsretornofatura</code>): anexar o print de configuração fornecido pelo dev/sustentação; se não fornecido, registrar como pendência com encaminhamento (CA-5).</li>
+      <li>Consolidar o relatório item a item no bloco de evidências deste CT (é o entregável do CA-1).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Relatório completo dos itens 1–4 do escopo, cada item com evidência e fonte. Parâmetros do tenant
+    presentes (linha <code>N_CIA=EZZE</code>) e credenciais de consumo preenchidas. Nenhum item "vazio" sem encaminhamento
+    documentado. Itens que dependem de config de aplicação ficam explícitos como tal (nunca inferidos em silêncio).</div>
+    <div class="ev-section" id="ev-CT-ITG-001">📎 Evidências desta execução serão inseridas aqui (Q1/Q2 + relatório item a item + print de config quando fornecido).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-ITG-002">
+  <div class="ct-head"><span class="ct-id">CT-ITG-002</span><span class="ct-title">Isolamento de ambiente — nenhuma URL de integração aponta para produção</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Segurança</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-ITG-001 executado (inventário das URLs configuradas em mãos). Este CT executa <b>antes</b> de qualquer emissão da rodada.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Listar todas as URLs de integração visíveis do tenant: <code>url_cnseg</code> (Q2), endpoint das APIs de fatura (print de config do dev/sustentação) e qualquer outra URL encontrada no inventário do CT-ITG-001.</li>
+      <li>Classificar cada URL como homologação ou produção (marcadores de homolog: sufixo/infixo <code>hml</code>/<code>hmlg</code>, host <code>*.nsseg.com.br</code> de HML; medido em 28/08: <code>url_cnseg</code> = host com sufixo <code>-hmlg</code>).</li>
+      <li>Confirmar com o dev/sustentação (comentário no card) que o endpoint instalado do ERP de fatura é o de homologação da EZZE — anexar a confirmação.</li>
+      <li>Registrar a matriz URL × classificação no bloco de evidências.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">100% das URLs de integração do tenant classificadas como <b>homologação</b>. Qualquer URL
+    produtiva encontrada = <b>REPROVADO imediato</b> deste CT + suspensão dos CTs funcionais + escalação no card
+    (ponto de atenção crítico do escopo — item 8): dado de teste em ERP produtivo gera fatura fictícia na seguradora.</div>
+    <div class="ev-section" id="ev-CT-ITG-002">📎 Evidências desta execução serão inseridas aqui (matriz URL × ambiente + confirmação do endpoint).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-ITG-003">
+  <div class="ct-head"><span class="ct-id">CT-ITG-003</span><span class="ct-title">Rastro da integração — toda tentativa registrada com status e retorno legível</span><span class="prio importante">P2</span><span class="tipo-tag">Integração</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Acesso SQL read-only. Executável junto com o Grupo 2 (usa as transmissões da própria rodada como amostra).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q1 antes da rodada (baseline) e após cada emissão do Grupo 2.</li>
+      <li>Para cada tentativa da rodada + as 3 pré-existentes (27–28/08), conferir: <code>statusInterfaceIndicador</code> preenchido, <code>descricaoRetorno</code> preenchido e legível, <code>inclusaoData</code> coerente com o horário da ação.</li>
+      <li>Verificar se há erros recorrentes não tratados no rastro (item 7 do escopo) — ex.: retornos de erro de procedure como o registro de 11/01 (<i>"Erro na Proc"</i>), avaliando se ainda ocorrem após os ajustes de 28/08.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Cada transmissão da rodada gera exatamente 1 registro novo em <code>tb_interface_faturas</code>,
+    com status e retorno preenchidos e legíveis. Nenhum erro recorrente novo após os ajustes de 28/08; erros antigos do
+    rastro (pré-ajuste) são registrados como histórico, não reprovam.</div>
+    <div class="ev-section" id="ev-CT-ITG-003">📎 Evidências desta execução serão inseridas aqui (Q1 baseline + Q1 pós-rodada, com os registros novos destacados).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 2 — Teste funcional de ponta a ponta (muta o ambiente HML)</div>
+<div class="group-note">Só executa com CT-ITG-002 aprovado (isolamento confirmado). Emissões reais no alfa, transmitidas ao ERP de homologação.</div>
+
+<div class="ct-block" id="CT-ITG-004">
+  <div class="ct-head"><span class="ct-id">CT-ITG-004</span><span class="ct-title">Emissão de fatura de teste transmitida e aceita pelo ERP de homologação (happy path)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo E2E</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-ITG-002 aprovado. Login no ambiente alfa EZZE; apólice <code>1065406002438</code> (filial 0001, ramo 54,
+    subgrupo 001) com movimento aberto na competência — confirmar averbações abertas antes; se não houver,
+    criar averbação via UI e registrar os dados criados. Baseline Q1 capturado.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>A partir do login, navegar <b>por clique</b> até a tela de emissão de faturas (caminho de referência: Nacional → Fechamento Mensal → Emissão <b>[⚠️ a validar em tela]</b>); registrar o caminho real percorrido.</li>
+      <li>Localizar no grid a linha da apólice <code>1065406002438</code> (filial 0001, RCTR-C) — mesma linha do print do dev.</li>
+      <li>Selecionar a linha (checkbox) e acionar o processamento/emissão da fatura.</li>
+      <li>Capturar a tela com a mensagem de resultado <b>legível</b> (padrão medido em 28/08: <i>"Fatura 1016244 emitida."</i> — a rodada gera um novo número).</li>
+      <li>Executar Q1 e capturar o registro novo em <code>tb_interface_faturas</code> para esta apólice.</li>
+      <li>Registrar no relatório o nº da fatura gerada pela rodada.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Tela: mensagem de sucesso no padrão <i>"Fatura NNNNNNN emitida."</i> — assinatura de que o
+    código sob verificação executou. Banco: registro novo com <code>statusInterfaceIndicador = 'S'</code> e
+    <code>descricaoRetorno = "Código 0: Processamento efetuado com sucesso"</code> (texto exato medido em 28/08).
+    Isso comprova simultaneamente conectividade (CA-4), credenciais válidas (CA-3) e processamento pelo ERP (CA-7).</div>
+    <div class="ev-section" id="ev-CT-ITG-004">📎 Evidências desta execução serão inseridas aqui (grid antes + mensagem de sucesso + Q1 com o registro novo).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-ITG-005">
+  <div class="ct-head"><span class="ct-id">CT-ITG-005</span><span class="ct-title">Retorno do ERP refletido no sistema (nsretornofatura) — status/consulta da fatura atualizados</span><span class="prio importante">P2</span><span class="tipo-tag">Integração</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-ITG-004 aprovado (fatura da rodada emitida e aceita pelo ERP).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Na UI do alfa, navegar por clique até a consulta de faturas do módulo (caminho registrado na execução) e localizar a fatura gerada no CT-ITG-004.</li>
+      <li>Capturar a tela com o status/situação da fatura visível e legível.</li>
+      <li>Conferir em banco que o retorno do ERP está associado à fatura (registro do CT-ITG-004 em <code>tb_interface_faturas</code>) e que não há retorno de erro pendente para ela.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A fatura da rodada aparece na consulta com situação coerente com o retorno de sucesso do ERP
+    (não fica "presa" aguardando retorno). O par emissão→retorno comprova as duas APIs instaladas
+    (<code>apiEmissaofaturas</code> e <code>nsretornofatura</code>) operacionais.</div>
+    <div class="ev-section" id="ev-CT-ITG-005">📎 Evidências desta execução serão inseridas aqui (consulta com a fatura + status, e o vínculo em banco).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-ITG-006">
+  <div class="ct-head"><span class="ct-id">CT-ITG-006</span><span class="ct-title">Apólice inexistente no ERP → rejeição controlada com retorno claro (contrato de erro)</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-ITG-002 aprovado. Apólice <code>333</code> ou <code>7777</code> (filial 5555) com movimento na competência —
+    se necessário, criar averbação via UI para habilitar a emissão (a apólice existe no CITWEB alfa; a ausência é no ERP).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Repetir o fluxo de emissão do CT-ITG-004 para a apólice <code>333</code> (ou <code>7777</code>).</li>
+      <li>Capturar a tela com o resultado exibido ao usuário (mensagem/situação após o processamento).</li>
+      <li>Executar Q1 e capturar o registro da tentativa com o retorno do ERP.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A rejeição é <b>controlada e rastreável</b>: registro em <code>tb_interface_faturas</code> com
+    retorno no padrão exato medido em 28/08 — <code>Apólice não encontrada. Nrº Apolice = 333 Nrº Sub = 1</code> —
+    e o fluxo não trava nem registra a fatura como transmitida com sucesso. Comprova o contrato de erro do ERP
+    tratado pela integração (CA-8) e reproduz a OBS do dev de forma documentada.</div>
+    <div class="ev-section" id="ev-CT-ITG-006">📎 Evidências desta execução serão inseridas aqui (tela do resultado + Q1 com o retorno de rejeição).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 3 — Regressão: defects já abertos no ambiente (DEF-15 / DEF-13)</div>
+<div class="group-note">O card pede avaliar se a configuração da integração tem relação com os defects DEF-15 e DEF-13, já abertos no <code>hml-ezze-alfa</code>. Estes CTs <b>documentam o comportamento</b> após os ajustes — a correção dos defects em si está fora de escopo.</div>
+
+<div class="ct-block" id="CT-REG-001">
+  <div class="ct-head"><span class="ct-id">CT-REG-001</span><span class="ct-title">Consulta de Histórico de Faturas exibe a fatura da rodada (avaliação DEF-15)</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-ITG-004 aprovado (existe fatura nova emitida na rodada). DEF-15 relata a Consulta de Histórico de Faturas retornando vazio neste ambiente.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Navegar por clique até a Consulta de Histórico de Faturas do ambiente alfa (caminho registrado na execução).</li>
+      <li>Consultar o período/filtros que cobrem a fatura emitida no CT-ITG-004.</li>
+      <li>Capturar a tela do resultado (com a fatura listada, ou vazia).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A fatura da rodada aparece no histórico (consulta não retorna vazia). SE continuar vazia:
+    este CT <b>não reprova o card</b> — registra que o comportamento do DEF-15 persiste após os ajustes de configuração
+    (ou seja, o defect não era de configuração da integração) e o achado vai para o relatório com encaminhamento (CA-5),
+    referenciando o DEF-15 existente.</div>
+    <div class="ev-section" id="ev-CT-REG-001">📎 Evidências desta execução serão inseridas aqui (tela do histórico com o filtro e o resultado).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-REG-002">
+  <div class="ct-head"><span class="ct-id">CT-REG-002</span><span class="ct-title">Resumo do Cálculo — comportamento do FOB após os ajustes (avaliação DEF-13)</span><span class="prio desejavel">P3</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Fatura da rodada emitida (CT-ITG-004). DEF-13 relata Resumo do Cálculo com FOB divergente neste ambiente.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Navegar por clique até o Resumo do Cálculo da fatura/competência usada na rodada (caminho registrado na execução).</li>
+      <li>Capturar a tela dos valores exibidos (destaque para FOB, prêmio e total — o print 2 do dev mostra a linha da apólice com os valores IS 10.000,00 / prêmio 366,67 / total 393,73 como referência da emissão de 28/08).</li>
+      <li>Comparar os valores exibidos com os da emissão registrada em banco e registrar qualquer divergência.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Valores do resumo coerentes com a fatura emitida. SE o FOB seguir divergente: registrar que o
+    comportamento do DEF-13 persiste após os ajustes (não era configuração da integração) — vai para o relatório com
+    encaminhamento, referenciando o DEF-13. Divergência nova (que não existia) é achado a escalar.</div>
+    <div class="ev-section" id="ev-CT-REG-002">📎 Evidências desta execução serão inseridas aqui (tela do resumo + comparação com o banco).</div>
+  </div>
+</div>
+
+<!-- ============ 6. MATRIZ ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério</th><th style="width:150px">Origem</th><th style="width:220px">CT(s)</th><th style="width:100px">Resultado</th></tr>
+  <tr><td>CA-1 — Relatório do estado atual da configuração</td><td>AC funcional 1 + escopo 1–4</td><td>CT-ITG-001</td><td>Pendente</td></tr>
+  <tr><td>CA-2 — Endpoint/URLs apontam só para homologação (isolamento)</td><td>AC funcional 2 + escopo 1 e 8</td><td>CT-ITG-002</td><td>Pendente</td></tr>
+  <tr><td>CA-3 — Credenciais e parâmetros preenchidos e válidos</td><td>AC funcional 3 + escopo 2–3</td><td>CT-ITG-001 (preenchidos) · CT-ITG-004 (válidos na prática)</td><td>Pendente</td></tr>
+  <tr><td>CA-4 — Conectividade alfa ↔ ERP de homologação</td><td>AC funcional 4 + escopo 5</td><td>CT-ITG-004 · CT-ITG-006 (ida e volta em ambos os sentidos do contrato)</td><td>Pendente</td></tr>
+  <tr><td>CA-5 — Divergências documentadas com encaminhamento</td><td>AC funcional 5 + DoD</td><td>Transversal — relatório do CT-ITG-001 + registros dos CT-REG-001/002</td><td>Pendente</td></tr>
+  <tr><td>CA-6 — Integração operacional em HML (ambiente liberado p/ QA)</td><td>AC funcional 6</td><td>CT-ITG-004 + CT-ITG-005 aprovados = liberado</td><td>Pendente</td></tr>
+  <tr><td>CA-7 — Fatura de teste processada corretamente pelo ERP de homologação</td><td>AC técnico (Q.A)</td><td>CT-ITG-004 · CT-ITG-005</td><td>Pendente</td></tr>
+  <tr><td>CA-8 — Contrato de dados/logs por tentativa (inclusive rejeição controlada)</td><td>Escopo 6–7 + OBS do dev</td><td>CT-ITG-003 · CT-ITG-006</td><td>Pendente</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--cinza)">Cobertura: 8/8 critérios consolidados, com pelo menos 1 CT cada (100%).
+Itens de processo da DoD fora do alcance de execução de QA (revisão de ajustes por 2 pessoas; formalização ao PO) são
+registrados no relatório final e no comentário de encerramento — não têm CT próprio, por não serem testáveis em tela.
+Sessão exploratória (NOR_QA_002 §11) prevista após os CTs formais — foco: reprocessar fatura já transmitida
+(duplicidade no ERP?), emissão com apólice de outra filial, comportamento da consulta após rejeição, encoding
+de acentos no <code>descricaoRetorno</code> (os registros atuais mostram "Ap?lice" em algumas ferramentas de leitura),
+cancelamento da fatura de teste emitida.</p>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<h2 class="section">7. Métricas</h2>
+<table>
+  <tr><th>Indicador</th><th>Valor</th></tr>
+  <tr><td>Total de CTs</td><td>8 — 3×P1 (bloqueantes) · 4×P2 (importantes) · 1×P3 (desejável)</td></tr>
+  <tr><td>Cobertura dos critérios de aceite</td><td>8/8 CAs consolidados cobertos (100%)</td></tr>
+  <tr><td>CTs de regressão</td><td>2 (CT-REG-001 · CT-REG-002 — defects DEF-15/DEF-13 do ambiente)</td></tr>
+  <tr><td>Execução</td><td>0/8 — aguardando Gate 1 (QA owner) e Gate 2 (Produtos)</td></tr>
+</table>
+
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th style="width:110px">Probabilidade</th><th style="width:90px">Impacto</th><th>Mitigação</th></tr>
+  <tr><td>R1 — Credencial do usuário interno do CITNET EZZE inválida (rotação detectada em 17/07)</td><td>Média</td><td>Médio</td><td>Validar login antes da rodada; caminho principal via CITWEB alfa (operador); se ambas falharem, pedir credencial atualizada ao time — só então BLOQUEADO (causa externa comprovada)</td></tr>
+  <tr><td>R2 — URL produtiva descoberta na configuração (item crítico 8)</td><td>Baixa</td><td>Alto</td><td>CT-ITG-002 executa antes de qualquer emissão; achado = REPROVADO + suspensão do Grupo 2 + escalação imediata no card</td></tr>
+  <tr><td>R3 — Apólice do happy path sem movimento aberto na competência (fatura já emitida em 28/08 pelo dev)</td><td>Alta</td><td>Médio</td><td>Confirmar averbações abertas antes do CT-ITG-004; criar averbação via UI se preciso (nunca bloquear por massa); alternativa: competência seguinte</td></tr>
+  <tr><td>R4 — ERP de homologação da EZZE indisponível (dependência de terceiro)</td><td>Média</td><td>Alto</td><td>Registro da tentativa em <code>tb_interface_faturas</code> comprova a causa externa → CTs funcionais BLOQUEADOS (não REPROVADOS), com evidência; sustentação acionada via card</td></tr>
+  <tr><td>R5 — Defects pré-existentes do ambiente (DEF-15/DEF-13) confundidos com falha da integração</td><td>Média</td><td>Médio</td><td>Grupo 3 documenta o comportamento sem reprovar o card; qualquer achado referencia o defect existente em vez de abrir duplicata</td></tr>
+  <tr><td>R6 — Fluxo de emissão do alfa EZZE ainda não documentado em <code>features/</code> (ambiente novo)</td><td>Alta</td><td>Baixo</td><td>Caminhos marcados [⚠️ a validar] são medidos em tela na execução e gravados em <code>features/faturamento/emissao.md</code>; protocolo de parada Playwright (máx. 2 tentativas/passo)</td></tr>
+  <tr><td>R7 — Emissões da rodada sujam o ambiente compartilhado do alfa</td><td>Alta (por design)</td><td>Baixo</td><td>Nº de cada fatura gerada registrado no relatório; exploratório inclui avaliar o cancelamento da fatura de teste (autorizado em HML)</td></tr>
+</table>
+
+<footer>
+  Plano de teste gerado em 28/08/2026 · BUG #8374 · Sprint 13 Citweb · CITWEB Team ·
+  Task do plano: #8390 · Referências: BUG #8374 (descrição estruturada com escopo de verificação em 8 itens, ACs
+  funcionais e técnicos e sugestão de cenários; comentário do dev Fabiano Souza de 28/08 com a identificação da
+  integração — apiEmissaofaturas + nsretornofatura — e 2 prints da emissão comprovada), task #8375 (análise do erro),
+  verificação de planejamento em 28/08/2026 na base <code>smt-hom-citweb-ezze-alfa</code> (SQL read-only:
+  tb_interface_faturas, TB_CIT_NET_PARAM_GERAL, tb_apo_cit — massa e oráculos medidos, zero mutação) e sondagem
+  HTTP das URLs do alfa EZZE (200 em 28/08). Execução condicionada a: Gate 1 (QA owner) → Gate 2 (Produtos).
+</footer>
+</div>
+
+<div class="assinatura">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
