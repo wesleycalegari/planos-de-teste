@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI 8258 · [WORKER] DUIMP — Não desprezar DUIMP sem tipo de transporte</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--azul-forte);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:14px;text-align:center}
+  .stat-item .num{font-size:26px;font-weight:700;color:var(--azul)}
+  .stat-item .lbl{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em}
+  .progress{background:#21262d;border-radius:999px;height:10px;overflow:hidden;margin:8px 0 4px}
+  .progress .bar{background:var(--ok);height:100%;width:0%}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">PBI-8258 · Sprint 14 Citweb</div><h1>Plano de Teste — PBI 8258 · [WORKER] DUIMP — Não desprezar DUIMP sem tipo de transporte</h1>
+  <div class="sub">Worker <code style="background:rgba(255,255,255,.15);border:0;color:#fff">IntegracaoWI</code> — só desprezar na carga quando faltarem tipo de transporte E veículo transportador juntos; falta isolada do tipo vira inconsistência no processamento (novo erro em <code style="background:rgba(255,255,255,.15);border:0;color:#fff">tb_itf_smx_dcl_pnd_err</code>), corrigível via Acerto de Inconsistências (DE/PARA)</div>
+  <div class="badges">
+    <span class="badge">PBI #8258</span>
+    <span class="badge">Sprint 14 Citweb</span>
+    <span class="badge">CORE · DUIMP · Regulatório · WORKER DUIMP</span>
+    <span class="badge">11 CTs — 4×P1 · 6×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">11</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 11 executados · 11 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>11 CTs</strong> (4×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 11}</span>
+  </div>
+</div>
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">PBI #8258 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_14_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Worker <code>IntegracaoWI</code> — carga (<code>tb_itf_smx_ctl_prc_dui</code>/<code>tb_itf_smx_dcl_pnd_dui</code>) e processamento de DUIMP (<code>tb_itf_smx_dcl_pnd_err</code>)</div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML AXA — base <code>smt-hom-citweb-axa</code> + Worker IntegracaoWI + módulo Interface WI / Siscomex</div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">31/08/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8353 (dev, In Progress) · #8455 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">In Progress — plano gerado com DoR ok; execução aguarda DoD (deploy do worker em HML + pacote real)</div></div>
+  <div class="info-item"><div class="k">Cards relacionados</div><div class="v">#8255 (irmão — data de saída; fix já ATIVO em HML) · #8256 (tela acerto data) · Epic #7466 DUIMP</div></div>
+</div>
+
+<div class="info-box">
+  <b>Natureza do card (leia antes de executar):</b> este PBI altera um <b>worker de backend</b>
+  (<code>IntegracaoWI</code>, repositório/time separado do CITWEB — dev José Ribeiro Carvalho). Diferente do
+  irmão #8255 (data de saída = critério de <i>enquadramento</i>, checado na <b>carga</b>), o tipo de
+  transporte <b>não</b> define a apólice — é só impeditivo de averbação. Por isso a mudança tem <b>duas
+  pontas</b>: na <b>carga</b>, o desprezo passa a exigir as DUAS faltas juntas (tipo de transporte E veículo
+  transportador); no <b>processamento</b>, a falta isolada do tipo gera <b>erro novo</b> em
+  <code>tb_itf_smx_dcl_pnd_err</code> + status <b>Inconsistente</b> em <code>tb_itf_smx_dcl_pnd_dui</code>,
+  entrando na mesma jornada de acerto que a DI já usa (tela <b>Acerto de Inconsistências (DE/PARA)</b> —
+  navegação verificada em tela em 31/08/2026). Os <b>oráculos</b> são o banco HML (SQL read-only) + os
+  contadores da tela Processamento + a tela de acerto.
+</div>
+
+<div class="warn-box">
+  <b>⚠️ Condições de execução:</b> nenhum CT é executado antes da aprovação do plano (Gate 1 → Gate 2)
+  <b>e</b> do DoD do dev (card em "Pronto para homologação" com o worker deployado em HML AXA — hoje In
+  Progress). O DoR do card exige <b>pacote com dados reais</b> contendo DUIMP sem tipo de transporte
+  <b>com e sem</b> veículo transportador (dado vem da Quorum/WI — dependência externa): em 31/08/2026 a
+  base HML AXA tem <b>zero</b> DUIMPs com <code>VIA_TRANSP_DESCRICAO</code> vazia/nula no JSON (12.422 têm
+  a via preenchida). Sem o pacote real, CT-WDT-001/002/004 ficam BLOQUEADOS por causa externa — nunca
+  aprovar com massa fictícia. O DoR também deixa aberto o <b>novo código de erro</b> ("equivalente ao
+  código 150 da DI") — a tabela de erro não tem coluna numérica (ver contrato abaixo): o texto EXATO
+  implantado será capturado na execução e registrado neste plano.
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p>
+Hoje o worker despreza a DUIMP na carga quando o tipo de transporte não vem preenchido/válido — mensagem
+exata medida em HML AXA: <code>Desprezada - DUIMP com tipo de transporte inválido ( INDEFINIDO)</code>
+(62 linhas <code>'D'</code>, mais recente 27/11/2025). A averbação se perde mesmo quando só esse dado
+secundário faltava.
+</p>
+<p>
+O #8258 condiciona o desprezo às <b>duas faltas juntas</b>: sem tipo de transporte <b>e</b> sem veículo
+transportador → despreza na carga com mensagem citando as duas informações. Sem tipo mas <b>com</b>
+veículo → a carga segue normal (grava em <code>tb_itf_smx_dcl_pnd_dui</code>) e a checagem move para o
+<b>processamento</b>: ao montar o enquadramento/averbação, o worker grava um registro com <b>código de
+erro novo</b> em <code>tb_itf_smx_dcl_pnd_err</code> e atualiza o status da DUIMP para
+<b>Inconsistente</b> em <code>tb_itf_smx_dcl_pnd_dui</code>. O usuário corrige via
+<b>Interface WI x Siscomex → Declarações Adições → Acerto de Inconsistências (DE/PARA)</b>. Como a Quorum
+manda <b>um único valor por DUIMP</b> (replicado pelo worker em cada linha de item — atribuição de
+<code>e_trp_smx</code> dentro do laço) e tipo de transporte <b>não</b> é critério de agrupamento
+(consignatário + Incoterm + tipo de DUIMP), <b>uma correção no nível da DUIMP resolve o bloqueio de todos
+os grupos</b>.
+</p>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Critérios de aceite consolidados (PBI #8258)</h3>
+<table>
+  <tr><th style="width:70px">CA</th><th>Critério</th><th style="width:120px">Origem</th></tr>
+  <tr><td>CA-1</td><td>Sem tipo de transporte E sem veículo transportador → DUIMP desprezada na carga, com mensagem informando que faltam as <b>duas</b> informações</td><td>PBI #8258</td></tr>
+  <tr><td>CA-2</td><td>Sem tipo de transporte mas COM veículo transportador → DUIMP <b>não</b> desprezada; gravada normalmente em <code>tb_itf_smx_dcl_pnd_dui</code></td><td>PBI #8258</td></tr>
+  <tr><td>CA-3</td><td>No processamento (não na carga), DUIMP sem tipo de transporte → erro com o <b>código novo</b> em <code>tb_itf_smx_dcl_pnd_err</code> + status <b>Inconsistente</b> em <code>tb_itf_smx_dcl_pnd_dui</code></td><td>PBI #8258</td></tr>
+  <tr><td>CA-4</td><td>DUIMP com tipo de transporte preenchido → fluxo atual, nenhuma inconsistência de tipo de transporte gerada</td><td>PBI #8258</td></tr>
+  <tr><td>DoD-1</td><td>Testado com pacote <b>real</b> contendo DUIMP sem tipo de transporte, <b>com e sem</b> veículo transportador</td><td>DoD do card</td></tr>
+  <tr><td>DoD-2</td><td>Jornada de acerto: DUIMP inconsistente corrigível via Acerto de Inconsistências (DE/PARA); agrupamento não fragmenta a correção (acerto único no nível da DUIMP)</td><td>Descrição do card</td></tr>
+</table>
+
+<div class="info-box">
+  <b>Contrato técnico medido (SQL read-only em <code>smt-hom-citweb-axa</code> + navegação em tela,
+  31/08/2026 — build V 1.0.260827.1754):</b><br>
+  • JSON <code>t_json_wi</code> (ctl): chaves <code>"VIA_TRANSP_CODIGO"</code> /
+    <code>"VIA_TRANSP_DESCRICAO"</code> (ex.: <code>"01"</code>/<code>"MARITIMA"</code>) e
+    <code>"NOME_VEICULO_TRANSP"</code> (veículo; <code>""</code> quando vazio — 178 DUIMPs com veículo
+    vazio hoje).<br>
+  • <code>tb_itf_smx_dcl_pnd_dui</code>: via em <code>e_trp_smx</code> char(1) (hoje <code>M</code>=789 ·
+    <code>A</code>=67 · <code>T</code>=2, nenhum vazio); veículo em <code>t_vei_tpr_smx</code> varchar(60);
+    status em <code>e_dcl_smx</code> smallint (hoje <code>1</code>=813 · <code>2</code>=45 — semântica
+    exata do valor "Inconsistente" a cravar com o dev na execução).<br>
+  • <code>tb_itf_smx_dcl_pnd_err</code>: <b>sem coluna numérica de código</b> — erro é texto livre em
+    <code>t_err</code> char(255) (textos vigentes: câmbio não cadastrado, navio/embalagem/mercadoria não
+    cadastrados no DE/PARA, provisória não vigente). <b>Nenhum</b> erro de transporte hoje.<br>
+  • Mensagem do fluxo normal (ctl): <code>DUIMP Gravada</code>. Desprezo atual por tipo:
+    <code>Desprezada - DUIMP com tipo de transporte inválido ( INDEFINIDO)</code> (62 linhas).<br>
+  • Baseline <code>sts_prc</code> 31/08: <code>C</code>=7.251 · <code>D</code>=5.160 · <code>E</code>=3 ·
+    <code>I</code>=14 · <code>R</code>=11 (fix do #8255 já ativo em HML desde 28/08).
+</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:50%">In scope</th><th>Out of scope (e por quê)</th></tr>
+  <tr>
+    <td>
+      • Carga: desprezo só com as DUAS faltas (tipo + veículo) e mensagem citando ambas (CA-1)<br>
+      • Carga: sem tipo COM veículo → grava normal em <code>pnd_dui</code> (CA-2), via replicada por linha de item<br>
+      • Processamento: erro novo em <code>pnd_err</code> + status Inconsistente (CA-3), sem averbação<br>
+      • Jornada de acerto: DUIMP listada/corrigível na tela Acerto de Inconsistências (DE/PARA); correção única desbloqueia todos os grupos (DoD-2)<br>
+      • Regressão: DUIMP com tipo segue o fluxo atual (CA-4); demais desprezas de carga preservadas<br>
+      • Regressão: fluxo do #8255 (sem data de saída → <code>'I'</code> na ctl) coexiste sem interferência<br>
+      • Regressão: inconsistências existentes (câmbio/navio/embalagem/mercadoria) continuam como hoje<br>
+      • Contrato: novo código de erro distinto; nenhuma tabela/coluna nova
+    </td>
+    <td>
+      • <b>Fluxo do #8255</b> (data de saída) além da regressão de coexistência — plano próprio, Gate 2 em andamento<br>
+      • <b>Tela "DUIMP sem Data de Saída"</b> — card #8256, plano próprio<br>
+      • <b>Fluxo de DI</b> — o card é exclusivo de DUIMP (a DI já tem a jornada de inconsistência; regra de um fluxo não se generaliza)<br>
+      • <b>Revival retroativo</b> das 62 linhas <code>'D'</code> antigas por "tipo de transporte inválido" — o card cobre cargas novas; retroativo seria decisão de Produto/data-fix próprio<br>
+      • Agrupamento/níveis de averbação (<code>c_nvl_avb</code>) — família #7802/#7803/#7683<br>
+      • Homologação em outras seguradoras — mudança CORE validada em HML AXA (base onde há massa e onde o dev valida); replicação segue decisão do time
+    </td>
+  </tr>
+</table>
+<div class="info-box">
+  <b>Ramo:</b> DUIMP = Declaração Única de Importação → fluxo internacional de <b>Importação (ramo 25)</b>
+  — inferência documentada a partir do domínio (o card não declara ramo numérico; tags:
+  <code>CORE; DUIMP; Regulatório; WORKER DUIMP</code>). <b>Sistema:</b> worker <code>IntegracaoWI</code>
+  do ecossistema CITWEB (tag <code>CORE</code> = NSTECH). <b>Seguradora de homologação:</b> AXA (HML).
+</div>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:250px">Item</th><th>Detalhe</th></tr>
+  <tr><td>1. Worker IntegracaoWI em HML</td><td>Deployado em HML AXA com o fix do #8258 e ciclo ativo (DoD do dev — sinalizado pelo estado do card). <b>Confirmar com o dev no card o gatilho/intervalo do ciclo</b> antes da execução (o QA não dispara o worker; aguarda o ciclo ou pede acionamento ao dev).</td></tr>
+  <tr><td>2. Acesso SQL read-only</td><td>Servidor Azure SQL do HML, base <code>smt-hom-citweb-axa</code> (credenciais no <code>.env</code> do workspace — nunca no plano). Consultas de oráculo deste plano são <code>SELECT</code>.</td></tr>
+  <tr><td>3. Pacote real de teste (DoD-1)</td><td>Pacote com dados reais contendo: (a) ≥1 DUIMP <b>sem</b> tipo de transporte e <b>sem</b> veículo transportador; (b) ≥1 DUIMP <b>sem</b> tipo mas <b>com</b> veículo; (c) ≥1 DUIMP <b>com</b> tipo (controle). Dado vem da Quorum/WI — solicitar ao dev/analista junto com o deploy. Sem ele, CT-WDT-001/002/004/005/006 ficam BLOQUEADOS por causa externa (nunca aprovar com massa fictícia — DoD do card exige pacote real).</td></tr>
+  <tr><td>4. Credenciais das telas WI</td><td>Usuário CITWEB AXA com acesso ao módulo Interface WI / Siscomex (chaves <code>HML_AXA_CITWEB_WI2_USER/PASS</code> no <code>.env</code>; ADMCIT não tem acesso ao WI). Login verificado em 31/08/2026 (build V 1.0.260827.1754).</td></tr>
+  <tr><td>5. Guards da tela Processamento</td><td>Para processar: (a) <b>filial da apólice</b> selecionada (default <code>0001</code>); (b) mês/ano de referência <b>dentro da vigência</b> da apólice; (c) apólice com <b>origem SISCOMEX</b> (<code>tb_apo_cit.e_ori_avb='SISCOMEX'</code>); (d) marcar o checkbox <b>Processar DUIMP's</b> (<code>#ProcessaDUIMP</code>). Os três guards abortam com alerta que só aparece DEPOIS do POST — ler <code>.alert</code>/<code>#lblMensagem</code> antes de concluir. Referência que já funcionou: apólice <code>100622001</code> · filial <code>0001</code> (vigência 31/12/2024..31/12/2026).</td></tr>
+  <tr><td>6. Baseline de contadores</td><td>Registrar ANTES de cada carga/processamento: Q1 (distribuição <code>sts_prc</code>), Q6 (contagem do desprezo por transporte) e Q4 (erros da DUIMP-alvo) — o veredito de vários CTs é por contraste de contagem.</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Massa de dados verificada (SQL read-only, 31/08/2026 — base <code>smt-hom-citweb-axa</code>)</h3>
+<table>
+  <tr><th>Referência</th><th>Valor medido</th><th>Uso no plano</th></tr>
+  <tr><td>Distribuição <code>sts_prc</code> (ctl)</td><td><code>C</code>=7.251 · <code>D</code>=5.160 · <code>E</code>=3 · <code>I</code>=14 · <code>R</code>=11</td><td>Baseline global (CT-WDT-001/003/008)</td></tr>
+  <tr><td>Desprezo atual por tipo de transporte</td><td><b>62 linhas</b> <code>'D'</code> com <code>Desprezada - DUIMP com tipo de transporte inválido ( INDEFINIDO)</code> (mais recente 27/11/2025)</td><td>Baseline do destino antigo (CT-WDT-003)</td></tr>
+  <tr><td>DUIMPs sem via no JSON</td><td><b>0</b> com <code>VIA_TRANSP_DESCRICAO</code> null/vazia (12.422 preenchidas) — cenário depende do pacote real</td><td>Prova da dependência externa (pré-req 3)</td></tr>
+  <tr><td>DUIMPs com veículo vazio no JSON</td><td>178 com <code>"NOME_VEICULO_TRANSP":""</code> (todas com via preenchida)</td><td>Cenário "sem veículo" ocorre com dado real; candidatas de referência p/ CT-WDT-001</td></tr>
+  <tr><td>Fluxo normal (referência de regressão)</td><td>DUIMP <code>26BR00000126080</code> — via <code>M</code>, apólice <code>100622001</code>, averbação <code>2026000073</code> em <code>tb_mov_avb_int_cit</code></td><td>Padrão de resultado esperado do CT-WDT-007</td></tr>
+  <tr><td>Fluxo do #8255 (coexistência)</td><td>14 linhas <code>'I'</code> / 11 <code>'R'</code> com <code>Inconsistente - DUIMP com data de saída inválida. Aguardando correção via CITWEB para reprocessamento</code> (desde 28/08 13:38)</td><td>Baseline do CT-WDT-008</td></tr>
+  <tr><td>Inconsistências vigentes (pnd_err)</td><td>Textos: câmbio não cadastrado · navio/embalagem/mercadoria não cadastrados no DE/PARA · provisória não vigente — <b>nenhum</b> de transporte</td><td>Baseline dos CT-WDT-009/010</td></tr>
+</table>
+
+<h3 style="font-size:14px;margin:16px 0 6px">Consultas de oráculo (read-only, reutilizadas nos CTs)</h3>
+<pre>-- Q1: distribuição de status na tabela de controle (baseline / pós-ciclo)
+SELECT sts_prc, COUNT(*) qtd, MAX(d_usu_inc) mais_recente
+FROM tb_itf_smx_ctl_prc_dui GROUP BY sts_prc ORDER BY sts_prc;
+
+-- Q2: linha(s) de uma DUIMP na tabela de controle (status, mensagem, via/veículo no JSON)
+SELECT u_seq, u_dcl_imt_smx, sts_prc, t_sts_prc, d_usu_inc,
+       SUBSTRING(t_json_wi, CHARINDEX('VIA_TRANSP', t_json_wi), 80)  via_json,
+       SUBSTRING(t_json_wi, CHARINDEX('NOME_VEICULO_TRANSP', t_json_wi), 60) veiculo_json
+FROM tb_itf_smx_ctl_prc_dui WHERE u_dcl_imt_smx = '&lt;DUIMP&gt;' ORDER BY u_seq;
+
+-- Q3: linhas da DUIMP gravadas para processamento (via, veículo, status, itens)
+SELECT u_dcl_imt_smx, u_adl_smx, u_adl_itn_smx, e_trp_smx, t_vei_tpr_smx,
+       e_dcl_smx, q_itn_agp, c_hsh_agp, d_usu_inc
+FROM tb_itf_smx_dcl_pnd_dui WHERE u_dcl_imt_smx = '&lt;DUIMP&gt;' ORDER BY u_adl_smx, u_adl_itn_smx;
+
+-- Q4: erros de processamento da DUIMP (jornada de inconsistência)
+SELECT u_dcl_imt_smx, u_adl_smx, u_adl_itn_smx, u_seq_err, RTRIM(t_err) erro, d_usu_inc
+FROM tb_itf_smx_dcl_pnd_err WHERE u_dcl_imt_smx = '&lt;DUIMP&gt;' ORDER BY d_usu_inc DESC;
+
+-- Q5: averbação resultante (não pode existir enquanto Inconsistente)
+SELECT u_avb_dfv, d_mov_vgm FROM tb_mov_avb_int_cit WHERE u_di LIKE '&lt;DUIMP&gt;%';
+
+-- Q6: contagem do desprezo por tipo de transporte (baseline 31/08: 62)
+SELECT COUNT(*) FROM tb_itf_smx_ctl_prc_dui
+WHERE sts_prc='D' AND t_sts_prc LIKE 'Desprezada - DUIMP com tipo de transporte%';</pre>
+
+<div class="info-box">
+  <b>Navegação verificada em tela (31/08/2026, por clique — build V 1.0.260827.1754):</b> Login CITWEB HML AXA
+  (<code>https://axa-hml-faturamento.nsseg.com.br/Login/</code> — único URL digitado; raiz sem
+  <code>/Login/</code> devolve 401) → menu principal → botão <b>Interface WI / Siscomex</b> (abre nova aba) →
+  menu <b>Declarações Adições</b> com os itens <b>Carga</b> · <b>Processamento</b> ·
+  <b>Acerto de Inconsistências (DE/PARA)</b>. A tela de acerto tem filtros <b>Filial</b> (combo) e
+  <b>Apólice</b> (textbox + lupa), campos Declaração/Adição, painéis DE/PARA
+  <b>País · Local Destino · Mercadoria · Embalagem · Navio</b> (valor SISCOMEX → mapeamento CIT) e botões
+  <b>Novo</b>/<b>Salvar</b>. ⚠️ Hoje NÃO há painel de via de transporte/veículo nessa tela — o CT-WDT-005
+  verifica como o acerto do novo tipo de inconsistência se materializa pós-deploy.
+</div>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+<p style="font-size:12.5px;color:var(--cinza)">Clique no cabeçalho de cada CT para expandir pré-condições, passos e resultado esperado. Nenhum CT é executado antes do Gate 2 e do DoD do dev.</p>
+
+<div class="group-header">Grupo 1 — Carga: as duas faltas vs. falta isolada (CA-1, CA-2)</div>
+<div class="group-note">A carga chega ao worker via pacote WI (Quorum). Em tela, a carga usa
+Interface WI / Siscomex (nova aba) → <b>Declarações Adições</b> → <b>Carga</b> (Listar Pacotes → Efetuar Carga).</div>
+
+<div class="ct-block" id="CT-WDT-001">
+  <div class="ct-head"><span class="ct-id">CT-WDT-001</span><span class="ct-title">Sem tipo de transporte E sem veículo → desprezada na carga com mensagem citando as DUAS faltas</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado em HML AXA (pré-req 1). Pacote real com ≥1 DUIMP sem tipo de transporte e sem veículo transportador (pré-req 3, item a). Baseline registrada (Q1 e Q6 — em 31/08: Q6=62).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar a baseline: executar Q1 e Q6 e guardar o resultado (screenshot/summary da consulta).</li>
+      <li>Login no CITWEB HML AXA → clicar no botão <b>Interface WI / Siscomex</b> (menu principal — abre nova aba) → menu <b>Declarações Adições</b> → <b>Carga</b>.</li>
+      <li>Carregar o pacote de teste (Listar Pacotes → selecionar o pacote → <b>Efetuar Carga</b>) e registrar o nº da DUIMP sem tipo e sem veículo contida nele.</li>
+      <li>Aguardar o ciclo do worker processar a carga (gatilho/intervalo confirmado com o dev — pré-req 1).</li>
+      <li>Executar Q2 com a DUIMP do passo 3 → conferir <code>sts_prc</code>, mensagem (<code>t_sts_prc</code>) e os fragmentos <code>via_json</code>/<code>veiculo_json</code> (ambos vazios).</li>
+      <li>Executar Q3 com a mesma DUIMP → conferir que <b>não</b> há linha em <code>tb_itf_smx_dcl_pnd_dui</code>.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A DUIMP é <b>desprezada na carga</b> (<code>sts_prc='D'</code>) com mensagem informando que faltam as <b>duas</b> informações — tipo de transporte E veículo transportador (capturar o texto EXATO implantado; a mensagem antiga citava só o tipo: <code>Desprezada - DUIMP com tipo de transporte inválido ( INDEFINIDO)</code>). Nenhuma linha gravada em <code>tb_itf_smx_dcl_pnd_dui</code> (Q3 vazia) e nenhuma averbação (Q5 vazia).</div>
+    <div class="ev-section" id="ev-CT-WDT-001">📎 Evidências desta execução serão inseridas aqui (baseline Q1/Q6 + tela de carga + Q2/Q3).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-002">
+  <div class="ct-head"><span class="ct-id">CT-WDT-002</span><span class="ct-title">Sem tipo de transporte mas COM veículo → NÃO desprezada; gravada em pnd_dui com o mesmo valor em todas as linhas de item</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado. Pacote real com ≥1 DUIMP sem tipo de transporte mas COM veículo transportador (pré-req 3, item b). Baseline Q1/Q6 registrada (pode ser a mesma rodada do CT-WDT-001, com DUIMPs distintas identificadas).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Efetuar a carga do pacote (mesma navegação do CT-WDT-001, passos 2–3) e registrar o nº da DUIMP sem tipo COM veículo.</li>
+      <li>Aguardar o ciclo do worker.</li>
+      <li>Executar Q2 → conferir <code>sts_prc</code> e mensagem da linha de controle; conferir no JSON <code>via_json</code> vazio/ausente e <code>veiculo_json</code> preenchido.</li>
+      <li>Executar Q3 → conferir as linhas gravadas em <code>tb_itf_smx_dcl_pnd_dui</code>: <code>e_trp_smx</code> vazio/NULL em TODAS as linhas de adição/item (valor único replicado — atribuição dentro do laço), <code>t_vei_tpr_smx</code> preenchido.</li>
+      <li>Executar Q6 → conferir que a contagem do desprezo por transporte NÃO cresceu.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A DUIMP <b>não é desprezada</b>: a carga conclui normalmente e as linhas existem em <code>tb_itf_smx_dcl_pnd_dui</code> com <code>e_trp_smx</code> vazio/NULL <b>idêntico em todas as linhas de item</b> e <code>t_vei_tpr_smx</code> preenchido. Q6 permanece na baseline (o caso "falta isolada do tipo" deixou de gerar desprezo na carga).</div>
+    <div class="ev-section" id="ev-CT-WDT-002">📎 Evidências desta execução serão inseridas aqui (tela de carga + Q2/Q3/Q6).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-003">
+  <div class="ct-head"><span class="ct-id">CT-WDT-003</span><span class="ct-title">Destino antigo condicionado: contagem do desprezo por transporte não cresce e as 62 linhas 'D' antigas permanecem 'D'</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado e ≥1 ciclo executado após o deploy (rodadas dos CT-WDT-001/002 concluídas). Baseline de 31/08: Q6=62 (mais recente 27/11/2025).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Reconferir a baseline Q6 no dia da execução, antes do deploy (se divergir de 62, registrar o novo valor).</li>
+      <li>Após as cargas dos CT-WDT-001/002, executar Q6 novamente e comparar.</li>
+      <li>Amostrar via Q2 duas DUIMPs antigas do conjunto das 62 (localizar com: <code>SELECT TOP 2 u_dcl_imt_smx FROM tb_itf_smx_ctl_prc_dui WHERE sts_prc='D' AND t_sts_prc LIKE 'Desprezada - DUIMP com tipo de transporte%' ORDER BY d_usu_inc DESC</code>) → conferir que seguem <code>'D'</code> com a mensagem original e <code>d_usu_inc</code> inalterado.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Para o desprezo por transporte, só a carga com as DUAS faltas (CT-WDT-001) pode incrementar Q6 — a falta isolada (CT-WDT-002) não incrementa. As linhas <code>'D'</code> antigas <b>não mudam de status sozinhas</b>: o card cobre cargas novas; não há revival retroativo no escopo (retroativo = decisão de Produto/data-fix próprio, fora deste plano).</div>
+    <div class="ev-section" id="ev-CT-WDT-003">📎 Evidências desta execução serão inseridas aqui (Q6 antes/depois + amostra Q2).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 2 — Processamento: inconsistência e jornada de acerto (CA-3, DoD-2)</div>
+<div class="group-note">O processamento roda pela tela Interface WI / Siscomex → <b>Declarações Adições</b> →
+<b>Processamento</b> (checkbox <b>Processar DUIMP's</b>; respeitar os 3 guards do pré-req 5 — o alerta de
+guard só aparece DEPOIS do POST). A correção usa <b>Acerto de Inconsistências (DE/PARA)</b>.</div>
+
+<div class="ct-block" id="CT-WDT-004">
+  <div class="ct-head"><span class="ct-id">CT-WDT-004</span><span class="ct-title">Processamento de DUIMP sem tipo (com veículo) → erro NOVO em pnd_err + status Inconsistente em pnd_dui, sem averbação</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-WDT-002 concluído: DUIMP real sem tipo (com veículo) gravada em <code>pnd_dui</code> — usar a MESMA DUIMP (a carga sob teste é quem produz a entrada legítima deste CT; não semear <code>e_trp_smx</code> por SQL — inventaria o contrato da entrada). Apólice da DUIMP atende os 3 guards do pré-req 5. Baseline Q4 (sem erros para a DUIMP) e Q5 (sem averbação) registradas.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q4 e Q5 para a DUIMP-alvo (baseline: ambas vazias).</li>
+      <li>Na aba Interface WI / Siscomex → menu <b>Declarações Adições</b> → <b>Processamento</b>.</li>
+      <li>Selecionar a <b>filial da apólice</b>, informar a apólice (lupa), critério/datas cobrindo o desembaraço da DUIMP, mês/ano de movimento, marcar <b>Processar DUIMP's</b> → <b>Processar</b> → confirmar no modal "Confirma o processamento das Declarações?".</li>
+      <li>Após o post-back, ler os contadores (Lida/Desprezada/Inconsistente/Incluída) no painel <code>.well</code> E qualquer <code>.alert</code>/<code>#lblMensagem</code> (guards — pré-req 5).</li>
+      <li>Executar Q4 → conferir o registro de erro novo gravado para a DUIMP (capturar o texto EXATO de <code>t_err</code>).</li>
+      <li>Executar Q3 → conferir o status da DUIMP em <code>e_dcl_smx</code> = Inconsistente (cravar com o dev o valor do enum — hoje observado <code>2</code> nas declarações da jornada; registrar o valor implantado).</li>
+      <li>Executar Q5 → conferir que NÃO existe averbação para a DUIMP.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A checagem acontece <b>no processamento, não na carga</b>: o contador <b>Inconsistente</b> da tela reflete a DUIMP; <code>tb_itf_smx_dcl_pnd_err</code> ganha registro com o <b>código de erro novo</b> específico de "sem tipo de transporte" (texto exato capturado — não existe nenhum erro de transporte na tabela hoje); <code>e_dcl_smx</code> da DUIMP vira Inconsistente em <code>tb_itf_smx_dcl_pnd_dui</code>; <b>nenhuma averbação</b> é gerada (Q5 vazia). Deixar passar silenciosamente (averbação criada sem via, ou nenhum erro gravado) = REPROVADO.</div>
+    <div class="ev-section" id="ev-CT-WDT-004">📎 Evidências desta execução serão inseridas aqui (contadores da tela + Q3/Q4/Q5 antes/depois).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-005">
+  <div class="ct-head"><span class="ct-id">CT-WDT-005</span><span class="ct-title">Jornada de acerto: DUIMP inconsistente aparece no Acerto de Inconsistências (DE/PARA) e, corrigida, gera averbação no reprocessamento</span><span class="prio importante">P2</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-WDT-004 concluído: DUIMP em Inconsistente com o erro novo em <code>pnd_err</code>. ⚠️ Em 31/08 a tela de acerto tem painéis DE/PARA <b>País · Local Destino · Mercadoria · Embalagem · Navio</b> — ainda SEM painel de via de transporte/veículo: este CT verifica como o acerto do novo tipo de inconsistência se materializa pós-deploy (painel novo, campo próprio ou outro mecanismo).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Na aba Interface WI / Siscomex → menu <b>Declarações Adições</b> → <b>Acerto de Inconsistências (DE/PARA)</b>.</li>
+      <li>Selecionar a <b>Filial</b> da apólice, informar a <b>Apólice</b> e clicar na lupa.</li>
+      <li>Localizar a declaração/adição da DUIMP-alvo e conferir que a inconsistência de tipo de transporte está listada/acessível para acerto (capturar como a tela apresenta o erro novo).</li>
+      <li>Efetuar o acerto do tipo de transporte (mecanismo implantado pelo dev — painel/campo novo) e <b>Salvar</b>; capturar a mensagem de confirmação EXATA.</li>
+      <li>Reprocessar (menu <b>Processamento</b>, mesmos parâmetros do CT-WDT-004).</li>
+      <li>Executar Q3 (status da DUIMP), Q4 (erros) e Q5 (averbação) → conferir o desbloqueio.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">A DUIMP inconsistente é <b>localizável e corrigível</b> na tela Acerto de Inconsistências (DE/PARA) — mesma jornada da DI. Após o acerto + reprocessamento, a averbação é gerada (Q5 retorna <code>u_avb_dfv</code>) e o status da DUIMP sai de Inconsistente. Se a tela não oferecer mecanismo de acerto para o erro novo (jornada incompleta), REPROVADO com evidência da tela — confrontar com Produto antes de fechar.</div>
+    <div class="ev-section" id="ev-CT-WDT-005">📎 Evidências desta execução serão inseridas aqui (tela de acerto antes/depois + Q3/Q4/Q5).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-006">
+  <div class="ct-head"><span class="ct-id">CT-WDT-006</span><span class="ct-title">Agrupamento não fragmenta: acerto único no nível da DUIMP desbloqueia todos os grupos de averbação</span><span class="prio importante">P2</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>DUIMP real sem tipo (com veículo) que gere <b>mais de um grupo de averbação</b> (variação de consignatário/Incoterm/tipo entre adições — conferir via Q3: <code>c_hsh_agp</code> distintos ou <code>q_itn_agp</code> por grupo). Se o pacote real não contiver DUIMP multi-grupo, executar com a disponível e registrar a limitação (não bloquear o plano por isso — o discriminante principal é o CT-WDT-005).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q3 e registrar os grupos da DUIMP (hashes <code>c_hsh_agp</code>/contagens <code>q_itn_agp</code>) e que <code>e_trp_smx</code> é único (vazio) em todas as linhas.</li>
+      <li>Processar (CT-WDT-004) → conferir via Q4 que a inconsistência é <b>no nível da DUIMP</b> (não um erro por grupo exigindo acertos separados).</li>
+      <li>Efetuar UM único acerto (CT-WDT-005, passos 1–4).</li>
+      <li>Reprocessar e executar Q5 → conferir as averbações de TODOS os grupos.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Tipo de transporte não é critério de agrupamento (consignatário + Incoterm + tipo de DUIMP): todas as linhas herdam o mesmo valor e <b>uma única correção</b> no nível da DUIMP resolve o bloqueio de todos os grupos — Q5 retorna as averbações de todos os grupos após um só acerto, sem precisar corrigir grupo a grupo.</div>
+    <div class="ev-section" id="ev-CT-WDT-006">📎 Evidências desta execução serão inseridas aqui (Q3 grupos + Q4 + Q5 completo).</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 3 — Regressão: fluxo normal e vizinhos preservados (CA-4)</div>
+<div class="group-note">A mudança vale <b>só</b> para a falta de tipo de transporte — fluxo normal, desprezas
+por outros motivos, jornada do #8255 (data de saída) e inconsistências existentes continuam idênticos.</div>
+
+<div class="ct-block" id="CT-WDT-007">
+  <div class="ct-head"><span class="ct-id">CT-WDT-007</span><span class="ct-title">DUIMP com tipo de transporte segue o fluxo atual: 'C' + "DUIMP Gravada" + averbação, sem inconsistência de transporte</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado. Pacote com ≥1 DUIMP <b>com</b> tipo de transporte (pré-req 3, item c — pode ser o mesmo pacote misto; registrar qual DUIMP é qual). Referência do comportamento atual: <code>26BR00000126080</code> (via <code>M</code>, apólice <code>100622001</code>) → <code>'C'</code> · <code>DUIMP Gravada</code> · averbação <code>2026000073</code>.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar baseline Q5 com a DUIMP com tipo do pacote (sem averbação ainda).</li>
+      <li>Efetuar a carga (navegação do CT-WDT-001) e aguardar o ciclo do worker.</li>
+      <li>Executar Q2 → <code>sts_prc</code> e mensagem; Q3 → <code>e_trp_smx</code> preenchido nas linhas.</li>
+      <li>Processar (navegação/guards do CT-WDT-004).</li>
+      <li>Executar Q4 → nenhum erro de transporte para a DUIMP; Q5 → averbação criada.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Comportamento idêntico ao de antes do deploy: carga <code>'C'</code> com <code>DUIMP Gravada</code>, <code>e_trp_smx</code> preenchido, processamento gera a averbação (Q5 retorna <code>u_avb_dfv</code>) e <b>nenhuma</b> inconsistência de tipo de transporte é registrada (Q4 sem erro novo). Nenhuma mudança para DUIMP com tipo preenchido (CA-4).</div>
+    <div class="ev-section" id="ev-CT-WDT-007">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-008">
+  <div class="ct-head"><span class="ct-id">CT-WDT-008</span><span class="ct-title">Coexistência com o #8255: DUIMP sem DATA de saída continua indo para 'I' na carga — os dois tratamentos não interferem</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker com os fixes #8255 (ativo em HML desde 28/08 — baseline <code>I</code>=14 · <code>R</code>=11) e #8258 deployados. Se o pacote real contiver DUIMP sem data de saída, usá-la; senão, validar por contraste de baseline (as linhas <code>'I'</code> existentes).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar Q1 e registrar as contagens de <code>'I'</code>/<code>'R'</code>.</li>
+      <li>Após as cargas/ciclos dos CTs anteriores, executar Q1 novamente → conferir que as linhas <code>'I'</code>/<code>'R'</code> do fluxo de data não foram alteradas/desprezadas pelo fix do #8258.</li>
+      <li>Amostrar via Q2 uma linha <code>'I'</code> → mensagem permanece <code>Inconsistente - DUIMP com data de saída inválida. Aguardando correção via CITWEB para reprocessamento</code>.</li>
+      <li>Se houver DUIMP sem data no pacote: carregá-la e conferir que o destino é <code>'I'</code> na ctl (fluxo do #8255), não o fluxo novo de transporte.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Os dois tratamentos coexistem sem interferência: falta de <b>data de saída</b> → <code>'I'</code> na <b>carga</b> (tabela de controle, fluxo #8255); falta de <b>tipo de transporte</b> → inconsistência no <b>processamento</b> (pnd_err/pnd_dui, fluxo #8258). Nenhuma linha do fluxo de data muda de comportamento após o deploy do #8258.</div>
+    <div class="ev-section" id="ev-CT-WDT-008">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-009">
+  <div class="ct-head"><span class="ct-id">CT-WDT-009</span><span class="ct-title">Inconsistências e desprezas existentes preservadas: câmbio/navio/embalagem/mercadoria e demais motivos de 'D' continuam como hoje</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado. Baseline 31/08 de <code>pnd_err</code>: textos vigentes = câmbio não cadastrado · navio/embalagem/mercadoria não cadastrados no DE/PARA · provisória não vigente. Baseline de desprezas na carga (Q1: <code>'D'</code>=5.160; motivos: apólice não encontrada, Incoterm, desembaraço, duplicidade...).</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Registrar baseline: <code>SELECT LEFT(RTRIM(t_err),80), COUNT(*) FROM tb_itf_smx_dcl_pnd_err GROUP BY LEFT(RTRIM(t_err),80)</code> (agregado por texto).</li>
+      <li>Processar uma apólice/período que hoje gera inconsistência conhecida (ex.: navio/embalagem não cadastrado — identificar candidata pela própria pnd_err/tela de acerto).</li>
+      <li>Conferir que o erro é gravado com o MESMO texto de hoje e a declaração entra na jornada de acerto como antes.</li>
+      <li>Na rodada de carga dos CTs 001/002/007, conferir via Q1 que as desprezas por outros motivos continuam ocorrendo normalmente (ex.: duplicidade/apólice não encontrada, se presentes no pacote).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Nenhum efeito colateral: os textos e destinos das inconsistências existentes não mudam; as demais desprezas de carga continuam com suas mensagens atuais. O fix do #8258 acrescenta um caso novo — não altera os vizinhos.</div>
+    <div class="ev-section" id="ev-CT-WDT-009">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<div class="group-header">Grupo 4 — Contratos e integridade</div>
+<div class="group-note">Guardas estruturais baratas — todas por SQL read-only.</div>
+
+<div class="ct-block" id="CT-WDT-010">
+  <div class="ct-head"><span class="ct-id">CT-WDT-010</span><span class="ct-title">Novo código de erro criado e distinto dos existentes (equivalente ao "código 150" da DI)</span><span class="prio importante">P2</span><span class="tipo-tag">Estrutural</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>CT-WDT-004 concluído (erro novo gravado). Contrato medido em 31/08: <code>tb_itf_smx_dcl_pnd_err</code> NÃO tem coluna numérica de código — o erro materializa-se no texto <code>t_err</code> (e/ou enum interno do worker). Item de DoR do card ("confirmar com o time técnico o novo código") ainda aberto na geração deste plano.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar com o dev (comentário no card) o código/texto implantado para "sem tipo de transporte" e o equivalente da DI (código 150) para referência.</li>
+      <li>Executar Q4 na DUIMP do CT-WDT-004 e capturar o texto EXATO de <code>t_err</code>.</li>
+      <li>Conferir que o texto é NOVO e distinto de todos os textos vigentes (baseline do CT-WDT-009, passo 1) — sem colidir com mensagens existentes nem reutilizar texto de outro motivo.</li>
+      <li>Registrar neste plano (seção de contrato) o código/texto implantado.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Existe um identificador/texto de erro <b>específico e novo</b> para "sem tipo de transporte" em <code>tb_itf_smx_dcl_pnd_err</code>, distinto dos existentes, permitindo à jornada de acerto (e a relatórios) discriminar o motivo — cumprindo o item de DoR "criar código equivalente ao 150 da DI".</div>
+    <div class="ev-section" id="ev-CT-WDT-010">📎 Evidências desta execução serão inseridas aqui (Q4 + confirmação do dev).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-WDT-011">
+  <div class="ct-head"><span class="ct-id">CT-WDT-011</span><span class="ct-title">Nenhuma tabela ou coluna nova — schemas de pnd_dui, pnd_err e ctl congelados</span><span class="prio desejavel">P3</span><span class="tipo-tag">Estrutural</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <p>Worker #8258 deployado. Baseline de schema medida em 31/08/2026: <code>tb_itf_smx_dcl_pnd_dui</code> = 63 colunas (via <code>e_trp_smx</code>, veículo <code>t_vei_tpr_smx</code>, status <code>e_dcl_smx</code> já existentes) · <code>tb_itf_smx_dcl_pnd_err</code> = 8 colunas · <code>tb_itf_smx_ctl_prc_dui</code> = 14 colunas.</p>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar: <code>SELECT TABLE_NAME, COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME IN ('tb_itf_smx_dcl_pnd_dui','tb_itf_smx_dcl_pnd_err','tb_itf_smx_ctl_prc_dui') GROUP BY TABLE_NAME</code> e comparar com a baseline (63/8/14).</li>
+      <li>Executar: <code>SELECT name FROM sys.tables WHERE name LIKE '%smx%'</code> e comparar com a lista de 31/08 (12 tabelas).</li>
+      <li>Confirmar com o dev (comentário no card) que o deploy não criou tabela/coluna auxiliar para o fluxo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">O "Onde muda" do card se sustenta: apenas <b>valores</b> novos (status Inconsistente em <code>e_dcl_smx</code>, texto de erro novo em <code>t_err</code>) — nenhuma tabela ou coluna nova nos três contratos.</div>
+    <div class="ev-section" id="ev-CT-WDT-011">📎 Evidências desta execução serão inseridas aqui.</div>
+  </div>
+</div>
+
+<!-- ============ 6. MATRIZ ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de aceite</th><th style="width:110px">Origem</th><th style="width:230px">CT(s)</th><th style="width:100px">Resultado</th></tr>
+  <tr><td>CA-1 — Desprezar somente quando faltam as duas informações (mensagem cita ambas)</td><td>PBI #8258</td><td>CT-WDT-001, CT-WDT-003</td><td>Pendente</td></tr>
+  <tr><td>CA-2 — Não desprezar quando só falta o tipo (grava em <code>pnd_dui</code>)</td><td>PBI #8258</td><td>CT-WDT-002</td><td>Pendente</td></tr>
+  <tr><td>CA-3 — Inconsistência no processamento: erro novo em <code>pnd_err</code> + status Inconsistente</td><td>PBI #8258</td><td>CT-WDT-004, CT-WDT-010</td><td>Pendente</td></tr>
+  <tr><td>CA-4 — DUIMP com tipo segue o fluxo normal</td><td>PBI #8258</td><td>CT-WDT-007</td><td>Pendente</td></tr>
+  <tr><td>DoD-1 — pacote real com e sem veículo transportador</td><td>DoD do card</td><td>CT-WDT-001, CT-WDT-002 (massa)</td><td>Pendente</td></tr>
+  <tr><td>DoD-2 — jornada de acerto (DE/PARA) + agrupamento não fragmenta</td><td>Descrição do card</td><td>CT-WDT-005, CT-WDT-006</td><td>Pendente</td></tr>
+  <tr><td>Robustez — coexistência #8255, vizinhos e schema preservados</td><td>Análise QA</td><td>CT-WDT-008, CT-WDT-009, CT-WDT-011</td><td>Pendente</td></tr>
+</table>
+<p style="font-size:12.5px;color:var(--cinza)">Cobertura: 4/4 critérios de aceite do card + 2 itens de DoD/jornada com pelo menos 1 CT cada (100%). Sessão exploratória (NOR_QA_002 §11) prevista após os CTs formais — foco: via com valor inválido não-vazio (ex.: "INDEFINIDO" — o caso das 62 linhas antigas), veículo com só espaços, pacote misto DI+DUIMP, acerto seguido de novo pacote da mesma DUIMP.</p>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th style="width:110px">Probabilidade</th><th style="width:90px">Impacto</th><th>Mitigação</th></tr>
+  <tr><td>Pacote real com DUIMP sem tipo de transporte (com E sem veículo) indisponível — dado vem da Quorum (dependência externa; item do DoR ainda não atendido — hoje a base tem ZERO DUIMPs sem via)</td><td>Média–alta</td><td>Alto</td><td>Solicitar ao dev/analista junto com o deploy; sem ele, CT-WDT-001/002/004/005/006 ficam BLOQUEADOS por causa externa (não aprovar com massa fictícia — DoD exige pacote real)</td></tr>
+  <tr><td>Novo código de erro ainda não definido (DoR aberto: "confirmar com o time técnico") e a tabela não tem coluna numérica — risco de o "código" não ser discriminável na jornada/relatórios</td><td>Média</td><td>Médio</td><td>CT-WDT-010 valida unicidade/discriminação do texto implantado; confirmação do dev registrada no card</td></tr>
+  <tr><td>Tela Acerto de Inconsistências hoje NÃO tem painel de via de transporte/veículo (medido 31/08) — o acerto do erro novo pode não se materializar na tela, deixando a jornada incompleta</td><td>Média</td><td>Alto</td><td>CT-WDT-005 dedicado à jornada; se a tela não contemplar, REPROVADO com evidência e confronto com Produto (o card promete a correção por essa tela)</td></tr>
+  <tr><td>Semântica do status "Inconsistente" em <code>e_dcl_smx</code> não documentada (hoje: valores 1 e 2 na base; declarações com erro aparecem nos dois) — risco de oráculo impreciso</td><td>Média</td><td>Médio</td><td>Cravar o valor do enum com o dev no card antes da rodada; registrar no CT-WDT-004 o valor implantado</td></tr>
+  <tr><td>Interferência entre os fixes #8255 (carga/data) e #8258 (processamento/tipo) no mesmo worker — deploys do mesmo repositório em janelas próximas</td><td>Baixa–média</td><td>Alto</td><td>CT-WDT-008 dedicado à coexistência; confirmar com o dev a versão/build do worker que contém os dois fixes</td></tr>
+  <tr><td>Deploy do worker é de repositório/time separado — QA sem visibilidade do build; risco de testar versão errada</td><td>Média</td><td>Médio</td><td>Gate de DoD pelo estado do card + confirmação do dev no card (build/versão) antes da rodada</td></tr>
+  <tr><td>DUIMPs sem via passam a OCUPAR <code>pnd_dui</code> (antes eram barradas na carga) — telas/relatórios que listam pendências podem não prever via vazia</td><td>Baixa–média</td><td>Médio</td><td>Exploratório pós-CTs varre as telas satélites (Processamento, Acerto, Relatórios) com a DUIMP sem via presente na base</td></tr>
+</table>
+
+<footer>
+  Plano de teste gerado em 31/08/2026 · PBI #8258 · Sprint 14 Citweb · CITWEB Team ·
+  Task do plano: #8455 · Referências: PBI #8258 (descrição + CAs Gherkin + DoR/DoD), precedente PBI #8255
+  (plano pbi-8255, Gate 1 aprovado 28/08), consultas SQL read-only próprias de 31/08/2026 em
+  <code>smt-hom-citweb-axa</code> (schemas, distribuição de status, mensagens exatas, amostras), navegação
+  verificada por clique no módulo Interface WI / Siscomex em 31/08/2026 (build V 1.0.260827.1754),
+  feature <code>features/Internacional/worker-duimp-controle-processamento.md</code>. Execução condicionada
+  a: Gate 1 (Wesley) → Gate 2 (Produtos) → DoD do dev (worker em HML + pacote real).
+</footer>
+</div>
+
+<div class="assinatura">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
