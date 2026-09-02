@@ -1,0 +1,32 @@
+SEMEADURA S1 — CT-ATT-002 (e CT-ATT-004/005/007/009) — PBI-8259
+Ambiente: HML AXA (smt-hom-citweb-axa) — servidor smt-hom-citweb.database.windows.net
+Executado em: 01/09/2026 19:19 (horário do servidor SQL)
+
+=== BASELINE (ANTES da semeadura) ===
+Q1: SELECT u_apo_pnc, u_adl_smx, e_trp_smx, e_dcl_smx FROM tb_itf_smx_dcl_pnd_dui WHERE u_dcl_imt_smx='26BR00000718247'
+-> {'u_apo_pnc': 1959712000014.0, 'u_adl_smx': 1, 'e_trp_smx': 'M', 'e_dcl_smx': 1}
+
+Q2: SELECT u_adl_smx, u_seq_err, u_adl_itn_smx, t_err, d_usu_inc FROM tb_itf_smx_dcl_pnd_err WHERE u_dcl_imt_smx='26BR00000718247' ORDER BY u_seq_err
+-> (nenhuma linha — apólice sem erros pendentes, conforme massa verificada no plano)
+
+=== SQL DE SEMEADURA EXECUTADO (S1, conforme plano) ===
+UPDATE tb_itf_smx_dcl_pnd_dui SET e_trp_smx = NULL
+ WHERE u_apo_pnc = 1959712000014 AND u_dcl_imt_smx = '26BR00000718247';   -- antes: 'M'
+
+INSERT INTO tb_itf_smx_dcl_pnd_err (u_apo_pnc, u_dcl_imt_smx, u_adl_smx, u_seq_err, t_err, n_usu_inc, d_usu_inc, u_adl_itn_smx)
+VALUES (1959712000014, '26BR00000718247', 1, 130,
+        'DUIMP sem tipo de transporte informado - massa QA PBI 8259', 'QA', GETDATE(), 1);
+
+=== PÓS-SEMEADURA (confirmação) ===
+Q1 -> {'u_apo_pnc': 1959712000014.0, 'u_adl_smx': 1, 'e_trp_smx': None, 'e_dcl_smx': 1}
+Q2 -> {'u_adl_smx': 1, 'u_seq_err': 130, 'u_adl_itn_smx': 1,
+       't_err': 'DUIMP sem tipo de transporte informado - massa QA PBI 8259  ',
+       'd_usu_inc': datetime(2026, 9, 1, 19, 19)}
+
+CLASSIFICAÇÃO DA MASSA: SEMEADA (não orgânica) — confirmado por SQL read-only em 01/09/2026 que
+NÃO existe nenhuma linha orgânica com u_seq_err=130 nem e_trp_smx vazio/NULL na base
+smt-hom-citweb-axa antes desta semeadura (worker #8258 ainda não deployado em HML gerando
+essa inconsistência organicamente).
+
+PENDÊNCIA: RE-VALIDAR este CT com massa ORGÂNICA assim que o worker #8258 subir em HML e
+gravar o código de erro definitivo (hoje placeholder 130).

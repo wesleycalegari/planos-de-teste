@@ -1,0 +1,49 @@
+CT-ATT-010 — CA-3: DUIMP com erro de tipo + outro erro real → corrigir só o tipo mantém o outro
+PBI-8259 — Massa: SEMEADA (S3-alternativo)
+
+DESVIO DOCUMENTADO DO PLANO: o plano original apontava a apólice 100622001 / DUIMP 26BR00003275796
+(erro real 110 — Mercadoria). Ao semear o 130 nela e pesquisar a apólice, a tela sempre trouxe
+PRIMEIRO outras 2 DUIMPs da mesma apólice com inconsistências reais NÃO relacionadas (Mercadoria/
+Embalagem em 26BR00000095495 e 26BR00000913252) — a ordenação observada na tela é ascendente pela
+declaração, e 26BR00003275796 é a última das três alfabeticamente. Resolver as duas anteriores
+tocaria massa real não referenciada no plano (risco desnecessário). Rollback do seed original foi
+executado (ver abaixo) e um alvo EQUIVALENTE, com o mesmo padrão "erro 130 + outro erro real
+pendente" e SEM concorrência de fila, foi localizado via SQL:
+
+  apólice 2501062205111 / DUIMP 26BR00001634390 (adição 1) — único item pendente da apólice nos
+  códigos que a tela filtra (40,45,50,55,60,110,120,130); erro real pré-existente = 60 (Navio:
+  "Navio não cadastrado no DE/PARA = COSTA RICA EXPRESS"); e_trp_smx original = 'M'.
+
+=== ROLLBACK do seed original (100622001/26BR00003275796) ===
+UPDATE tb_itf_smx_dcl_pnd_dui SET e_trp_smx='M' WHERE u_apo_pnc=100622001 AND u_dcl_imt_smx='26BR00003275796';
+DELETE FROM tb_itf_smx_dcl_pnd_err WHERE u_apo_pnc=100622001 AND u_dcl_imt_smx='26BR00003275796' AND u_seq_err=130;
+Confirmado pós-rollback: e_trp_smx='M', restou só o erro real 110 (igual ao estado antes de eu mexer).
+
+=== SEED alternativo (2501062205111 / 26BR00001634390) ===
+UPDATE tb_itf_smx_dcl_pnd_dui SET e_trp_smx=NULL WHERE u_apo_pnc=2501062205111 AND u_dcl_imt_smx='26BR00001634390';
+INSERT INTO tb_itf_smx_dcl_pnd_err (...) VALUES (2501062205111, '26BR00001634390', 1, 130, ...);
+
+Pós-seed: Q1 e_trp_smx=None | Q2: erro 60 (real) + erro 130 (semeado)
+
+=== NA TELA ===
+Pesquisa da apólice já trouxe a DUIMP-alvo direto (única pendência da apólice) — ambos os blocos
+Tipo de Transporte e Navio habilitados simultaneamente (mesma adição, 2 erros concorrentes).
+Selecionado Marítimo no bloco Tipo de Transporte; bloco Navio deixado sem preencher; Salvar clicado.
+Mensagem exibida: "Atualização efetuada com sucesso" — o Salvar não exigiu o preenchimento do
+bloco Navio para concluir (blocos são validados/gravados de forma independente).
+
+=== PÓS-SALVAR (Q1/Q2) ===
+Q1: {'u_adl_smx': 1, 'e_trp_smx': 'M'}
+Q2: {'u_adl_smx': 1, 'u_seq_err': 60}   -- só o erro real de Navio restou; 130 removido
+
+=== RE-PESQUISA da apólice (confirma CA-3) ===
+A mesma DUIMP 26BR00001634390 foi reapresentada pela tela (agora só pela inconsistência de Navio):
+  #numeroDI = '26BR00001634390'
+  #ddlTipoTransporteCit.disabled = true (já resolvido)
+  alerta de tipo de transporte = ausente
+  #codigoNavioCit.disabled = false (inconsistência de Navio HABILITADA, ainda pendente)
+
+Conclusão: o acerto de tipo de transporte removeu SOMENTE o erro 130; o erro real 60 (Navio)
+permaneceu em pnd_err e a DUIMP continuou aparecendo na tela — CA-3 confirmado. Nenhum rollback
+adicional necessário (e_trp_smx voltou ao valor original 'M' como resultado natural do próprio
+acerto; o erro 60 é massa real, não foi tocado).

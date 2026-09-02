@@ -1,0 +1,34 @@
+CT-ATT-008 — Partição de equivalência Aéreo/Terrestre — PBI-8259
+Massa: SEMEADA (S4) — apólice 100622002 / DUIMPs 26BR00001409825 e 26BR00001438264
+Ambiente: HML AXA (smt-hom-citweb-axa)
+
+Baseline: apólice sem nenhum outro erro pendente nos códigos que a tela filtra — confirmado antes
+da semeadura (SELECT ... WHERE u_apo_pnc=100622002 AND u_seq_err IN (40,45,50,55,60,110,120,130)
+retornou 0 linhas).
+
+=== Seed S4 ===
+UPDATE tb_itf_smx_dcl_pnd_dui SET e_trp_smx=NULL WHERE u_apo_pnc=100622002
+ AND u_dcl_imt_smx IN ('26BR00001409825','26BR00001438264');   -- antes: 'M' nas duas
+INSERT ... VALUES (100622002,'26BR00001409825',1,130,...), (100622002,'26BR00001438264',1,130,...);
+
+Pós-seed confirmado: as 2 DUIMPs com e_trp_smx=None e erro 130 cada.
+
+=== Execução na tela ===
+1ª pesquisa da apólice 100622002 -> carregou 26BR00001409825; selecionado Aéreo; Salvar ->
+mensagem "Atualização efetuada com sucesso" -> avançou automaticamente para 26BR00001438264
+(mensagem incluía "Será exibida a próxima Adição inconsistente").
+2ª tela (mesma sessão) -> selecionado Terrestre; Salvar -> "Atualização efetuada com sucesso".
+
+=== Q1/Q2 pós-salvar ===
+Q1: {'u_dcl_imt_smx': '26BR00001409825', 'e_trp_smx': 'A'}
+    {'u_dcl_imt_smx': '26BR00001438264', 'e_trp_smx': 'T'}
+Q2 (apólice inteira): (zero linhas — ambos os erros 130 removidos)
+
+Conclusão: as opções Aéreo ('A') e Terrestre ('T') do combo gravam corretamente em e_trp_smx,
+complementando o Marítimo ('M') já validado no CT-ATT-005. Erro 130 removido em cada acerto com
+mensagem de sucesso.
+
+=== ROLLBACK S4 ===
+UPDATE tb_itf_smx_dcl_pnd_dui SET e_trp_smx='M' WHERE u_apo_pnc=100622002
+ AND u_dcl_imt_smx IN ('26BR00001409825','26BR00001438264');
+Confirmado pós-rollback: ambas as DUIMPs com e_trp_smx='M' (valor original restaurado).
