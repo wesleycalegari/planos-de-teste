@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI 8498 · Atualizar ambientes HML</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --azul-pbi:#0d5aa7;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--azul-pbi);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:14px;text-align:center}
+  .stat-item .num{font-size:26px;font-weight:700;color:var(--azul)}
+  .stat-item .lbl{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">PBI-8498 · Sprint 14 Citweb</div><h1>Plano de Teste — PBI 8498 · Atualizar ambientes HML</h1>
+  <div class="sub">Atualização dos 12 ambientes de homologação (6 seguradoras × CITWEB/CITNET — FAIRFAX · KEV · YELUM · AXA · MITSUI · SUHAI) para a mesma versão de produção, com verificação de versão, smoke test evidenciado por ambiente, execução da suíte de regressão <b>Voidr</b> nos 12 ambientes e verificação de isolamento das demais seguradoras.</div>
+  <div class="badges">
+    <span class="badge">PBI #8498</span>
+    <span class="badge">Sprint 14 Citweb</span>
+    <span class="badge">CITWEB + CITNET · 6 seguradoras · 12 ambientes HML</span>
+    <span class="badge">20 CTs — 18×P1 · 1×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">20</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">20</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">18/1/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 20 executados · 20 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>20 CTs</strong> (18×P1 · 1×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 20, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 20}</span>
+  </div>
+</div>
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">PBI #8498 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_14_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Infraestrutura de ambientes — HML CITWEB e CITNET das seguradoras FAIRFAX · KEV · YELUM · AXA · MITSUI · SUHAI</div></div>
+  <div class="info-item"><div class="k">Ambientes sob teste</div><div class="v">12 ambientes HML (6 seguradoras × 2 sistemas) — URLs na seção 4</div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">03/09/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8523 FAIRFAX (In Progress) · #8524 KEV · #8525 YELUM · #8526 AXA · #8527 MITSUI · #8528 SUHAI (infra, José Ribeiro Carvalho) · #8530 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">Committed — plano gerado com DoR ok; execução por ambiente aguarda a atualização daquele ambiente (task filha da seguradora)</div></div>
+  <div class="info-item"><div class="k">Cards relacionados</div><div class="v">#8368/#8369 (migração de URL KOVR→KEV, em andamento — afeta o host do KEV) · DEF-13/15/16/19/20 (defects Voidr pré-existentes, EXEC-001784/1785/1794/1800)</div></div>
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p><b>O que muda:</b> os ambientes HML de CITWEB e CITNET das 6 seguradoras do escopo serão atualizados para a <b>mesma versão em uso em produção</b>, eliminando a defasagem que vem bloqueando validações (erros reproduzíveis só em produção, telas divergentes, campos ausentes em HML — casos citados no card: prêmio divergente nas prévias, Conversor de Importação BERKLEY, Interface SISCOMEX/DUIMP FAIRFAX, flag de usuário ativo).</p>
+<p><b>Papel do QA neste card:</b> a atualização em si é executada pela infra/sustentação (tasks #8523–#8528). O QA valida cada ambiente atualizado em três camadas — <b>(1) verificação de versão</b> (HML = produção), <b>(2) smoke test evidenciado</b> (login, navegação, consulta, relatório, preservação de dados) e <b>(3) regressão automatizada Voidr</b> com triagem das falhas — além do <b>isolamento</b> (seguradoras fora do escopo intactas) e da <b>rastreabilidade</b> (matriz de versões antes/depois).</p>
+<div class="info-box"><b>Baseline medido em 03/09/2026 (GET sem login, pré-atualização):</b> os 12 ambientes respondem <b>HTTP 200</b>. O título da página de login do CITWEB carrega a <b>data do build</b> — FAIRFAX <code>03/07/2026</code> · KEV <code>12/08/2026</code> · YELUM <code>24/08/2026</code> · AXA <code>01/09/2026</code> · MITSUI <code>03/07/2026</code> · SUHAI <code>17/08/2026</code> — e é o primeiro oráculo de mudança de versão (além do rodapé pós-login, padrão <code>V 1.0.yymmdd.hhmm</code>). O CITNET responde com título próprio por seguradora (ex.: <code>FAIRFAX Seguros- CitNet</code>).</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:120px">Dentro</th><td>Verificação de versão HML × produção nos 12 ambientes; smoke test por ambiente (CITWEB: login, menus, consulta de apólice, geração de relatório; CITNET: login, menus, consulta de averbação); preservação de dados e parametrizações de HML; execução e triagem da regressão Voidr por ambiente; isolamento das seguradoras fora do escopo; matriz de versões antes/depois e comunicação de liberação.</td></tr>
+  <tr><th>Fora</th><td>(a) A execução da atualização em si, backup e rollback — responsabilidade da infra (tasks #8523–#8528, DoD do card); (b) criação/manutenção dos casos da suíte Voidr — executor é a Voidr, o QA aciona/acompanha e tria; (c) migração de URL KOVR→KEV (cards #8368/#8369 — aqui apenas se usa o host vigente); (d) staging/produção (Gate 4); (e) correção dos defects achados pela regressão — viram cards próprios, não bloqueiam este PBI (nota do próprio card).</td></tr>
+  <tr><th>Ramo</th><td>Não é regra por-ramo: o card é de infraestrutura de ambientes e cobre os sistemas inteiros. A cobertura funcional por ramo vem da suíte de regressão Voidr de cada aplicação.</td></tr>
+</table>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:200px">DoD da infra (por ambiente)</th><td>CT de um ambiente só executa <b>após a task filha daquela seguradora concluir a atualização</b> (com backup prévio e plano de rollback — DoD do card). Não é preciso esperar as 6 seguradoras: a validação é por ambiente, na ordem em que a infra entregar (hoje: FAIRFAX #8523 In Progress).</td></tr>
+  <tr><th>Matriz de versões do card</th><td>O levantamento "versão de produção × versão de HML por ambiente" é <b>tarefa pré-requisito do próprio card</b> (seção Tarefas Técnicas). O valor "versão de produção" usado como esperado nos CTs de versão vem dessa matriz preenchida pela infra — o QA confere o HML contra ela e registra o antes/depois (CT-DOC-001).</td></tr>
+  <tr><th>URLs dos ambientes</th><td>Medidas em 03/09/2026 (todas HTTP 200):<br>
+  CITWEB: <code>https://{seg}-hml-faturamento.nsseg.com.br/Login/</code> · CITNET: <code>https://{seg}-hml-faturamento.nsseg.com.br/citnet/</code><br>
+  <code>{seg}</code> = <code>fairfax</code> · <code>kovr</code> (KEV — ver warn-box abaixo) · <code>hdi-yelum</code> (YELUM) · <code>axa</code> · <code>mitsui</code> · <code>suhai</code>.</td></tr>
+  <tr><th>Credenciais (chaves <code>.env</code>)</th><td>Nunca neste documento — só nomes de chave. Existentes: <code>HML_FAIRFAX_CITWEB_*</code> / <code>HML_FAIRFAX_CITNET_*</code> · <code>HML_KOVR_CITWEB_*</code> / <code>HML_KOVR_CITNET_*</code> (KEV) · <code>HML_HDI_YELUM_CITWEB_*</code> · <code>HML_AXA_CITWEB_*</code> / <code>HML_AXA_CITNET_INTERNO_*</code> · <code>HML_MITSUI_CITWEB_*</code> / <code>HML_MITSUI_CITNET_*</code>. <b>Faltam e precisam ser provisionadas antes da execução: YELUM CITNET · SUHAI CITWEB · SUHAI CITNET</b> (nenhuma chave no <code>.env</code> em 03/09/2026).</td></tr>
+  <tr><th>Acesso SQL (oráculo de massa)</th><td>Consulta read-only às bases <code>smt-hom-citweb-{fairfax|kovr|hdi|mitsui|axa|suhai}</code> (Azure SQL do HML) para confirmar preservação da massa após a atualização. A massa concreta por seguradora está na seção abaixo (consultada por SQL em 03/09/2026 — todas as apólices vigentes na data).</td></tr>
+  <tr><th>Voidr — aplicações e agenda</th><td>Aplicações existentes na plataforma Voidr (verificado via MCP em 03/09/2026): <code>citweb-axa</code> · <code>citweb-mitsui</code> · <code>citweb-kovr</code> (KEV) · <code>citweb-hdi-yelum</code>. <b>Não existem aplicações para FAIRFAX e SUHAI, e o CITNET só tem aplicação NSTech</b> — a criação/configuração dessas aplicações e suítes entra no alinhamento de agenda com a Voidr previsto no card ("confirmar disponibilidade para as 12 execuções e o prazo").</td></tr>
+</table>
+
+<h2 class="section" style="font-size:15px">Massa de dados por seguradora (consultada por SQL em 03/09/2026 — pré-atualização)</h2>
+<table>
+  <tr><th>Seguradora</th><th>Base SQL</th><th>Apólice vigente (CITWEB — consulta)</th><th>Averbação (CITNET — consulta)</th></tr>
+  <tr><td><b>FAIRFAX</b></td><td><code>smt-hom-citweb-fairfax</code></td><td>Apólice <code>211</code> · filial 1 · ramo 21 · vig. 01/07/2025–31/12/2027 (53 apólices nacionais vigentes na base)</td><td>Averbação <code>202600011571</code> · ramo 54 · apólice <code>6540012811</code> · filial 1</td></tr>
+  <tr><td><b>KEV</b></td><td><code>smt-hom-citweb-kovr</code></td><td>Apólice <code>1</code> · filial 1 · ramo 21 · vig. 01/10/2023–31/12/2027 (1.591 vigentes)</td><td>Averbação <code>202600000908</code> · ramo 58 · apólice <code>6022026</code> · filial 1</td></tr>
+  <tr><td><b>YELUM</b></td><td><code>smt-hom-citweb-hdi</code></td><td>Apólice <code>333</code> · filial 1 · ramo 59 (RCV) · vig. 18/08/2026–18/08/2027 (331 vigentes)</td><td>Nenhuma averbação nas tabelas nacionais (medido 03/09) — na execução, criar averbação RCV na apólice <code>333</code> antes da consulta (nunca aprovar sobre "nenhum registro")</td></tr>
+  <tr><td><b>AXA</b></td><td><code>smt-hom-citweb-axa</code></td><td>Apólice <code>219000001</code> · filial 9999 · ramo 21 · vig. 17/06/2026–06/06/2079 (4.608 vigentes)</td><td>Averbação <code>202617785325</code> · ramo 54 · apólice <code>1778531976824</code> · filial 1</td></tr>
+  <tr><td><b>MITSUI</b></td><td><code>smt-hom-citweb-mitsui</code></td><td>Apólice <code>1540013585</code> · filial 1 · ramo 54 · vig. 10/08/2026–31/08/2027 (3.040 vigentes)</td><td>Averbação <code>202600000003</code> · ramo 54 · apólice <code>1540012804</code> · filial 1</td></tr>
+  <tr><td><b>SUHAI</b></td><td><code>smt-hom-citweb-suhai</code></td><td>Apólice <code>1788258822741</code> · filial 1 · ramo 21 · vig. 01/09/2026–01/09/2027 (2.986 vigentes)</td><td>Averbação <code>202617883463</code> · ramo 21 · apólice <code>1788346310556</code> · filial 1</td></tr>
+</table>
+<div class="info-box"><b>Dupla função da massa:</b> além de alimentar os passos de consulta do smoke, cada registro acima é o <b>oráculo de preservação de dados</b> (CA "dados e parametrizações de HML preservados"): consultado ANTES da atualização (baseline 03/09/2026), deve continuar existindo com os mesmos dados DEPOIS dela. Se qualquer registro sumir/divergir após a atualização → REPROVADO no CT do ambiente.</div>
+
+<div class="warn-box"><b>⚠️ KEV — migração de URL em andamento (cards #8368/#8369):</b> o rebrand KOVR→KEV está trocando os hosts <code>kovr-*</code> → <code>kev-*</code>. Medição de 03/09/2026: <code>kovr-hml-faturamento.nsseg.com.br</code> atende normalmente (título já rebrandeado "KEV SEGUROS S.A."); <code>kev-hml-faturamento.nsseg.com.br</code> ainda <b>não resolve DNS</b> (nginx/Keycloak pendentes). Na execução dos CTs do KEV, <b>confirmar primeiro qual host está ativo</b> e executar nele; se a virada de URL ocorrer entre a atualização e a validação, registrar o host usado na evidência. A validação da migração de URL em si pertence aos cards #8368/#8369 — não a este plano.</div>
+
+<div class="warn-box"><b>⚠️ Critério de aprovação da regressão Voidr — "A PREENCHER" no card:</b> o card não define % mínimo de casos aprovados. Este plano adota, como <b>inferência documentada</b> (a partir da nota do próprio card de que achados são esperados e "não necessariamente bloqueiam a conclusão"): <b>sem % mínimo bloqueante — o critério é 100% das falhas triadas</b> (defeito de produto × problema de ambiente/massa) <b>e 100% dos defects de produto registrados como cards próprios</b>. Falha NÃO triada = pendência que bloqueia o fechamento. <b>Validar esta regra no Gate 1/Gate 2</b> — se Produtos definir % mínimo, os CT-VDR-* ganham esse oráculo adicional antes da execução.</div>
+
+<div class="info-box"><b>Navegação (regra inegociável):</b> toda navegação por clique em menus/submenus/botões — a única URL digitada é a de <b>login</b> de cada ambiente. Mapas validados: <code>Features/_navegacao/login-citweb.md</code> (menu superior CITWEB: Averbação · Fechamento Mensal · Cadastros · Relatórios) e <code>.speckit/quality/citnet-login.md</code> (login direto CITNET: campos <code>#usuario</code>/<code>#senha</code>, botão "Acessar"; usuário/senha case-sensitive — 1 tentativa por grafia, sem brute-force).</div>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+
+<div class="group-header">GRUPO A — CITWEB: verificação de versão + smoke test por seguradora (Etapas 1 e 2 do card)</div>
+<div class="group-note">Um CT por seguradora. Executar <b>após a atualização daquele ambiente</b> (task filha da seguradora concluída). Roteiro idêntico; muda URL, credencial (chave <code>.env</code>) e massa. Baseline pré-atualização (título de login com data do build + massa SQL) já registrado neste plano em 03/09/2026.</div>
+
+<div class="ct-block" id="CT-HML-001">
+  <div class="ct-head"><span class="ct-id">CT-HML-001</span><span class="ct-title">FAIRFAX · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8523 (FAIRFAX HML) concluída pela infra — CITWEB FAIRFAX atualizado, com versão de produção alvo registrada na matriz do card.</li><li>Credenciais: chaves <code>HML_FAIRFAX_CITWEB_USER/_PASS</code> no <code>.env</code>.</li><li>Baseline pré-atualização (03/09/2026): título do login <code>FAIRFAX HOMOLOGAÇÃO - MÓDULO Login CIT - 03/07/2026</code>; massa: apólice <code>211</code> · filial 1 · ramo 21.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://fairfax-hml-faturamento.nsseg.com.br/Login/</code> (única URL direta permitida). Screenshot da tela de login e registro do <b>título da página</b> — a data no título deve refletir o novo build (baseline pré-atualização: 03/07/2026).</li>
+      <li>Autenticar com as credenciais da chave <code>.env</code> e confirmar a home do CITWEB (menu superior visível).</li>
+      <li>Capturar a <b>versão no rodapé</b> (padrão <code>V 1.0.yymmdd.hhmm</code>) — screenshot legível + registrar o valor na matriz de versões (CT-DOC-001). Comparar com a versão de produção documentada na matriz do card — <b>devem ser iguais</b>.</li>
+      <li>Percorrer por clique cada menu de topo disponível (ex.: Averbação · Fechamento Mensal · Cadastros · Relatórios), abrindo 1 submenu de cada — nenhuma tela de erro/500/tela branca.</li>
+      <li>Consulta de apólice: navegar por clique até a consulta/relação de apólices → filtrar a apólice <code>211</code> (filial 1, ramo 21) → confirmar que o registro carrega com vigência 01/07/2025–31/12/2027 (dados preservados). Screenshot com o registro visível.</li>
+      <li>Geração de relatório: menu <b>Relatórios</b> → escolher um relatório de consulta disponível (ex.: relação/análise de produção) → gerar/exportar → <b>salvar o arquivo</b> e validar: não-vazio, formato válido, contém a apólice/filial filtrada. O arquivo é a evidência (screenshot + status 2xx não bastam).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Título do login e rodapé refletem o novo build, <b>igual à versão de produção da matriz</b>. Login e navegação por todos os menus sem erro. Apólice <code>211</code> presente e íntegra (parametrizações/dados de HML preservados). Relatório gerado e validado como arquivo. Qualquer divergência de versão, erro de navegação ou massa perdida → REPROVADO com evidência.</div>
+    <div class="ev-section" id="ev-CT-HML-001">📎 Evidências do CT-HML-001 — screenshots (login/título, rodapé com versão, menus, consulta) + arquivo do relatório.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-002">
+  <div class="ct-head"><span class="ct-id">CT-HML-002</span><span class="ct-title">KEV · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8524 (KEV HML) concluída pela infra.</li><li>Credenciais: chaves <code>HML_KOVR_CITWEB_USER/_PASS</code> (KEV = ex-KOVR).</li><li><b>Confirmar o host ativo</b> (ver warn-box KEV): em 03/09/2026 é <code>kovr-hml-faturamento.nsseg.com.br</code>; se a migração #8368 tiver virado, usar <code>kev-hml-*</code> e registrar na evidência.</li><li>Baseline (03/09/2026): título <code>KEV SEGUROS S.A. - MÓDULO Login CIT - 12/08/2026</code>; massa: apólice <code>1</code> · filial 1 · ramo 21.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://kovr-hml-faturamento.nsseg.com.br/Login/</code> (ou o host <code>kev-*</code>, se já ativo). Screenshot + registro do título (baseline: 12/08/2026).</li>
+      <li>Autenticar (chave <code>.env</code>) e confirmar a home.</li>
+      <li>Capturar a versão no rodapé — registrar na matriz e comparar com a versão de produção do card.</li>
+      <li>Percorrer por clique os menus de topo, 1 submenu de cada — sem erro.</li>
+      <li>Consulta de apólice: filtrar a apólice <code>1</code> (filial 1, ramo 21) → registro carrega com vigência 01/10/2023–31/12/2027. Screenshot.</li>
+      <li>Relatório: gerar/exportar um relatório de consulta → salvar e validar o arquivo (não-vazio, formato, conteúdo).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Versão HML = produção (título + rodapé). Navegação íntegra, apólice <code>1</code> preservada, relatório válido. Host usado registrado na evidência (kovr-* ou kev-*).</div>
+    <div class="ev-section" id="ev-CT-HML-002">📎 Evidências do CT-HML-002.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-003">
+  <div class="ct-head"><span class="ct-id">CT-HML-003</span><span class="ct-title">YELUM · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8525 (YELUM HML) concluída pela infra.</li><li>Credenciais: chaves <code>HML_HDI_YELUM_CITWEB_USER/_PASS</code>.</li><li>Baseline (03/09/2026): título <code>HDI HOMOLOGAÇÃO - MÓDULO Login CIT - 24/08/2026</code>; massa: apólice <code>333</code> · filial 1 · ramo 59 (RCV).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://hdi-yelum-hml-faturamento.nsseg.com.br/Login/</code>. Screenshot + registro do título (baseline: 24/08/2026).</li>
+      <li>Autenticar e confirmar a home.</li>
+      <li>Capturar a versão no rodapé — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus de topo, 1 submenu de cada — sem erro. Para RCV: clicar <b>Nacional</b> e confirmar a barra de abas ("Dados da Apólice - RCV", "Consulta").</li>
+      <li>Consulta de apólice: filtrar a apólice <code>333</code> (filial 1, ramo 59) → registro carrega com vigência 18/08/2026–18/08/2027. Screenshot.</li>
+      <li>Relatório: gerar/exportar um relatório de consulta → salvar e validar o arquivo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Versão HML = produção. Navegação íntegra (incl. módulo Nacional/RCV), apólice <code>333</code> preservada, relatório válido.</div>
+    <div class="ev-section" id="ev-CT-HML-003">📎 Evidências do CT-HML-003.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-004">
+  <div class="ct-head"><span class="ct-id">CT-HML-004</span><span class="ct-title">AXA · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8526 (AXA HML) concluída pela infra.</li><li>Credenciais: chaves <code>HML_AXA_CITWEB_USER/_PASS</code>.</li><li>Baseline (03/09/2026): título <code>AXA HOMOLOGAÇÃO - MÓDULO Login CIT - 01/09/2026</code> (build recente); massa: apólice <code>219000001</code> · filial 9999 · ramo 21.</li><li>⚠️ Não seguir o redirect do <code>SessionExpired</code> (leva ao SSO NSTECH, credenciais diferentes — particularidade AXA).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code>. Screenshot + registro do título (baseline: 01/09/2026).</li>
+      <li>Autenticar e confirmar a home.</li>
+      <li>Capturar a versão no rodapé — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus de topo (incl. o botão <b>Interface WI / Siscomex</b>, que abre o módulo STREITI em nova aba — cenário citado no card como bloqueado por defasagem na FAIRFAX), 1 submenu de cada — sem erro.</li>
+      <li>Consulta de apólice: filtrar a apólice <code>219000001</code> (filial 9999, ramo 21) → registro carrega com vigência 17/06/2026–06/06/2079. Screenshot.</li>
+      <li>Relatório: gerar/exportar um relatório de consulta → salvar e validar o arquivo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Versão HML = produção. Navegação íntegra (incl. abertura do módulo WI/Siscomex), apólice <code>219000001</code> preservada, relatório válido.</div>
+    <div class="ev-section" id="ev-CT-HML-004">📎 Evidências do CT-HML-004.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-005">
+  <div class="ct-head"><span class="ct-id">CT-HML-005</span><span class="ct-title">MITSUI · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8527 (MITSUI HML) concluída pela infra.</li><li>Credenciais: chaves <code>HML_MITSUI_CITWEB_USER/_PASS</code>.</li><li>Baseline (03/09/2026): título <code>MITSUI HOMOLOGAÇÃO - MÓDULO Login CIT - 03/07/2026</code>; massa: apólice <code>1540013585</code> · filial 1 · ramo 54.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://mitsui-hml-faturamento.nsseg.com.br/Login/</code>. Screenshot + registro do título (baseline: 03/07/2026).</li>
+      <li>Autenticar e confirmar a home.</li>
+      <li>Capturar a versão no rodapé — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus de topo, 1 submenu de cada — sem erro.</li>
+      <li>Consulta de apólice: filtrar a apólice <code>1540013585</code> (filial 1, ramo 54) → registro carrega com vigência 10/08/2026–31/08/2027. ⚠️ Ramo 54 é linkado ao 55 (RCF) — conferir que o vínculo segue exibido. Screenshot.</li>
+      <li>Relatório: gerar/exportar um relatório de consulta → salvar e validar o arquivo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Versão HML = produção. Navegação íntegra, apólice <code>1540013585</code> preservada (com vínculo 54↔55 íntegro), relatório válido.</div>
+    <div class="ev-section" id="ev-CT-HML-005">📎 Evidências do CT-HML-005.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-006">
+  <div class="ct-head"><span class="ct-id">CT-HML-006</span><span class="ct-title">SUHAI · CITWEB — versão atualizada + smoke test + dados preservados</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8528 (SUHAI HML) concluída pela infra.</li><li><b>Credencial a provisionar:</b> não há chave <code>HML_SUHAI_CITWEB_*</code> no <code>.env</code> (03/09/2026) — obter credencial de operador com a sustentação e registrar a chave antes da execução.</li><li>Baseline (03/09/2026): título <code>Suhai Seguradora S.A. - MÓDULO Login CIT - 17/08/2026</code>; massa: apólice <code>1788258822741</code> · filial 1 · ramo 21.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://suhai-hml-faturamento.nsseg.com.br/Login/</code>. Screenshot + registro do título (baseline: 17/08/2026).</li>
+      <li>Autenticar com a credencial provisionada e confirmar a home.</li>
+      <li>Capturar a versão no rodapé — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus de topo, 1 submenu de cada — sem erro.</li>
+      <li>Consulta de apólice: filtrar a apólice <code>1788258822741</code> (filial 1, ramo 21) → registro carrega com vigência 01/09/2026–01/09/2027. Screenshot.</li>
+      <li>Relatório: gerar/exportar um relatório de consulta → salvar e validar o arquivo.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Versão HML = produção. Navegação íntegra, apólice <code>1788258822741</code> preservada, relatório válido.</div>
+    <div class="ev-section" id="ev-CT-HML-006">📎 Evidências do CT-HML-006.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO B — CITNET: verificação de versão + smoke test por seguradora (Etapas 1 e 2 do card)</div>
+<div class="group-note">Um CT por seguradora, no CITNET legado (<code>/citnet/</code>). Login direto pelo formulário próprio (<code>#usuario</code>/<code>#senha</code>, botão "Acessar") — usuário/senha case-sensitive, 1 tentativa por grafia. Título por seguradora medido em 03/09/2026 (pré-atualização).</div>
+
+<div class="ct-block" id="CT-HML-007">
+  <div class="ct-head"><span class="ct-id">CT-HML-007</span><span class="ct-title">FAIRFAX · CITNET — acesso, versão e consulta de averbação preservada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8523 concluída (ambiente FAIRFAX atualizado).</li><li>Credenciais: chaves <code>HML_FAIRFAX_CITNET_USER/_PASS</code>.</li><li>Baseline (03/09/2026): título <code>FAIRFAX Seguros- CitNet</code>; massa: averbação <code>202600011571</code> (ramo 54, apólice <code>6540012811</code>, filial 1).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://fairfax-hml-faturamento.nsseg.com.br/citnet/</code>. Screenshot + registro do título da página (baseline: <code>FAIRFAX Seguros- CitNet</code>).</li>
+      <li>Login direto no formulário (chave <code>.env</code>) e confirmar a home do CITNET (menu de topo visível).</li>
+      <li>Capturar a identificação de versão/build visível (rodapé/cabeçalho da home) — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais (Averbações · Relatórios · Conversor · Faturamento, conforme perfil) — 1 submenu de cada, sem erro.</li>
+      <li>Consulta de averbação: navegar por clique até a consulta (Relatórios → Consulta ou equivalente) → filtrar a averbação <code>202600011571</code> / apólice <code>6540012811</code> (filial 1, ramo 54) → registro carrega (dados preservados). Screenshot com o registro visível.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET acessível e funcional pós-atualização; versão = produção; menus navegáveis sem erro; averbação <code>202600011571</code> presente e íntegra.</div>
+    <div class="ev-section" id="ev-CT-HML-007">📎 Evidências do CT-HML-007.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-008">
+  <div class="ct-head"><span class="ct-id">CT-HML-008</span><span class="ct-title">KEV · CITNET — acesso, versão e consulta de averbação preservada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8524 concluída.</li><li>Credenciais: chaves <code>HML_KOVR_CITNET_USER/_PASS</code>.</li><li>Host ativo confirmado (warn-box KEV — em 03/09 é <code>kovr-*</code>).</li><li>Baseline (03/09/2026): título <code>KEV SEGUROS S.A.- CitNet</code>; massa: averbação <code>202600000908</code> (ramo 58, apólice <code>6022026</code>, filial 1).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://kovr-hml-faturamento.nsseg.com.br/citnet/</code> (ou host <code>kev-*</code> se ativo). Screenshot + título (baseline: <code>KEV SEGUROS S.A.- CitNet</code>).</li>
+      <li>Login direto e confirmação da home.</li>
+      <li>Capturar versão/build visível — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais — sem erro.</li>
+      <li>Consulta de averbação: filtrar a averbação <code>202600000908</code> / apólice <code>6022026</code> (filial 1, ramo 58) → registro carrega. Screenshot.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET KEV funcional; versão = produção; averbação <code>202600000908</code> preservada. Host usado registrado na evidência.</div>
+    <div class="ev-section" id="ev-CT-HML-008">📎 Evidências do CT-HML-008.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-009">
+  <div class="ct-head"><span class="ct-id">CT-HML-009</span><span class="ct-title">YELUM · CITNET — acesso, versão e consulta de averbação (criar massa se necessário)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8525 concluída.</li><li><b>Credencial a provisionar:</b> não há chave <code>HML_HDI_YELUM_CITNET_*</code> / <code>HML_YELUM_CITNET_*</code> no <code>.env</code> (03/09/2026) — obter com a sustentação antes da execução.</li><li>Baseline (03/09/2026): título <code>Yelum Seguros- CitNet</code>. Averbação: nenhuma nas tabelas nacionais (medido por SQL) — usar a apólice RCV <code>333</code> (filial 1) como base.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://hdi-yelum-hml-faturamento.nsseg.com.br/citnet/</code>. Screenshot + título (baseline: <code>Yelum Seguros- CitNet</code>).</li>
+      <li>Login direto com a credencial provisionada e confirmação da home.</li>
+      <li>Capturar versão/build visível — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais — sem erro.</li>
+      <li>Consulta de averbação filtrando a apólice <code>333</code> (filial 1, ramo 59). <b>Se a consulta voltar vazia</b> (esperado — não havia averbação na base em 03/09): criar uma averbação RCV na apólice <code>333</code> pela própria tela (a apólice tem vigência 18/08/2026–18/08/2027) e repetir a consulta — o registro criado deve aparecer. ⛔ Nunca aprovar sobre "nenhum registro" sem a contraprova.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET YELUM funcional; versão = produção; consulta de averbação operante com registro real exibido (pré-existente ou criado na execução — o registro criado também comprova que gravação funciona pós-atualização).</div>
+    <div class="ev-section" id="ev-CT-HML-009">📎 Evidências do CT-HML-009.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-010">
+  <div class="ct-head"><span class="ct-id">CT-HML-010</span><span class="ct-title">AXA · CITNET — acesso, versão e consulta de averbação preservada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8526 concluída.</li><li>Credenciais: chaves <code>HML_AXA_CITNET_INTERNO_USER/_PASS</code> (login direto).</li><li>Baseline (03/09/2026): título <code>AXA Seguros- CitNet</code>; massa: averbação <code>202617785325</code> (ramo 54, apólice <code>1778531976824</code>, filial 1).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://axa-hml-faturamento.nsseg.com.br/citnet/</code>. Screenshot + título (baseline: <code>AXA Seguros- CitNet</code>).</li>
+      <li>Login direto (perfil interno) e confirmação da home.</li>
+      <li>Capturar versão/build visível — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais — sem erro.</li>
+      <li>Consulta de averbação: filtrar a averbação <code>202617785325</code> / apólice <code>1778531976824</code> (filial 1, ramo 54) → registro carrega. Screenshot.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET AXA funcional; versão = produção; averbação <code>202617785325</code> preservada.</div>
+    <div class="ev-section" id="ev-CT-HML-010">📎 Evidências do CT-HML-010.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-011">
+  <div class="ct-head"><span class="ct-id">CT-HML-011</span><span class="ct-title">MITSUI · CITNET — acesso, versão e consulta de averbação preservada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8527 concluída.</li><li>Credenciais: chaves <code>HML_MITSUI_CITNET_USER/_PASS</code>.</li><li>Baseline (03/09/2026): título <code>MITSUI SUMITOMO SEGUROS S.A- CitNet</code>; massa: averbação <code>202600000003</code> (ramo 54, apólice <code>1540012804</code>, filial 1).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://mitsui-hml-faturamento.nsseg.com.br/citnet/</code>. Screenshot + título (baseline: <code>MITSUI SUMITOMO SEGUROS S.A- CitNet</code>).</li>
+      <li>Login direto e confirmação da home.</li>
+      <li>Capturar versão/build visível — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais (na MITSUI, "Aut.Faturamento" fica sob <b>Averbações</b>) — sem erro.</li>
+      <li>Consulta de averbação: filtrar a averbação <code>202600000003</code> / apólice <code>1540012804</code> (filial 1, ramo 54) → registro carrega. Screenshot.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET MITSUI funcional; versão = produção; averbação <code>202600000003</code> preservada.</div>
+    <div class="ev-section" id="ev-CT-HML-011">📎 Evidências do CT-HML-011.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-HML-012">
+  <div class="ct-head"><span class="ct-id">CT-HML-012</span><span class="ct-title">SUHAI · CITNET — acesso, versão e consulta de averbação preservada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Smoke</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Task #8528 concluída.</li><li><b>Credencial a provisionar:</b> não há chave <code>HML_SUHAI_CITNET_*</code> no <code>.env</code> (03/09/2026).</li><li>Baseline (03/09/2026): título <code>SUHAI SEGURADORA - CitNet</code>; massa: averbação <code>202617883463</code> (ramo 21, apólice <code>1788346310556</code>, filial 1).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Abrir <code>https://suhai-hml-faturamento.nsseg.com.br/citnet/</code>. Screenshot + título (baseline: <code>SUHAI SEGURADORA - CitNet</code>).</li>
+      <li>Login direto com a credencial provisionada e confirmação da home.</li>
+      <li>Capturar versão/build visível — registrar na matriz e comparar com a produção.</li>
+      <li>Percorrer por clique os menus principais — sem erro.</li>
+      <li>Consulta de averbação: filtrar a averbação <code>202617883463</code> / apólice <code>1788346310556</code> (filial 1, ramo 21) → registro carrega. Screenshot.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">CITNET SUHAI funcional; versão = produção; averbação <code>202617883463</code> preservada.</div>
+    <div class="ev-section" id="ev-CT-HML-012">📎 Evidências do CT-HML-012.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO C — Regressão automatizada Voidr por seguradora (Etapa 3 do card · CAs de Validação Voidr)</div>
+<div class="group-note">Um CT por seguradora, cobrindo as execuções de CITWEB e CITNET daquele ambiente. Pré-requisito comum: smoke do ambiente aprovado (grupo A/B) — a regressão roda sobre ambiente já comprovadamente de pé. Executor: Voidr (agenda alinhada conforme o card). Precedente: EXEC-001784 · EXEC-001785 · EXEC-001794 · EXEC-001800 já produziram os defects DEF-13/15/16/19/20 — achados novos são esperados e não bloqueiam a conclusão, desde que 100% triados e registrados.</div>
+
+<div class="ct-block" id="CT-VDR-001">
+  <div class="ct-head"><span class="ct-id">CT-VDR-001</span><span class="ct-title">FAIRFAX — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-001 e CT-HML-007 aprovados (smoke FAIRFAX ok).</li><li><b>Aplicação Voidr a criar:</b> não existe aplicação FAIRFAX na plataforma (verificado 03/09/2026) — criação/configuração da aplicação + suíte faz parte do alinhamento com a Voidr previsto no card.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar com a Voidr a agenda da execução para o ambiente FAIRFAX (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte de regressão em cada sistema do ambiente atualizado.</li>
+      <li>Coletar o identificador de cada execução (<code>EXEC-XXXXXX</code>) e o relatório de resultados por ambiente.</li>
+      <li>Documentar no plano/card: total de casos, aprovados, reprovados, por sistema.</li>
+      <li>Triar CADA falha: <b>defeito de produto</b> × <b>problema de ambiente/massa</b> — registrar a classificação e a justificativa.</li>
+      <li>Para cada defeito de produto confirmado: registrar card próprio (work item de defeito conforme convenção do time) e vincular ao PBI #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas com relatório <code>EXEC-XXXXXX</code> documentado por sistema; <b>100% das falhas triadas</b> e encaminhadas; defects de produto registrados como cards próprios. (Sem % mínimo bloqueante — inferência documentada na seção 4, a validar no Gate 2.)</div>
+    <div class="ev-section" id="ev-CT-VDR-001">📎 Evidências do CT-VDR-001 — IDs EXEC, relatório por sistema, triagem das falhas, links dos cards de defect.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-VDR-002">
+  <div class="ct-head"><span class="ct-id">CT-VDR-002</span><span class="ct-title">KEV — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-002 e CT-HML-008 aprovados.</li><li>Aplicação Voidr existente: <code>citweb-kovr</code> ("CITWEB - KOVR" = KEV). Confirmar com a Voidr se a base URL da aplicação aponta para o host vigente (kovr-* hoje; kev-* pós-migração #8368).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar agenda com a Voidr para o ambiente KEV (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte em cada sistema.</li>
+      <li>Coletar <code>EXEC-XXXXXX</code> + relatório por sistema.</li>
+      <li>Documentar totais (casos, aprovados, reprovados).</li>
+      <li>Triar cada falha (produto × ambiente/massa) — atenção especial a falhas de redirect/URL, que podem ser efeito da migração KOVR→KEV (#8368/#8369) e não da atualização de versão.</li>
+      <li>Registrar defects de produto como cards próprios, vinculados ao #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas e documentadas; 100% das falhas triadas (com distinção explícita entre efeito da migração de URL e defeito de versão); defects registrados.</div>
+    <div class="ev-section" id="ev-CT-VDR-002">📎 Evidências do CT-VDR-002.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-VDR-003">
+  <div class="ct-head"><span class="ct-id">CT-VDR-003</span><span class="ct-title">YELUM — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-003 e CT-HML-009 aprovados.</li><li>Aplicação Voidr existente: <code>citweb-hdi-yelum</code> ("CITWEB - HDI-YELUM"). Cobertura CITNET a confirmar com a Voidr.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar agenda com a Voidr para o ambiente YELUM (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte em cada sistema.</li>
+      <li>Coletar <code>EXEC-XXXXXX</code> + relatório por sistema.</li>
+      <li>Documentar totais (casos, aprovados, reprovados).</li>
+      <li>Triar cada falha (produto × ambiente/massa).</li>
+      <li>Registrar defects de produto como cards próprios, vinculados ao #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas e documentadas; 100% das falhas triadas; defects registrados.</div>
+    <div class="ev-section" id="ev-CT-VDR-003">📎 Evidências do CT-VDR-003.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-VDR-004">
+  <div class="ct-head"><span class="ct-id">CT-VDR-004</span><span class="ct-title">AXA — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-004 e CT-HML-010 aprovados.</li><li>Aplicação Voidr existente: <code>citweb-axa</code>. Cobertura CITNET a confirmar com a Voidr.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar agenda com a Voidr para o ambiente AXA (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte em cada sistema.</li>
+      <li>Coletar <code>EXEC-XXXXXX</code> + relatório por sistema.</li>
+      <li>Documentar totais (casos, aprovados, reprovados).</li>
+      <li>Triar cada falha (produto × ambiente/massa).</li>
+      <li>Registrar defects de produto como cards próprios, vinculados ao #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas e documentadas; 100% das falhas triadas; defects registrados.</div>
+    <div class="ev-section" id="ev-CT-VDR-004">📎 Evidências do CT-VDR-004.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-VDR-005">
+  <div class="ct-head"><span class="ct-id">CT-VDR-005</span><span class="ct-title">MITSUI — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-005 e CT-HML-011 aprovados.</li><li>Aplicação Voidr existente: <code>citweb-mitsui</code>. Cobertura CITNET a confirmar com a Voidr.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar agenda com a Voidr para o ambiente MITSUI (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte em cada sistema.</li>
+      <li>Coletar <code>EXEC-XXXXXX</code> + relatório por sistema.</li>
+      <li>Documentar totais (casos, aprovados, reprovados).</li>
+      <li>Triar cada falha (produto × ambiente/massa).</li>
+      <li>Registrar defects de produto como cards próprios, vinculados ao #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas e documentadas; 100% das falhas triadas; defects registrados.</div>
+    <div class="ev-section" id="ev-CT-VDR-005">📎 Evidências do CT-VDR-005.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-VDR-006">
+  <div class="ct-head"><span class="ct-id">CT-VDR-006</span><span class="ct-title">SUHAI — regressão Voidr executada, documentada e triada (CITWEB + CITNET)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-HML-006 e CT-HML-012 aprovados.</li><li><b>Aplicação Voidr a criar:</b> não existe aplicação SUHAI na plataforma (verificado 03/09/2026) — criação/configuração entra no alinhamento com a Voidr.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar agenda com a Voidr para o ambiente SUHAI (CITWEB e CITNET).</li>
+      <li>Acionar/acompanhar a execução da suíte em cada sistema.</li>
+      <li>Coletar <code>EXEC-XXXXXX</code> + relatório por sistema.</li>
+      <li>Documentar totais (casos, aprovados, reprovados).</li>
+      <li>Triar cada falha (produto × ambiente/massa).</li>
+      <li>Registrar defects de produto como cards próprios, vinculados ao #8498.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Execuções concluídas e documentadas; 100% das falhas triadas; defects registrados.</div>
+    <div class="ev-section" id="ev-CT-VDR-006">📎 Evidências do CT-VDR-006.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO D — Isolamento e rastreabilidade (Etapa 4 do card + CAs técnicos)</div>
+<div class="group-note">Verificações transversais: as demais seguradoras não podem ser impactadas, e a matriz de versões antes/depois precisa fechar com comunicação formal de liberação.</div>
+
+<div class="ct-block" id="CT-ISO-001">
+  <div class="ct-head"><span class="ct-id">CT-ISO-001</span><span class="ct-title">Isolamento — seguradoras fora do escopo permanecem intactas (regressão de ambiente)</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Ao menos 1 ambiente do escopo atualizado (repetir a verificação após cada janela de atualização).</li><li>Amostra de controle (fora do escopo): <b>ZURICH</b> (<code>zurich-hml-faturamento.nsseg.com.br</code>), <b>TOKIO</b> (<code>tokio-hml-faturamento.nsseg.com.br</code>) e <b>NSTECH</b> (<code>nstech-hml-faturamento.nsseg.com.br</code>).</li><li>Baseline: registrar título de login (com data de build) dos 3 ambientes de controle ANTES da primeira atualização do escopo.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Antes da 1ª janela: abrir a página de login dos 3 ambientes de controle e registrar título/data de build (screenshot + valor exato).</li>
+      <li>Após cada janela de atualização de uma seguradora do escopo: repetir a coleta nos 3 ambientes de controle.</li>
+      <li>Comparar título/data de build com o baseline — devem estar <b>inalterados</b>.</li>
+      <li>Em 1 dos ambientes de controle (ex.: ZURICH, chave <code>HML_ZURICH_CITWEB_*</code>): efetuar login e confirmar a home com a mesma versão de rodapé do baseline.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Nenhum ambiente fora do escopo muda de versão nem perde acesso durante as janelas de atualização do escopo — data de build/título e rodapé idênticos ao baseline, login funcional. Divergência = impacto colateral → REPROVADO + investigação com infra.</div>
+    <div class="ev-section" id="ev-CT-ISO-001">📎 Evidências do CT-ISO-001 — títulos antes/depois por janela + login de controle.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-DOC-001">
+  <div class="ct-head"><span class="ct-id">CT-DOC-001</span><span class="ct-title">Rastreabilidade — matriz de versões antes/depois completa + comunicação de liberação</span><span class="prio desejavel">P3</span><span class="tipo-tag">Documental</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CTs dos grupos A/B executados (as versões coletadas alimentam a matriz).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Consolidar a matriz de 12 linhas (seguradora × sistema): versão HML ANTES (baseline deste plano, 03/09/2026) · versão de produção (levantamento da infra) · versão HML DEPOIS (coletada nos CT-HML-001..012).</li>
+      <li>Conferir: as 12 linhas preenchidas, com HML-depois = produção em todas.</li>
+      <li>Verificar que a matriz foi registrada no card #8498 (descrição atualizada ou comentário da infra/QA).</li>
+      <li>Verificar a comunicação formal de liberação aos times de QA e sustentação (comentário no card + aviso no canal do time), conforme CA "conclusão formalizada".</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Matriz completa (12/12) com HML = produção, registrada no card, e comunicação de liberação feita — rastreabilidade dos CAs "versão documentada antes e depois" e "conclusão formalizada".</div>
+    <div class="ev-section" id="ev-CT-DOC-001">📎 Evidências do CT-DOC-001 — matriz final + link/print do comentário de liberação.</div>
+  </div>
+</div>
+
+<!-- ============ 6. MATRIZ DE RASTREABILIDADE ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de aceite (card #8498)</th><th>CT(s)</th><th>Resultado</th></tr>
+  <tr><td>F1 — HML do CITWEB das 6 seguradoras na mesma versão de produção</td><td>CT-HML-001 · 002 · 003 · 004 · 005 · 006 (passo de versão)</td><td>Pendente</td></tr>
+  <tr><td>F2 — HML do CITNET das 6 seguradoras na mesma versão de produção</td><td>CT-HML-007 · 008 · 009 · 010 · 011 · 012 (passo de versão)</td><td>Pendente</td></tr>
+  <tr><td>F3 — Cada ambiente acessível e funcional após a atualização</td><td>CT-HML-001..012 (smoke completo)</td><td>Pendente</td></tr>
+  <tr><td>F4 — Versão documentada antes e depois, para rastreabilidade</td><td>CT-DOC-001 (baseline 03/09 já registrado neste plano)</td><td>Pendente</td></tr>
+  <tr><td>F5 — HML permite reproduzir cenários de produção (fim do bloqueio por defasagem)</td><td>CT-VDR-001..006 (regressão) + CT-HML-004 (módulo WI/Siscomex citado no card)</td><td>Pendente</td></tr>
+  <tr><td>F6 — Atualização de uma seguradora não impacta as demais</td><td>CT-ISO-001</td><td>Pendente</td></tr>
+  <tr><td>V1 — Suíte Voidr executada nos 12 ambientes após a atualização</td><td>CT-VDR-001..006 (cada um cobre CITWEB+CITNET da seguradora)</td><td>Pendente</td></tr>
+  <tr><td>V2 — Resultados documentados por ambiente (aprovados/reprovados)</td><td>CT-VDR-001..006 (passo 4)</td><td>Pendente</td></tr>
+  <tr><td>V3 — Falhas triadas: defeito de produto × ambiente/massa</td><td>CT-VDR-001..006 (passo 5)</td><td>Pendente</td></tr>
+  <tr><td>V4 — Defects registrados como cards próprios</td><td>CT-VDR-001..006 (passo 6)</td><td>Pendente</td></tr>
+  <tr><td>T1 — Plano de atualização revisado por ao menos 2 pessoas</td><td>Processo (infra + revisão); o plano de TESTE passa pelos gates QA owner (Gate 1) e Produtos (Gate 2)</td><td>Pendente</td></tr>
+  <tr><td>T2 — Smoke test com evidências antes da regressão completa</td><td>CT-HML-001..012 (pré-condição dos CT-VDR-*)</td><td>Pendente</td></tr>
+  <tr><td>T3 — Conclusão formalizada (times comunicados)</td><td>CT-DOC-001 (passo 4)</td><td>Pendente</td></tr>
+</table>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr><td>R1 — Migração de URL KOVR→KEV (#8368/#8369) virar no meio da janela e derrubar o acesso do KEV (Keycloak/nginx pendentes em 03/09)</td><td>Média</td><td>Alto (2 ambientes)</td><td>Confirmar host ativo antes de cada CT do KEV; registrar o host na evidência; falha de redirect/URL classificada na triagem como efeito da migração, não da versão.</td></tr>
+  <tr><td>R2 — Perda de dados/parametrizações de HML na atualização</td><td>Média</td><td>Alto</td><td>Baseline de massa por seguradora registrado por SQL em 03/09/2026 (seção 4); consulta pós-atualização é passo obrigatório de cada smoke; backup pré-atualização é DoD da infra.</td></tr>
+  <tr><td>R3 — Credenciais faltantes (YELUM CITNET, SUHAI CITWEB/CITNET) atrasarem a validação desses ambientes</td><td>Alta</td><td>Médio</td><td>Provisionar as chaves <code>.env</code> junto à sustentação ANTES da janela desses ambientes (pré-requisito declarado na seção 4).</td></tr>
+  <tr><td>R4 — Voidr sem aplicação/suíte para FAIRFAX, SUHAI e CITNET por seguradora — as "12 execuções" não serem executáveis de imediato</td><td>Alta</td><td>Alto (CA V1)</td><td>Alinhamento de agenda + criação das aplicações com a Voidr (o card já prevê "confirmar disponibilidade e prazo"); lacuna concreta identificada em 03/09/2026 e listada na seção 4.</td></tr>
+  <tr><td>R5 — Regressão reprovar por massa/ambiente e ser lida como defeito de produto (ou vice-versa)</td><td>Média</td><td>Médio</td><td>Triagem obrigatória falha a falha (passo 5 dos CT-VDR) com justificativa; precedente dos DEF-13/15/16/19/20 mostra que as suítes já acham defects reais.</td></tr>
+  <tr><td>R6 — Atualização de uma seguradora afetar outra (infra compartilhada)</td><td>Baixa</td><td>Alto</td><td>CT-ISO-001 com baseline e re-verificação após cada janela.</td></tr>
+  <tr><td>R7 — Critério de aprovação da regressão indefinido ("A PREENCHER") gerar disputa no fechamento</td><td>Média</td><td>Médio</td><td>Inferência documentada (100% triagem, defects registrados, sem % bloqueante) explicitada na seção 4 — adjudicar no Gate 1/Gate 2 antes da execução.</td></tr>
+</table>
+
+<footer>
+  Plano de teste — PBI #8498 · Atualizar ambientes HML · Sprint 14 Citweb · gerado em 03/09/2026 · QA: Wesley Moreira<br>
+  Baselines medidos em 03/09/2026: HTTP/títulos dos 12 ambientes (GET sem login) · massa por SQL read-only (bases <code>smt-hom-citweb-*</code>) · aplicações Voidr via MCP. Navegação sempre por clique; única URL direta é a de login de cada HML. Documento público — sem credenciais, sem dados de cliente (massa de HML é sintética).
+</footer>
+</div>
+
+<div class="assinatura">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
