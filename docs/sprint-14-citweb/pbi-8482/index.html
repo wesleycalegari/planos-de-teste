@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG 8482 · [DUIMP] Duplicou duimp após a exclusão de pacote</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --vermelho-bug:#b91c1c;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--vermelho-bug);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:14px;text-align:center}
+  .stat-item .num{font-size:26px;font-weight:700;color:var(--azul)}
+  .stat-item .lbl{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">BUG-8482 · Sprint 14 Citweb</div><h1>Plano de Teste — BUG 8482 · [DUIMP] Duplicou duimp após a exclusão de pacote</h1>
+  <div class="sub">Interface WI / Siscomex (STREITI) — a exclusão de pacote não removia as DUIMPs de <code style="background:rgba(255,255,255,.15);border:0;color:#fff">tb_itf_smx_ctl_prc_dui</code> e a carga inseria linha nova a cada recarga, sem verificar existentes (bypass de teste em <code style="background:rgba(255,255,255,.15);border:0;color:#fff">EfetuaCarga</code>). Fix: inserção idempotente + fluxo real <code style="background:rgba(255,255,255,.15);border:0;color:#fff">ProcessaDUIMP</code> reativado + lock por DUIMP.</div>
+  <div class="badges">
+    <span class="badge">BUG #8482</span>
+    <span class="badge">Sprint 14 Citweb</span>
+    <span class="badge">CITWEB · Interface STREITI · AXA HML</span>
+    <span class="badge">12 CTs — 5×P1 · 6×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (5×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">BUG #8482 (SimetriasDev/CITWEB)</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_14_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Interface WI / Siscomex (STREITI) — Carga e Exclusão de Pacotes de DI/DUIMP (<code>tb_itf_smx_ctl_prc_dui</code> / <code>tb_itf_smx_ctl_pct_str</code>)</div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML AXA (link vigente, sem "/alfa") — base <code>smt-hom-citweb-axa</code></div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">03/09/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8484 (dev, Done) · #8486 (PR/HML, In Progress) · #8487 (QA, To Do) · #8522 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">In Progress — plano gerado com DoR ok; execução aguarda DoD (deploy do fix no HML vigente)</div></div>
+  <div class="info-item"><div class="k">Cards relacionados</div><div class="v">#8256 (tela DUIMP sem data de saída — consome a tabela) · #8477 (mesmo defeito, investigação consolidada aqui) · #8255/#8258 (worker externo — coordenação de deploy)</div></div>
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p><b>Defeito (causa raiz confirmada pelo dev):</b> em <code>Domain/InterfaceStreitiDomain.cs</code>, método <code>EfetuaCarga</code> (linhas 452–492), o fluxo real de processamento estava <b>desativado (comentado)</b> e substituído por um bypass de teste marcado <code>//TIRAR SE FOR TESTAR CARGA</code>, que insere uma linha nova em <code>tb_itf_smx_ctl_prc_dui</code> a cada carga, <b>sem verificar registro existente para a mesma DUIMP</b>. Como a exclusão de pacote apenas remove o registro de controle do pacote (<code>tb_itf_smx_ctl_pct_str</code>) — fazendo o sistema "esquecer" que o pacote foi recebido — e o WI Quorum devolve sempre a mesma lista, cada ciclo exclusão→recarga duplicava todas as DUIMPs do pacote.</p>
+<p><b>Fix entregue (task #8484, branch <code>fix/ADO-8482-duimp-bypass-teste-duplica-registro</code>):</b></p>
+<ul>
+  <li><b>Inserção idempotente</b> — guarda de existência antes de gravar em <code>tb_itf_smx_ctl_prc_dui</code> (recarga não duplica);</li>
+  <li><b>Fluxo real reativado</b> — bypass removido, <code>ProcessaDUIMP</code> volta a executar;</li>
+  <li><b>Lock por número de DUIMP</b> (<code>ObtemLockControleDuimp</code>) — serializa ler-status → processar → gravar no mesmo processo (mitigação da issue High de concorrência do gate da PR #1758; constraint de unicidade no banco ficou como follow-up separado).</li>
+</ul>
+<div class="info-box"><b>Dimensão do problema no HML vigente (medido em 03/09/2026, SQL read-only na base <code>smt-hom-citweb-axa</code>):</b> 12.978 linhas para 2.477 DUIMPs distintas (~5,2 linhas por DUIMP); pior caso com 27 linhas. A DUIMP de rastreio usada pelo dev tem <b>14 linhas</b> nessa base — 5 antigas (out/2025) + 9 inseridas por recargas entre 28/08 e 02/09/2026, uma por carga — demonstração viva do defeito no ambiente vigente. <b>O fix ainda NÃO está deployado no HML vigente</b>: a validação do dev (01/09) foi com build local apontando para a base alfa (ambiente descontinuado).</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:120px">Dentro</th><td>Ciclo carga → exclusão → recarga de pacote DI/DUIMP na Interface WI/Siscomex (AXA HML); idempotência da inserção em <code>tb_itf_smx_ctl_prc_dui</code>; reativação do fluxo real de processamento (status e averbação resultante); tela "DUIMP sem Data de Saída" sem duplicidade (consumo da tabela); regressão da carga DI clássica; saneamento dos duplicados pré-existentes (condicionado a definição).</td></tr>
+  <tr><th>Fora</th><td>(a) Constraint de unicidade no banco — follow-up separado registrado pelo dev na PR #1758; (b) validação em outras seguradoras — o card pede confirmação de quais usam a Interface STREITI ("A PREENCHER" de Produto); o defeito foi reproduzido e corrigido na AXA; (c) o worker externo <code>IntegracaoWI</code> em si (#8255/#8258 — apenas coordenação de deploy); (d) staging/produção (Gate 4).</td></tr>
+  <tr><th>Ramo</th><td>DI/DUIMP = declarações de <b>Importação</b> (internacional). A regra sob teste pertence ao módulo de carga da Interface STREITI — não é regra por-ramo.</td></tr>
+</table>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:200px">Ambiente</th><td>HML AXA — login pelo link vigente do HML (⛔ nunca o link com "/alfa", ambiente descontinuado). Credenciais no <code>.env</code> (chaves <code>HML_AXA_CITWEB_USER/_PASS</code>) — nunca neste documento.</td></tr>
+  <tr><th>DoD do dev</th><td>Card em "Pronto para homologação" (fix deployado no HML vigente + evidência do dev). ⛔ Nenhum CT é executado antes disso — o fix hoje só foi validado contra a base alfa.</td></tr>
+  <tr><th>Massa de dados</th><td><b>Pacote de rastreio P1</b>: pacote do WI Quorum comprovadamente devolvido em recargas (9 recargas entre 28/08 e 02/09/2026 na base vigente). <b>DUIMP de rastreio D1</b>: DUIMP desse pacote com 14 linhas na base vigente (baseline 03/09/2026). Valores concretos (nº da DUIMP, estabelecimento, usuário e data de geração do pacote) registrados nas tasks privadas do AzDO <b>#8487</b> e <b>#8522</b> — este documento é público e não carrega DUIMP/CNPJ (padrão de redação: <code>[DUIMP-REDIGIDO]</code>/<code>[CNPJ-REDIGIDO]</code>). O pacote tem 29 DUIMPs distintas.</td></tr>
+  <tr><th>Acesso SQL (oráculo)</th><td>Consulta read-only à base <code>smt-hom-citweb-axa</code> (servidor Azure SQL do HML) para os oráculos de contagem. Query padrão de duplicatas:<br><code>SELECT u_dcl_imt_smx, COUNT(*) FROM tb_itf_smx_ctl_prc_dui GROUP BY u_dcl_imt_smx HAVING COUNT(*)&gt;1</code></td></tr>
+  <tr><th>Restauração do pacote</th><td>Se o ciclo travar no meio (pacote excluído e WI não devolve): <b>Pacotes WI → Controle de Pacotes → NOVO</b> com Estabelecimento/Usuário/Data de geração do pacote (valores na task #8522) — recoloca o controle e devolve o estado.</td></tr>
+</table>
+
+<div class="info-box"><b>Navegação padrão (verificada em tela em 31/08/2026 — features/Internacional/worker-duimp-controle-processamento.md):</b><br>
+Login no HML AXA → menu principal → botão <b>Interface WI / Siscomex</b> (abre nova aba do módulo STREITI) →<br>
+• Carga/recarga: <b>Declarações Adições → Carga</b> → <b>Listar Pacotes</b> → selecionar o pacote → <b>Efetuar Carga</b> (barra até 100%);<br>
+• Exclusão: <b>Pacotes WI → Exclusão de Pacotes</b>;<br>
+• Restauração de controle: <b>Pacotes WI → Controle de Pacotes</b> (NOVO/SALVAR);<br>
+• Tela de consulta (CA-4): <b>DE/PARA → DUIMP sem Data de Saída</b> (tela do #8256, deployada em 01/09).<br>
+Toda navegação por clique — a única URL digitada é a de login do HML.</div>
+
+<div class="warn-box"><b>⚠️ Duas decisões de Produto ainda pendentes no card ("A PREENCHER"):</b> (1) a exclusão de pacote deve remover as DUIMPs <i>fisicamente</i>, marcá-las <i>logicamente</i>, ou mantê-las intactas confiando na inserção idempotente? O fix entregue <b>mantém os registros</b> (validação do dev: 5 linhas antes e depois do ciclo). O CT-IDU-003 está em grupos mutuamente exclusivos por decisão. (2) O saneamento dos duplicados pré-existentes (CA-6) não tem script/critério definido — CT-IDU-012 condicionado. Nenhuma das duas pendências impede a validação do núcleo do bug (recarga sem duplicação).</div>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+
+<div class="group-header">GRUPO A — Ciclo principal: carga → exclusão → recarga (CA-1, CA-2, CA-3)</div>
+<div class="group-note">Reproduz o cenário exato do bug no HML vigente. Reuso: <code>testes-automatizados/sprint-10-citweb/pbi-7683/ct_dup_001_recarga_pacote.py</code> automatiza exclusão de controle + recarga + oráculo SQL (ajustar CONFIG para o pacote de rastreio).</div>
+
+<div class="ct-block" id="CT-IDU-001">
+  <div class="ct-head"><span class="ct-id">CT-IDU-001</span><span class="ct-title">Carga de pacote — registros de controle inseridos uma única vez por DUIMP</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Fix deployado no HML vigente (card "Pronto para homologação").</li><li>Pacote de rastreio P1 disponível na listagem da Carga (se não listado, excluir o controle via Pacotes WI → Exclusão de Pacotes — o WI o devolve).</li><li>Baseline SQL capturada: contagem de linhas por DUIMP do pacote em <code>tb_itf_smx_ctl_prc_dui</code>.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Capturar baseline: <code>SELECT u_dcl_imt_smx, COUNT(*) FROM tb_itf_smx_ctl_prc_dui WHERE c_etm_str = '[CNPJ-REDIGIDO]' GROUP BY u_dcl_imt_smx</code> (CNPJ concreto na task #8522) — salvar a saída em arquivo.</li>
+      <li>Login no HML AXA → menu principal → clicar <b>Interface WI / Siscomex</b>.</li>
+      <li>Clicar <b>Declarações Adições</b> → <b>Carga</b> → <b>Listar Pacotes</b>.</li>
+      <li>Selecionar o pacote de rastreio P1 → clicar <b>Efetuar Carga</b> → aguardar a barra de progresso chegar a 100%.</li>
+      <li>Screenshot da tela com a carga concluída (barra 100% e mensagem/estado final).</li>
+      <li>Repetir a query do passo 1 e comparar com a baseline.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Carga conclui sem erro (assinatura de execução: barra 100% + protocolo <code>t_prt_prc</code> novo da rodada). Para DUIMPs <b>já registradas</b>: nenhuma linha nova (contagem idêntica à baseline). Para DUIMPs <b>inéditas</b> do pacote (se houver): exatamente 1 linha nova cada, com o protocolo da rodada. Nenhuma DUIMP com contagem maior que a baseline + 1.</div>
+    <div class="ev-section" id="ev-CT-IDU-001">📎 Evidências do CT-IDU-001 — screenshots da carga + saídas SQL antes/depois (anexadas no card AzDO; nunca neste repositório público).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-002">
+  <div class="ct-head"><span class="ct-id">CT-IDU-002</span><span class="ct-title">Exclusão de pacote — controle removido e pacote volta a ser listado na Carga</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-IDU-001 executado (pacote de rastreio carregado — registro presente em <code>tb_itf_smx_ctl_pct_str</code>).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar via SQL que o pacote consta no controle: <code>SELECT * FROM tb_itf_smx_ctl_pct_str WHERE c_etm_str = '[CNPJ-REDIGIDO]'</code>.</li>
+      <li>Na aba Interface WI / Siscomex, clicar <b>Pacotes WI</b> → <b>Exclusão de Pacotes</b>.</li>
+      <li>Localizar o pacote de rastreio P1 → executar a exclusão → screenshot da confirmação.</li>
+      <li>Repetir a query do passo 1 — o registro de controle deve ter sumido.</li>
+      <li>Clicar <b>Declarações Adições</b> → <b>Carga</b> → <b>Listar Pacotes</b> → screenshot do pacote reaparecendo na lista (o WI o devolve por não constar mais no controle).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Exclusão conclui com confirmação na tela (texto exato capturado). Registro do pacote removido de <code>tb_itf_smx_ctl_pct_str</code>. Pacote volta a aparecer em Listar Pacotes — pré-condição real do cenário de recarga (CT-IDU-004).</div>
+    <div class="ev-section" id="ev-CT-IDU-002">📎 Evidências do CT-IDU-002 — screenshots da exclusão + listagem + SQL (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-003">
+  <div class="ct-head"><span class="ct-id">CT-IDU-003</span><span class="ct-title">Comportamento das DUIMPs na exclusão do pacote (CA-1 — decisão de Produto pendente)</span><span class="prio importante">P2</span><span class="tipo-tag">Condicionado</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <div class="warn-box"><b>⚠️ EXECUTAR SE:</b> grupos mutuamente exclusivos conforme a decisão de Produto sobre o CA-1 ("ao excluir, as DUIMPs devem ser removidas de <code>tb_itf_smx_ctl_prc_dui</code>, <b>ou marcadas adequadamente</b>"). O fix entregue implementa a variante <b>3B</b> (mantém os registros; a proteção contra duplicação fica na inserção idempotente). Adjudicar no Gate 1/Gate 2 antes da execução.</div>
+    <h4>Pré-condições</h4>
+    <ul><li>CT-IDU-002 executado na mesma rodada (exclusão recém-feita).</li><li>Contagem por DUIMP do pacote capturada ANTES da exclusão.</li></ul>
+    <h4>Passos — variante 3A (EXECUTAR SE Produto decidir remoção/marcação na exclusão)</h4>
+    <ol>
+      <li>Após a exclusão do CT-IDU-002, repetir a query de contagem por DUIMP do pacote.</li>
+      <li>Verificar remoção (contagem zerada) OU marcação (coluna de status/flag alterada — critério a definir por Produto).</li>
+    </ol>
+    <h4>Passos — variante 3B (EXECUTAR SE decisão = manter registros + inserção idempotente; comportamento implementado)</h4>
+    <ol>
+      <li>Após a exclusão do CT-IDU-002, repetir a query de contagem por DUIMP do pacote.</li>
+      <li>Comparar com a contagem pré-exclusão — nenhuma linha removida, alterada ou adicionada.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Conforme a variante adjudicada: <b>3A</b> — DUIMPs removidas/marcadas de forma consistente e completa (todas as do pacote, nenhuma de outro pacote afetada); <b>3B</b> — registros intactos (contagens idênticas), sem erro na exclusão. Em ambas, a exclusão nunca pode deixar estado intermediário (parte removida, parte não).</div>
+    <div class="ev-section" id="ev-CT-IDU-003">📎 Evidências do CT-IDU-003 — SQL antes/depois da exclusão (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-004">
+  <div class="ct-head"><span class="ct-id">CT-IDU-004</span><span class="ct-title">Recarga do mesmo pacote após exclusão — nenhuma DUIMP duplicada (núcleo do bug)</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-IDU-002 executado (pacote excluído e listado novamente na Carga).</li><li>Contagem por DUIMP do pacote capturada imediatamente antes da recarga.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Capturar contagem por DUIMP do pacote (query padrão) — salvar saída.</li>
+      <li>Clicar <b>Declarações Adições</b> → <b>Carga</b> → <b>Listar Pacotes</b> → selecionar o pacote de rastreio P1 → <b>Efetuar Carga</b> → aguardar 100%.</li>
+      <li>Screenshot da carga concluída.</li>
+      <li>Repetir a query do passo 1 e comparar linha a linha (por DUIMP).</li>
+      <li>Conferência dirigida na DUIMP de rastreio D1: <code>SELECT sts_prc, d_usu_inc, t_prt_prc FROM tb_itf_smx_ctl_prc_dui WHERE u_dcl_imt_smx = '[DUIMP-REDIGIDO]' ORDER BY d_usu_inc</code> — nenhum protocolo novo da rodada.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Carga conclui com sucesso (barra 100%) e <b>nenhuma linha nova</b> é inserida para DUIMPs já registradas — contagem por DUIMP idêntica à pré-recarga (na baseline de 03/09 a DUIMP D1 tem 14 linhas; após a recarga deve continuar com 14). Antes do fix, cada recarga inseria 1 linha nova por DUIMP — é exatamente o que não pode mais ocorrer.</div>
+    <div class="ev-section" id="ev-CT-IDU-004">📎 Evidências do CT-IDU-004 — screenshots + SQL antes/depois (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-005">
+  <div class="ct-head"><span class="ct-id">CT-IDU-005</span><span class="ct-title">Ciclo exclusão → recarga repetido 3× — contagem de registros permanece estável</span><span class="prio importante">P2</span><span class="tipo-tag">Limite</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-IDU-004 aprovado (1º ciclo sem duplicação).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Repetir 3 vezes a sequência: <b>Pacotes WI → Exclusão de Pacotes</b> (excluir P1) → <b>Declarações Adições → Carga → Listar Pacotes → Efetuar Carga</b> (recarregar P1) → aguardar 100%.</li>
+      <li>Após CADA rodada, executar a query de contagem por DUIMP do pacote e salvar a saída identificada pela rodada (R1, R2, R3).</li>
+      <li>Comparar as 3 saídas entre si e com a baseline do CT-IDU-004.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Contagem por DUIMP idêntica nas 3 rodadas (crescimento zero). O total geral da tabela para o pacote não varia — comprova a correção do "crescimento infinito de registros" descrito no card.</div>
+    <div class="ev-section" id="ev-CT-IDU-005">📎 Evidências do CT-IDU-005 — SQL das 3 rodadas (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO B — Idempotência da inserção (CA-2, CA-3)</div>
+<div class="group-note">A guarda de existência não pode nem duplicar o que existe, nem barrar inserção legítima de DUIMP inédita.</div>
+
+<div class="ct-block" id="CT-IDU-006">
+  <div class="ct-head"><span class="ct-id">CT-IDU-006</span><span class="ct-title">Recarga imediata sem exclusão — pacote não é reexibido na Carga e contagem permanece estável</span><span class="prio importante">P2</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Pacote de rastreio P1 recém-carregado (controle presente em <code>tb_itf_smx_ctl_pct_str</code>).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Sem excluir o pacote, clicar <b>Declarações Adições</b> → <b>Carga</b> → <b>Listar Pacotes</b>.</li>
+      <li>Screenshot da listagem — o pacote P1 <b>não</b> deve constar (a listagem exibe só pacotes do WI que não estão no controle).</li>
+      <li>Executar a query de contagem por DUIMP do pacote e comparar com a pós-carga anterior.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Pacote já carregado não é oferecido para nova carga (proteção estrutural da listagem) e a contagem por DUIMP permanece exatamente a mesma. Cobre o cenário "carga do mesmo pacote duas vezes seguidas sem exclusão" do card pela via que a UI realmente permite.</div>
+    <div class="ev-section" id="ev-CT-IDU-006">📎 Evidências do CT-IDU-006 — screenshot da listagem + SQL (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-007">
+  <div class="ct-head"><span class="ct-id">CT-IDU-007</span><span class="ct-title">DUIMP inédita continua sendo inserida normalmente — a guarda não bloqueia inserção legítima</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Identificar na listagem da Carga um pacote com ao menos 1 DUIMP <b>sem nenhuma linha</b> em <code>tb_itf_smx_ctl_prc_dui</code> (descoberta via SQL na hora da execução: cruzar as DUIMPs do pacote candidato com a tabela). Se nenhum pacote com DUIMP inédita estiver disponível no WI, usar as DUIMPs inéditas do próprio pacote P1, se existirem — registrando qual foi usada.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Confirmar via SQL que a DUIMP-alvo não tem linha na tabela (contagem 0) — salvar saída.</li>
+      <li>Efetuar a carga do pacote que a contém (<b>Declarações Adições → Carga → Listar Pacotes → Efetuar Carga</b>).</li>
+      <li>Repetir a query — deve existir agora exatamente 1 linha, com o protocolo <code>t_prt_prc</code> da rodada.</li>
+      <li>Conferir <code>sts_prc</code>/<code>t_sts_prc</code> da linha nova (status legítimo do fluxo real — ver CT-IDU-008).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Exatamente 1 linha criada para a DUIMP inédita (0 → 1), com protocolo da rodada e status coerente. A guarda de idempotência bloqueia duplicata, nunca a primeira inserção.</div>
+    <div class="ev-section" id="ev-CT-IDU-007">📎 Evidências do CT-IDU-007 — SQL 0→1 + screenshot da carga (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO C — Fluxo real de processamento reativado (CA-5)</div>
+<div class="group-note">O bypass de teste gravava tudo como pendente sem processar. Com o fluxo real, cada DUIMP carregada deve terminar num status legítimo do vocabulário da tabela.</div>
+
+<div class="ct-block" id="CT-IDU-008">
+  <div class="ct-head"><span class="ct-id">CT-IDU-008</span><span class="ct-title">Pós-carga, as DUIMPs são processadas pelo fluxo real — status finais legítimos, nada preso no estado do bypass</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Carga executada na rodada (CT-IDU-001/004/007) com protocolo <code>t_prt_prc</code> conhecido.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Após a carga, consultar as linhas da rodada: <code>SELECT u_dcl_imt_smx, sts_prc, t_sts_prc FROM tb_itf_smx_ctl_prc_dui WHERE t_prt_prc = '&lt;protocolo-da-rodada&gt;'</code>.</li>
+      <li>Aguardar o processamento concluir (repetir a query até estabilizar; registrar o tempo).</li>
+      <li>Classificar os status finais obtidos e comparar com o vocabulário conhecido da tabela: <code>C</code> = "DUIMP Gravada" · <code>D</code> = "Desprezada - …" (motivo de negócio) · <code>I</code> = "Inconsistente - DUIMP com data de saída inválida. Aguardando correção via CITWEB para reprocessamento" · <code>E</code> = erro de consulta ao WI (reprocessa no próximo ciclo).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Toda linha da rodada termina em status legítimo do fluxo real (<code>C</code>/<code>D</code>/<code>I</code>/<code>E</code>) com <code>t_sts_prc</code> preenchido com mensagem do vocabulário conhecido. <b>Nenhuma</b> linha permanece indefinidamente em <code>P</code> (pendente) sem mensagem — assinatura do bypass removido. "Não deu erro" não aprova: a prova é o status final + mensagem por DUIMP.</div>
+    <div class="ev-section" id="ev-CT-IDU-008">📎 Evidências do CT-IDU-008 — SQL com status por DUIMP da rodada (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-009">
+  <div class="ct-head"><span class="ct-id">CT-IDU-009</span><span class="ct-title">DUIMP apta gera averbação pelo fluxo real (ponta a ponta do processamento)</span><span class="prio importante">P2</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-IDU-008 executado; ao menos 1 DUIMP da rodada com <code>sts_prc = 'C'</code> ("DUIMP Gravada").</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Selecionar 1 DUIMP da rodada com <code>sts_prc = 'C'</code>.</li>
+      <li>Conferir a averbação resultante: <code>SELECT u_avb_dfv, d_mov_vgm FROM tb_mov_avb_int_cit WHERE u_di LIKE '&lt;DUIMP&gt;%'</code>.</li>
+      <li>Confirmar que a averbação é única para a DUIMP (sem duplicidade a jusante).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">DUIMP gravada tem averbação correspondente em <code>tb_mov_avb_int_cit</code> — prova de que o <code>ProcessaDUIMP</code> real executou de ponta a ponta, e sem gerar averbação duplicada. <b>Se nenhuma DUIMP da massa terminar em 'C'</b> (todas desprezadas/inconsistentes por motivo de negócio legítimo): registrar os motivos exatos e o CT é reavaliado com massa apta (não aprovar por ausência de movimento; não reprovar por desprezo legítimo).</div>
+    <div class="ev-section" id="ev-CT-IDU-009">📎 Evidências do CT-IDU-009 — SQL da averbação (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO D — Tela de consulta por data de saída (CA-4)</div>
+<div class="group-note">A tela "DUIMP sem Data de Saída" (#8256, deployada em 01/09) lista as linhas <code>sts_prc IN ('I','R')</code> — a duplicidade visível ao usuário vinha das linhas duplicadas na tabela.</div>
+
+<div class="ct-block" id="CT-IDU-010">
+  <div class="ct-head"><span class="ct-id">CT-IDU-010</span><span class="ct-title">Tela "DUIMP sem Data de Saída" exibe cada DUIMP uma única vez após recargas</span><span class="prio importante">P2</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Ciclo exclusão→recarga já executado na rodada (CT-IDU-004/005), com ao menos 1 DUIMP da rodada em <code>sts_prc = 'I'</code> (sem data de saída).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Na aba Interface WI / Siscomex, clicar <b>DE/PARA</b> → <b>DUIMP sem Data de Saída</b>.</li>
+      <li>Localizar a(s) DUIMP(s) da rodada na grid (filtro por substring do nº, se necessário) → screenshot.</li>
+      <li>Contar as ocorrências de cada DUIMP na grid (paginação incluída).</li>
+      <li>Oráculo SQL: <code>SELECT u_dcl_imt_smx, COUNT(*) FROM tb_itf_smx_ctl_prc_dui WHERE sts_prc IN ('I','R') GROUP BY u_dcl_imt_smx HAVING COUNT(*) &gt; 1</code> — para as DUIMPs da rodada.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Cada DUIMP da rodada aparece <b>uma única vez</b> na grid, e a query de duplicatas em <code>('I','R')</code> não retorna as DUIMPs da rodada. (Duplicatas históricas pré-fix de outras DUIMPs podem existir até o saneamento — CT-IDU-012 — e não reprovam este CT; registrar se observadas.)</div>
+    <div class="ev-section" id="ev-CT-IDU-010">📎 Evidências do CT-IDU-010 — screenshot da grid + SQL (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO E — Regressão e saneamento (CA-6 + regressão obrigatória)</div>
+<div class="group-note">O <code>EfetuaCarga</code> atende a carga de declarações do WI como um todo — o fluxo DI clássico não pode regredir.</div>
+
+<div class="ct-block" id="CT-IDU-011">
+  <div class="ct-head"><span class="ct-id">CT-IDU-011</span><span class="ct-title">Regressão — carga de pacote DI clássico segue funcionando</span><span class="prio importante">P2</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Pacote DI disponível na listagem da Carga (a base vigente tem 101 pacotes DI no controle; escolher um pacote listado pelo WI na hora — de preferência um cujo controle foi criado recentemente pela própria carga).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Baseline SQL das declarações do pacote DI escolhido (contagem em <code>tb_itf_smx_dcl_pnd_dui</code> por declaração).</li>
+      <li>Efetuar a carga do pacote DI (<b>Declarações Adições → Carga → Listar Pacotes → Efetuar Carga</b>) → aguardar 100% → screenshot.</li>
+      <li>Repetir a query — declarações registradas sem duplicação e sem erro.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Carga DI conclui com sucesso (barra 100%, sem mensagem de erro), declarações registradas 1× cada. Comportamento idêntico ao anterior ao fix — nenhuma regressão no fluxo DI.</div>
+    <div class="ev-section" id="ev-CT-IDU-011">📎 Evidências do CT-IDU-011 — screenshots + SQL (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-IDU-012">
+  <div class="ct-head"><span class="ct-id">CT-IDU-012</span><span class="ct-title">Saneamento dos duplicados pré-existentes (CA-6 — condicionado a definição do script)</span><span class="prio desejavel">P3</span><span class="tipo-tag">Condicionado</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <div class="warn-box"><b>⚠️ EXECUTAR SE:</b> o script/critério de saneamento for definido e executado ("A PREENCHER" no card — Tarefas Técnicas). Sem definição, este CT permanece PENDENTE e <b>não</b> entra no placar de aprovação do fix (o núcleo do bug é validado pelos grupos A–D).</div>
+    <h4>Pré-condições</h4>
+    <ul><li>Script de saneamento executado no HML pelo responsável definido.</li><li>Baseline pré-saneamento registrada (03/09/2026: 12.978 linhas / 2.477 DUIMPs distintas; pior caso 27 linhas).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Executar a query de duplicatas: <code>SELECT u_dcl_imt_smx, COUNT(*) FROM tb_itf_smx_ctl_prc_dui GROUP BY u_dcl_imt_smx HAVING COUNT(*) &gt; 1 ORDER BY COUNT(*) DESC</code>.</li>
+      <li>Comparar com a baseline pré-saneamento e com o critério definido (o que é duplicata a remover vs. histórico legítimo a preservar).</li>
+      <li>Conferir na tela "DUIMP sem Data de Saída" que nenhuma DUIMP aparece em duplicidade.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Duplicatas tratadas conforme o critério definido por Produto/dev (idealmente query retornando 0 duplicatas indevidas), sem perda de registros legítimos, e tela de consulta limpa.</div>
+    <div class="ev-section" id="ev-CT-IDU-012">📎 Evidências do CT-IDU-012 — SQL antes/depois do saneamento (anexadas no card AzDO).</div>
+  </div>
+</div>
+
+<div class="info-box"><b>Nota sobre concorrência (issue High do gate da PR #1758):</b> o lock por número de DUIMP (<code>ObtemLockControleDuimp</code>) foi coberto por 2 testes unitários no PR (build 11/11 verde, comentário do dev de 01/09). Concorrência real entre processos/servidores distintos <b>não</b> é protegida pelo lock — a proteção definitiva é a constraint de unicidade no banco, registrada como follow-up separado (fora do escopo deste plano). Não há CT E2E determinístico viável para corrida intra-processo via UI; o risco fica documentado na seção 8.</div>
+
+<!-- ============ 6. MATRIZ DE RASTREABILIDADE ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de aceite (card #8482)</th><th>CT(s)</th><th>Resultado</th></tr>
+  <tr><td>CA-1 — Ao excluir um pacote, as DUIMPs associadas são removidas de <code>tb_itf_smx_ctl_prc_dui</code> ou marcadas adequadamente</td><td>CT-IDU-002 · CT-IDU-003 (3A/3B)</td><td>Pendente</td></tr>
+  <tr><td>CA-2 — A inserção verifica previamente a existência de registro pendente para a mesma DUIMP</td><td>CT-IDU-004 · CT-IDU-006 · CT-IDU-007</td><td>Pendente</td></tr>
+  <tr><td>CA-3 — Recarregar pacote já processado não gera linhas duplicadas (banco não cresce indefinidamente)</td><td>CT-IDU-001 · CT-IDU-004 · CT-IDU-005</td><td>Pendente</td></tr>
+  <tr><td>CA-4 — Tela de consulta por data de saída exibe cada DUIMP uma única vez</td><td>CT-IDU-010</td><td>Pendente</td></tr>
+  <tr><td>CA-5 — Código temporário removido e fluxo real de processamento reativado</td><td>CT-IDU-008 · CT-IDU-009 (+ revisão da PR #1758 pelos 2 aprovadores — DoD)</td><td>Pendente</td></tr>
+  <tr><td>CA-6 — Registros duplicados já existentes identificados e tratados</td><td>CT-IDU-012 (condicionado à definição do saneamento)</td><td>Pendente</td></tr>
+  <tr><td>Regressão — fluxo DI clássico inalterado</td><td>CT-IDU-011</td><td>Pendente</td></tr>
+</table>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr><td>Fix validado pelo dev contra a base alfa (ambiente descontinuado) com build local — pode se comportar diferente no HML vigente</td><td>Média</td><td>Alto</td><td>Execução só com card "Pronto para homologação" (deploy no vigente); CT-IDU-004 replica a validação do dev no ambiente certo</td></tr>
+  <tr><td>WI Quorum (externo) deixa de devolver o pacote de rastreio após exclusão — ciclo trava no meio (precedente real de 03/08/2026)</td><td>Média</td><td>Médio</td><td>Escolher pacote com controle criado recentemente pela própria carga; restauração via Pacotes WI → Controle de Pacotes → NOVO (dados na task #8522)</td></tr>
+  <tr><td>Decisão de Produto pendente sobre a exclusão (remover × marcar × manter) — CA-1 pode reprovar o comportamento implementado</td><td>Média</td><td>Médio</td><td>CT-IDU-003 em grupos mutuamente exclusivos; adjudicar no Gate 1/2 antes da execução</td></tr>
+  <tr><td>Saneamento (CA-6) sem script/critério definido</td><td>Alta</td><td>Baixo</td><td>CT-IDU-012 condicionado; pendência devolvida a Produto/dev sem travar o fix</td></tr>
+  <tr><td>Concorrência entre processos/servidores distintos não coberta pelo lock (constraint de unicidade é follow-up)</td><td>Baixa</td><td>Médio</td><td>Risco residual documentado (aceito pelo dev na PR #1758); acompanhar follow-up da constraint</td></tr>
+  <tr><td>Deploy exige coordenação com o time do Worker externo (#8255/#8258) — consumo assíncrono da fila</td><td>Média</td><td>Médio</td><td>Task #8486 já prevê a coordenação; QA não executa antes do DoD</td></tr>
+  <tr><td>Ambiente HML compartilhado — cargas paralelas de terceiros podem alterar contagens durante a rodada</td><td>Média</td><td>Baixo</td><td>Usar o protocolo <code>t_prt_prc</code> da rodada como assinatura; comparar por DUIMP do pacote, não totais globais</td></tr>
+</table>
+
+<footer>
+  Plano de teste — BUG #8482 · Interface WI/Siscomex (STREITI) · HML AXA · gerado em 03/09/2026 por Wesley Moreira (QA).<br>
+  Massa de dados sensível (nº de DUIMP, CNPJ de estabelecimento, usuário do pacote) redigida neste documento público — valores concretos nas tasks AzDO #8487 e #8522.
+</footer>
+</div>
+<div class="assinatura">Wesley Moreira</div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
