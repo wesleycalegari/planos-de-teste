@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG 8488 · [NSAPPS] Redirecionamento TNS para NSSEG</title>
+<style>
+  :root{
+    /* tema ESCURO padrao Azure-DevOps (decisao Wesley 27/08/2026: escuro SEMPRE) */
+    --bg:#0d1117; --surface:#161b22; --text:#c9d1d9;
+    --azul:#58a6ff; --azul-forte:#1158a8; --azul-claro:#0d2440; --cinza:#8b949e; --borda:#30363d;
+    --vermelho-bug:#b91c1c;
+    --p1:#d13438; --p2:#ca5010; --p3:#6e7681; --ok:#2ea043; --warn-bg:#1f1a0d;
+  }
+  *{box-sizing:border-box}
+  body{font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;margin:0;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+  .container{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+  header.hero{background:var(--vermelho-bug);color:#fff;border-radius:8px;padding:22px 24px;margin-bottom:18px}
+  header.hero h1{margin:0 0 6px;font-size:21px;font-weight:600}
+  header.hero .sub{font-size:13px;opacity:.92}
+  .badges{margin-top:10px}
+  .badge{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:2px 12px;font-size:12px;margin-right:6px;margin-top:4px}
+  .info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin:14px 0 20px}
+  .info-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:10px 14px}
+  .info-item .k{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--cinza)}
+  .info-item .v{font-size:13px;font-weight:600;margin-top:2px}
+  h2.section{color:var(--azul);border-bottom:2px solid var(--azul);padding-bottom:4px;font-size:17px;margin:30px 0 12px}
+  .info-box{background:var(--azul-claro);border-left:4px solid var(--azul);border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  .warn-box{background:var(--warn-bg);border-left:4px solid #d29922;border-radius:4px;padding:12px 14px;margin:12px 0;font-size:13px}
+  table{border-collapse:collapse;width:100%;background:var(--surface);font-size:13px;margin:10px 0}
+  th{background:#21262d;color:#e6edf3;text-align:left;padding:7px 10px;font-weight:600}
+  td{border:1px solid var(--borda);padding:7px 10px;vertical-align:top}
+  tr:nth-child(even) td{background:#1b212a}
+  code{background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 5px;font-size:12px;font-family:Consolas,monospace}
+  pre{background:#21262d;border:1px solid var(--borda);border-radius:4px;padding:10px 12px;font-size:12px;overflow-x:auto;font-family:Consolas,monospace}
+  .group-header{background:var(--azul-forte);color:#fff;border-radius:6px 6px 0 0;padding:10px 16px;font-weight:600;font-size:15px;margin-top:26px}
+  .group-note{background:var(--azul-claro);border:1px solid var(--borda);border-top:0;padding:8px 16px;font-size:12.5px;color:var(--text)}
+  .ct-block{background:var(--surface);border:1px solid var(--borda);border-radius:6px;margin:10px 0}
+  .ct-head{cursor:pointer;user-select:none;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .ct-head .ct-id{font-family:Consolas,monospace;font-weight:700;color:var(--azul)}
+  .ct-head .ct-title{flex:1;font-weight:600}
+  .prio{display:inline-block;color:#fff;border-radius:3px;padding:1px 8px;font-size:11px;font-weight:700}
+  .bloqueante{background:var(--p1)} .importante{background:var(--p2)} .desejavel{background:var(--p3)}
+  .tipo-tag{display:inline-block;background:#21262d;border:1px solid var(--borda);border-radius:3px;padding:1px 8px;font-size:11px;color:var(--cinza)}
+  .ev-badge{display:inline-block;border-radius:3px;padding:1px 10px;font-size:11px;font-weight:700}
+  .badge-pendente{background:#1f1a0d;color:#d29922;border:1px solid #6b5618}
+  .badge-ok{background:#0d1f0d;color:#2ea043;border:1px solid #1d572d}
+  .badge-erro{background:#1f0d0d;color:#f85149;border:1px solid #6b2226}
+  .badge-bloqueado{background:#1a1426;color:#a78bfa;border:1px solid #4c3a6b}
+  .ct-toggle{transition:transform .2s;font-size:12px;color:var(--cinza)}
+  .ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+  .ct-body{display:none;border-top:1px solid var(--borda);padding:12px 16px}
+  .ct-block.expanded .ct-body{display:block}
+  .ct-body h4{margin:12px 0 6px;font-size:13px;color:var(--azul)}
+  .ct-body ol{margin:6px 0;padding-left:22px}
+  .ct-body li{margin:4px 0}
+  .esperado{background:#0d1f0d;border:1px solid #1d572d;border-radius:4px;padding:10px 12px;font-size:13px}
+  .ev-section{border:1px dashed var(--borda);border-radius:4px;padding:10px 12px;margin-top:12px;font-size:12px;color:var(--cinza)}
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+  .stat-item{background:var(--surface);border:1px solid var(--borda);border-radius:6px;padding:14px;text-align:center}
+  .stat-item .num{font-size:26px;font-weight:700;color:var(--azul)}
+  .stat-item .lbl{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.04em}
+  footer{margin-top:40px;font-size:12px;color:var(--cinza);border-top:1px solid var(--borda);padding-top:12px}
+  .assinatura{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid #30363d;color:#8b949e}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+  <div class="pbi-badge">BUG-8488 · Sprint 14 Citweb</div><h1>Plano de Teste — BUG 8488 · [NSAPPS] Redirecionamento TNS para NSSEG</h1>
+  <div class="sub">Acesso integrado NSApps → CITWEB (fluxo <code style="background:rgba(255,255,255,.15);border:0;color:#fff">LoginViaNsApps</code>): o CITWEB consulta o BFF do NSApps (<code style="background:rgba(255,255,255,.15);border:0;color:#fff">bffUserInfoUrl</code>) para obter email + cod_cit_user e monta cookie Forms + AutenticaViewModel + Indicativos em paridade com o fluxo Keycloak. Escopo de teste definido por Produtos (03/09): redirecionamento com a seguradora <b>NSTECH em HML</b>.</div>
+  <div class="badges">
+    <span class="badge">BUG #8488</span>
+    <span class="badge">Sprint 14 Citweb</span>
+    <span class="badge">CITWEB · NSApps/Plataforma NSSEG · NSTECH HML</span>
+    <span class="badge">12 CTs — 9×P1 · 2×P2 · 1×P3</span>
+    <span class="badge">Status: PLANO — aguardando Gate 1</span>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">9/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (9×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<!-- ============ 1. IDENTIFICAÇÃO ============ -->
+<div class="info-grid">
+  <div class="info-item"><div class="k">Card</div><div class="v">BUG #8488 (SimetriasDev/CITWEB) — tags CORE · NSTECH</div></div>
+  <div class="info-item"><div class="k">Sprint</div><div class="v">CITWEB \ Sprint_14_Citweb</div></div>
+  <div class="info-item"><div class="k">Módulo</div><div class="v">Autenticação / Login do CITWEB — fluxo <code>LoginViaNsApps</code> (NSApps → CITWEB via BFF)</div></div>
+  <div class="info-item"><div class="k">Ambiente sob teste</div><div class="v">HML NSTECH (<code>nstech-hml-faturamento.nsseg.com.br</code>) + NSApps/plataforma NSSEG HML</div></div>
+  <div class="info-item"><div class="k">Autor</div><div class="v">Wesley Moreira (QA)</div></div>
+  <div class="info-item"><div class="k">Data de geração</div><div class="v">03/09/2026</div></div>
+  <div class="info-item"><div class="k">Tasks filhas</div><div class="v">#8529 (Produtos — DoR, To Do) · #8550 (task deste plano)</div></div>
+  <div class="info-item"><div class="k">Estado do card</div><div class="v">Committed — plano gerado com DoR fechado (resposta de Produtos 03/09); execução aguarda DoD do dev</div></div>
+  <div class="info-item"><div class="k">Cards relacionados</div><div class="v">#8368 / #8369 (plataforma NSSEG — módulos e URLs por seguradora; mesmo pré-requisito de credencial da plataforma)</div></div>
+</div>
+
+<!-- ============ 2. DESCRIÇÃO ============ -->
+<h2 class="section">2. Descrição</h2>
+<p><b>O que o card entrega:</b> uma nova via de autenticação do CITWEB — o usuário autenticado no <b>NSApps</b> (hub de aplicações da nstech) acessa o CITWEB <b>sem realizar novo login</b>. No caminho <code>LoginViaNsApps</code>, o CITWEB consulta o <b>BFF do NSApps</b> (URL parametrizada em <code>appSettings</code>, chave <code>bffUserInfoUrl</code>) para obter os dados do usuário (<code>email</code>, <code>cod_cit_user</code>), valida a identidade e monta a sessão — <b>cookie Forms + AutenticaViewModel + Indicativos</b> — seguindo o mesmo padrão do fluxo Keycloak já existente na plataforma NSSEG.</p>
+<p><b>Lacuna de segurança (motivo de o card ser Bug):</b> a validação da <b>role CITWEB</b> no caminho NSApps — que o fluxo Keycloak já faz — está <b>pendente de implementação</b> (tarefa marcada em vermelho no card). Sem ela, a nova via seria mais permissiva que a existente. Há ainda lacunas complementares de segurança/operação aguardando o relatório completo da LUMI ("A PREENCHER" no card — fora do escopo desta rodada).</p>
+<div class="info-box"><b>Interpretação documentada (título × critérios de aceite):</b> o título fala do "redirecionamento TNS para NSSEG" — a entrada do usuário pelo portal NSApps/nstech (TNS) chegando à plataforma de seguros (NSSEG/CITWEB); os critérios de aceite detalham o mecanismo dessa entrada (fluxo <code>LoginViaNsApps</code> + BFF). A relação foi confirmada por Produtos no card (Fabíola, 03/09/2026): <i>"precisamos testar o redirecionamento, estamos considerando a seguradora NSTECH em hml"</i> — que também fixa o tenant de teste. A URL de entrada exata do NSApps em HML não consta no card → pré-requisito PR-3.</div>
+<div class="warn-box"><b>⚠️ Estado da implementação (Voidr Hero, 01/09):</b> o fluxo NSApps está na branch <code>feature/auth-nsapps</code> (não em <code>main</code>), e há uma decisão de arquitetura em aberto — a <b>fonte da role CITWEB</b> no caminho NSApps (o BFF passa a retornar a role, ou a existência do <code>cod_cit_user</code> já implica acesso?). Essa decisão muda o oráculo do CT-NSA-004; adjudicar com o dev até o Gate 2. Nenhum CT é executado antes do card chegar a "Pronto para homologação" com o fluxo deployado e o BFF integrado no HML.</div>
+
+<!-- ============ 3. ESCOPO ============ -->
+<h2 class="section">3. Escopo</h2>
+<table>
+  <tr><th style="width:120px">Dentro</th><td>Fluxo <code>LoginViaNsApps</code> no tenant NSTECH HML: acesso integrado sem novo login (happy path), integridade da sessão (cookie Forms, AutenticaViewModel, Indicativos), equivalência com a sessão Keycloak, bloqueios de segurança (sem role CITWEB, não autenticado, token expirado/inválido, paridade de controles), tratamento de falhas do BFF (indisponível, payload incompleto), parametrização de <code>bffUserInfoUrl</code>, e regressão das duas vias existentes (Keycloak via plataforma NSSEG e login tradicional do CITWEB).</td></tr>
+  <tr><th>Fora</th><td>(a) Critérios adicionais de segurança/operação da LUMI e observabilidade/monitoramento — "A PREENCHER" no card; entram por aditivo quando Produtos definir; (b) decisão "todos os tenants × parametrização" — decisão de Produto para rollout (o teste está fixado na NSTECH por definição de Produtos em 03/09); (c) STG/PROD (Gate 4 — Produtos/dev-ops); (d) itens de DoD do dev (testes unitários/integração, Sonar, 2 aprovadores de PR, análise LUMI); (e) definição visual/Figma ("A PREENCHER").</td></tr>
+  <tr><th>Ramo</th><td>N/A — autenticação é funcionalidade transversal da plataforma, não regra por ramo. Nenhuma regra deste plano se generaliza para outros fluxos além dos testados.</td></tr>
+</table>
+
+<!-- ============ 4. PRÉ-REQUISITOS ============ -->
+<h2 class="section">4. Pré-requisitos</h2>
+<table>
+  <tr><th style="width:200px">PR-1 · Ambiente CITWEB</th><td>HML NSTECH — <code>nstech-hml-faturamento.nsseg.com.br</code>. Credenciais no <code>.env</code> (chaves <code>HML_NSTECH_CITWEB_USER/_PASS</code>) — nunca neste documento. ⚠️ O módulo <b>Nacional</b> deste tenant tem defeito de deploy conhecido (SessionExpired, medido 28/08/2026) — os CTs de sessão usam módulos que abrem (Tabelas, Internacional, Conversor, Interface WI, Liberação de Cobertura); não confundir esse defeito pré-existente com falha do login NSApps.</td></tr>
+  <tr><th>PR-2 · DoD do dev</th><td>Card em "Pronto para homologação": fluxo <code>LoginViaNsApps</code> deployado no HML NSTECH <b>com o BFF integrado</b> (<code>bffUserInfoUrl</code> configurado) e a validação de role CITWEB implementada. Hoje a implementação está na branch <code>feature/auth-nsapps</code> e a validação de role está pendente. ⛔ Nenhum CT antes disso.</td></tr>
+  <tr><th>PR-3 · URL de entrada NSApps</th><td>URL do NSApps (TNS) em HML <b>não consta no card</b> — confirmar com dev/Produtos antes da execução e registrar em <code>features/_navegacao/plataforma-nsseg.md</code>.</td></tr>
+  <tr><th>PR-4 · Credencial da plataforma</th><td>QA não possui credencial da plataforma NSSEG/Keycloak (realm <code>insurance_market</code>, client <code>plataforma</code>) nem do NSApps — solicitar antes da execução (mesmo pré-requisito registrado no plano do PBI-8368).</td></tr>
+  <tr><th>PR-5 · Usuários de teste</th><td>1 usuário NSApps <b>com</b> role CITWEB e 1 <b>sem</b> role CITWEB, ambos mapeados ao tenant NSTECH (com <code>cod_cit_user</code> válido) — item "A PREENCHER" do card; providenciar com dev/Produtos. Identificação dos usuários registrada nas tasks privadas #8529/#8550, nunca neste documento público.</td></tr>
+  <tr><th>PR-6 · Simulação de falha do BFF</th><td>CT-NSA-008/009 exigem falha controlada do BFF em HML (serviço indisponível / payload incompleto) — coordenar com o dev a forma (config temporária de <code>bffUserInfoUrl</code> inválida, stub, ou janela de indisponibilidade).</td></tr>
+</table>
+
+<div class="info-box"><b>Navegação já verificada em tela (31/08/2026 — <code>features/_navegacao/plataforma-nsseg.md</code>):</b><br>
+• Plataforma NSSEG HML: <code>hmlplataforma.nsseg.com.br</code> → redireciona automaticamente ao Keycloak (realm <code>insurance_market</code>, client <code>plataforma</code>, título "Login - nstech");<br>
+• Login tradicional CITWEB NSTECH: URL de login do HML + credencial do CITWEB (10 tiles de módulos após login — <code>features/_navegacao/login-citweb.md</code>);<br>
+• Pós-login da plataforma (tiles/labels exatos) e a tela de entrada do NSApps ainda não foram vistos pelo QA (pendentes de credencial — PR-4): os labels exatos serão capturados na 1ª execução e alimentados em <code>features/</code>. Toda navegação por clique — únicas URLs digitadas: as de login do HML.</div>
+
+<!-- ============ 5. CASOS DE TESTE ============ -->
+<h2 class="section">5. Casos de Teste</h2>
+
+<div class="group-header">GRUPO A — Fluxo feliz: redirecionamento e sessão (AC-1, AC-2, AC-3)</div>
+<div class="group-note">O núcleo da entrega: entrar no CITWEB a partir do NSApps sem novo login, com sessão idêntica à das vias existentes.</div>
+
+<div class="ct-block" id="CT-NSA-001">
+  <div class="ct-head"><span class="ct-id">CT-NSA-001</span><span class="ct-title">Usuário autenticado no NSApps com role CITWEB acessa o CITWEB NSTECH sem novo login</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-2 (fluxo deployado), PR-3 (URL NSApps), PR-4 (credencial), PR-5 (usuário COM role CITWEB).</li><li>Browser sem sessão ativa do CITWEB (cookies limpos).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Acessar a URL de entrada do NSApps em HML (PR-3) e autenticar com o usuário COM role CITWEB → screenshot da tela inicial do NSApps autenticado.</li>
+      <li>Localizar e clicar no acesso ao CITWEB / módulo da seguradora NSTECH (label exato capturado na execução e registrado em <code>features/</code>).</li>
+      <li>Aguardar o redirecionamento concluir → screenshot da tela de destino.</li>
+      <li>Confirmar que <b>não</b> foi exibida nenhuma tela de login do CITWEB no caminho (nem prompt de credencial adicional).</li>
+      <li>Confirmar na tela de destino a identificação do usuário logado (nome/e-mail visível no cabeçalho ou menu do CITWEB).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">O usuário chega ao CITWEB do tenant NSTECH <b>autenticado</b>, sem segundo login: tela inicial do CITWEB com o menu de módulos visível e o usuário identificado. Assinatura de execução: a identificação exibida corresponde ao usuário do NSApps (email/cod_cit_user vindos do BFF) — não basta "não deu erro".</div>
+    <div class="ev-section" id="ev-CT-NSA-001">📎 Evidências do CT-NSA-001 — screenshots do NSApps autenticado, do clique de acesso e do CITWEB aberto com o usuário identificado.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-002">
+  <div class="ct-head"><span class="ct-id">CT-NSA-002</span><span class="ct-title">Sessão CITWEB íntegra pós-LoginViaNsApps — cookie Forms, identificação e Indicativos; navegação sem SessionExpired</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Positivo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-NSA-001 executado na mesma sessão de browser (sessão via NSApps ativa).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Com a sessão do CT-NSA-001 ativa, extrair via <code>browser_evaluate</code> os cookies da página (<code>document.cookie</code>) e confirmar a presença do cookie de autenticação Forms do CITWEB — registrar o <b>nome</b> do cookie (não o valor) na evidência.</li>
+      <li>Extrair via <code>browser_evaluate</code> a identificação do usuário exibida na tela (elemento do cabeçalho/menu) — texto exato.</li>
+      <li>Navegar <b>por clique</b> em um módulo liberado do tenant (ex.: <b>Tabelas</b> ou <b>Internacional</b>) → screenshot do módulo aberto.</li>
+      <li>Dentro do módulo, abrir uma tela de consulta qualquer (ex.: uma consulta do Internacional) e confirmar que a tela renderiza dados/menu — sem redirecionar para <code>Error/SessionExpired</code> nem para a tela de login.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Cookie Forms de autenticação presente; usuário identificado na tela; módulos liberados do tenant abrem e navegam normalmente (os Indicativos/permissões da sessão foram montados — é isso que a navegação prova). ⚠️ O módulo <b>Nacional</b> deste tenant tem SessionExpired por defeito de deploy pré-existente (PR-1) — não usar Nacional como oráculo deste CT.</div>
+    <div class="ev-section" id="ev-CT-NSA-002">📎 Evidências do CT-NSA-002 — evaluate dos cookies (nomes), identificação do usuário e screenshots da navegação nos módulos.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-003">
+  <div class="ct-head"><span class="ct-id">CT-NSA-003</span><span class="ct-title">Equivalência da sessão NSApps × sessão Keycloak — mesmo usuário, mesmos módulos e permissões</span><span class="prio importante">P2</span><span class="tipo-tag">Comparativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-NSA-001/002 executados (inventário da sessão via NSApps registrado).</li><li>Mesmo usuário com acesso via plataforma NSSEG (fluxo Keycloak) — PR-4.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Em browser limpo, acessar <code>hmlplataforma.nsseg.com.br</code> → login Keycloak com o mesmo usuário → clicar no módulo do CITWEB NSTECH.</li>
+      <li>Screenshot da tela inicial do CITWEB aberta pela via Keycloak.</li>
+      <li>Comparar com o inventário da via NSApps: módulos exibidos no menu, identificação do usuário e nome do cookie de autenticação.</li>
+      <li>Abrir o mesmo módulo aberto no CT-NSA-002 e confirmar comportamento idêntico.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">As duas sessões são <b>equivalentes</b>: mesmos módulos visíveis, mesma identificação de usuário, mesmo mecanismo de autenticação (cookie Forms) e mesma navegação. Qualquer divergência (módulo a mais/a menos, permissão diferente) é registrada como achado — a via NSApps não pode ser nem mais permissiva nem mais restrita que a Keycloak para o mesmo usuário.</div>
+    <div class="ev-section" id="ev-CT-NSA-003">📎 Evidências do CT-NSA-003 — screenshots lado a lado das duas sessões + comparação registrada.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO B — Segurança: bloqueios de acesso (AC-5, AC-6 — crítico)</div>
+<div class="group-note">A lacuna que motivou o card: o caminho NSApps precisa aplicar os mesmos controles do fluxo Keycloak. Oráculo da mensagem: o texto exato exibido será capturado em tela na execução (o card define o comportamento — "mensagem clara e impedir o acesso" — sem fixar o texto).</div>
+
+<div class="ct-block" id="CT-NSA-004">
+  <div class="ct-head"><span class="ct-id">CT-NSA-004</span><span class="ct-title">Usuário autenticado no NSApps SEM role CITWEB é bloqueado — sem sessão CITWEB criada</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-5 (usuário SEM role CITWEB) e PR-2 — inclui a validação de role implementada (tarefa vermelha do card).</li><li>Decisão da fonte da role no caminho NSApps adjudicada com o dev (ver warn-box da seção 2) — o oráculo abaixo vale para qualquer fonte: o resultado observável é o bloqueio.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Em browser limpo, autenticar no NSApps com o usuário SEM role CITWEB → screenshot.</li>
+      <li>Acionar o acesso ao CITWEB / módulo NSTECH (mesmo caminho do CT-NSA-001).</li>
+      <li>Screenshot da tela resultante; extrair via <code>browser_evaluate</code> o texto exato da mensagem exibida.</li>
+      <li>Confirmar que nenhuma sessão CITWEB foi criada: cookies sem o cookie Forms do CITWEB (evaluate) e tentativa de abrir um módulo por clique não navega autenticado.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Acesso <b>impedido</b> com mensagem clara ao usuário (texto exato capturado na execução; sem stack trace/detalhes técnicos). Nenhum cookie de autenticação do CITWEB criado, nenhum módulo acessível. Paridade com o comportamento do fluxo Keycloak para usuário sem role (comparado no CT-NSA-007).</div>
+    <div class="ev-section" id="ev-CT-NSA-004">📎 Evidências do CT-NSA-004 — screenshots do bloqueio + texto exato da mensagem + evaluate dos cookies.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-005">
+  <div class="ct-head"><span class="ct-id">CT-NSA-005</span><span class="ct-title">Usuário NÃO autenticado no NSApps aciona o caminho LoginViaNsApps — bloqueado</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-2/PR-3. Browser limpo, sem nenhuma sessão (NSApps, plataforma ou CITWEB).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Em browser limpo, acessar a URL de entrada do NSApps (PR-3) <b>sem autenticar</b> e tentar acionar o acesso ao CITWEB — se a própria entrada já exigir login, essa exigência é o resultado do teste (registrar).</li>
+      <li>Screenshot da tela resultante; extrair o texto exato de qualquer mensagem exibida.</li>
+      <li>Confirmar que nenhuma sessão CITWEB foi criada (evaluate dos cookies + módulo não navega autenticado).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Sem autenticação no NSApps não há acesso ao CITWEB: o caminho exige login (redirecionamento para a tela de autenticação) ou bloqueia com mensagem clara. Nenhuma sessão CITWEB criada.</div>
+    <div class="ev-section" id="ev-CT-NSA-005">📎 Evidências do CT-NSA-005 — screenshots + texto exato + evaluate dos cookies.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-006">
+  <div class="ct-head"><span class="ct-id">CT-NSA-006</span><span class="ct-title">Token/sessão NSApps expirado ou inválido — acesso bloqueado com mensagem clara</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Negativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-2/PR-3/PR-5. Sessão NSApps estabelecida e então invalidada (logout em outra aba, expiração natural, ou invalidação coordenada com o dev — registrar o método usado).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Autenticar no NSApps com o usuário COM role CITWEB.</li>
+      <li>Invalidar a sessão NSApps (logout em outra aba / aguardar expiração / invalidação pelo dev — o que for viável no ambiente; registrar).</li>
+      <li>Na aba original, acionar o acesso ao CITWEB.</li>
+      <li>Screenshot da tela resultante; extrair o texto exato da mensagem.</li>
+      <li>Confirmar que nenhuma sessão CITWEB foi criada (evaluate dos cookies).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Com token/sessão inválido ou expirado, o CITWEB <b>não</b> estabelece sessão: acesso bloqueado com mensagem clara ou redirecionamento para nova autenticação. Nunca uma sessão CITWEB criada a partir de credencial NSApps vencida.</div>
+    <div class="ev-section" id="ev-CT-NSA-006">📎 Evidências do CT-NSA-006 — screenshots + método de invalidação registrado + evaluate dos cookies.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-007">
+  <div class="ct-head"><span class="ct-id">CT-NSA-007</span><span class="ct-title">Paridade de controles NSApps × Keycloak — a nova via não é mais permissiva</span><span class="prio importante">P2</span><span class="tipo-tag">Comparativo</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>CT-NSA-004/005/006 executados (comportamentos da via NSApps registrados).</li><li>PR-4/PR-5 — mesmos usuários utilizáveis na via Keycloak.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Reproduzir pela via Keycloak (plataforma NSSEG) os mesmos três cenários: usuário sem role CITWEB, não autenticado, e sessão expirada.</li>
+      <li>Screenshot do comportamento da via Keycloak em cada cenário; extrair textos exatos.</li>
+      <li>Montar a comparação cenário a cenário: NSApps bloqueou? Keycloak bloqueou? As mensagens/telas são equivalentes?</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Para cada cenário de bloqueio, a via NSApps aplica controle <b>igual ou mais restritivo</b> que a via Keycloak — nunca mais permissivo. Qualquer caso em que o Keycloak bloqueia e o NSApps permite é REPROVA imediata deste CT (é exatamente a lacuna de segurança do card).</div>
+    <div class="ev-section" id="ev-CT-NSA-007">📎 Evidências do CT-NSA-007 — matriz comparativa dos 3 cenários com screenshots das duas vias.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO C — Falhas de integração com o BFF (AC-2, AC-4)</div>
+<div class="group-note">Falha na consulta ao BFF não pode virar acesso indevido nem tela técnica. Os dois CTs exigem falha controlada em HML — coordenar com o dev (PR-6).</div>
+
+<div class="ct-block" id="CT-NSA-008">
+  <div class="ct-head"><span class="ct-id">CT-NSA-008</span><span class="ct-title">BFF indisponível — mensagem clara, sem detalhes técnicos, acesso impedido</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Exceção</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-6 — indisponibilidade controlada do BFF em HML (janela combinada com o dev: serviço parado ou <code>bffUserInfoUrl</code> temporariamente apontada para host inexistente). Registrar o método e a janela.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Com o BFF indisponível, autenticar no NSApps (usuário COM role) e acionar o acesso ao CITWEB.</li>
+      <li>Screenshot da tela resultante; extrair via <code>browser_evaluate</code> o texto exato exibido.</li>
+      <li>Inspecionar a tela e o corpo da resposta: confirmar que <b>não</b> há stack trace, URL interna do BFF, nome de servidor ou outro detalhe técnico exposto.</li>
+      <li>Confirmar que nenhuma sessão CITWEB foi criada (evaluate dos cookies).</li>
+      <li>Encerrada a janela, restaurar a configuração e confirmar com 1 login feliz que o ambiente voltou (higiene do ambiente compartilhado).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Falha do BFF é tratada: mensagem clara e amigável ao usuário, <b>sem exposição de detalhes técnicos</b>, e acesso impedido (sem sessão). O sistema não pode nem travar em loop de redirect nem conceder acesso "por engano" quando a consulta de identidade falha.</div>
+    <div class="ev-section" id="ev-CT-NSA-008">📎 Evidências do CT-NSA-008 — screenshots + texto exato + registro da janela de indisponibilidade + login feliz pós-restauração.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-009">
+  <div class="ct-head"><span class="ct-id">CT-NSA-009</span><span class="ct-title">BFF retorna payload incompleto (sem email ou sem cod_cit_user) — tratado, sem sessão parcial</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Exceção</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-6 — payload incompleto controlado (stub/mock no BFF de HML, ou usuário de teste sem <code>cod_cit_user</code> mapeado — o que o dev indicar como viável; registrar o método).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Provocar o cenário: acesso via NSApps cujo retorno do BFF venha sem <code>email</code> OU sem <code>cod_cit_user</code>.</li>
+      <li>Screenshot da tela resultante; extrair o texto exato da mensagem.</li>
+      <li>Confirmar que nenhuma sessão foi criada (evaluate dos cookies) — em especial, nenhuma <b>sessão parcial</b> (cookie criado mas usuário sem identificação/permissões).</li>
+      <li>Se viável, repetir para a segunda variante (o outro campo ausente).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Payload incompleto → acesso impedido com mensagem tratada (sem erro técnico exposto) e <b>nenhuma sessão parcial</b> criada. As duas variantes (sem email / sem cod_cit_user) têm o mesmo comportamento seguro.</div>
+    <div class="ev-section" id="ev-CT-NSA-009">📎 Evidências do CT-NSA-009 — screenshots por variante + método de simulação registrado + evaluate dos cookies.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-010">
+  <div class="ct-head"><span class="ct-id">CT-NSA-010</span><span class="ct-title">bffUserInfoUrl parametrizável em appSettings — configuração por ambiente sem alteração de código</span><span class="prio desejavel">P3</span><span class="tipo-tag">Configuração</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-2. Acesso do dev/infra à configuração do HML (o QA não altera config de servidor — a evidência é fornecida/demonstrada pelo dev).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Solicitar ao dev a evidência da chave <code>bffUserInfoUrl</code> no <code>appSettings</code> do HML NSTECH (print do arquivo de configuração/transform, com segredos tarjados).</li>
+      <li>Conferir que a URL é definida por configuração (não hardcoded) e que os transforms por ambiente preveem valores distintos (HML/STG/PROD).</li>
+      <li>Anexar a evidência fornecida ao card; registrar neste plano o resultado.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Chave <code>bffUserInfoUrl</code> presente no <code>appSettings</code> com valor por ambiente — ajustável sem alteração de código. (CT documental: a evidência é a configuração demonstrada pelo dev; a prova funcional de que a chave é lida em runtime é dada pelos CTs 001 e 008.)</div>
+    <div class="ev-section" id="ev-CT-NSA-010">📎 Evidências do CT-NSA-010 — print da configuração (tarjado) anexado ao card.</div>
+  </div>
+</div>
+
+<div class="group-header">GRUPO D — Regressão das vias de login existentes (regressão obrigatória)</div>
+<div class="group-note">A nova via não pode quebrar as duas existentes: Keycloak via plataforma NSSEG e login tradicional do CITWEB.</div>
+
+<div class="ct-block" id="CT-NSA-011">
+  <div class="ct-head"><span class="ct-id">CT-NSA-011</span><span class="ct-title">Regressão — login via plataforma NSSEG (fluxo Keycloak) continua funcionando no tenant NSTECH</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>PR-4 (credencial da plataforma). Deploy do card aplicado no HML (é a regressão pós-mudança).</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Em browser limpo, acessar <code>hmlplataforma.nsseg.com.br</code> → confirmar o redirecionamento automático ao Keycloak (realm <code>insurance_market</code>, título "Login - nstech") → screenshot.</li>
+      <li>Autenticar com a credencial da plataforma.</li>
+      <li>Na tela de módulos, clicar no módulo do CITWEB NSTECH → screenshot do CITWEB aberto autenticado.</li>
+      <li>Navegar por clique em um módulo liberado (ex.: Tabelas) — sem SessionExpired.</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Fluxo Keycloak inalterado: redirect ao realm correto, login aceito, CITWEB NSTECH aberto autenticado e navegável — comportamento idêntico ao validado em 31/08/2026 (baseline em <code>features/_navegacao/plataforma-nsseg.md</code>).</div>
+    <div class="ev-section" id="ev-CT-NSA-011">📎 Evidências do CT-NSA-011 — screenshots do redirect, do login e do CITWEB navegando.</div>
+  </div>
+</div>
+
+<div class="ct-block" id="CT-NSA-012">
+  <div class="ct-head"><span class="ct-id">CT-NSA-012</span><span class="ct-title">Regressão — login tradicional do CITWEB (URL direta do HML) não foi impactado</span><span class="prio bloqueante">P1</span><span class="tipo-tag">Regressão</span><span class="ev-badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-body">
+    <h4>Pré-condições</h4>
+    <ul><li>Credenciais do CITWEB NSTECH no <code>.env</code> (<code>HML_NSTECH_CITWEB_USER/_PASS</code>). Deploy do card aplicado no HML.</li></ul>
+    <h4>Passos</h4>
+    <ol>
+      <li>Em browser limpo, acessar a URL de login do HML NSTECH (<code>nstech-hml-faturamento.nsseg.com.br/Login</code> — única URL digitada permitida).</li>
+      <li>Autenticar com a credencial do CITWEB → screenshot da tela de módulos (baseline validada: 10 tiles).</li>
+      <li>Navegar por clique em um módulo liberado (ex.: Tabelas ou Internacional) → screenshot.</li>
+      <li>Comparar com a baseline de 28/08/2026: mesmos módulos, mesma navegação (o defeito pré-existente do Nacional — SessionExpired — permanece registrado à parte e não é regressão deste card).</li>
+    </ol>
+    <h4>Resultado esperado</h4>
+    <div class="esperado">Login tradicional intacto: autenticação aceita, tela de módulos com os mesmos tiles da baseline e navegação normal nos módulos liberados. Nenhum comportamento novo introduzido pela via NSApps neste caminho.</div>
+    <div class="ev-section" id="ev-CT-NSA-012">📎 Evidências do CT-NSA-012 — screenshots do login, da tela de módulos e da navegação.</div>
+  </div>
+</div>
+
+<div class="info-box"><b>Exploratório (NOR_QA_002 §11):</b> após os CTs formais, sessão de 15–30 min guiada por risco — combinações de logout/re-login entre as três vias na mesma máquina, duplo clique no acesso, voltar do browser no meio do redirecionamento, acesso simultâneo em duas abas, e comportamento com cookies de sessões anteriores. Achados viram Task-Defeito (tags <code>CITWEB</code> + <code>DEFEITO</code>, 7 seções obrigatórias); sem ocorrências → comentário "Exploratório executado [DD/MM HML]. Sem ocorrências." no card.</div>
+
+<!-- ============ 6. MATRIZ DE RASTREABILIDADE ============ -->
+<h2 class="section">6. Matriz de Rastreabilidade</h2>
+<table>
+  <tr><th>Critério de aceite (card #8488)</th><th>CT(s)</th><th>Resultado</th></tr>
+  <tr><td>AC-1 — Usuário autenticado no NSApps acessa o CITWEB sem novo login</td><td>CT-NSA-001</td><td>Pendente</td></tr>
+  <tr><td>AC-2 — Sistema consulta o BFF (<code>bffUserInfoUrl</code>) para obter email e cod_cit_user e validar identidade</td><td>CT-NSA-001 · CT-NSA-008 · CT-NSA-009</td><td>Pendente</td></tr>
+  <tr><td>AC-3 — Cookie Forms, AutenticaViewModel e Indicativos montados no padrão do fluxo Keycloak</td><td>CT-NSA-002 · CT-NSA-003</td><td>Pendente</td></tr>
+  <tr><td>AC-4 — Falha na autenticação junto ao BFF → mensagem clara + acesso impedido</td><td>CT-NSA-008 · CT-NSA-009 (variações: CT-NSA-005 · CT-NSA-006)</td><td>Pendente</td></tr>
+  <tr><td>AC-5 — Fluxo LoginViaNsApps valida a role CITWEB (paridade com Keycloak)</td><td>CT-NSA-004</td><td>Pendente</td></tr>
+  <tr><td>AC-6 — Paridade de controles de segurança NSApps × Keycloak (via não mais permissiva)</td><td>CT-NSA-007 (base: CT-NSA-004/005/006)</td><td>Pendente</td></tr>
+  <tr><td>AC-7 — URL do BFF parametrizável em appSettings (por ambiente, sem alteração de código)</td><td>CT-NSA-010</td><td>Pendente</td></tr>
+  <tr><td>Regressão (plano sugerido no card) — fluxo Keycloak continua funcionando</td><td>CT-NSA-011</td><td>Pendente</td></tr>
+  <tr><td>Regressão (plano sugerido no card) — login tradicional do CITWEB não impactado</td><td>CT-NSA-012</td><td>Pendente</td></tr>
+  <tr><td>ACs "A PREENCHER" (lacunas LUMI · observabilidade · monitoramento · medição de sucesso)</td><td>Fora de escopo desta rodada — entram por aditivo quando Produtos definir</td><td>—</td></tr>
+</table>
+
+<!-- ============ 7. MÉTRICAS ============ -->
+<!-- métricas ao vivo no painel do topo (dash) -->
+<!-- ============ 8. RISCOS ============ -->
+<h2 class="section">8. Riscos</h2>
+<table>
+  <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+  <tr><td>Implementação na branch <code>feature/auth-nsapps</code> (não mergeada) e validação de role ainda pendente — plano à frente do código</td><td>Alta</td><td>Alto</td><td>Execução só com card "Pronto para homologação" (PR-2); CT-NSA-004 só executa com a validação de role entregue</td></tr>
+  <tr><td>Fonte da role CITWEB no caminho NSApps indefinida (BFF retorna role × existência de cod_cit_user implica acesso) — muda o oráculo do CT-NSA-004</td><td>Média</td><td>Alto</td><td>Decisão adjudicada com dev/Produtos até o Gate 2; oráculo do CT redigido pelo comportamento observável (bloqueio), válido para qualquer fonte</td></tr>
+  <tr><td>QA sem credencial da plataforma NSSEG/Keycloak/NSApps (pendente desde o PBI-8368)</td><td>Alta</td><td>Alto</td><td>PR-4 solicitado antes da execução; sem credencial, CTs 001–009 e 011 não executam (BLOQUEADO por dependência externa, nunca aprovação sem evidência)</td></tr>
+  <tr><td>URL de entrada do NSApps (TNS) em HML não consta no card</td><td>Média</td><td>Médio</td><td>PR-3 — confirmar com dev/Produtos; registrar em features/ na 1ª execução</td></tr>
+  <tr><td>Usuários de teste com/sem role CITWEB não definidos ("A PREENCHER")</td><td>Alta</td><td>Alto</td><td>PR-5 com dev/Produtos; sem o usuário SEM role, o CT-NSA-004 (núcleo da lacuna de segurança) não executa</td></tr>
+  <tr><td>Simulação de falha do BFF exige intervenção de dev/infra em ambiente compartilhado</td><td>Média</td><td>Médio</td><td>PR-6 — janela combinada, método registrado na evidência, restauração confirmada com login feliz ao final (CT-NSA-008 passo 5)</td></tr>
+  <tr><td>Defeito pré-existente do módulo Nacional no tenant NSTECH (SessionExpired por deploy) pode ser confundido com falha da sessão NSApps</td><td>Média</td><td>Médio</td><td>PR-1 — CTs de sessão usam módulos que abrem; o defeito do Nacional permanece rastreado à parte</td></tr>
+  <tr><td>Critérios LUMI/observabilidade ainda "A PREENCHER" — cobertura de segurança desta rodada é parcial por definição</td><td>Alta</td><td>Médio</td><td>Escopo declarado (seção 3); aditivo de CTs quando Produtos definir os critérios; risco comunicado no Gate 1</td></tr>
+</table>
+
+<footer>
+  Plano de teste — BUG #8488 · Autenticação LoginViaNsApps (NSApps → CITWEB) · NSTECH HML · gerado em 03/09/2026 por Wesley Moreira (QA).<br>
+  Credenciais e identificação de usuários de teste nunca neste documento público — valores nas tasks AzDO #8529/#8550 e no <code>.env</code> local.
+</footer>
+</div>
+<div class="assinatura">Wesley Moreira</div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
