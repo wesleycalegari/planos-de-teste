@@ -88,7 +88,7 @@ def ct(id_, titulo, prio, tipo, passos, resultado, obs=''):
 
 # ── RCTR-C ───────────────────────────────────────────────────────────────────
 CAMPOS_RCTRC = [
-    'No campo <strong>C.G.C./CPF Embarcador</strong>, preencher com um CNPJ válido (ex: <code>12.345.678/0001-00</code>)',
+    'No campo <strong>C.G.C./CPF Embarcador</strong>, preencher com um CNPJ válido (ex: <code>[CNPJ-REDIGIDO]</code>)',
     'No campo <strong>Tipo de Veículo</strong>, selecionar <code>T - Terrestre</code>',
     'No campo <strong>Placa</strong>, preencher com <code>QA-0001</code>',
     'No campo <strong>Data Início</strong>, preencher com a data atual',
