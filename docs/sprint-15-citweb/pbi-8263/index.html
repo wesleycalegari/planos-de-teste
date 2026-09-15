@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8263 · Worker DUIMP: CNPJ Pai como fallback de enquadramento</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8263 · Sprint 15 Citweb</span>
+    <h1>Worker DUIMP — CNPJ Pai como fallback de enquadramento (Fase 1)</h1>
+    <div class="sub">Componente WorkerDUIMP · enquadramento item a item · produto 25 (DUIMP/Quorum) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">7</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">7</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">4·3·0</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 7 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos), WorkerDUIMP em HML e a tag de CNPJ Pai no JSON da Quorum. Falta testar: 7 CTs (4×P1 · 3×P2).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":7,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":7,"p1":4,"p2":3,"p3":0}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — WorkerDUIMP (enquadramento de DUIMP; integração Quorum)</td></tr>
+    <tr><th>Card</th><td>PBI-8263 (Sprint 15 Citweb) · Dev: Diego Almeida · Tags: CORE, DUIMP, Regulatório, WORKER DUIMP</td></tr>
+    <tr><th>Task filha</th><td>#8735</td></tr>
+    <tr><th>Escopo desta US</th><td>Fase 1 — leitura do CNPJ Pai do JSON e uso no fallback. Fase 2 (cadastro de CNPJ Pai) fora de escopo.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 14/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O WorkerDUIMP passa a usar o <b>CNPJ Pai</b> (enviado pela Quorum no JSON, uma única vez por DUIMP, em tag a nível de DUIMP) como <b>último recurso de enquadramento</b>, quando consignatário e importador do item não resolverem sozinhos — evitando desprezar DUIMPs que só se resolveriam com a apólice cadastrada diretamente.</p>
+  <div class="info-box"><b>Regra de negócio (ordem de busca por item):</b>
+    <ol>
+      <li><b>Consignatário</b> (relação importador×consignatário por apólice).</li>
+      <li>Se não achar, <b>Importador</b> direto.</li>
+      <li>Se nenhum dos dois, <b>CNPJ Pai da DUIMP</b> (valor único, do JSON).</li>
+      <li>Se nenhum dos três: <b>despreza</b> com motivo “CNPJ não cadastrado”.</li>
+    </ol>
+    O enquadramento continua item a item (consignatário/importador variam por item); só o CNPJ Pai é único por DUIMP. Quando não há CNPJ Pai informado, o próprio CNPJ (consignatário/importador) atua como seu próprio pai — resultado válido, não erro. Quando o CNPJ Pai é efetivamente usado, o CNPJ deve ficar <b>registrado de forma estruturada e consultável</b> (não só em log de aplicação).</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Leitura do CNPJ Pai do JSON (tag a nível de DUIMP) e uso como 3º passo do enquadramento.</li>
+    <li>Registro consultável do CNPJ efetivamente usado no enquadramento.</li>
+    <li>Comportamento por item, uniformidade do CNPJ Pai entre itens da mesma DUIMP e itens mistos.</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Fase 2 — cadastro de CNPJ Pai vinculado à tela de Importador × Consignatário.</li>
+    <li>Regras de agrupamento de averbação em si (apenas a uniformidade do CNPJ Pai é observada).</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li><b>WorkerDUIMP deployado em HML</b> — historicamente o worker não está em HML (mesmo bloqueio do #8255/#8256). Confirmar disponibilidade antes de executar.</li>
+      <li><b>Nome exato da tag de CNPJ Pai no JSON</b> — “a confirmar” com a Quorum (citado no card). Necessário para montar a massa.</li>
+      <li><b>Massa:</b> DUIMPs em JSON cobrindo: (a) item sem consignatário/importador resolvidos + CNPJ Pai com apólice; (b) DUIMP sem CNPJ Pai; (c) nenhum dos três com apólice; (d) 2 itens/consignatários distintos + 1 CNPJ Pai; (e) itens mistos. Apólices cadastradas conforme cada cenário.</li>
+      <li>Acesso ao banco para inspecionar o enquadramento resultante e o registro consultável do CNPJ usado.</li>
+    </ol>
+  </div>
+  <div class="warn-box"><b>Dados sensíveis:</b> CNPJs/DUIMPs reais da massa ficam apenas no card AzDO (privado) — nunca neste plano público.</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Fallback de enquadramento por CNPJ Pai</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-001</span><span class="ct-title">Item não resolvido por consignatário/importador → enquadra pelo CNPJ Pai da DUIMP</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Item cujo consignatário não tem apólice própria e o importador também não resolve; DUIMP com CNPJ Pai que tem apólice cadastrada.</li></ul>
+      <h4>Passos</h4><ol><li>Submeter a DUIMP ao WorkerDUIMP.</li><li>Inspecionar o enquadramento do item no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O item é enquadrado na apólice do <b>CNPJ Pai</b>; o CNPJ efetivamente usado fica registrado de forma consultável.</li></ul><h4>Cobre</h4><p>Cenário 1.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-002</span><span class="ct-title">DUIMP sem CNPJ Pai → usa o próprio CNPJ (resultado válido, não falha)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP sem CNPJ Pai preenchido no JSON.</li></ul>
+      <h4>Passos</h4><ol><li>Submeter a DUIMP ao Worker.</li><li>Observar a etapa de busca por CNPJ Pai para um item.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O próprio CNPJ do consignatário/importador é considerado resultado válido; não é tratado como falha de enquadramento.</li></ul><h4>Cobre</h4><p>Cenário 2.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-003</span><span class="ct-title">Nenhum dos três resolve → despreza com “CNPJ não cadastrado”</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Consignatário, importador e CNPJ Pai — nenhum com apólice cadastrada.</li></ul>
+      <h4>Passos</h4><ol><li>Submeter a DUIMP ao Worker.</li><li>Conferir o motivo do descarte do item.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O item é desprezado com o motivo <b>“CNPJ não cadastrado”</b>.</li></ul><h4>Cobre</h4><p>Cenário 3.</p></div></div>
+
+  <div class="group-header">Grupo B — Uniformidade e itens mistos</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-004</span><span class="ct-title">Itens da mesma DUIMP usam o mesmo CNPJ Pai (uniformidade no agrupamento)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP com 2 itens de consignatários diferentes, nenhum com apólice própria; um único CNPJ Pai informado.</li></ul>
+      <h4>Passos</h4><ol><li>Submeter a DUIMP ao Worker.</li><li>Inspecionar o enquadramento dos dois itens e a etapa de agrupamento posterior.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ambos os itens são enquadrados pelo <b>mesmo</b> CNPJ Pai; a uniformidade é respeitada no agrupamento de averbação.</li></ul><h4>Cobre</h4><p>Cenário 4.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-005</span><span class="ct-title">Itens mistos — cada item pelo caminho correto; só o que usou CNPJ Pai registra</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP com um item que resolve direto (passo 1) e outro que exige o CNPJ Pai (passo 3).</li></ul>
+      <h4>Passos</h4><ol><li>Submeter a DUIMP ao Worker.</li><li>Inspecionar o caminho de enquadramento de cada item e o registro do CNPJ usado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada item é enquadrado pelo caminho correto (consignatário direto vs. CNPJ Pai); <b>apenas</b> o item que usou o CNPJ Pai tem esse uso registrado de forma consultável.</li></ul><h4>Cobre</h4><p>Cenário 5.</p></div></div>
+
+  <div class="group-header">Grupo C — Registro consultável e regressão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-006</span><span class="ct-title">CNPJ usado no fallback fica registrado de forma estruturada e consultável</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Cenário em que o CNPJ Pai é efetivamente usado (CT-WCP-001).</li></ul>
+      <h4>Passos</h4><ol><li>Após o enquadramento via CNPJ Pai, consultar o registro estruturado (banco/entidade consultável, não log de aplicação).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Há um registro estruturado e consultável indicando qual CNPJ foi usado para enquadrar/faturar aquela DUIMP — decisão de negócio rastreável.</li></ul><h4>Cobre</h4><p>Requisito transversal dos cenários 1 e 5 (registro consultável).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WCP-007</span><span class="ct-title">Regressão: ordem de busca (consignatário→importador) e caminho legado inalterados</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Item cujo consignatário resolve direto (passo 1) e outro cujo importador resolve (passo 2); declaração sem consignatário (caminho legado do CNPJ Pai restrito).</li></ul>
+      <h4>Passos</h4><ol><li>Submeter DUIMPs que exercitem os passos 1 e 2 e o caso legado.</li><li>Conferir que o enquadramento segue o mesmo resultado de antes da mudança.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Quando consignatário/importador resolvem, o fallback do CNPJ Pai não é acionado; a ordem de busca e o comportamento legado permanecem inalterados — sem regressão.</li></ul><h4>Cobre</h4><p>Regressão da ordem de busca (passos 1–2) e do caminho anterior.</p></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Cenário (AC)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Cenário 1 — enquadra via CNPJ Pai + registro consultável</td><td>CT-WCP-001, CT-WCP-006</td><td>Pendente</td></tr>
+    <tr><td>Cenário 2 — sem CNPJ Pai usa o próprio CNPJ</td><td>CT-WCP-002</td><td>Pendente</td></tr>
+    <tr><td>Cenário 3 — nenhum dos três → “CNPJ não cadastrado”</td><td>CT-WCP-003</td><td>Pendente</td></tr>
+    <tr><td>Cenário 4 — mesmo CNPJ Pai p/ itens da DUIMP + uniformidade</td><td>CT-WCP-004</td><td>Pendente</td></tr>
+    <tr><td>Cenário 5 — itens mistos, registro só do que usou o CNPJ Pai</td><td>CT-WCP-005, CT-WCP-006</td><td>Pendente</td></tr>
+    <tr><td>Regressão — ordem de busca / caminho legado</td><td>CT-WCP-007</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>7</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 4 · P2 = 3 · P3 = 0</td></tr>
+    <tr><td>Cobertura dos critérios de aceite (5 cenários + regressão)</td><td>5/5 + regressão (100%)</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + Worker em HML + tag JSON Quorum)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>WorkerDUIMP não deployado em HML (bloqueio recorrente)</td><td>Alta</td><td>Alto</td><td>Confirmar disponibilidade do worker antes de executar; enquanto ausente, CTs ficam pendentes de ambiente (não fechar como aprovado).</td></tr>
+    <tr><td>Nome da tag de CNPJ Pai no JSON ainda “a confirmar” (Quorum)</td><td>Média</td><td>Alto</td><td>Obter o nome exato do campo antes de montar a massa; escalar ao dev/Produtos se não definido.</td></tr>
+    <tr><td>Massa não cobrir todos os caminhos (1/2/3 + itens mistos)</td><td>Média</td><td>Alto</td><td>Montar apólices/DUIMPs específicas por cenário; “não deu erro” ≠ enquadrado — sempre inspecionar o resultado no banco.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada a WorkerDUIMP em HML + massa DUIMP com CNPJ Pai (task #8735).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
