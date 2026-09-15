@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8619 · Telas de Carga e Processamento</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+/* dashboard */
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+/* boxes */
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+/* CT accordion */
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+/* matrix */
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8619 · Sprint 15 Citweb</span>
+    <h1>Telas de Carga e Processamento ficam travadas ao finalizar a operação</h1>
+    <div class="sub">Módulo Interface WI × Siscomex → Declarações/Adições · Telas Carga (DICarga) e Processamento (DIProcessamento) · Ambiente HML AXA (produto 25) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">10</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">10</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">6·3·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 10 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos) e deploy do fix. Falta testar: 10 CTs (6×P1 · 3×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":10,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":10,"p1":6,"p2":3,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — Interface WI × Siscomex (Declarações/Adições)</td></tr>
+    <tr><th>Card</th><td>PBI-8619 (Sprint 15 Citweb) · Dev: Diego Almeida · Epic-área: DUIMP/DI</td></tr>
+    <tr><th>Tasks</th><td>#8621 (dev) · #8622 (teste dev) · #8623 (PR+HML) · #8624 (QA HML)</td></tr>
+    <tr><th>Ambiente</th><td>HML AXA (produto 25) · build com o fix + <code>DEBUG=false</code></td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 14/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>As telas de <b>Carga</b> e <b>Processamento</b> (Interface WI × Siscomex → Declarações/Adições) ficam travadas ao finalizar a operação: a barra de progresso chega a 100%, mas botões e campos permanecem bloqueados e o usuário precisa recarregar a página. A comunicação em tempo real (hub) funciona; o problema é que a liberação da tela depende exclusivamente de uma mensagem de conclusão que pode não chegar, sem nenhum outro caminho que devolva o controle ao usuário.</p>
+  <div class="info-box"><b>Causa raiz (task de dev #8621, por arquivo/linha):</b>
+    <ul>
+      <li><b>Processamento</b> — não há <code>loading('stop')</code>; o overlay do jquery-loading usa <code>theme:'invisible'</code> (transparente, engole cliques). Único desligamento é o reload via <code>RedirectToAction("Index")</code> ao fim de <code>DIProcessamentoController.Processar</code>. Com <code>DEBUG=true</code> publicado, o ASP.NET ignora o <code>executionTimeout</code> e a requisição fica pendurada.</li>
+      <li><b>Carga</b> — <code>DICarga/Index.cshtml</code> desabilita botão e checkboxes no primeiro evento de progresso e só reabilita quando <code>percentage &gt;= 100</code> — que pode não chegar.</li>
+      <li><b>Progresso/Mensagem (SignalR)</b> — o progresso é transmitido a todos os usuários conectados, e a mensagem de conclusão vai para o último que abriu a tela, não para quem disparou.</li>
+      <li><b>Notificações (CA5)</b> — endereço interno em <code>http</code> é bloqueado pelo navegador em página <code>https</code> (mixed content). É efeito de publicar com DEBUG; <code>https</code> já é o padrão — <b>não</b> é decisão de Produtos (retificado no card em 09/09).</li>
+    </ul>
+  </div>
+  <div class="info-box">Não é regressão de entrega recente (comportamentos de 2019 e 2024). Sem perda de dado nem risco de cálculo — impacto de usabilidade/retrabalho. Achado durante a validação do #8259.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Liberação da tela de <b>Processamento</b> ao terminar (sucesso e erro), sem recarregar.</li>
+    <li>Reabilitação de botão e checkboxes da <b>Carga</b> ao terminar (sucesso, erro e pacote já processado).</li>
+    <li>Roteamento do progresso e da mensagem de conclusão da Carga por usuário (quem disparou).</li>
+    <li>Carregamento das notificações sem bloqueio de mixed content.</li>
+    <li>Regressão do comportamento atual das duas telas (avisos de confirmação/autorização, barra de progresso).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Regras de negócio da carga/processamento de DI/DUIMP em si (cálculo, enquadramento) — não alteradas por este card.</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — dependem do time, não do QA):</b>
+    <ol>
+      <li>Fix deployado em HML AXA e a publicação cobrindo <b>todos os sites</b> (a correção do endereço das notificações toca vários sites — ver task #8623), com <code>DEBUG=false</code>.</li>
+      <li><b>Massa real:</b> 1 pacote apto a <b>Carga</b> e 1 DI/DUIMP apta a <b>Processamento</b> em HML — a validação exige disparar carga e processamento reais (task #8622/#8624). Massa a confirmar/gerar no ambiente antes da execução.</li>
+      <li><b>Dois usuários simultâneos</b> para CA3/CA4 (CPS-006/007) — dois logins distintos com a tela de Carga aberta ao mesmo tempo.</li>
+    </ol>
+    Enquanto (1)–(3) não estiverem disponíveis, os CTs ficam <b>pendentes</b> (não bloqueados por QA — é dependência de ambiente/massa).
+  </div>
+  <div class="info-box"><b>Nota de fase:</b> card em desenvolvimento (a correção ainda não está em HML). Os caminhos de menu seguem a estrutura declarada no card (Interface WI × Siscomex → Declarações/Adições → Carga/Processamento); os <b>labels/seletores exatos e o comportamento corrigido</b> são confirmados <b>in loco na execução</b> (task #8624, pós-deploy), com evidência por CT.</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Liberação da tela de Processamento (CA1)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-001</span><span class="ct-title">Processamento conclui com sucesso → tela destrava sem recarregar</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>HML AXA, tela de Processamento (Interface WI × Siscomex → Declarações/Adições → Processamento). DI/DUIMP apta a processar disponível.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de Processamento pelo menu (por clique).</li><li>Selecionar a DI/DUIMP e disparar o Processamento.</li><li>Aguardar a barra de progresso chegar a 100%/conclusão.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ao terminar, a tela volta a responder: overlay some, botões/campos ficam clicáveis, <b>sem</b> recarregar a página. Mensagem de conclusão visível para o usuário que disparou.</li></ul>
+      <h4>Tipo</h4><p>Positivo (happy path).</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-002</span><span class="ct-title">Processamento termina com erro → tela destrava e mostra o erro, sem recarregar</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>DI/DUIMP que force um erro no processamento (ex.: dado inconsistente), HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir Processamento pelo menu.</li><li>Disparar o processamento do item que termina com erro.</li><li>Aguardar o encerramento com erro.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela volta a responder mesmo no caminho de erro (overlay removido, controles habilitados) <b>sem</b> recarregar; o erro é apresentado ao usuário.</li></ul>
+      <h4>Tipo</h4><p>Exceção.</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo B — Reabilitação da tela de Carga (CA2)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-003</span><span class="ct-title">Carga conclui → botão e checkboxes reabilitam</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Tela de Carga, pacote apto a carregar, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de Carga pelo menu.</li><li>Selecionar o pacote e disparar a Carga.</li><li>Aguardar a conclusão.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ao terminar, o botão de ação e as checkboxes voltam a ficar habilitados, sem necessidade de recarregar.</li></ul>
+      <h4>Tipo</h4><p>Positivo.</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-004</span><span class="ct-title">Carga termina com erro → controles reabilitam</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Pacote que force erro na carga, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir Carga pelo menu.</li><li>Disparar a carga do pacote que termina com erro.</li><li>Aguardar o encerramento com erro.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Botão e checkboxes voltam a ficar habilitados também no caminho de erro, sem recarregar.</li></ul>
+      <h4>Tipo</h4><p>Exceção.</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-005</span><span class="ct-title">Carga de pacote já processado antes → controles reabilitam (não trava)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Pacote que já havia sido processado anteriormente, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir Carga pelo menu.</li><li>Disparar a carga de um pacote já processado.</li><li>Observar o encerramento da operação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela informa a condição e reabilita botão/checkboxes; não fica travada exigindo reload.</li></ul>
+      <h4>Tipo</h4><p>Limite / borda.</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo C — Roteamento por usuário: progresso e mensagem (CA3, CA4)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-006</span><span class="ct-title">Dois usuários: progresso da Carga só na tela de quem disparou</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Dois usuários (A e B) logados, ambos com a tela de Carga aberta, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Usuário A e usuário B abrem a tela de Carga.</li><li>Usuário A dispara uma carga.</li><li>Observar simultaneamente as telas de A e de B.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Somente a tela de A exibe a barra de progresso e tem os controles bloqueados durante a operação. A tela de B permanece livre, sem barra de progresso e sem bloqueio.</li></ul>
+      <h4>Tipo</h4><p>Concorrência.</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-007</span><span class="ct-title">Mensagem de conclusão da Carga vai para quem disparou (não para quem abriu depois)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Usuário A dispara a carga; usuário B abre a tela de Carga depois, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Usuário A dispara uma carga.</li><li>Enquanto processa, usuário B abre a tela de Carga.</li><li>Aguardar a conclusão da carga de A.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem de resultado da carga aparece para o usuário A (quem disparou), e não para o usuário B.</li></ul>
+      <h4>Tipo</h4><p>Concorrência.</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo D — Notificações sem bloqueio (CA5)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-008</span><span class="ct-title">Notificações carregam sem bloqueio do navegador (sem mixed content)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Cliente com a funcionalidade de notificações ativa, acesso via <code>https</code>, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o sistema por <code>https</code> e acessar o menu onde as notificações carregam.</li><li>Abrir o console do navegador (DevTools) durante o carregamento.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O recurso de notificações carrega normalmente; o console <b>não</b> apresenta erro de <i>Mixed Content</i> / requisição <code>http</code> bloqueada. Endereço das notificações resolvido em <code>https</code>.</li></ul>
+      <h4>Tipo</h4><p>Integração / configuração.</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo E — Regressão (CA6)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-009</span><span class="ct-title">Regressão: avisos de confirmação e de autorização no processamento continuam</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Tela de Processamento, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Disparar um processamento que exija confirmação/autorização.</li><li>Observar os avisos exibidos durante o fluxo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os avisos de confirmação e de autorização durante o processamento continuam aparecendo e funcionando como antes — sem regressão.</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-CPS-010</span><span class="ct-title">Regressão: barra de progresso (hub) segue atualizando para quem disparou</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Tela de Carga/Processamento, HML AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Disparar uma operação e acompanhar a barra de progresso na tela de quem disparou.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A barra de progresso (SignalR/hub) continua atualizando corretamente do início ao fim para o usuário que disparou — a comunicação em tempo real não regrediu.</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Processamento libera a tela ao terminar (sucesso/erro)</td><td>CT-CPS-001, CT-CPS-002</td><td>Pendente</td></tr>
+    <tr><td>CA2 — Carga reabilita botões/campos (sucesso, erro, já processado)</td><td>CT-CPS-003, CT-CPS-004, CT-CPS-005</td><td>Pendente</td></tr>
+    <tr><td>CA3 — Progresso da Carga apenas para quem disparou</td><td>CT-CPS-006</td><td>Pendente</td></tr>
+    <tr><td>CA4 — Mensagem de conclusão para quem fez a carga</td><td>CT-CPS-007</td><td>Pendente</td></tr>
+    <tr><td>CA5 — Notificações sem bloqueio do navegador</td><td>CT-CPS-008</td><td>Pendente</td></tr>
+    <tr><td>CA6 — Sem regressão nas duas telas</td><td>CT-CPS-009, CT-CPS-010</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>10</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 6 · P2 = 3 · P3 = 1</td></tr>
+    <tr><td>Cobertura dos critérios de aceite</td><td>6/6 (100%)</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + deploy do fix)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Massa real de carga/processamento indisponível em HML</td><td>Alta</td><td>Alto</td><td>Confirmar/gerar massa antes da execução (task #8624); manter CTs como pendentes de ambiente, não fechar como bloqueados de QA.</td></tr>
+    <tr><td>Cenário de 2 usuários simultâneos difícil de orquestrar</td><td>Média</td><td>Médio</td><td>Dois logins distintos coordenados; capturar as duas telas lado a lado como evidência de CA3/CA4.</td></tr>
+    <tr><td>Build publicado com <code>DEBUG=true</code> mascara o timeout</td><td>Média</td><td>Alto</td><td>Confirmar <code>DEBUG=false</code> no build de HML antes de validar CA1.</td></tr>
+    <tr><td>Correção das notificações não cobrir todos os sites</td><td>Média</td><td>Médio</td><td>Conferir na promoção que a publicação cobriu todos os sites (task #8623), não só o módulo de Interface.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada a deploy + massa + 2 usuários (task #8624).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
