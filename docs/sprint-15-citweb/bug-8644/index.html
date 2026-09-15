@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8644 · Erro ao rodar Interface de Fatura (KEV/KOVR)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8644 · Sprint 15 Citweb</span>
+    <h1>Erro ao rodar Interface de Fatura (IDX10703) — KEV/KOVR, homologação CNPJ alfanumérico</h1>
+    <div class="sub">Módulo Interface → Emissão de Fatura Mensal · Ambiente HML KOVR (instância /alfa/) · Ramo Geral · Ref. 06/2026 · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">4</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">4</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">2·1·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 4 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos) e disponibilidade da massa que falhou (ref 06/2026, Ramo Geral) na instância /alfa/. Falta testar: 4 CTs (2×P1 · 1×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":4,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":4,"p1":2,"p2":1,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — Interface → Emissão de Fatura Mensal (KEV/KOVR)</td></tr>
+    <tr><th>Card</th><td>BUG-8644 (Sprint 15 Citweb) · Dev: Andreia Ferraraccio · Tags: citweb, CNPJ Alfanumérico, KEV</td></tr>
+    <tr><th>Task filha</th><td>#8676</td></tr>
+    <tr><th>Ambiente</th><td>HML KOVR — instância <code>/alfa/</code> (track de homologação do CNPJ alfanumérico) · Ramo Geral · Referência 06/2026</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 14/09/2026</td></tr>
+  </table>
+  <div class="warn-box"><b>Credenciais e dados sensíveis:</b> o usuário/senha e dados de CNPJ da instância <code>/alfa/</code> estão no card AzDO (privado) — <b>não</b> são reproduzidos aqui, pois este plano é publicado em repositório público.</div>
+
+  <h2>2. Descrição</h2>
+  <p>Ao processar a <b>Emissão de Fatura Mensal</b> (módulo Interface, Ramo Geral, referência 06/2026), parte das linhas retornava, na coluna <b>“Resultado Interface Fatura”</b>, o erro <code>IDX10703: Cannot create a 'SymmetricSecurityKey', key length is zero</code>, impedindo o envio dos dados à fila (NSConnect / APIEmissaoFatura) e bloqueando a homologação do CNPJ alfanumérico da KEV/KOVR.</p>
+  <div class="info-box"><b>Causa raiz (dev, 11/09 — é configuração de pipeline, não código):</b> a release pipeline <code>CITWEB - KOVR - ALFA - HML</code> (track paralelo da homologação de CNPJ alfanumérico) não estava vinculada aos <i>variable groups</i> que a pipeline padrão usa — faltava o grupo que popula <code>JwtSecretKey</code> (Scope: Interface). Com a chave vazia, <code>AuthService.GenerateToken</code> falha ao criar a chave simétrica (IDX10703). O <code>Web.KOVR.config</code> versionado tem a chave — a divergência era só na instância publicada <code>/alfa/</code>. Correção: vincular os variable groups à pipeline do track alfa. Registrado como KI-005 em <code>.speckit/known-issues</code>.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Reprocessar em HML <code>/alfa/</code> as linhas que falhavam (ref. 06/2026, Ramo Geral) e confirmar sucesso, sem IDX10703.</li>
+    <li>Confirmar a entrega efetiva à fila (NSConnect) — não apenas ausência de erro na tela.</li>
+    <li>Regressão: linhas já processadas com sucesso não são impactadas.</li>
+    <li>Documentação do processo de configuração do track <code>/alfa/</code> para futuras homologações.</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Alteração de código do módulo Interface — o fix é de configuração de pipeline/deploy.</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li>Correção de pipeline aplicada e a instância <code>/alfa/</code> republicada com os variable groups vinculados (<code>JwtSecretKey</code> populada) — task #8676.</li>
+      <li>Massa: as linhas da referência 06/2026 (Ramo Geral) que falharam com IDX10703 disponíveis para reprocessar na instância <code>/alfa/</code>.</li>
+      <li>Acesso à fila NSConnect / consumo (APIEmissaoFatura) para confirmar recebimento (CT-IFT-002).</li>
+    </ol>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção do envio à fila (IDX10703)</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-IFT-001</span><span class="ct-title">Reprocessar linhas que falhavam → “Resultado Interface Fatura” vazio (sucesso), sem IDX10703</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>HML KOVR instância <code>/alfa/</code>, módulo Interface, com o fix de pipeline aplicado. Linhas da ref. 06/2026 (Ramo Geral) que retornaram IDX10703.</li></ul>
+      <h4>Passos</h4><ol><li>Acessar o módulo <b>Interface</b> pelo menu (por clique).</li><li>Selecionar <b>Ramo Geral</b> → Referência <b>06/2026</b> → <b>Selecionar</b>.</li><li>Marcar as linhas que haviam falhado → <b>Processar</b> → <b>Confirmar</b>.</li><li>Observar a coluna <b>“Resultado Interface Fatura”</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A coluna “Resultado Interface Fatura” retorna <b>vazia</b> (sucesso) para as linhas reprocessadas; <b>não</b> aparece o erro IDX10703.</li><li>Contraprova: a evidência do erro original (IDX10703, pré-fix) fica registrada como baseline para comprovar que o comportamento mudou.</li></ul>
+      <h4>Cobre</h4><p>CA1 (config JwtSecretGroup na /alfa/ — validado pelo token gerado) + CA2.</p>
+      <h4>Tipo</h4><p>Positivo (com contraprova).</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-IFT-002</span><span class="ct-title">Entrega efetiva à fila NSConnect confirmada (não só ausência de erro na tela)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>CT-IFT-001 executado; acesso ao destino da fila (NSConnect / APIEmissaoFatura) para conferência.</li></ul>
+      <h4>Passos</h4><ol><li>Após o reprocessamento com sucesso, localizar no destino (fila/consumo NSConnect) os registros das linhas reprocessadas.</li><li>Conferir que o payload da fatura foi <b>recebido/processado</b> na fila para essas linhas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os dados das linhas reprocessadas constam como <b>efetivamente entregues/processados</b> na fila — prova de que o token foi gerado <b>e</b> o envio chegou ao destino, não apenas que a tela não exibiu erro.</li></ul>
+      <h4>Cobre</h4><p>CA3.</p>
+      <h4>Tipo</h4><p>Integração.</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo B — Regressão e documentação</div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-IFT-003</span><span class="ct-title">Regressão: linhas já processadas com sucesso não são impactadas</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Linhas da ref. 06/2026 (Ramo Geral) que já haviam processado com sucesso antes do fix.</li></ul>
+      <h4>Passos</h4><ol><li>Após aplicar o fix e reprocessar as que falhavam, revisar o estado das linhas que já estavam OK.</li><li>Conferir que não houve reprocessamento indevido nem duplicidade de envio para elas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As linhas previamente bem-sucedidas permanecem íntegras, sem duplicidade na fila e sem novo erro — sem regressão.</li></ul>
+      <h4>Cobre</h4><p>CA4.</p>
+      <h4>Tipo</h4><p>Regressão.</p>
+    </div>
+  </div>
+
+  <div class="ct-block">
+    <div class="ct-head"><span class="ct-id">CT-IFT-004</span><span class="ct-title">Documentação do processo de configuração do track /alfa/ (KI-005)</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Registro de known-issue / procedimento de configuração da instância <code>/alfa/</code>.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar o registro KI-005 (<code>.speckit/known-issues/citweb-known-issues.md</code>) e/ou a documentação do vínculo dos variable groups na pipeline do track alfa.</li><li>Conferir que descreve o padrão (release pipeline de track paralelo precisa dos mesmos variable groups) para futuras homologações de CNPJ alfanumérico.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O processo está documentado, evitando que futuras instâncias <code>/alfa/</code> subam sem a <code>JwtSecretKey</code> por deploy divergente.</li></ul>
+      <h4>Cobre</h4><p>CA5.</p>
+      <h4>Tipo</h4><p>Documentação / processo.</p>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Web.config /alfa/ contém JwtSecretKey (corrigir deploy se vazio)</td><td>CT-IFT-001 (indireto: token gerado)</td><td>Pendente</td></tr>
+    <tr><td>CA2 — Reprocessar linhas que falharam → sucesso, sem IDX10703</td><td>CT-IFT-001</td><td>Pendente</td></tr>
+    <tr><td>CA3 — Confirmar recebimento/processamento na fila (NSConnect)</td><td>CT-IFT-002</td><td>Pendente</td></tr>
+    <tr><td>CA4 — Sem regressão nas linhas já bem-sucedidas</td><td>CT-IFT-003</td><td>Pendente</td></tr>
+    <tr><td>CA5 — Documentar o processo de configuração da /alfa/</td><td>CT-IFT-004</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>4</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 2 · P2 = 1 · P3 = 1</td></tr>
+    <tr><td>Cobertura dos critérios de aceite</td><td>5/5 (100%)</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + massa/pipeline)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Instância <code>/alfa/</code> ainda sem os variable groups (fix não republicado)</td><td>Média</td><td>Alto</td><td>Confirmar com dev (#8676) que a pipeline do track alfa foi republicada antes de executar CT-IFT-001.</td></tr>
+    <tr><td>"Sucesso na tela" sem entrega real na fila</td><td>Média</td><td>Alto</td><td>CT-IFT-002 obrigatório — confirmar no destino (NSConnect), não aceitar só a coluna vazia (regra: “sem erro” ≠ aprovado).</td></tr>
+    <tr><td>Duplicidade de envio ao reprocessar</td><td>Baixa</td><td>Médio</td><td>CT-IFT-003 confere as linhas já OK contra reprocessamento/duplicidade.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada a fix republicado na /alfa/ + massa da ref. 06/2026 (task #8676).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
