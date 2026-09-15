@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8690 · Exclusão por Seleção com filtro de competência</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8690 · Sprint 15 Citweb</span>
+    <h1>Exclusão por Seleção de averbações — filtro opcional por competência (mês/ano)</h1>
+    <div class="sub">Módulo Averbação → Exclusão por Seleção · Nacional (RCV, RCTRC, RCTFC, RCTAC, RCAC, RR) + Internacional (Exportação, Importação Definitiva, RCTVI Adicionais) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">12</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">12</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">4·7·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 12 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos) e conclusão do desenvolvimento. Falta testar: 12 CTs (4×P1 · 7×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":12,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":12,"p1":4,"p2":7,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — Averbação → Exclusão por Seleção (modal _ExclusaoBloco)</td></tr>
+    <tr><th>Card</th><td>PBI-8690 (Sprint 15 Citweb) · Dev: Andreia Ferraraccio · Tags: citweb, CORE, KEV</td></tr>
+    <tr><th>Task filha</th><td>#8733</td></tr>
+    <tr><th>Ambiente</th><td>HML — telas de Exclusão de averbações (Nacional + Internacional)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 14/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na <b>Exclusão por Seleção</b> de averbações em movimento aberto, incluir um filtro <b>opcional</b> de <b>competência (mês/ano)</b> para restringir o período das averbações retornadas na consulta, facilitando a identificação do que excluir.</p>
+  <div class="info-box"><b>Semântica confirmada com a seguradora:</b> “competência” = mês/ano de referência da <b>data de saída do embarque</b> (campo <code>d_sda_vgm</code>) — <b>não</b> é <code>d_ano_mes_ref</code> (mês/ano de fechamento). É o mesmo conceito da opção “Faixa” (Dt. Saída da Viagem na Competência) do RCV/AXA. O padrão de filtro por mês/ano sobre <code>d_sda_vgm</code> já existe em produção (<code>ListarNumerosAverbacoes(..., MesAnoRef)</code>) e será reaproveitado. Filtro é mês/ano <b>exato</b> (sem intervalo de/até).</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Filtro opcional de competência (mês/ano) na Exclusão por Seleção — FEAT-01 a FEAT-06.</li>
+    <li>Validações client-side dos campos (FEAT-10, 11, 12).</li>
+    <li>Envio parametrizado do filtro (FEAT-05, ADR-001).</li>
+    <li>Paridade nos 6 ramos Nacional (FEAT-07) e nas 3 telas Internacional (FEAT-08).</li>
+    <li>Não interferência nas opções “Em bloco” e “Faixa” do mesmo modal (FEAT-09).</li>
+  </ul>
+  <h3>Out of scope (declarado no card)</h3>
+  <ul>
+    <li>Alterar a semântica/comportamento da opção “Faixa” já existente (RCV/AXA).</li>
+    <li>Qualquer alteração em <code>d_ano_mes_ref</code> ou nos fluxos de fechamento/faturamento.</li>
+    <li>Intervalo de competência (de/até) — apenas mês/ano exato.</li>
+    <li>Consolidar os 9 pares Controller/Repository duplicados.</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Massa (a confirmar no banco/UI antes da execução — nunca supor):</b>
+    <ul>
+      <li>Averbações em <b>movimento aberto</b> por ramo/tela, com <code>d_sda_vgm</code> em competências conhecidas — pelo menos uma <b>dentro</b> e uma <b>fora</b> do mês/ano de teste, para provar o filtro (FEAT-03/04).</li>
+      <li>Filial / apólice / subgrupo concretos por ramo (consultar Relação de Apólices ou banco HML).</li>
+      <li>Desenvolvimento concluído e deployado em HML (card hoje em “Pronto para desenvolvimento”).</li>
+    </ul>
+  </div>
+  <div class="info-box"><b>Nota de fase:</b> card em desenvolvimento (a funcionalidade ainda não está em HML). Os caminhos de menu seguem a estrutura declarada no card (Averbação → Exclusão por Seleção); os <b>labels/seletores exatos</b> e o comportamento por ramo/tela são confirmados <b>in loco na execução</b> (pós-deploy, task #8733), com evidência por CT.</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Filtro de competência (núcleo funcional)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-001</span><span class="ct-title">Opção “Seleção” exibe campos Mês/Ano habilitados e opcionais</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Modal de exclusão de averbações aberto, opção “Seleção”.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de exclusão de averbações pelo menu (por clique).</li><li>Selecionar a opção <b>Seleção</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os campos Mês e Ano de competência ficam visíveis e habilitados, sem obrigatoriedade (pesquisa possível em branco).</li></ul><h4>Cobre</h4><p>FEAT-01.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-002</span><span class="ct-title">Pesquisar sem competência = comportamento atual (todas do movimento aberto)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Filial/apólice/subgrupo com averbações em movimento aberto.</li></ul>
+      <h4>Passos</h4><ol><li>Opção Seleção; informar filial/apólice/subgrupo; deixar Mês/Ano em branco.</li><li>Pesquisar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Retorna todas as averbações do movimento aberto (idêntico ao comportamento atual) — sem regressão.</li></ul><h4>Cobre</h4><p>FEAT-02 (regressão do fluxo base).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-003</span><span class="ct-title">Mês/ano válidos → só averbações com d_sda_vgm no período (análise de limite)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Massa com averbações cujo <code>d_sda_vgm</code> caia dentro e fora do mês/ano alvo, incluindo bordas (dia 1 do mês; último dia; dia 1 do mês seguinte).</li></ul>
+      <h4>Passos</h4><ol><li>Opção Seleção; informar mês/ano válidos; pesquisar.</li><li>Conferir as averbações retornadas contra o <code>d_sda_vgm</code> conhecido da massa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Retorna <b>apenas</b> averbações com <code>d_sda_vgm &gt;= dia 1 do mês</code> e <code>&lt; dia 1 do mês seguinte</code>. Averbação com saída no dia 1 do mês entra; no dia 1 do mês seguinte, não.</li></ul><h4>Cobre</h4><p>FEAT-03.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-004</span><span class="ct-title">Mês/ano sem correspondência → grid vazia “Nenhum registro”, sem erro</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Opção Seleção; informar mês/ano sem averbações; pesquisar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Grid vazia com a mensagem padrão existente (“Nenhum registro”), sem erro/exception.</li></ul><h4>Cobre</h4><p>FEAT-04.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-005</span><span class="ct-title">Coluna “Competência” exibida na grid (derivada de d_sda_vgm)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Realizar uma pesquisa que retorne averbações.</li><li>Conferir a coluna “Competência” de cada linha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grid mostra a coluna “Competência” com o mês/ano derivado do <code>d_sda_vgm</code> de cada averbação retornada.</li></ul><h4>Cobre</h4><p>FEAT-06.</p></div></div>
+
+  <div class="group-header">Grupo B — Validações dos campos</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-006</span><span class="ct-title">Só Mês ou só Ano → alerta, não pesquisa com filtro parcial</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Preencher apenas Mês (Ano vazio) e pesquisar.</li><li>Repetir com apenas Ano (Mês vazio).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema alerta para completar os dois campos ou limpar ambos; não pesquisa com filtro parcial.</li></ul><h4>Cobre</h4><p>FEAT-10.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-007</span><span class="ct-title">Mês fora de 01–12 → alerta valor inválido, não envia</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Informar mês inválido (ex.: 00 ou 13) + ano válido; pesquisar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Alerta de valor inválido (mesmo padrão client-side dos campos mes_ref/ano_ref da opção “Faixa”); a pesquisa não é enviada.</li></ul><h4>Cobre</h4><p>FEAT-11.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-008</span><span class="ct-title">Ano com menos de 4 dígitos → máscara/maxlength dos campos ano_ref</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Digitar ano com menos de 4 dígitos no campo Ano.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo aplica a mesma máscara/maxlength já usada nos campos ano_ref existentes.</li></ul><h4>Cobre</h4><p>FEAT-12.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-009</span><span class="ct-title">Filtro enviado parametrizado (não concatenado) — robustez ADR-001</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Informar no campo de competência um conteúdo com caractere especial/aspa (dentro do que a máscara permitir) e pesquisar.</li><li>Observar que não há erro de SQL nem comportamento anômalo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O parâmetro é tratado de forma parametrizada (sem injeção/erro de SQL) — coerente com ADR-001. Sem concatenação na query.</li></ul><h4>Cobre</h4><p>FEAT-05.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-010</span><span class="ct-title">Regressão: filtro da Seleção não interfere em “Em bloco” e “Faixa”</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Modal com as 3 opções (Seleção, Em bloco, Faixa) — cenário RCV/AXA.</li></ul>
+      <h4>Passos</h4><ol><li>Usar o filtro de competência na Seleção; alternar para “Em bloco” e para “Faixa”.</li><li>Conferir que essas opções seguem funcionando como antes.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As opções “Em bloco” e “Faixa/Dt. Saída da Viagem” permanecem inalteradas e funcionais — sem regressão.</li></ul><h4>Cobre</h4><p>FEAT-09.</p></div></div>
+
+  <div class="group-header">Grupo C — Paridade entre módulos</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-011</span><span class="ct-title">Paridade Nacional: FEAT-01..06 idênticos nos 6 ramos</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Massa de averbações em movimento aberto em cada ramo Nacional.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o núcleo (FEAT-01 a FEAT-06) em cada ramo: <b>RCV, RCTRC, RCTFC, RCTAC, RCAC, RR</b> (subgrupo por ramo).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O comportamento do filtro de competência é idêntico nos 6 ramos Nacional.</li></ul><h4>Cobre</h4><p>FEAT-07.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXS-012</span><span class="ct-title">Paridade Internacional: FEAT-01..06 nas 3 telas</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Massa nas 3 telas Internacional.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o núcleo (FEAT-01 a FEAT-06) em: <b>Exportação, Importação Definitiva, RCTVI Adicionais</b> (respeitando nomes de campo/rota de cada tela).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O comportamento é idêntico nas 3 telas Internacional.</li></ul><h4>Cobre</h4><p>FEAT-08.</p></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério (FEAT)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>FEAT-01 — campos Mês/Ano opcionais na Seleção</td><td>CT-EXS-001</td><td>Pendente</td></tr>
+    <tr><td>FEAT-02 — sem competência = comportamento atual</td><td>CT-EXS-002</td><td>Pendente</td></tr>
+    <tr><td>FEAT-03 — filtra por d_sda_vgm no mês/ano (limites)</td><td>CT-EXS-003</td><td>Pendente</td></tr>
+    <tr><td>FEAT-04 — sem correspondência = “Nenhum registro”</td><td>CT-EXS-004</td><td>Pendente</td></tr>
+    <tr><td>FEAT-05 — parâmetro parametrizado (ADR-001)</td><td>CT-EXS-009</td><td>Pendente</td></tr>
+    <tr><td>FEAT-06 — coluna “Competência” derivada de d_sda_vgm</td><td>CT-EXS-005</td><td>Pendente</td></tr>
+    <tr><td>FEAT-07 — paridade 6 ramos Nacional</td><td>CT-EXS-011</td><td>Pendente</td></tr>
+    <tr><td>FEAT-08 — paridade 3 telas Internacional</td><td>CT-EXS-012</td><td>Pendente</td></tr>
+    <tr><td>FEAT-09 — não interfere em “Em bloco”/“Faixa”</td><td>CT-EXS-010</td><td>Pendente</td></tr>
+    <tr><td>FEAT-10 — filtro parcial (só Mês/só Ano) bloqueado</td><td>CT-EXS-006</td><td>Pendente</td></tr>
+    <tr><td>FEAT-11 — mês fora de 01–12 inválido</td><td>CT-EXS-007</td><td>Pendente</td></tr>
+    <tr><td>FEAT-12 — ano &lt; 4 dígitos (máscara/maxlength)</td><td>CT-EXS-008</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>12</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 4 · P2 = 7 · P3 = 1</td></tr>
+    <tr><td>Cobertura dos critérios de aceite (FEAT-01..12)</td><td>12/12 (100%)</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + desenvolvimento concluído)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Massa insuficiente para provar as bordas do filtro (FEAT-03)</td><td>Média</td><td>Alto</td><td>Consultar banco e garantir averbações com d_sda_vgm no dia 1, último dia e dia 1 do mês seguinte antes de executar.</td></tr>
+    <tr><td>Divergência de comportamento entre ramos/telas (paridade)</td><td>Média</td><td>Médio</td><td>CT-EXS-011/012 cobrem os 9 alvos; qualquer divergência = reprovação daquele alvo, não do conjunto.</td></tr>
+    <tr><td>Filtro afetar “Faixa”/“Em bloco” do mesmo modal</td><td>Baixa</td><td>Alto</td><td>CT-EXS-010 (regressão) obrigatório antes de aprovar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada a desenvolvimento concluído + massa por ramo/tela (task #8733).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
