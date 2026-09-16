@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8765 · urlpathname2() quebra AJAX (Fairfax /alfa/)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8765 · Sprint 15 Citweb</span>
+    <h1>urlpathname2() quebra chamadas AJAX quando o site é publicado sob subpath (Fairfax /alfa/)</h1>
+    <div class="sub">Módulo InterfaceSTREITI → Pacotes WI → Exclusão de Pacotes · combo “Estabelecimento” (Select2) · Ambiente FAIRFAX HML (/alfa/) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">4</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">4</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">2·2·0</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 4 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos) e deploy do fix no Fairfax. Falta testar: 4 CTs (2×P1 · 2×P2).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":4,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":4,"p1":2,"p2":2,"p3":0}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — InterfaceSTREITI → Exclusão de Pacotes (combo Estabelecimento)</td></tr>
+    <tr><th>Card</th><td>BUG-8765 (Sprint 15 Citweb) · Dev: Diego Almeida</td></tr>
+    <tr><th>Ambiente</th><td>FAIRFAX HML — publicado sob subpath <code>/alfa/</code> (ex.: <code>/alfa/InterfaceSTREITI/…</code>)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 16/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na tela <b>Exclusão de Pacotes</b> (InterfaceSTREITI), o combo <b>Estabelecimento</b> (Select2) não carrega opções no ambiente <b>Fairfax</b>, que é publicado sob um path virtual extra (<code>/alfa/InterfaceSTREITI/…</code>). A chamada AJAX que popula o combo é montada com a URL errada e retorna <b>404</b> (página de erro HTML), fazendo o <code>JSON.parse</code> falhar.</p>
+  <div class="info-box"><b>Causa raiz (confirmada no código):</b> <code>CommonApplication/Scripts/util.js:527</code>, função <code>urlpathname2()</code> assume que o 2º segmento do path (<code>window.location.pathname.split('/')[1]</code>) é sempre o nome do site. No Fairfax (<code>/alfa/InterfaceSTREITI/…</code>) ela pega <code>'alfa'</code> e <b>perde o segmento real do site</b> (<code>InterfaceSTREITI</code>), então a chamada AJAX vai para uma URL inexistente (404). Consumidor observado: <code>InterfaceSTREITI/Scripts/InterfaceSTREITI/PacoteExclusao.js</code>. DoD prevê corrigir <code>urlpathname2()</code> ou substituir por uma base URL renderizada no servidor (ex.: <code>Url.Content("~/")</code>).</div>
+  <div class="warn-box"><b>Nota de fase:</b> card <b>novo</b> (fix ainda não deployado no Fairfax). Os caminhos de menu seguem a estrutura do card (InterfaceSTREITI → Pacotes WI → Exclusão de Pacotes); os labels exatos e a validação do fix são confirmados <b>in loco na execução</b> (pós-deploy), com evidência por CT. <b>Sem dados sensíveis:</b> nenhum CNPJ/credencial neste plano público.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Carregamento do combo Estabelecimento (Select2) na Exclusão de Pacotes no Fairfax (/alfa/).</li>
+    <li>Regressão em ambiente publicado na raiz (sem subpath extra).</li>
+    <li>Demais chamadas AJAX que usam <code>urlpathname2()</code> no módulo (a correção é na função compartilhada).</li>
+    <li>Fluxo funcional da Exclusão de Pacotes após o combo carregar.</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Regras de negócio da exclusão de pacotes em si (não alteradas).</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li>Fix da <code>urlpathname2()</code> deployado no ambiente Fairfax (/alfa/) — card hoje em “New”.</li>
+      <li>Acesso ao Fairfax HML (<code>fairfax-hml-faturamento.nsseg.com.br</code>, publicado sob <code>/alfa/</code>) com estabelecimentos cadastrados para popular o combo.</li>
+      <li>Um ambiente publicado na raiz (sem subpath) para a regressão (CT-EXP-002).</li>
+    </ol>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção do combo no Fairfax (/alfa/)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXP-001</span><span class="ct-title">Combo Estabelecimento carrega no Fairfax /alfa/ (AJAX correta, sem 404, console limpo)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Fairfax HML (publicado sob <code>/alfa/</code>), fix deployado, estabelecimentos cadastrados.</li></ul>
+      <h4>Passos</h4><ol><li>Acessar o InterfaceSTREITI do Fairfax pelo menu (por clique).</li><li>Pacotes WI → Exclusão de Pacotes.</li><li>Abrir o combo “Selecione o Estabelecimento”.</li><li>Abrir o console do navegador durante o carregamento.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O combo carrega as opções de estabelecimento normalmente. A chamada AJAX inclui o segmento correto (<code>…/InterfaceSTREITI/PacoteExclusao/ListarEstabelecimentoSelect…</code>) e retorna JSON (não 404). Console <b>sem</b> o erro 404 nem o <code>SyntaxError: Unexpected token '&lt;'</code>.</li></ul>
+      <h4>Tipo</h4><p>Positivo (correção).</p>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo B — Regressão e abrangência da função util</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXP-002</span><span class="ct-title">Regressão: ambiente publicado na raiz (sem subpath) continua carregando o combo</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Ambiente/tenant publicado na raiz (sem o subpath <code>/alfa/</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a Exclusão de Pacotes nesse ambiente.</li><li>Abrir o combo Estabelecimento.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O combo continua carregando normalmente — o fix da <code>urlpathname2()</code> não quebrou o caso que já funcionava (URL montada corretamente com e sem subpath).</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXP-003</span><span class="ct-title">Demais chamadas AJAX que usam urlpathname2() montam URL correta no /alfa/</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Fairfax (/alfa/); mapear os pontos do módulo que também usam <code>urlpathname2()</code> (a correção é na função compartilhada).</li></ul>
+      <h4>Passos</h4><ol><li>Exercitar outras ações da tela/módulo que disparam AJAX via <code>urlpathname2()</code> (ex.: listagem/exclusão de pacotes).</li><li>Observar as URLs chamadas e as respostas no console/rede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as chamadas que passam por <code>urlpathname2()</code> montam a URL com o segmento do site correto no Fairfax — nenhuma retorna 404 por perda de segmento.</li></ul>
+      <h4>Tipo</h4><p>Abrangência (função compartilhada).</p>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXP-004</span><span class="ct-title">Fluxo de Exclusão de Pacotes prossegue após o combo carregar</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Combo carregando (CT-EXP-001); pacotes disponíveis para o estabelecimento.</li></ul>
+      <h4>Passos</h4><ol><li>Selecionar um estabelecimento no combo.</li><li>Prosseguir o fluxo (listar/selecionar pacotes para exclusão) conforme a tela permite.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com o combo funcional, o fluxo da Exclusão de Pacotes prossegue normalmente — a tela deixa de ficar bloqueada pelo combo vazio.</li></ul>
+      <h4>Tipo</h4><p>End-to-end (desbloqueio funcional).</p>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite / DoD</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Combo carrega no Fairfax /alfa/ (URL AJAX correta, sem 404)</td><td>CT-EXP-001</td><td>Pendente</td></tr>
+    <tr><td>Sem regressão em ambiente na raiz</td><td>CT-EXP-002</td><td>Pendente</td></tr>
+    <tr><td>Correção da função compartilhada cobre os demais consumidores</td><td>CT-EXP-003</td><td>Pendente</td></tr>
+    <tr><td>Fluxo funcional desbloqueado</td><td>CT-EXP-004</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>4</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 2 · P2 = 2 · P3 = 0</td></tr>
+    <tr><td>Cobertura</td><td>Correção + regressão + abrangência + fluxo (100%)</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + deploy do fix no Fairfax)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Fix corrigir o /alfa/ mas quebrar o caso raiz (ou vice-versa)</td><td>Média</td><td>Alto</td><td>CT-EXP-001 (com subpath) e CT-EXP-002 (sem subpath) obrigatórios juntos.</td></tr>
+    <tr><td>Outros consumidores de <code>urlpathname2()</code> não cobertos</td><td>Média</td><td>Médio</td><td>CT-EXP-003 mapeia e exercita os demais pontos do módulo que usam a função.</td></tr>
+    <tr><td>Ambiente sem massa de estabelecimentos para o combo</td><td>Baixa</td><td>Médio</td><td>Confirmar estabelecimentos cadastrados no Fairfax antes de executar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada ao deploy do fix no Fairfax (/alfa/).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
