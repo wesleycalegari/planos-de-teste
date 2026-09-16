@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8759 · Worker ArgumentNullException (CD_TIPO_EMBALAGEM)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8759 · Sprint 15 Citweb</span>
+    <h1>Worker DUIMP — ArgumentNullException (CD_TIPO_EMBALAGEM) ao reprocessar DUIMP corrigida</h1>
+    <div class="sub">Componente WorkerDUIMP · Services/InterfaceStreitiService.cs · Ambiente HML AXA (smt-hom-citweb-axa) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">5</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">5</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">2·2·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 5 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos), Worker DUIMP em HML e massa (DUIMP com Embalagem null). Falta testar: 5 CTs (2×P1 · 2×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":5,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":5,"p1":2,"p2":2,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — WorkerDUIMP · <code>Services/InterfaceStreitiService.cs</code> (ProcessaDUIMP síncrono e ProcessaDUIMPAsync)</td></tr>
+    <tr><th>Card</th><td>BUG-8759 (Sprint 15 Citweb) · Dev: Diego Almeida · fluxo ADO-8255/8256</td></tr>
+    <tr><th>Ambiente</th><td>HML AXA — base <code>smt-hom-citweb-axa</code> · WorkerDUIMP</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 16/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Ao reprocessar uma DUIMP corrigida pela tela “DUIMP sem Data de Saída” (<code>sts_prc='R'</code>), o WorkerDUIMP lançava <code>ArgumentNullException</code> ao processar o campo <code>CD_TIPO_EMBALAGEM</code> quando a coleção <b>Embalagem vinha null</b> (não vazia) no JSON salvo — a DUIMP nunca avançava e o erro se repetia a cada ciclo (~37s).</p>
+  <div class="info-box"><b>Causa raiz / fix (confirmado no código):</b> <code>Embalagem.FirstOrDefault()</code> lançava porque o <code>?.</code> protegia só o item retornado, não a coleção <code>Embalagem</code> nula. Fix: <code>dadosDeclaracaoResponse.Embalagem?.FirstOrDefault()?.CD_TIPO_EMBALAGEM…</code>, aplicado nos <b>dois métodos</b> (ProcessaDUIMP síncrono e ProcessaDUIMPAsync). DoD também pede avaliar o mesmo padrão em outros campos (ex.: <code>Adicao.FirstOrDefault()</code>).</div>
+  <div class="warn-box"><b>⚠️ Interdependência com o #8779:</b> corrigir esta exceção faz o Worker <b>não quebrar</b>, mas o reprocesso só <b>conclui de ponta a ponta</b> (status R → concluído + averbação) quando o <b>#8779</b> também estiver corrigido (a cláusula WHERE de <code>AtualizaStatusAsync</code> não aceita <code>sts_prc='R'</code>, deixando a DUIMP em loop silencioso). Por isso o CT de conclusão ponta a ponta (CT-WEM-002) fica <b>gated pelo #8779</b>. <b>Sem PII</b> neste plano público (DUIMP/CNPJ reais só no card).</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Reprocesso de DUIMP com <code>Embalagem null</code> no JSON salvo sem lançar <code>ArgumentNullException</code>.</li>
+    <li>Abrangência do padrão (outras coleções nulas, ex.: Adicao) e cobertura dos dois métodos (sync/async).</li>
+    <li>Regressão do fluxo feliz (Embalagem preenchida).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Correção da cláusula de status (WHERE aceitar R) — é o <b>#8779</b>.</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li>Fix do #8759 deployado no WorkerDUIMP em HML AXA.</li>
+      <li><b>Massa:</b> DUIMP em <code>sts_prc='R'</code> cujo JSON salvo tenha <code>Embalagem:null</code> (dependência de dado Quorum).</li>
+      <li>Para o ponta a ponta (CT-WEM-002): #8779 também corrigido/deployado.</li>
+      <li>Acesso ao log do Worker e ao banco (status/averbação) para inspeção.</li>
+    </ol>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção da exceção</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WEM-001</span><span class="ct-title">Reprocessar DUIMP com Embalagem null → sem ArgumentNullException; Worker segue o fluxo</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP em <code>R</code> com <code>Embalagem:null</code> no JSON; Worker com o fix.</li></ul>
+      <h4>Passos</h4><ol><li>Aguardar/forçar o ciclo do WorkerDUIMP processar a DUIMP.</li><li>Ler o log do Worker.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O Worker <b>não</b> lança <code>ArgumentNullException (CD_TIPO_EMBALAGEM)</code>; o processamento avança além desse ponto. Contraprova: baseline do erro pré-fix (a cada ~37s).</li></ul>
+      <h4>Tipo</h4><p>Positivo (com contraprova).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WEM-002</span><span class="ct-title">Ponta a ponta: DUIMP corrigida conclui (R → concluído) e gera averbação</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>CT-WEM-001 ok; <b>#8779 também corrigido</b> (senão a DUIMP não sai de R — gated).</li></ul>
+      <h4>Passos</h4><ol><li>Após o reprocesso sem exceção, conferir o status da DUIMP e a geração da averbação no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A DUIMP avança de <code>R</code> para concluído e gera a averbação correspondente. ⚠️ Se #8779 ainda não corrigido → <b>BLOQUEADO por dependência</b> (não reprovar o #8759 por isso).</li></ul>
+      <h4>Tipo</h4><p>End-to-end (gated #8779).</p></div></div>
+
+  <div class="group-header">Grupo B — Abrangência e regressão</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WEM-003</span><span class="ct-title">Regressão: DUIMP com Embalagem preenchida reprocessa normalmente</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP com <code>Embalagem</code> preenchida (lista não vazia).</li></ul>
+      <h4>Passos</h4><ol><li>Reprocessar a DUIMP pelo Worker.</li><li>Conferir que o CD_TIPO_EMBALAGEM é lido normalmente.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O fluxo feliz continua igual — a DUIMP com Embalagem preenchida processa sem alteração de comportamento (sem regressão pelo fix).</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WEM-004</span><span class="ct-title">Abrangência: outras coleções nulas (ex.: Adicao) e ambos os métodos (sync/async)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Massa/JSON que exercite coleções nulas além de Embalagem (ex.: Adicao) e os dois caminhos (ProcessaDUIMP síncrono e ProcessaDUIMPAsync).</li></ul>
+      <h4>Passos</h4><ol><li>Reprocessar DUIMPs que passem pelos dois métodos e com outras coleções potencialmente nulas.</li><li>Ler o log.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma <code>ArgumentNullException</code> por coleção nula em nenhum dos dois métodos — o mesmo padrão de null-check foi aplicado onde se repete.</li></ul>
+      <h4>Tipo</h4><p>Abrangência.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-WEM-005</span><span class="ct-title">Ciclo do Worker não fica em loop de falha silencioso</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Acompanhar alguns ciclos do Worker após o fix.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O ciclo não repete a exceção indefinidamente (~37s); o resultado do ciclo deixa de acumular “Falhas: 7” pela mesma DUIMP.</li></ul>
+      <h4>Tipo</h4><p>Observabilidade.</p></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério (DoD)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Embalagem null não lança exceção (fix nos 2 métodos)</td><td>CT-WEM-001, CT-WEM-004</td><td>Pendente</td></tr>
+    <tr><td>Reprocesso conclui + gera averbação (com #8779)</td><td>CT-WEM-002</td><td>Pendente</td></tr>
+    <tr><td>Sem regressão no fluxo feliz (Embalagem preenchida)</td><td>CT-WEM-003</td><td>Pendente</td></tr>
+    <tr><td>Mesmo padrão em outros campos (Adicao etc.)</td><td>CT-WEM-004</td><td>Pendente</td></tr>
+    <tr><td>Sem loop de falha silencioso</td><td>CT-WEM-005</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>5</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 2 · P2 = 2 · P3 = 1</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + Worker/massa; ponta a ponta gated #8779)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>#8779 não corrigido → DUIMP não sai de R</td><td>Alta</td><td>Médio</td><td>CT-WEM-002 BLOQUEADO por dependência; CT-WEM-001 (só a exceção) valida o escopo do #8759 isoladamente.</td></tr>
+    <tr><td>Massa com Embalagem:null indisponível</td><td>Média</td><td>Alto</td><td>Confirmar/gerar DUIMP com Embalagem null antes de executar; nunca semear por SQL sem evidência.</td></tr>
+    <tr><td>Fix aplicado em só um dos métodos</td><td>Baixa</td><td>Alto</td><td>CT-WEM-004 exercita sync e async.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada a Worker/massa; ponta a ponta depende do #8779. Nota: o comentário de defer de 15/09 foi superado — o fix foi aplicado e o card está “Pronto para homologação”.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
