@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8710 · Aprovação de prévia RCV não aparece (CITNET Fairfax)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8710 · Sprint 15 Citweb</span>
+    <h1>Aprovação de prévia RCV — prévias liberadas não aparecem no CITNET (Fairfax)</h1>
+    <div class="sub">CITNET — Aprovação de Prévia · ramo RCV (59) · seguradora Fairfax · Ambiente FAIRFAX HML · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">6</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">6</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">3·2·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 6 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos) e o fix deployado no Fairfax. Falta testar: 6 CTs (3×P1 · 2×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":6,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":6,"p1":3,"p2":2,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — Aprovação de Prévia (ramo RCV / 59)</td></tr>
+    <tr><th>Card</th><td>BUG-8710 (Sprint 15 Citweb) · Dev: Diego Almeida · Tags: Citnet, FAIRFAX, main-fix</td></tr>
+    <tr><th>Tasks filhas</th><td>#8760, #8761, #8762, #8763</td></tr>
+    <tr><th>Ambiente</th><td>FAIRFAX HML — CITNET (via CITWEB → módulo CITNET → Aprovação de prévia). Credenciais no card AzDO (privado).</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 16/09/2026</td></tr>
+  </table>
+  <div class="warn-box"><b>Dados sensíveis:</b> usuário/senha do Fairfax e números de apólice/segurado da massa estão no card AzDO (privado) — <b>não</b> reproduzidos aqui (plano público). <b>Ramo:</b> regra específica do RCV (59) — não generalizar para outros ramos.</div>
+
+  <h2>2. Descrição</h2>
+  <p>Prévias do ramo <b>RCV</b> liberadas com sucesso pela seguradora <b>não ficam disponíveis</b> na tela do corretor no CITNET para conferência/aprovação. Ao acessar a aprovação (competência 08/2026), o sistema retorna <b>“Não há movimento para competência informada”</b> — como se não existisse movimento — mesmo havendo embarque processado com sucesso. Isso trava o fluxo liberação → conferência → aprovação, necessário antes do fechamento da competência.</p>
+  <div class="info-box"><b>Causa / direção do fix (coordenação — Sandra):</b> o Fairfax tem um <b>tratamento apartado</b>; a correção é fazê-lo <b>executar a rotina genérica de aprovação de prévia</b>, o mesmo caminho já usado por <b>AXA, KEV, AIG e YELUM</b>, garantindo que não haja erro. O movimento existe corretamente na base da Fairfax; o problema está na rotina apartada que não o encontra para a competência.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Prévia RCV liberada aparecer no CITNET para o corretor (competência correta), sem a mensagem indevida.</li>
+    <li>Aprovar e reprovar a prévia (fluxo completo).</li>
+    <li>Fairfax passar a usar a rotina genérica (paridade com AXA/KEV/AIG/YELUM) sem regressão nas demais.</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Outros ramos que não o RCV (59).</li>
+    <li>Produção — QA valida o fix em HML (o bug foi confirmado em PROD, mas QA não testa em PROD).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Massa / ambiente (confirmar — nunca supor):</b>
+    <ul>
+      <li>Fix deployado no Fairfax (card em “Pronto para homologação”).</li>
+      <li>Apólice RCV Fairfax com prévia liberada e <b>embarque processado com sucesso</b> para uma competência conhecida (ex.: 08/2026) — consultar/confirmar no banco/UI.</li>
+      <li>Acesso ao CITNET Fairfax pelo CITWEB (credenciais no card).</li>
+      <li>Para a regressão: apólices em AXA/KEV/AIG/YELUM com prévia liberada.</li>
+    </ul>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Prévia RCV visível e aprovável (Fairfax)</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-001</span><span class="ct-title">Prévia RCV liberada aparece no CITNET p/ o corretor — sem “Não há movimento” indevido</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Prévia RCV Fairfax liberada, embarque processado com sucesso, competência conhecida.</li></ul>
+      <h4>Passos</h4><ol><li>Logar no CITWEB e abrir o módulo CITNET (por clique).</li><li>Acessar a etapa de aprovação de prévia para a competência do embarque.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia liberada aparece disponível para conferência; o sistema <b>NÃO</b> exibe “Não há movimento para competência informada” quando existe movimento processado.</li></ul>
+      <h4>Tipo</h4><p>Positivo (correção).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-002</span><span class="ct-title">Corretor aprova a prévia (fluxo liberação → conferência → aprovação conclui)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Prévia visível (CT-PRV-001).</li></ul>
+      <h4>Passos</h4><ol><li>Selecionar a prévia e aprovar.</li><li>Conferir a mensagem de sucesso e o estado da prévia.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia é aprovada com sucesso; o fluxo segue para o fechamento — sem travar.</li></ul>
+      <h4>Tipo</h4><p>Positivo (happy path).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-003</span><span class="ct-title">Corretor reprova a prévia</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Prévia visível.</li></ul>
+      <h4>Passos</h4><ol><li>Selecionar a prévia e reprovar.</li><li>Conferir o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia é reprovada normalmente (o caminho de reprovação também funciona).</li></ul>
+      <h4>Tipo</h4><p>Caminho alternativo.</p></div></div>
+
+  <div class="group-header">Grupo B — Rotina genérica e regressão</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-004</span><span class="ct-title">Fairfax usa a rotina genérica de aprovação (paridade com AXA/KEV/AIG/YELUM)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fix aplicado (Fairfax no fluxo genérico, sem tratamento apartado).</li></ul>
+      <h4>Passos</h4><ol><li>Executar a aprovação de prévia RCV no Fairfax.</li><li>Confirmar que o comportamento segue a rotina genérica (mesmo caminho das demais seguradoras).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O Fairfax passa a aprovar a prévia pela rotina genérica, sem o tratamento apartado que causava o erro.</li></ul>
+      <h4>Tipo</h4><p>Verificação do fix (direção da coordenação).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-005</span><span class="ct-title">Regressão: AXA / KEV / AIG / YELUM continuam aprovando prévia normalmente</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Prévias liberadas em AXA/KEV/AIG/YELUM.</li></ul>
+      <h4>Passos</h4><ol><li>Aprovar prévia em cada uma dessas seguradoras.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O comportamento de aprovação de prévia nas seguradoras que já funcionavam permanece inalterado — a generalização não quebrou ninguém.</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-006</span><span class="ct-title">Negativo: competência sem movimento real → mensagem “Não há movimento” continua correta</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Competência que realmente não tem movimento processado.</li></ul>
+      <h4>Passos</h4><ol><li>Acessar a aprovação de prévia para essa competência.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem “Não há movimento para competência informada” <b>continua sendo exibida corretamente</b> quando de fato não há movimento — o fix não mascara o caso legítimo.</li></ul>
+      <h4>Tipo</h4><p>Negativo (contraprova do oráculo).</p></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Cenário desejado</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Prévia liberada visível, sem mensagem indevida</td><td>CT-PRV-001</td><td>Pendente</td></tr>
+    <tr><td>Corretor aprova/reprova a prévia</td><td>CT-PRV-002, CT-PRV-003</td><td>Pendente</td></tr>
+    <tr><td>Fairfax na rotina genérica (paridade)</td><td>CT-PRV-004</td><td>Pendente</td></tr>
+    <tr><td>Sem regressão nas demais seguradoras</td><td>CT-PRV-005</td><td>Pendente</td></tr>
+    <tr><td>Mensagem correta quando não há movimento</td><td>CT-PRV-006</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>6</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 3 · P2 = 2 · P3 = 1</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + fix no Fairfax + massa)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Generalizar o Fairfax quebrar AXA/KEV/AIG/YELUM</td><td>Média</td><td>Alto</td><td>CT-PRV-005 (regressão nas 4) obrigatório antes de aprovar.</td></tr>
+    <tr><td>Massa: prévia RCV com embarque processado indisponível</td><td>Média</td><td>Alto</td><td>Confirmar no banco/UI a prévia liberada + embarque processado antes de executar.</td></tr>
+    <tr><td>Fix mascarar o caso legítimo de “sem movimento”</td><td>Baixa</td><td>Médio</td><td>CT-PRV-006 (negativo) garante a mensagem correta quando não há movimento.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada ao fix no Fairfax + massa (prévia RCV liberada com embarque processado).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
