@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8779 · Reprocessamento (sts_prc=R) nunca conclui</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8779 · Sprint 15 Citweb</span>
+    <h1>Reprocessamento de DUIMP (sts_prc=R) nunca conclui — loop silencioso, sem erro no log</h1>
+    <div class="sub">WorkerDUIMP · Repository/InterfaceSiscomexControleProcessaDuimpRepository.cs (AtualizaStatusAsync) · fluxo ADO-8255 · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">5</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">5</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">2·2·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 5 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos), o fix deployado e as DUIMPs de reprodução (em sts_prc=R). Falta testar: 5 CTs (2×P1 · 2×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":5,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":5,"p1":2,"p2":2,"p3":1}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — WorkerDUIMP · <code>AtualizaStatusAsync</code> (Repository/InterfaceSiscomexControleProcessaDuimpRepository.cs)</td></tr>
+    <tr><th>Card</th><td>BUG-8779 (Sprint 15 Citweb) · Dev: Diego Almeida · fluxo ADO-8255 · relacionado ao #8759</td></tr>
+    <tr><th>Ambiente</th><td>HML — DUIMPs de reprodução em <code>sts_prc='R'</code> (ver card; base Fairfax-alfa HML) · impacto: qualquer tenant</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 16/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>DUIMPs marcadas para reprocessamento (<code>sts_prc='R'</code>, correção de Data de Saída via tela “DUIMP sem Data de Saída”) nunca concluem o reprocessamento, mesmo <b>depois do fix do #8759</b>. O WorkerDUIMP pega a DUIMP em todo ciclo, tenta processar, mas o registro <b>nunca sai de R</b> — loop infinito silencioso, sem nenhum erro no log.</p>
+  <div class="info-box"><b>Causa raiz (confirmada no código):</b> <code>AtualizaStatusAsync</code> (~linha 480) tem a cláusula <code>WHERE … AND (sts_prc = 'P' OR sts_prc = 'E')</code> — escrita quando o modelo só tinha P/E. O merge ADO-8255/8258 introduziu os estados <b>I</b> (Inconsistente) e <b>R</b> (Aguardando reprocessamento) sem revisar esse código; com a DUIMP em <b>R</b>, o UPDATE não casa nenhuma linha, <code>ExecuteNonQueryAsync()</code> retorna 0, e o método devolve <code>(false, "Nenhuma DUIMP encontrada…")</code> sem lançar exceção. O chamador (<code>DuimpProcessamentoService.cs:248</code>) não verifica esse retorno → descartado <b>silenciosamente</b>. Fix (DoD): WHERE aceitar <code>R</code> (avaliar também <code>I</code>) + o chamador verificar o booleano e logar/alertar quando 0 linhas.</div>
+  <div class="warn-box"><b>Nota de fase:</b> card em desenvolvimento/homologação; validação in loco na execução (pós-deploy). <b>Sem PII:</b> os números de DUIMP e dados de reprodução ficam apenas no card AzDO (privado), não neste plano público.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>DUIMP em <code>sts_prc='R'</code> sair de R (concluir) após o fix — o UPDATE de status passa a casar a linha.</li>
+    <li>Regressão dos estados antigos P e E; observabilidade do chamador (log/alerta quando 0 linhas).</li>
+    <li>Avaliação do estado I (se algum fluxo atualiza status a partir dele).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>A exceção de Embalagem/Adicao null — é o <b>#8759</b> (pré-requisito para o reprocesso chegar até aqui).</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li>Fix do #8779 deployado (WHERE aceitar R + chamador verificar retorno).</li>
+      <li><b>#8759 também aplicado</b> (senão o reprocesso nem chega a atualizar o status — exceção antes).</li>
+      <li><b>Massa:</b> as DUIMPs de reprodução em <code>sts_prc='R'</code> (identificadas no card) disponíveis; acesso ao banco (status/averbação) e ao log do Worker.</li>
+    </ol>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Conclusão do reprocesso</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DRS-001</span><span class="ct-title">DUIMP em R reprocessa e SAI de R (avança de status) após o fix</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP em <code>sts_prc='R'</code> (da massa do card); #8759 aplicado; fix do #8779 deployado.</li></ul>
+      <h4>Passos</h4><ol><li>Aguardar/forçar o ciclo do WorkerDUIMP processar a DUIMP em R.</li><li>Conferir o <code>sts_prc</code> no banco após o ciclo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A DUIMP <b>sai de R</b> e avança de status (o UPDATE de <code>AtualizaStatusAsync</code> agora casa a linha em R). Contraprova: baseline das DUIMPs presas em R desde 10/09.</li></ul>
+      <h4>Tipo</h4><p>Positivo (com contraprova).</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DRS-002</span><span class="ct-title">Averbação gerada após a DUIMP sair de R (fluxo completa)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>CT-DRS-001 ok.</li></ul>
+      <h4>Passos</h4><ol><li>Após a DUIMP sair de R, conferir a geração da averbação correspondente no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A averbação é gerada — o fluxo ADO-8255 conclui de ponta a ponta (com #8759 + #8779 corrigidos).</li></ul>
+      <h4>Tipo</h4><p>End-to-end.</p></div></div>
+
+  <div class="group-header">Grupo B — Regressão, observabilidade e bordas</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DRS-003</span><span class="ct-title">Regressão: DUIMPs partindo de P e E continuam sendo atualizadas normalmente</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMPs em <code>P</code> e em <code>E</code>.</li></ul>
+      <h4>Passos</h4><ol><li>Processar DUIMPs partindo de P e de E.</li><li>Conferir a atualização de status.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>P e E continuam sendo atualizados normalmente — o WHERE ampliado (P/E/R) não quebrou o comportamento antigo.</li></ul>
+      <h4>Tipo</h4><p>Regressão.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DRS-004</span><span class="ct-title">Observabilidade: chamador loga/alerta quando 0 linhas afetadas</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Cenário em que <code>AtualizaStatusAsync</code> retorne 0 linhas (ex.: estado não previsto).</li></ul>
+      <h4>Passos</h4><ol><li>Provocar/observar um caso de 0 linhas afetadas.</li><li>Ler o log do Worker.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O chamador (<code>DuimpProcessamentoService</code>) verifica o retorno booleano e <b>loga/alerta</b> quando 0 linhas são afetadas — evita que uma lacuna parecida fique silenciosa no futuro.</li></ul>
+      <h4>Tipo</h4><p>Observabilidade.</p></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DRS-005</span><span class="ct-title">Estado I: avaliar se também precisa ser aceito no WHERE</span><span class="badge badge-p3">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Verificar se algum fluxo atualiza status a partir de <code>I</code> (Inconsistente).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Se houver fluxo que parte de <code>I</code>, o WHERE também o aceita; senão, fica documentado que I não precisa ser aceito nessa cláusula.</li></ul>
+      <h4>Tipo</h4><p>Borda / análise.</p></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério (DoD)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>WHERE aceita R → DUIMP sai de R</td><td>CT-DRS-001</td><td>Pendente</td></tr>
+    <tr><td>Fluxo conclui (averbação gerada)</td><td>CT-DRS-002</td><td>Pendente</td></tr>
+    <tr><td>Sem regressão em P/E</td><td>CT-DRS-003</td><td>Pendente</td></tr>
+    <tr><td>Chamador loga/alerta 0 linhas</td><td>CT-DRS-004</td><td>Pendente</td></tr>
+    <tr><td>Avaliar estado I</td><td>CT-DRS-005</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>5</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 2 · P2 = 2 · P3 = 1</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + fix/massa; depende do #8759 aplicado)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>DUIMPs de outros tenants também presas em R</td><td>Média</td><td>Médio</td><td>Confirmar com o time (DoD) se há DUIMPs de outros tenants travadas em R; validar amostra.</td></tr>
+    <tr><td>Ampliar o WHERE quebrar P/E</td><td>Baixa</td><td>Alto</td><td>CT-DRS-003 (regressão) obrigatório.</td></tr>
+    <tr><td>#8759 não aplicado → reprocesso nem chega ao UPDATE</td><td>Baixa</td><td>Alto</td><td>Confirmar #8759 deployado antes de executar (pré-requisito).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · plano em fase de Gate 2 (Produtos) · execução condicionada ao fix + #8759 + massa (DUIMPs em R). Mesmo padrão de causa-raiz do #8759 (estado novo sem auditar código antigo).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
