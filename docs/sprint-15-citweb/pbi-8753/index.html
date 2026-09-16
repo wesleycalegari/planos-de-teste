@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8753 · Smoke Test pós-merge Worker DUIMP</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8753 · Sprint 15 Citweb</span>
+    <h1>Smoke Test pós-merge do Worker DUIMP — foco em alteração de Data de Saída</h1>
+    <div class="sub">CITWEB — Interface WI/Siscomex (/INTERFACESTREITI) · Worker DUIMP · Ambiente HML AXA (smt-hom-citweb-axa) · ⚠️ nunca -alfa · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">7</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">7</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">5·2·0</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 7 CTs executados (0%) — plano recém-publicado, aguardando Gate 2 (Produtos), o merge do Worker DUIMP deployado e a massa (DUIMP sem data). Falta testar: 7 CTs (5×P1 · 2×P2).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":7,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":7,"p1":5,"p2":2,"p3":0}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — Interface WI/Siscomex · Worker DUIMP (smoke test)</td></tr>
+    <tr><th>Card</th><td>PBI-8753 (Sprint 15 Citweb) · Dev/Owner: Diego Almeida</td></tr>
+    <tr><th>Gatilho</th><td>Merge do Worker DUIMP · foco no fluxo de alteração da Data de Saída</td></tr>
+    <tr><th>Ambiente</th><td>HML AXA — <code>axa-hml-faturamento.nsseg.com.br</code> · base <code>smt-hom-citweb-axa</code> · ⚠️ <b>nunca -alfa</b></td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 16/09/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Smoke test rápido (não regressão completa) após o merge do Worker DUIMP, focado no fluxo crítico de <b>correção de DUIMP sem Data de Saída</b> — que concentra defeitos recentes (#8255, #8256, #8567, #8482). Objetivo: detectar de imediato qualquer quebra introduzida pelo merge, antes da suíte de regressão (41 CTs, plano próprio).</p>
+  <div class="info-box"><b>Cards do fluxo:</b> #8255 (Worker retém DUIMP sem data), #8256 (tela de acerto da data), #8567 (recarga reseta a data corrigida), #8482 (duplicação após exclusão de pacote). O foco em Data de Saída existe porque o #8567 documenta a perda da data após recarga — um merge no Worker pode reintroduzir isso.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Worker DUIMP ativo e processando ciclos; acesso às telas do módulo (fumaça).</li>
+    <li>Retenção de DUIMP sem data (status I); alteração da data pela tela (status R); persistência após recarga (#8567); averbação gerada; idempotência da recarga (#8482).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li>Suíte de regressão completa (41 CTs — plano próprio); grupos de duplicidade D/A/I; valores monetários agregados; regras em aberto com a Quorum; enquadramento por vigência/CNPJ Pai.</li>
+    <li>Produção — QA não testa em PROD (N/A).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e gates</h2>
+  <div class="warn-box"><b>Gates de execução (externos — não dependem do QA):</b>
+    <ol>
+      <li>Merge do Worker DUIMP deployado no ambiente (⚠️ confirmar branch/PR mergeada).</li>
+      <li><b>SMK-01 é pré-condição bloqueante:</b> Worker DUIMP <b>ativo</b> (<code>sc.exe query WorkerDuimpAxa</code> = RUNNING) — se falhar, o smoke é suspenso.</li>
+      <li><b>Massa:</b> DUIMP com inconsistência de data de saída (status I) disponível — dependência Quorum. Sem massa ⇒ SMK-03/04/05 <b>BLOQUEADOS com evidência</b>, nunca semeados por SQL.</li>
+      <li><b>⚠️ Dependência conhecida (#8759, deferido pela coordenação):</b> ao reprocessar DUIMP corrigida cujo JSON tenha <code>Embalagem:null</code>, o Worker lança <code>ArgumentNullException (CD_TIPO_EMBALAGEM)</code> e não conclui. Isso pode <b>bloquear SMK-06 (averbação)</b> e afetar SMK-04/05 (avanço/persistência dependem do reprocesso). Marcar como BLOQUEADO por dependência quando ocorrer.</li>
+    </ol>
+    <b>Evidência real por caso</b> (nunca substituída por texto). <b>Sem dados sensíveis</b> neste plano público (CNPJ/DUIMP reais ficam só no card).
+  </div>
+
+  <h2>5. Casos de Teste (executar na ordem)</h2>
+
+  <div class="group-header">Fumaça — pré-condições</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-01</span><span class="ct-title">Worker DUIMP ativo (RUNNING) — pré-condição; se falhar, suspende o smoke</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Confirmar com infra/sustentação o serviço <code>WorkerDuimpAxa</code> em estado RUNNING e processando ciclos (log do Worker avançando).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Worker ativo e processando. Se NÃO estiver ativo → smoke <b>suspenso</b> (SMK-02..07 não executam).</li></ul></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-02</span><span class="ct-title">Acesso às telas do módulo (fumaça básica)</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Passos</h4><ol><li>Logar no HML AXA (não -alfa) e navegar por clique até a Interface WI/Siscomex (/INTERFACESTREITI) e a tela de acerto de DUIMP sem Data de Saída.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As telas do módulo abrem sem erro.</li></ul></div></div>
+
+  <div class="group-header">Fluxo crítico — Data de Saída</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-03</span><span class="ct-title">Retenção: DUIMP sem data de saída fica como inconsistente (status I), nunca desprezada</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP sem data de saída (status I) na massa (senão BLOQUEADO por massa).</li></ul>
+      <h4>Passos</h4><ol><li>Processar/observar a DUIMP sem data pelo Worker.</li><li>Conferir status no banco/tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A DUIMP é <b>retida como inconsistente (status I)</b> — nunca desprezada silenciosamente.</li></ul></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-04</span><span class="ct-title">Alteração da data de saída pela tela → status avança para R</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP em status I (SMK-03).</li></ul>
+      <h4>Passos</h4><ol><li>Na tela de acerto, informar a Data de Saída e salvar.</li><li>Conferir o status.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A data é gravada e o status avança para <b>R</b>. ⚠️ Se o Worker falhar no reprocesso por <code>Embalagem:null</code> (#8759, deferido) → BLOQUEADO por dependência.</li></ul></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-05</span><span class="ct-title">Persistência após recarga do pacote — a data corrigida não se perde (#8567)</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP corrigida (SMK-04); baseline das linhas registrado antes da recarga.</li></ul>
+      <h4>Passos</h4><ol><li>Recarregar o pacote da DUIMP corrigida.</li><li>Conferir a Data de Saída e o status após a recarga.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A data corrigida <b>persiste</b> após a recarga — o defeito #8567 NÃO foi reaberto pelo merge. (Caso mais crítico do smoke.)</li></ul></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-06</span><span class="ct-title">Averbação gerada com a data corrigida após o processamento</span><span class="badge badge-p1">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>DUIMP corrigida reprocessada (SMK-04/05).</li></ul>
+      <h4>Passos</h4><ol><li>Aguardar o Worker reprocessar a DUIMP corrigida.</li><li>Conferir a geração da averbação com a data corrigida.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A averbação é gerada com a data corrigida. ⚠️ <b>Dependência conhecida:</b> hoje bloqueado pelo #8759 (Worker lança exceção no reprocesso com <code>Embalagem:null</code>) — se ocorrer, BLOQUEADO por dependência (não reprovar a tela por isso).</li></ul></div></div>
+
+  <div class="group-header">Idempotência</div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">SMK-07</span><span class="ct-title">Recarga não duplica registros — #8482 permanece corrigido</span><span class="badge badge-p2">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Baseline das linhas registrado antes da recarga.</li></ul>
+      <h4>Passos</h4><ol><li>Recarregar/reprocessar o pacote.</li><li>Conferir a contagem de registros da DUIMP contra o baseline.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A recarga <b>não duplica</b> registros — o #8482 permanece corrigido.</li></ul></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Worker ativo antes de prosseguir (senão suspende)</td><td>SMK-01</td><td>Pendente</td></tr>
+    <tr><td>Acesso às telas do módulo</td><td>SMK-02</td><td>Pendente</td></tr>
+    <tr><td>DUIMP sem data retida como inconsistente (não desprezada)</td><td>SMK-03</td><td>Pendente</td></tr>
+    <tr><td>Alterar data pela tela → status R</td><td>SMK-04</td><td>Pendente</td></tr>
+    <tr><td>Data persiste após recarga (#8567 não reaberto)</td><td>SMK-05</td><td>Pendente</td></tr>
+    <tr><td>Averbação gerada com a data corrigida</td><td>SMK-06</td><td>Pendente</td></tr>
+    <tr><td>Recarga não duplica (#8482 corrigido)</td><td>SMK-07</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs (smoke)</td><td>7</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 5 · P2 = 2 · P3 = 0</td></tr>
+    <tr><td>Critério de sucesso</td><td>7 casos executados OU formalmente bloqueados (com evidência); #8567 e #8482 não reabertos</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 + merge do Worker + massa)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Worker não ativo após o merge</td><td>Média</td><td>Alto</td><td>SMK-01 é pré-condição — suspender o smoke se falhar.</td></tr>
+    <tr><td>Massa sem data indisponível (dependência Quorum)</td><td>Alta</td><td>Alto</td><td>Marcar SMK-03/04/05 como BLOQUEADOS com evidência; nunca semear por SQL.</td></tr>
+    <tr><td>#8567 reaberto pelo merge</td><td>Média</td><td>Alto</td><td>SMK-05 é o caso mais crítico — priorizar.</td></tr>
+    <tr><td>#8759 (deferido) bloqueia o reprocesso/averbação</td><td>Alta</td><td>Médio</td><td>SMK-06 (e possível SMK-04/05) BLOQUEADO por dependência — registrar, não reprovar a tela.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · smoke test em fase de Gate 2 (Produtos) · execução condicionada ao merge do Worker DUIMP + massa (DUIMP sem data). Defeitos encontrados = cards próprios.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
