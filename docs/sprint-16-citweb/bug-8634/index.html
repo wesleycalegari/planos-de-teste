@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BUG-8634 — Conversor AIG · Importação HTTP 500</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;
+--accent:#58a6ff;--ok:#2ea043;--erro:#d13438;--bloq:#d29922;--pend:#8b949e;--p1:#d13438;--p2:#ca5010;--p3:#605e5c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 "Segoe UI",system-ui,sans-serif;padding:0 0 60px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+header{background:linear-gradient(90deg,#161b22,#0d1117);border-bottom:1px solid var(--border);padding:18px 0;margin-bottom:14px}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+h1{font-size:20px;margin:8px 0 2px} h2{font-size:16px;border-bottom:1px solid var(--border);padding-bottom:5px;margin:26px 0 10px;color:var(--accent)}
+h3{font-size:14px;margin:16px 0 6px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
+th,td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--surface2)}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;min-width:92px;text-align:center}
+.metric-val{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.m-ok .metric-val{color:var(--ok)} .m-erro .metric-val{color:var(--erro)} .m-bloq .metric-val{color:var(--bloq)} .m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex:1;min-width:280px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.pb-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;margin:8px 0}
+.pb-fill{height:100%;background:var(--accent)}
+.pb-pct{font-size:12px;color:var(--muted)}
+.hidden{display:none}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap;margin-left:6px}
+.badge-p1,.bloqueante{background:var(--p1);color:#fff}.badge-p2,.importante{background:var(--p2);color:#fff}.badge-p3,.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}.badge-erro{background:var(--erro);color:#2a0402}.badge-bloqueado{background:var(--bloq);color:#241a02}
+.group-header{background:#0078d4;color:#fff;font-weight:700;padding:7px 12px;border-radius:6px;margin:18px 0 8px}
+.subgroup-header{background:#1b2a3a;color:var(--accent);font-weight:600;padding:5px 12px;border-radius:6px;margin:10px 0 6px;font-size:13px}
+.info-box{background:#10233b;border-left:3px solid var(--accent);border-radius:4px;padding:9px 13px;margin:10px 0;font-size:13px}
+.warn-box{background:#2a2410;border-left:3px solid var(--bloq);border-radius:4px;padding:9px 13px;margin:10px 0;font-size:13px}
+.ct-block{border:1px solid var(--border);border-radius:8px;margin:9px 0;background:var(--surface);overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:10px 13px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ct-id{font-weight:700;color:var(--accent);font-family:monospace}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;color:var(--muted);font-size:12px}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 12px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+ol,ul{margin:4px 0;padding-left:22px} code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--muted)}
+</style></head><body>
+<header><div class="wrap">
+  <span class="pbi-badge">BUG-8634 · Sprint 16 Citweb</span>
+  <h1>Conversor (AIG / CITNET) — importação retorna HTTP 500 (NullReferenceException)</h1>
+  <div class="dash">
+    <div class="metric"><span class="metric-val" id="exec-total">6</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">6</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">3·2·1</span><span class="metric-label">P1·P2·P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 6 CTs executados (0%) — plano recém-gerado, aguardando Gate 2 (Produtos) e DoD do dev (#8951 em desenvolvimento). Falta testar: 6 CTs (3×P1 · 2×P2 · 1×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":6,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":6,"p1":3,"p2":2,"p3":1}</span>
+    </div>
+  </div>
+</div></header>
+<div class="wrap">
+
+<h2>1. Identificação</h2>
+<table>
+<tr><th>Projeto / Módulo</th><td>CITNET — Conversor de Layout (Averbação → Converte Arquivo)</td></tr>
+<tr><th>Card</th><td>BUG-8634 (Sprint 16 Citweb) · Tenant: AIG · Voidr: DEF-AIG-CONVERSOR-UPLOAD-NULLREFERENCE (EXEC-001834)</td></tr>
+<tr><th>Task de dev</th><td>#8951 — Análise e Desenvolvimento (In Progress — fix ainda não entregue)</td></tr>
+<tr><th>Ambiente</th><td>HML AIG — <code>https://aig-hml-faturamento.nsseg.com.br/citnet/</code> · tela Conversor de Layout (<code>/citnet/Conversor/Conversor</code>)</td></tr>
+<tr><th>Autor / Data</th><td>Wesley Moreira · 30/09/2026</td></tr>
+</table>
+
+<h2>2. Descrição</h2>
+<p>No Conversor de Layout (CITNET, tenant AIG), ao selecionar um arquivo e acionar <b>Importar</b>, o sistema exibe <b>"Erro ao tentar enviar o arquivo conversor!"</b> e retorna <b>HTTP 500</b> (<code>NullReferenceException</code> no handler de upload), não avançando para leitura, seleção de layout, conversão ou processamento. O fix deve tornar o upload de arquivo válido bem-sucedido e tratar entradas inválidas com falha amigável, sem exceção não tratada nem página HTML de erro.</p>
+<div class="info-box"><b>Origem:</b> defeito da esteira Voidr (análise <code>analyze-bug</code>), reproduzido manualmente em 09/09/2026 (EXEC-001834). O fix pertence ao handler de upload do Conversor (task #8951).</div>
+
+<h2>3. Escopo</h2>
+<h3>In scope</h3>
+<ul>
+<li>Upload de arquivo <b>válido</b> no Conversor AIG: aceito, sem HTTP 500, sem modal genérico; planilha lida e etapas de layout/conversão/processamento liberadas.</li>
+<li>Upload de arquivo/contexto <b>inválido</b>: falha tratada e amigável, sem <code>NullReferenceException</code> nem página HTML de erro.</li>
+<li>Regressão da cobertura por ramo (casos CONVE-01..11 e CONVE-13..19).</li>
+<li>Usabilidade: a tela permanece utilizável após um erro (permite novo upload).</li>
+</ul>
+<h3>Out of scope</h3>
+<ul>
+<li>Regras de conversão/mapeamento DE-PARA e gravação de averbação em si (não alteradas por este bug — é upload).</li>
+<li>Produção — QA não testa em PROD (N/A).</li>
+<li>CONVE-12 — fora da faixa citada no AC; confirmar com Produtos se é cenário à parte.</li>
+</ul>
+
+<h2>4. Pré-requisitos</h2>
+<div class="warn-box"><b>Gate de DoD do dev:</b> a task #8951 está <b>In Progress</b> — a execução só inicia quando o fix estiver em HML e o card em "Pronto para homologação". O plano é gerado agora (shift-left) e vai ao Gate 2 (Produtos) em paralelo ao desenvolvimento.</div>
+<ul>
+<li><b>Ambiente:</b> HML AIG, CITNET, usuário de teste autorizado (perfil que acessa o Conversor).</li>
+<li><b>Massa — arquivo VÁLIDO:</b> CSV/TXT com colunas separadas por <code>;</code> no layout do ramo suportado (ex.: cabeçalho compatível com o layout cadastrado). Confirmar/gerar antes da execução.</li>
+<li><b>Massa — arquivo INVÁLIDO:</b> arquivo com estrutura/colunas incompatíveis + arquivo vazio (0 bytes) + arquivo de extensão não suportada.</li>
+</ul>
+
+<h2>5. Casos de Teste</h2>
+
+<div class="group-header">Grupo A — Upload de arquivo válido (happy path)</div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-001</span><span class="ct-title">Importar arquivo válido → aceito, sem HTTP 500, libera as etapas</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>HML AIG, CITNET; arquivo válido no layout do ramo suportado disponível.</li></ul>
+<h4>Passos</h4><ol><li>Autenticar no CITNET AIG (URL de login).</li><li>Menu <b>Averbação → Converte Arquivo → &lt;ramo&gt;</b> (por clique) até a tela Conversor de Layout.</li><li>Selecionar o arquivo válido no campo de arquivo (<code>#arq</code>).</li><li>Clicar em <b>Importar</b> (<code>btImportar</code>).</li><li>Observar a tela.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Arquivo aceito: <b>sem</b> "Erro ao tentar enviar o arquivo conversor!", <b>sem</b> HTTP 500, sem modal genérico. A planilha é lida e a seleção de <b>layout</b> (<code>cmbLayout</code>) fica disponível; as etapas de conversão/processamento ficam liberadas.</li></ul>
+<h4>Tipo</h4><p>Positivo (happy path). Cobre CA1 + CA2.</p>
+</div></div>
+
+<div class="group-header">Grupo B — Entradas inválidas (falha tratada, sem exceção)</div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-002</span><span class="ct-title">Arquivo com estrutura inválida → falha tratada, sem NullReference/500</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Arquivo com colunas/estrutura incompatíveis com qualquer layout.</li></ul>
+<h4>Passos</h4><ol><li>Abrir o Conversor (mesma navegação por clique do CT-001).</li><li>Selecionar o arquivo inválido e clicar em <b>Importar</b>.</li><li>Observar a resposta.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Falha <b>tratada e compreensível</b> (mensagem ao usuário), <b>sem</b> <code>NullReferenceException</code>, <b>sem</b> HTTP 500 nem página HTML de erro genérica; a tela permanece utilizável.</li></ul>
+<h4>Tipo</h4><p>Negativo. Cobre CA3.</p>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-003</span><span class="ct-title">Arquivo VAZIO (0 bytes) → alerta amigável, sem HTTP 500</span><span class="badge importante">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Arquivo de 0 bytes (<code>empty.txt</code>).</li></ul>
+<h4>Passos</h4><ol><li>Abrir o Conversor.</li><li>Selecionar o arquivo vazio e clicar em <b>Importar</b>.</li><li>Observar a resposta.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Alerta amigável (ex.: "arquivo vazio"/"sem conteúdo"), <b>sem</b> HTTP 500 nem <code>NullReferenceException</code>. (Alinhado ao comportamento validado no BUG-8824 / Suhai.)</li></ul>
+<h4>Tipo</h4><p>Limite / borda. Cobre CA3.</p>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-004</span><span class="ct-title">Contexto inválido (filial/ramo não suportado) → falha tratada</span><span class="badge importante">P2</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Seleção de filial/ramo em combinação não suportada para o arquivo escolhido.</li></ul>
+<h4>Passos</h4><ol><li>Abrir o Conversor; escolher filial/ramo incompatíveis com o arquivo.</li><li>Selecionar um arquivo e clicar em <b>Importar</b>.</li><li>Observar a resposta.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Falha tratada (mensagem clara), <b>sem</b> exceção não tratada nem HTTP 500.</li></ul>
+<h4>Tipo</h4><p>Negativo / configuração. Cobre CA3.</p>
+</div></div>
+
+<div class="group-header">Grupo C — Regressão de cobertura por ramo</div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-005</span><span class="ct-title">Regressão CONVE-01..11 e CONVE-13..19 — upload conclui nos ramos suportados</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Suíte Voidr CONVE do módulo <code>conversor-cit</code> disponível para o tenant AIG (mesma suíte usada no BUG-8824/CONVE-15).</li></ul>
+<h4>Passos</h4><ol><li>Executar, via Voidr (rerun por caso), a faixa <b>CONVE-01..11</b> e <b>CONVE-13..19</b> no ambiente <code>aig-hml</code>.</li><li>Conferir por caso: upload concluído, sem HTTP 500/NullReference.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Todos os casos da faixa concluem o upload nos ramos suportados (status <b>passed</b> no Voidr), comprovando a não-regressão.</li></ul>
+<h4>Tipo</h4><p>Regressão (automatizada — Voidr). Cobre CA4.</p>
+</div></div>
+
+<div class="group-header">Grupo D — Usabilidade após erro</div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-006</span><span class="ct-title">Após um erro de upload, a tela permanece usável (novo upload válido funciona)</span><span class="badge desejavel">P3</span><span class="badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Um arquivo inválido e um válido.</li></ul>
+<h4>Passos</h4><ol><li>Provocar o erro (importar o inválido — CT-002).</li><li>Sem recarregar, selecionar o arquivo válido e clicar em <b>Importar</b>.</li></ol>
+<h4>Resultado esperado</h4><ul><li>A tela não trava: aceita o novo upload válido e libera as etapas normalmente (sem exigir reload; sem <code>#modal-generic</code> preso).</li></ul>
+<h4>Tipo</h4><p>Regressão / usabilidade.</p>
+</div></div>
+
+<h2>6. Matriz de Rastreabilidade</h2>
+<table>
+<tr><th>Critério de Aceite</th><th>CT(s)</th></tr>
+<tr><td>CA1 — Arquivo válido aceito, sem HTTP 500/modal genérico</td><td>CT-CVR-001 · CT-CVR-005</td></tr>
+<tr><td>CA2 — Planilha lida; libera layout/conversão/processamento</td><td>CT-CVR-001</td></tr>
+<tr><td>CA3 — Inválido → falha tratada, sem NullReference/HTML de erro</td><td>CT-CVR-002 · CT-CVR-003 · CT-CVR-004</td></tr>
+<tr><td>CA4 — CONVE-01..11 e 13..19 comprovam upload nos ramos suportados</td><td>CT-CVR-005</td></tr>
+</table>
+
+<h2>7. Métricas</h2>
+<table>
+<tr><th>Total de CTs</th><td>6 (3×P1 · 2×P2 · 1×P3)</td></tr>
+<tr><td>Cobertura de CAs</td><td>4/4 (100%)</td></tr>
+</table>
+
+<h2>8. Riscos</h2>
+<table>
+<tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+<tr><td>Fix ainda não entregue (task #8951 In Progress) — execução depende do DoD do dev</td><td>Alta</td><td>Médio</td><td>Plano em Gate 2 em paralelo; executar quando card = "Pronto para homologação".</td></tr>
+<tr><td>Massa de arquivo válido por ramo não disponível no AIG</td><td>Média</td><td>Médio</td><td>Gerar CSV no layout cadastrado antes da execução (formato <code>;</code> confirmado em features/).</td></tr>
+<tr><td>Ambiente numérico/alfanumérico da AIG afetar o layout</td><td>Baixa</td><td>Médio</td><td>Confirmar o ambiente AIG e o layout na execução (in loco).</td></tr>
+</table>
+
+</div>
+<div class="sig">Wesley Moreira</div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded')));
+</script>
+</body></html>
