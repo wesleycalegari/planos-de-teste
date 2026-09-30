@@ -266,7 +266,7 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
     <ol>
       <li><b>✅ Regra de permissão — DECIDIDO (Grupo A, 30/09, coment 3439118):</b> o corretor DONO da apólice PODE aprovar a própria prévia de PMM Sem Embarques (regra de acesso vigente; “sem embarques” não é exceção de permissão). O “Acesso não autorizado!” ao dono é o BUG de vínculo. Grupos A/B deixam de ser exclusivos; CT-004 vira controle de acesso (não-dono), não proibição.</li>
       <li><b>✅ Abrangência — RESPONDIDO pela decisão:</b> vale para qualquer corretor DONO (não é exclusivo da corretora do chamado) — o CT-APR-003 mede a consistência entre corretoras.</li>
-      <li><b>Indicativo <code>Ind_Vunerabilidade</code> em PROD AIG</b> (com o dev): confirmar se está ativo em produção. Medição de 29/09: <b>ausente na base HML</b> — sem replicá-lo, a aprovação passa em HML mesmo sem fix (falso-aprovado). O plano exige o alinhamento antes da execução.</li>
+      <li><b>Oráculo — RESPONDIDO (decisão Grupo A + ressalva do POC):</b> o veredito é o CENÁRIO observado em tela/banco, NÃO a presença de indicativo nem proxy. O comportamento de vínculo depende de <code>Ind_tb_cvd_u_cpf_cgc</code> (HML='N' → vínculo por código: o dono QA8876CR resolve e aprova); o guard de acesso #7317 está PRESENTE (CT-007). Não se aprova/reprova por proxy.</li>
       <li><b>Número do chamado de origem e data do primeiro reporte</b> (“A PREENCHER” do card) — para rastreabilidade do defeito.</li>
       <li><b>Massa:</b> a apólice do chamado (<code>2260659000097</code>, filial 5) não existe no HML. A validação usará equivalentes da mesma série/corretora (seção 4). Confirmar aceite dessa equivalência.</li>
     </ol>
@@ -275,16 +275,16 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
   <h2>9. Riscos</h2>
   <table>
     <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
-    <tr><td>Guard desligado no HML (<code>Ind_Vunerabilidade</code> ausente) → aprovação passa sem provar o fix (falso-aprovado)</td><td>Alta</td><td>Alto</td><td>Pré-requisito global: alinhar indicativo com PROD antes do Grupo A/B/C; estado registrado na evidência (pergunta nº 3).</td></tr>
-    <tr><td>Não existe usuário CORRETOR na base HML AIG (13 usuários, todos INTERNO — medido 29/09)</td><td>Alta</td><td>Alto</td><td>Massa a criar via CITWEB → Segurança → Usuário CITNET (seção 4), antes do Gate de execução.</td></tr>
-    <tr><td>Fix de vínculo ainda não deployado no HML (o laudo de 30/09 mostra o defeito reproduzindo) — CT-001/002/003 reprovam até o deploy</td><td>Alta</td><td>Alto</td><td>Decisão de Produtos = Grupo A registrada (oráculo definido); execução dos CTs após o fix chegar ao HML. Se o dono não conseguir aprovar = REPROVADO + defeito de vínculo.</td></tr>
+    <tr><td>Guard #7317 (controle de acesso) — precisa estar PRESENTE para o CT-007/CT-004 provarem o bloqueio de terceiro</td><td>Baixa</td><td>Alto</td><td>Confirmado PRESENTE no HML em 30/09 (CT-007: apólice de terceiro barrada). Registrar o estado na evidência; se o guard estiver relaxado e passar terceiro = REPROVADO crítico (IDOR).</td></tr>
+    <tr><td>Massa CORRETOR — criados <code>QA8876CR</code> (vínculo por código, DONO) e <code>QA8876CN</code> (vínculo por CNPJ, não resolve sob <code>Ind_tb_cvd_u_cpf_cgc='N'</code>) em 30/09</td><td>Baixa</td><td>Médio</td><td>Massa disponível: QA8876CR é o dono-com-vínculo-válido do cenário principal (CT-001/002/003); QA8876CN cobre o vínculo que não resolve.</td></tr>
+    <tr><td>Oráculo mal-lido: concluir por PROXY (ausência de PR / "não deu erro" / deploy) em vez do CENÁRIO — o bug reportado é de PROD (vínculo/indicativo) e NÃO reproduz em HML</td><td>Alta</td><td>Alto</td><td>Oráculo = cenário em tela/banco (decisão Grupo A): dono com vínculo VÁLIDO aprova = APROVADO (mesmo sem PR citando o card); se o dono-válido receber "Acesso não autorizado" = REPROVADO + defeito. A condição de PROD (vínculo por CNPJ sob indicativo diverso) é data/config, fora do que o HML reproduz como defeito.</td></tr>
     <tr><td>Fix pode alterar o formato/texto das mensagens do modal — oráculos de mensagem mudam</td><td>Média</td><td>Médio</td><td>Textos exatos capturados na execução; divergência de texto documentada e validada com Produtos antes de reprovar.</td></tr>
     <tr><td>Fix pode relaxar o guard e reabrir o IDOR #7317 (pentest AIG 2025)</td><td>Média</td><td>Crítico</td><td>CT-APR-007 (P1) dedicado; reprovação crítica com defeito imediato se a requisição forçada passar.</td></tr>
     <tr><td>Massa PMM sem embarques consumida durante a execução (aprovação fecha a competência)</td><td>Média</td><td>Médio</td><td>Duas apólices + competências livres 07–09/2026 na principal; reserva na filial 5 (<code>2260659000018</code>).</td></tr>
     <tr><td>Apólice literal do chamado inexistente no HML — reprodução é por equivalência funcional</td><td>Baixa</td><td>Médio</td><td>Equivalentes da mesma série/corretora/filial medidos por query e vistos em tela (pergunta nº 5 ao Gate 2).</td></tr>
   </table>
 
-  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 29/09/2026 · plano em fase de Gate 2 (Produtos) · execução condicionada à aprovação de Produtos no card e ao deploy do fix em HML · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 29/09 · ajustado 30/09 à decisão de Produtos (Gate 2 — Grupo A) · plano aguardando a REAPROVAÇÃO do delta por Produtos antes da execução · oráculo = cenário em tela/banco (não proxy) · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
 </div>
 
 <div class="sig">Wesley Moreira</div>
