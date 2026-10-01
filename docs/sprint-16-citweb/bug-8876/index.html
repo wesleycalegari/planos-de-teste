@@ -81,15 +81,15 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 
   <div class="dash">
     <div class="metric m-total"><span class="metric-val" id="exec-total">11</span><span class="metric-label">Total CTs</span></div>
-    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">11</span><span class="metric-label">Aprovados</span></div>
     <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
     <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
-    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">11</span><span class="metric-label">Pendentes</span></div>
-    <div class="metric"><span class="metric-val">6·5·1</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">0</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">6·5·0</span><span class="metric-label">P1 · P2 · P3</span></div>
     <div class="dash-wide">
-      <div class="pb-pct" id="pb-pct">0 de 11 CTs executados (0%) — Gate 2 (Produtos, POC) decidiu GRUPO A em 30/09 (coment 3439118): o corretor DONO da apólice PODE aprovar a própria prévia de PMM Sem Embarques. Grupos A/B deixam de ser mutuamente exclusivos — TODOS os 11 CTs executam: CT-001/002/003 = dono aprova (esperado APROVAÇÃO); CT-004 vira controle de acesso (não-dono não vê botão). Falta testar: 11 CTs (6×P1 · 5×P2).</div>
-      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
-      <span class="hidden" id="EXEC_JSON">{"total":11,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":11,"p1":6,"p2":5,"p3":0}</span>
+      <div class="pb-pct" id="pb-pct">11 de 11 CTs executados (100%) — APROVADO (comportamento). Gate 2 (POC) decidiu Grupo A: o corretor DONO aprova a própria prévia de PMM Sem Embarques — confirmado em HML AIG (fechamentos 101–106 em tb_cme_cit por query; IDOR de terceiro barrado, CT-007). Placar: 11 APROVADO · 0 REPROVADO · 0 BLOQUEADO. ⚠ Defeito do chamado é de PROD (vínculo não resolve) e NÃO reproduz em HML; sem PR do fix → card NÃO promovido a staging (volta ao dev p/ causa-raiz + PR).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:100%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":11,"aprovados":11,"reprovados":0,"bloqueados":0,"pendentes":0,"p1":6,"p2":5,"p3":0}</span>
     </div>
   </div>
 
@@ -154,23 +154,39 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
   </ul>
   <div class="warn-box"><b>Execução somente após:</b> aprovação do plano por Produtos (<b>Gate 2</b> — decisão escrita por Produtos no card, que também define o grupo A ⊕ B) <b>e</b> DoD do dev cumprido (fix deployado em HML com evidência). Evidência de execução vive no <b>card</b> (anexo por CT), além do bloco de evidência de cada CT neste documento. Não aprovar nenhum CT “porque não deu erro”: o oráculo de cada CT exige a assinatura de estado (situação da prévia, registro em banco, mensagem exata).</div>
 
+  <div class="info-box"><b>✅ Massa REALMENTE executada (30/09/2026, HML AIG) — oráculo de banco por query em <code>tb_cme_cit</code>:</b> a execução usou equivalentes funcionais medidos/criados no dia; onde divergiu do planejado, vale o que está aqui (fechamentos 101–106 confirmados no banco).
+    <ul>
+      <li><b>CT-001</b> — QA8876CR (dono, corretor 20207264) · apólice <code>2260659000002</code>/comp <b>07/2026</b> → fechamento <b>101</b> (PMM 350 · IOF 25,83 · total 375,83).</li>
+      <li><b>CT-002</b> — QA8876CR · <code>2260659000019</code>/<b>06/2026</b> → fechamento <b>102</b>.</li>
+      <li><b>CT-003</b> — QA8876CRB (outra corretora, corretor 1 “VOIDR”) · apólice <code>2130131113</code>/<b>08/2026</b> → fechamento <b>104</b> (PMM 1.000). <i>(não a 333; usou-se a própria apólice elegível do corretor 1).</i></li>
+      <li><b>CT-004</b> — QA8876CR (não-dono) × apólice de terceiro <code>333</code>: dropdown Apólice expandido lista só 002/019 — <b>333 ausente</b>.</li>
+      <li><b>CT-005</b> — QA8876CR · <code>2260659000019</code>/<b>07/2026</b> COM 1 averbação → fechamento <b>103</b> (PMM 350 prevalece).</li>
+      <li><b>CT-006</b> — QA8876CRB · <code>1234567890123</code>/<b>04/2026</b> (convencional, 2 averbações, PMM 0) → fechamento <b>105</b>.</li>
+      <li><b>CT-007</b> — QA8876CR força POST na apólice de terceiro <code>333</code> → response <code>{"codigo":2,"Erro|Acesso não autorizado!"}</code>; banco: <b>nenhum fechamento</b> da 333 por QA8876CR (guard #7317 barrou).</li>
+      <li><b>CT-008</b> — INTERNO · <code>2260659000002</code>/<b>08/2026</b> → fechamento <b>106</b>.</li>
+      <li><b>CT-009</b> — QA8876CR, modal com Data de Vencimento vazia → crítica “Informe a Data de Vencimento!” (sem aprovar).</li>
+      <li><b>CT-010</b> — QA8876CR força POST na PRÓPRIA <code>2260659000002</code>/07-2026 (já fechada pelo fch 101) → response <code>{"codigo":1,"Não existe dados para o Fechamento Mensal…"}</code> (falha de NEGÓCIO ≠ acesso).</li>
+      <li><b>CT-011</b> — cobrança do fechamento <b>101</b> (002/07-2026): PMM 350 + IOF 25,83 = <b>375,83</b> no banco.</li>
+    </ul>
+  </div>
+
   <h2>5. Casos de Teste</h2>
 
   <div class="group-header excl-a">Grupo A — Corretor DONO aprova a própria prévia (✅ decisão de Produtos 30/09: PODE — executa)</div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-001</span><span class="ct-title">Corretora do chamado aprova prévia de Prêmio Mínimo Sem Embarques — situação vira “Aprovada”, sem “Erro|Acesso não autorizado!”</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-001</span><span class="ct-title">Corretora do chamado aprova prévia de Prêmio Mínimo Sem Embarques — situação vira “Aprovada”, sem “Erro|Acesso não autorizado!”</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fix deployado em HML AIG; <code>Ind_Vunerabilidade</code> alinhado com PROD (warn-box da seção 2).</li><li>Usuário CITNET CORRETOR vinculado ao corretor código <code>20207264</code> (criado na seção 4).</li><li>Apólice <code>2260659000002</code> / filial 1 / sgp 1 / competência <code>09/2026</code> com linha “Cobrança Prêmio Mínimo” em “Aguardando Aprovação” (reconfirmar em tela).</li></ul>
       <h4>Passos</h4><ol><li>Logar no CITNET AIG (<code>/citnet/</code>) com o usuário CORRETOR criado (filial conforme cadastro).</li><li>Clicar em <b>Faturamento → Aprovação de Prévias → Aprovação</b>.</li><li>Selecionar Filial <b>NSTECH - HML VALIDAÇÃO RCV - 1</b>; marcar <b>Ramo/Apólice/Subgrupo</b>; Ramo <b>59 - RCV</b>; Apolice <code>2260659000002</code>; Subgrupo <b>1</b>; Competência <code>09/2026</code>; clicar <b>Consultar</b> — print da linha (Qtde Averbação 0 · “Cobrança Prêmio Mínimo” · “Aguardando Aprovação”).</li><li>Clicar <b>Aprovar</b> na linha; no modal, informar <b>Data de Vencimento</b> válida (ex.: dia 10 do mês seguinte) e confirmar — print do modal preenchido.</li><li>Print da tela após a confirmação (mensagem/estado) e nova consulta da mesma competência.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Aprovação concluída <b>sem</b> o modal “Erro no processamento!” / “Erro|Acesso não autorizado!”.</li><li>Situação da linha sai de “Aguardando Aprovação” (fechamento registrado — coluna NumeroFechamento preenchida ou linha não mais pendente na consulta).</li><li>Assinatura de estado no banco: registro do fechamento da competência 09/2026 criado para a apólice (ex.: <code>tb_cme_cit</code> com <code>d_ano_mes_ref=202609</code>) — print da query.</li></ul>
       <h4>Cobre</h4><p>Cenário 1 e 2 do card (caso reportado, em massa equivalente do HML) + CA “situação atualizada para Aprovada e segue ao faturamento”.</p><div class="ev-section" id="ev-CT-APR-001"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-002</span><span class="ct-title">Segunda apólice elegível de Prêmio Mínimo Sem Embarques aprovada pelo mesmo perfil — sem regressão pontual</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-002</span><span class="ct-title">Segunda apólice elegível de Prêmio Mínimo Sem Embarques aprovada pelo mesmo perfil — sem regressão pontual</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Mesmas do CT-APR-001.</li><li>Apólice <code>2260659000019</code> / filial 1 / sgp 1, competência corrente sem averbação e sem fechamento (nenhuma competência fechada — medido 29/09).</li></ul>
       <h4>Passos</h4><ol><li>Repetir os passos do CT-APR-001 com a apólice <code>2260659000019</code> (mesma competência de referência).</li></ol>
       <h4>Resultado esperado</h4><ul><li>Aprovação concluída em todas as apólices elegíveis do cenário — mesma assinatura de estado do CT-APR-001.</li></ul>
       <h4>Cobre</h4><p>Cenário 2 do card (“qualquer apólice elegível”).</p><div class="ev-section" id="ev-CT-APR-002"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-003</span><span class="ct-title">Outra corretora aprova a PRÓPRIA prévia de Prêmio Mínimo Sem Embarques — comportamento consistente entre corretoras</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-003</span><span class="ct-title">Outra corretora aprova a PRÓPRIA prévia de Prêmio Mínimo Sem Embarques — comportamento consistente entre corretoras</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Usuário CORRETOR do corretor código <code>1</code> (“VOIDR TESTES - CORRETOR”).</li><li>PMM cadastrado no sgp 1 da apólice <code>333</code> (massa a criar — seção 4) e competência de referência <b>sem averbação</b> (usar competência distinta da usada no CT-005/006).</li></ul>
       <h4>Passos</h4><ol><li>Logar com o usuário CORRETOR do corretor 1 e repetir o fluxo do CT-APR-001 com a apólice <code>333</code>, na competência sem embarques.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Linha “Cobrança Prêmio Mínimo” exibida e aprovação concluída — comportamento idêntico ao da corretora do chamado (consistência entre corretoras; responde também o “A PREENCHER: abrangência” do card).</li></ul>
@@ -178,7 +194,7 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 
   <div class="group-header excl-b">Grupo B — Controle de acesso (não-dono / apólice de terceiro é recusado — guard #7317, NÃO proibição de negócio)</div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-004</span><span class="ct-title">Corretor SEM vínculo à apólice não vê o botão “Aprovar” nas linhas de PMM Sem Embarques (controle de acesso pela UI)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-004</span><span class="ct-title">Corretor SEM vínculo à apólice não vê o botão “Aprovar” nas linhas de PMM Sem Embarques (controle de acesso pela UI)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Decisão de Produtos: corretor DONO PODE aprovar (Grupo A) — este CT é o negativo de <b>controle de acesso</b>, não de proibição de negócio.</li><li>Usuário CORRETOR do corretor <code>20207264</code>; apólice de OUTRO corretor com linha pendente de PMM Sem Embarques (mesma massa de terceiro do CT-APR-007: apólice <code>333</code> / corretor 1).</li></ul>
       <h4>Passos</h4><ol><li>Logar como CORRETOR <code>20207264</code> e consultar a linha da apólice de terceiro (<code>333</code>) — print mostrando que a apólice/linha <b>não aparece</b> para esse corretor (ou aparece sem o botão “Aprovar”).</li><li>Comparar com o CT-APR-001 (na apólice DELE o botão aparece), isolando que a ausência é por vínculo, não por tipo de prévia.</li></ol>
       <h4>Resultado esperado</h4><ul><li>A apólice de terceiro não é listada para o corretor não-dono (ou a linha não traz o botão “Aprovar”) — controle de acesso do CITNET. O bloqueio server-side da requisição forçada é o CT-APR-007 (IDOR/#7317).</li></ul>
@@ -186,25 +202,25 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 
   <div class="group-header">Grupo C — Regressões e segurança (executam nas duas hipóteses)</div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-005</span><span class="ct-title">Prêmio Mínimo COM embarques — aprovação segue correta (isola a variável “sem embarques”)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-005</span><span class="ct-title">Prêmio Mínimo COM embarques — aprovação segue correta (isola a variável “sem embarques”)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Averbação RCV criada na apólice <code>2260659000019</code> na competência corrente (massa a criar — seção 4), com prêmio comercial abaixo do PMM (linha continua “Cobrança Prêmio Mínimo” com Qtde Averbação &gt; 0) ou acima (linha com prêmio) — registrar qual caso ocorreu.</li><li>Perfil aprovador: CORRETOR dono da apólice (decisão de Produtos = Grupo A).</li></ul>
       <h4>Passos</h4><ol><li>Consultar a linha da apólice <code>2260659000019</code> na competência com averbação — print (Qtde Averbação &gt; 0).</li><li>Aprovar com Data de Vencimento válida.</li><li>Reconsultar e capturar a situação final.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Aprovação concluída sem erro; situação atualizada. Comparado ao CT-APR-001/002 (mesma apólice/corretor, agora COM embarques), isola se o defeito era exclusivo do caso sem embarques.</li></ul>
       <h4>Cobre</h4><p>Cenário 3 do card.</p><div class="ev-section" id="ev-CT-APR-005"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-006</span><span class="ct-title">Prévia convencional (com embarques, sem prêmio mínimo) — comportamento inalterado (regressão)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-006</span><span class="ct-title">Prévia convencional (com embarques, sem prêmio mínimo) — comportamento inalterado (regressão)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Apólice <code>1234567890123</code> (ou <code>333</code>) / filial 1 / sgp 1, averbações abertas em 08–09/2026 (medido 29/09), PMM = 0.</li><li>Perfil aprovador: usuário CORRETOR do corretor 1 — dono dessas apólices (decisão de Produtos = Grupo A).</li></ul>
       <h4>Passos</h4><ol><li>Consultar a linha na competência com averbações abertas — print (Valor Segurado com valor, não “Cobrança Prêmio Mínimo”).</li><li>Aprovar com Data de Vencimento válida; reconsultar.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Fluxo que já funcionava permanece: aprovação concluída, situação atualizada, valores de prêmio/embarques inalterados na linha (comparar prints antes/depois).</li></ul>
       <h4>Cobre</h4><p>Cenário 4 do card — CT de regressão obrigatório.</p><div class="ev-section" id="ev-CT-APR-006"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-007</span><span class="ct-title">Regressão de segurança #7317 — corretor NÃO acessa nem aprova apólice de outro corretor (o fix não pode reabrir o IDOR)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-007</span><span class="ct-title">Regressão de segurança #7317 — corretor NÃO acessa nem aprova apólice de outro corretor (o fix não pode reabrir o IDOR)</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li><code>Ind_Vunerabilidade</code> <b>ativo</b> no HML (obrigatório neste CT — é o guard sob teste).</li><li>Usuário CORRETOR do corretor <code>20207264</code>; apólice de OUTRO corretor com linha pendente (ex.: <code>333</code> / corretor 1).</li></ul>
       <h4>Passos</h4><ol><li>Logado como corretor do chamado, consultar a apólice <code>333</code> — print (a apólice não deve estar disponível na consulta do corretor).</li><li>Forçar via requisição direta na sessão do corretor: POST <code>FechamentoFatura/EfetuarFechamentoNac</code> com <code>c_org_prd=1, c_rmo=59, u_apo_pnc=333, u_sgp=1</code>, competência pendente e data de vencimento válida — print da resposta JSON.</li><li>Conferir no banco que NÃO houve fechamento da competência da apólice 333 por essa ação.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Consulta não lista apólice de terceiro; requisição forçada <b>recusada</b> (bloqueio com mensagem de acesso — aqui a recusa É o comportamento correto) e nenhum registro de fechamento criado.</li><li>⛔ Se a requisição for aceita → REPROVADO CRÍTICO (reabertura do IDOR do pentest AIG 2025): abrir defeito imediatamente.</li></ul>
       <h4>Cobre</h4><p>CA de permissão + risco de regressão de segurança da correção.</p><div class="ev-section" id="ev-CT-APR-007"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-008</span><span class="ct-title">Perfil INTERNO segue aprovando Prêmio Mínimo Sem Embarques normalmente</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-008</span><span class="ct-title">Perfil INTERNO segue aprovando Prêmio Mínimo Sem Embarques normalmente</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Usuário INTERNO (chaves <code>HML_AIG_CITNET_*</code>).</li><li>Linha PMM sem embarques pendente em qualquer apólice da massa (usar competência ainda não consumida — ex.: <code>2260659000002</code> em 07/2026 ou 08/2026).</li></ul>
       <h4>Passos</h4><ol><li>Logar como INTERNO; consultar e aprovar a linha (fluxo do CT-APR-001).</li></ol>
       <h4>Resultado esperado</h4><ul><li>Aprovação concluída — o fix voltado ao perfil corretora não pode quebrar o caminho do perfil interno.</li></ul>
@@ -212,13 +228,13 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 
   <div class="group-header">Grupo D — Qualidade das mensagens</div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-009</span><span class="ct-title">Data de Vencimento vazia — crítica específica “Informe a Data de Vencimento!” (não mensagem genérica)</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-009</span><span class="ct-title">Data de Vencimento vazia — crítica específica “Informe a Data de Vencimento!” (não mensagem genérica)</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Qualquer linha pendente da massa; perfil aprovador habilitado.</li></ul>
       <h4>Passos</h4><ol><li>Clicar “Aprovar” na linha; no modal, deixar a Data de Vencimento vazia e confirmar — print da crítica.</li><li>Cancelar sem aprovar (não consumir a massa).</li></ol>
       <h4>Resultado esperado</h4><ul><li>Crítica exata <b>“Informe a Data de Vencimento!”</b> (validação client-side do modal — regra do BUG-6596), sem chamada de aprovação e sem “Acesso não autorizado”.</li></ul>
       <h4>Cobre</h4><p>Cenário 8 (mensagens específicas) — caso de validação.</p><div class="ev-section" id="ev-CT-APR-009"></div></div></div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-010</span><span class="ct-title">Falha de processamento exibe a causa real — o literal “Erro|Acesso não autorizado!” não mascara erro de outra natureza</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-010</span><span class="ct-title">Falha de processamento exibe a causa real — o literal “Erro|Acesso não autorizado!” não mascara erro de outra natureza</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>Linha de competência que gere recusa de negócio determinística: reaprovar competência já fechada no ciclo (ex.: repetir a aprovação do CT-APR-001 na mesma competência) ou competência com fatura já emitida (<code>2260659000002</code> em 05/2026 ou 06/2026 — fechadas, medido 29/09).</li></ul>
       <h4>Passos</h4><ol><li>Tentar aprovar a linha na condição de recusa — print do modal/mensagem com o texto exato.</li><li>Registrar o texto integral da mensagem na evidência.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Mensagem descreve a causa real da recusa (situação do fechamento/fatura), <b>nunca</b> o literal genérico “Erro|Acesso não autorizado!” para erro que não é de permissão.</li></ul>
@@ -226,7 +242,7 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 
   <div class="group-header">Grupo E — Fluxo ponta a ponta</div>
 
-  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-011</span><span class="ct-title">Pós-aprovação: prévia segue ao fechamento e a cobrança do prêmio mínimo é gerada com o valor contratual (R$ 350,00)</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-APR-011</span><span class="ct-title">Pós-aprovação: prévia segue ao fechamento e a cobrança do prêmio mínimo é gerada com o valor contratual (R$ 350,00)</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
     <div class="ct-body"><h4>Pré-condições</h4><ul><li>CT-APR-001 aprovado (apólice <code>2260659000002</code>, competência 09/2026, PMM do sgp = R$ 350,00, sem suspensão no período).</li></ul>
       <h4>Passos</h4><ol><li>No CITNET, clicar em <b>Faturamento → Histórico de Faturas → Nacional</b> e localizar o registro da apólice/competência aprovada — print.</li><li>Confirmar no banco o registro do fechamento/fatura da competência (<code>tb_cme_cit</code>, <code>d_ano_mes_ref=202609</code>) e o valor de prêmio da cobrança — print da query com o valor.</li></ol>
       <h4>Resultado esperado</h4><ul><li>Registro de fechamento presente e cobrança do prêmio mínimo pelo valor contratual do subgrupo (<b>R$ 350,00</b> integral — sem averbações e sem suspensão parcial no mês). Valor divergente → REPROVADO.</li></ul>
