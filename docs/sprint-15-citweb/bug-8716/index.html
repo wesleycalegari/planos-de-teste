@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8716 · AXA/CITWEB — Cálculo de prêmio RCV mantém a tela bloqueada após erro</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#2a0f10,#0d1117);border-bottom:2px solid var(--erro);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--erro);color:#2a0402;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.excl-a{background:#1f6feb;color:#fff}
+.group-header.excl-b{background:var(--grpB);color:#04150a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.badge-p1{background:var(--p1);color:#fff}
+.badge-p2{background:var(--p2);color:#fff}
+.badge-p3{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8716 · Sprint 15 Citweb</span>
+    <h1>AXA / CITWEB Nacional — Cálculo de prêmio RCV mantém a tela bloqueada (overlay “Calculando Prêmio...”) após erro/timeout</h1>
+    <div class="sub">CITWEB Nacional · Averbação → RCV · Ramo <b>59 (RCV)</b> · Ambiente: HML AXA · Dev: José Ribeiro Carvalho · Autor QA: Wesley Moreira · 01/10/2026</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="dash">
+    <div class="metric m-total"><span class="metric-val" id="exec-total">4</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+    <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+    <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">4</span><span class="metric-label">Pendentes</span></div>
+    <div class="metric"><span class="metric-val">2·2·0</span><span class="metric-label">P1 · P2 · P3</span></div>
+    <div class="dash-wide">
+      <div class="pb-pct" id="pb-pct">0 de 4 CTs executados — plano aguardando Gate 2 (Produtos). Cobre os 2 critérios de aceite do card: (CA-1) o cálculo de prêmio finaliza e libera a tela e, em falha, remove o overlay + mostra mensagem + preserva os dados; (CA-2) cenário positivo e negativo sem bloqueio da interface. Falta testar: 4 CTs (2×P1 · 2×P2 · 0×P3).</div>
+      <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%"></div></div>
+      <span class="hidden" id="EXEC_JSON">{"total":4,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":4,"p1":2,"p2":2,"p3":0}</span>
+    </div>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB Nacional — Averbação → RCV (tela “Averbação RCV”, <code>Nacional/Views/AverbacaoRCV/Index.cshtml</code>)</td></tr>
+    <tr><th>Card</th><td>BUG-8716 (Sprint 15 Citweb) · Dev: José Ribeiro Carvalho · Tasks filhas: #8895 (Desenvolvimento do ajuste — Done) · #8885 (Testes dev AXA/AIG/SUHAI — Done) · Task do plano: <i>a criar</i></td></tr>
+    <tr><th>Tenant / Seguradora</th><td>AXA · Ramo <b>59 (RCV)</b> — o fix é no controller/JS de Averbação RCV (ramo 59). Regra 9: correção específica do fluxo RCV; não generalizar para outros ramos.</td></tr>
+    <tr><th>Ambiente</th><td>HML AXA — CITWEB <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code> · login <code>FRED</code>, senha na chave <code>HML_CITWEB_AXA_TOKIO_PASS</code> do .env (nunca neste documento) · banco <code>smt-hom-citweb-axa</code></td></tr>
+    <tr><th>Origem</th><td>Análise da execução Voidr <code>EXEC-001848</code> (tags do card). Passos reconstruídos do teste original, não reexecutados — serão reexecutados na homologação de QA.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 01/10/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No averbação RCV do CITWEB Nacional, ao preencher os dados que disparam o <b>cálculo de prêmio</b>, o overlay <b>“Calculando Prêmio...”</b> (<code>$('body').loading(...)</code>) intercepta os eventos sobre a tela e <b>não é removido</b> quando o cálculo termina em erro/timeout. O campo <b>Número DFV</b> (<code>#nr_dfv</code>), embora visível e habilitado, fica inacessível: aumentar o timeout ou forçar o clique não recupera o estado interativo. Na análise original foram observadas <b>6 ocorrências com console 500</b>. Efeito: a interface “congela” e o operador perde o trabalho em andamento.</p>
+
+  <div class="info-box"><b>Critérios de aceite do card (campo ReproSteps):</b>
+    <ul>
+      <li><b>CA-1</b> — Finalizar o cálculo e liberar a tela; <b>em caso de falha</b>, remover o bloqueio, mostrar mensagem e permitir correção/repetição <b>sem perder os dados</b>.</li>
+      <li><b>CA-2</b> — Validar cenário <b>positivo e negativo</b> e <b>ausência de bloqueio</b> da interface.</li>
+    </ul>
+  </div>
+
+  <div class="info-box"><b>Correção declarada pelo dev (comentário de 28/09, branch <code>fix/ADO-8716-rcv-overlay-completo</code>, commit <code>a44d8cb0</code>) — usada como mapa do oráculo, não como prova:</b>
+    <ul>
+      <li><b>Front</b> <code>Nacional/Scripts/Nacional/AverbacaoRCV.js</code> (~linha 2534): no callback <code>error</code> do cálculo foi adicionado <code>$('body').loading('stop')</code> + alerta <code>AddAjaxAlert("danger","Erro ao calcular prêmio de RC!",true)</code> → remove o overlay e mostra a mensagem quando a requisição falha.</li>
+      <li><b>Back</b> <code>Nacional/Controllers/AverbacaoRCVController.cs</code> (838–841): no <code>catch</code> passou a retornar <code>Json(codigo=2, retorno.detalhe="Erro ao calcular o prêmio: "+ex.Message)</code> → a resposta deixa de ser um 500 “cru” e passa a um retorno tratado que o front consegue interpretar.</li>
+    </ul>
+    Portanto os <b>oráculos de tela</b> a verificar são: (a) overlay “Calculando Prêmio...” <b>desaparece</b> ao fim do cálculo (sucesso e falha); (b) na falha, aparece a mensagem <b>“Erro ao calcular prêmio de RC!”</b> (texto exato a confirmar em tela — regra 5); (c) os campos já preenchidos permanecem e o <code>#nr_dfv</code> volta a aceitar digitação.</div>
+
+  <div class="warn-box"><b>⛔ “Pronto para homologação” = TESTAR (regra A3).</b> O card está em <b>Pronto para homologação</b> — o vocabulário do veredito é <b>APROVADO ou REPROVADO</b>, nunca BLOQUEADO. A execução <b>não</b> se condiciona a “confirmar o deploy” nem à existência de PR mergeada: QA abre o cenário em HML AXA e julga pela <b>tela</b>. Se o overlay <b>travar</b> a tela em qualquer cenário = <b>REPROVADO</b> + defeito (devolve ao dev); se <b>liberar</b> corretamente = <b>APROVADO</b>. O relato de validação local do dev não é oráculo (nem a favor nem contra).</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Averbação RCV (ramo 59) no CITWEB Nacional da AXA: comportamento do overlay “Calculando Prêmio...” no <b>cálculo de prêmio</b> — caminho de sucesso e caminho de falha (erro/timeout).</li>
+    <li>CA-1: liberação da tela ao fim do cálculo; na falha, remoção do bloqueio + mensagem + preservação dos dados + possibilidade de corrigir/repetir.</li>
+    <li>CA-2: cenário positivo e negativo e ausência de bloqueio da interface (campo <code>#nr_dfv</code> editável após o cálculo).</li>
+    <li>Regressão do fluxo normal de gravação da averbação RCV (o fix não pode quebrar a inclusão bem-sucedida).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em PROD (N/A). A reprodução é por massa RCV equivalente da própria AXA HML (seção 4).</li>
+    <li><b>Outros ramos</b> — o fix é no controller/JS de Averbação RCV; regra 9 (regra de um ramo não vale para todos). Não se testam ramos 21/54/56/58 aqui.</li>
+    <li>Diagnóstico da <b>causa raiz do 500</b> no backend (o card deixa explícito que o stack trace não foi coletado) — QA valida o <b>comportamento de tela</b> dos CAs, não a origem servidor do erro.</li>
+    <li>Critérios técnicos/DoD de engenharia (PR com aprovadores, Sonar, testes unitários) — sem oráculo de produto; enforçados por branch policy + DoD do dev.</li>
+  </ul>
+
+  <div class="info-box"><b>Pedido da coordenação (Sandra Venturim, comentário de 24/09 + task #8885): exercitar também AIG e SUHAI.</b> Os CTs principais rodam em <b>AXA</b> (tenant do card, massa confirmada). Os CT-AVB-001/002/004 serão repetidos como <b>regressão cross-tenant</b> em <b>AIG</b> e <b>SUHAI</b> com massa RCV equivalente já medida por query (seção 4) — mesmo oráculo de tela. Cada tenant só vale como APROVADO se o cenário for exercido naquela base.</div>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="info-box"><b>Massa RCV medida por query em 01/10/2026 (estado a reconfirmar em tela no dia da execução).</b> Todas com <b>condição comercial RCV vigente hoje</b> — condição necessária para o averbação disparar o cálculo de prêmio:
+    <table>
+      <tr><th>Tenant / base</th><th>Apólice</th><th>Filial</th><th>Sgp</th><th>Tipo CC</th><th>Vigência CC</th></tr>
+      <tr><td><b>AXA</b> (principal) · <code>smt-hom-citweb-axa</code></td><td><code>106590000018</code></td><td>1</td><td>1</td><td>TPP (Taxa por Percurso)</td><td>31/01/2026 → 30/09/2027</td></tr>
+      <tr><td><b>AXA</b> (alternativa) · <code>smt-hom-citweb-axa</code></td><td><code>1789648477734</code></td><td>1</td><td>1</td><td>PRFX (Prêmio Fixo)</td><td>01/09/2026 → 01/09/2027</td></tr>
+      <tr><td><b>AIG</b> (cross-tenant) · <code>smt-hom-citweb-aig</code></td><td><code>1787232871627</code></td><td>1</td><td>1</td><td>PRFX</td><td>→ 01/08/2027</td></tr>
+      <tr><td><b>SUHAI</b> (cross-tenant) · <code>smt-hom-citweb-suhai</code></td><td><code>1788258814982</code></td><td>1</td><td>1</td><td>PRFX</td><td>→ 01/09/2027</td></tr>
+    </table>
+  </div>
+  <h3>Navegação (por clique — validada em features/averbacao/rcv-citweb-mdfe.md)</h3>
+  <ul>
+    <li>Login em <code>https://axa-hml-faturamento.nsseg.com.br/Login/</code> (<code>FRED</code> / chave <code>HML_CITWEB_AXA_TOKIO_PASS</code>) → tile <b>Nacional</b> (abre <b>nova aba</b>; não clicar por substring “Nacional”, que casa “Internacional”) → <b>Averbação</b> → <b>RCV</b>.</li>
+    <li>Cascata da tela: <b>Filial</b> <code>#c_org_prd</code> (select) → <b>Apólice</b> <code>#u_apo_pnc</code> (input de texto + Tab, não é select) → <b>Subgrupo</b> <code>#u_sgp</code> (select). Botão <b>NOVO</b> = <code>#btNovo2</code>. Para estado limpo, reentrar pelo submenu <b>RCV</b> (o NOVO não limpa a cascata).</li>
+    <li>Campos relevantes do cenário: <b>Número DFV</b> <code>#nr_dfv</code> (campo que o overlay bloqueava), <b>Placa do veículo</b> <code>#t_vei_tpr</code> (obrigatória para gravar), <b>Documento</b> <code>#c_id_vgm</code>, <b>Tipo Documento</b> <code>#e_doc_ebq</code>.</li>
+  </ul>
+  <div class="warn-box"><b>Execução somente após aprovação do plano por Produtos (Gate 2 — decisão escrita por Produtos no card).</b> Evidência de execução vive no <b>card</b> (anexo por CT), além do bloco <code>ev-section</code> de cada CT neste documento. Nenhum CT aprovado “porque não deu erro”: o oráculo de cada CT exige a assinatura em tela (overlay removido + estado interativo recuperado + mensagem exata na falha). Navegação sempre por clique a partir do login (única URL direta permitida: a de login do HML).</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header excl-a">Grupo A — Cenário POSITIVO (cálculo conclui e libera a tela) · CA-1 / CA-2</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AVB-001</span><span class="ct-title">Cálculo de prêmio RCV conclui com sucesso — overlay “Calculando Prêmio...” é removido e o campo Número DFV volta a aceitar digitação</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Card em “Pronto para homologação” (= testável). Ambiente HML AXA.</li><li>Apólice RCV <code>106590000018</code> / filial 1 / sgp 1 com CC RCV vigente (reconfirmar em tela).</li></ul>
+      <h4>Passos</h4><ol><li>Logar no CITWEB AXA e abrir <b>Nacional</b> (nova aba) → <b>Averbação</b> → <b>RCV</b>.</li><li>Selecionar Filial <code>1</code> em <code>#c_org_prd</code>; digitar a apólice <code>106590000018</code> em <code>#u_apo_pnc</code> + Tab; selecionar Subgrupo <code>1</code> em <code>#u_sgp</code> — print da cascata carregada.</li><li>Preencher os dados da averbação que disparam o <b>cálculo de prêmio</b> (origem/destino/percurso e valores conforme a CC) — observar o overlay <b>“Calculando Prêmio...”</b> surgir — print.</li><li>Aguardar o cálculo concluir; em seguida, clicar no campo <b>Número DFV</b> (<code>#nr_dfv</code>) e digitar um valor — print mostrando o campo aceitando digitação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O overlay “Calculando Prêmio...” <b>desaparece</b> ao fim do cálculo; a tela fica <b>interativa</b>.</li><li>O campo <code>#nr_dfv</code> aceita digitação (estado interativo recuperado) — <b>ausência de bloqueio</b> (CA-2 positivo).</li><li>O prêmio calculado é exibido/preenchido na tela (cálculo efetivamente executado — regra 2: não basta “não deu erro”).</li></ul>
+      <h4>Cobre</h4><p>CA-1 (finalizar e liberar a tela) + CA-2 (cenário positivo, sem bloqueio).</p><div class="ev-section" id="ev-CT-AVB-001"></div></div></div>
+
+  <div class="group-header excl-b">Grupo B — Cenário NEGATIVO (cálculo falha: erro/timeout) · CA-1 (falha) / CA-2</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AVB-002</span><span class="ct-title">Cálculo de prêmio falha — overlay é removido imediatamente, mensagem de erro é exibida e os dados preenchidos são preservados</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Mesma massa/ambiente do CT-AVB-001.</li><li>Falha do cálculo <b>induzida de forma determinística</b> no navegador: interceptar e abortar/retornar erro (ex.: HTTP 500 ou timeout) na requisição de cálculo de prêmio disparada pela tela — técnica legítima para exercer o ramo <code>error</code> do fix (foi assim que o dev validou o comportamento offline). Registrar na evidência qual requisição foi interceptada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de averbação RCV e preencher os dados até o ponto que dispara o cálculo de prêmio (mesmos passos 1–3 do CT-AVB-001) — print dos dados preenchidos.</li><li>Com a interceptação ativa, disparar o cálculo e forçar a <b>falha</b> da requisição — print do momento da falha.</li><li>Observar a tela logo após a falha: estado do overlay, mensagem exibida e os campos já preenchidos.</li><li>Clicar no campo <b>Número DFV</b> (<code>#nr_dfv</code>) e tentar digitar — print.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O overlay “Calculando Prêmio...” é <b>removido imediatamente</b> ao detectar o erro (não fica preso até timeout).</li><li>É exibida a mensagem de erro — esperado <b>“Erro ao calcular prêmio de RC!”</b> (texto exato a registrar da tela na execução).</li><li>Os dados já preenchidos <b>permanecem</b> na tela (sem recarregar/perder o trabalho) e o <code>#nr_dfv</code> volta a aceitar digitação — <b>ausência de bloqueio</b> (CA-2 negativo).</li><li>⛔ Se o overlay permanecer e a tela ficar presa = <b>REPROVADO</b> + defeito (é a reincidência do bug).</li></ul>
+      <h4>Cobre</h4><p>CA-1 (em falha: remover bloqueio + mensagem + sem perder dados) + CA-2 (cenário negativo, sem bloqueio).</p><div class="ev-section" id="ev-CT-AVB-002"></div></div></div>
+
+  <div class="group-header">Grupo C — Recuperação e regressão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AVB-003</span><span class="ct-title">Após a falha, repetir o cálculo com os mesmos dados (sem recarregar a página) — a segunda tentativa processa sem perda de dados</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Estado final do CT-AVB-002 (falha tratada, tela liberada e dados preservados). Remover a interceptação de erro antes de repetir.</li></ul>
+      <h4>Passos</h4><ol><li>Sem recarregar a tela, com os dados ainda preenchidos, acionar novamente o cálculo de prêmio — print.</li><li>Aguardar a conclusão e verificar o overlay e o campo <code>#nr_dfv</code> — print.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A segunda tentativa <b>processa normalmente</b> (overlay surge e é removido ao concluir), aproveitando os dados já preenchidos — comprova o “permitir correção/repetição sem perder dados” do CA-1.</li></ul>
+      <h4>Cobre</h4><p>CA-1 (permitir repetição/correção sem perder os dados).</p><div class="ev-section" id="ev-CT-AVB-003"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AVB-004</span><span class="ct-title">Regressão — averbação RCV gravada com sucesso após cálculo de prêmio bem-sucedido (“Inclusão efetuada com sucesso!”)</span><span class="badge badge-p2">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Mesma massa/ambiente do CT-AVB-001; cálculo de prêmio concluído com sucesso.</li><li>Placa do veículo <code>#t_vei_tpr</code> preenchida (obrigatória — sem ela o Gravar devolve “Informe a Placa do Veículo.”) e Número DFV/Documento preenchidos.</li></ul>
+      <h4>Passos</h4><ol><li>A partir do estado aprovado no CT-AVB-001 (prêmio calculado, tela liberada), completar os campos obrigatórios da averbação, incluindo a Placa do veículo.</li><li>Clicar em <b>Gravar</b> — print do resultado.</li><li>Conferir no banco o registro em <code>tb_mov_avb_rcv_cit</code> (número de averbação <code>u_avb</code> gerado, <code>u_fch_mes=0</code> com o movimento aberto) — print da query.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem <b>“Inclusão efetuada com sucesso!”</b> e averbação persistida no banco — o fix (loading stop no erro + retorno <code>codigo=2</code>) <b>não quebrou</b> o caminho normal de gravação.</li></ul>
+      <h4>Cobre</h4><p>Regressão obrigatória do fluxo de averbação RCV (garante que a correção do overlay não afetou a inclusão bem-sucedida).</p><div class="ev-section" id="ev-CT-AVB-004"></div></div></div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de aceite do card</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-1 — Finalizar o cálculo e liberar a tela (sucesso)</td><td>CT-AVB-001</td><td>Pendente</td></tr>
+    <tr><td>CA-1 — Em falha: remover bloqueio + mensagem + não perder dados</td><td>CT-AVB-002 · CT-AVB-003</td><td>Pendente</td></tr>
+    <tr><td>CA-2 — Cenário positivo e negativo</td><td>CT-AVB-001 (positivo) · CT-AVB-002 (negativo)</td><td>Pendente</td></tr>
+    <tr><td>CA-2 — Ausência de bloqueio da interface (campo Número DFV editável)</td><td>CT-AVB-001 · CT-AVB-002</td><td>Pendente</td></tr>
+    <tr><td>Regressão — gravação da averbação RCV inalterada</td><td>CT-AVB-004</td><td>Pendente</td></tr>
+    <tr><td>Pedido da coordenação — exercício em AIG e SUHAI</td><td>CT-AVB-001/002/004 repetidos cross-tenant (massa seção 4)</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>4 (AXA) + regressão cross-tenant dos CT-001/002/004 em AIG e SUHAI</td></tr>
+    <tr><td>Por prioridade</td><td>P1 = 2 · P2 = 2 · P3 = 0</td></tr>
+    <tr><td>Cobertura dos critérios de aceite (CA-1, CA-2)</td><td>2/2 (100%)</td></tr>
+    <tr><td>Critérios técnicos/DoD (PR, Sonar, testes unitários)</td><td>Fora do escopo de CT — enforçados por branch policy + DoD do dev</td></tr>
+    <tr><td>Executados</td><td>0 (aguardando Gate 2 — Produtos)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Erro do cálculo não reproduzir naturalmente em HML (o 500 original é de uma execução específica)</td><td>Alta</td><td>Alto</td><td>CT-AVB-002 induz a falha de forma determinística interceptando a requisição de cálculo — exerce o ramo <code>error</code> do fix sem depender de um 500 espontâneo (mesma abordagem do dev).</td></tr>
+    <tr><td>Texto da mensagem de erro divergir do declarado (“Erro ao calcular prêmio de RC!”)</td><td>Média</td><td>Baixo</td><td>Capturar o texto exato em tela na execução (regra 5); divergência de texto é observação, não necessariamente reprovação — o essencial do CA é overlay removido + mensagem + dados preservados.</td></tr>
+    <tr><td>Reincidência: overlay permanece preso em falha</td><td>Média</td><td>Alto</td><td>CT-AVB-002 P1 dedicado; se o overlay não sair = REPROVADO + defeito (7 seções) + devolve ao dev.</td></tr>
+    <tr><td>Massa consumida/alterada durante a execução (averbação gravada)</td><td>Baixa</td><td>Baixo</td><td>Duas apólices AXA (TPP e PRFX) + o movimento pode ser cancelado/excluído; usar documentos distintos por execução (unicidade documento+data).</td></tr>
+    <tr><td>Fix não disponível no asset publicado do tenant no dia</td><td>Média</td><td>Médio</td><td>Não é bloqueio: card em “Pronto para homologação” = testar. Se o cenário de falha travar a tela, é REPROVADO + defeito; se liberar, APROVADO. O oráculo é a tela, não a confirmação de deploy.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 01/10/2026 · massa RCV medida por query em HML (AXA/AIG/SUHAI) · fluxo validado em <code>features/averbacao/rcv-citweb-mdfe.md</code> · oráculo = comportamento em tela (não proxy) · execução após Gate 2 (Produtos) · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
