@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BUG-8740 — Conversor Fairfax (numérico) · Ramo inválido rejeitado</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#1c2330;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;
+--accent:#58a6ff;--ok:#2ea043;--erro:#d13438;--bloq:#d29922;--pend:#8b949e;--p1:#d13438;--p2:#ca5010;--p3:#605e5c;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 "Segoe UI",system-ui,sans-serif;padding:0 0 60px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+header{background:linear-gradient(90deg,#161b22,#0d1117);border-bottom:1px solid var(--border);padding:18px 0;margin-bottom:14px}
+.pbi-badge{display:inline-block;background:var(--accent);color:#02121f;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+h1{font-size:20px;margin:8px 0 2px} h2{font-size:16px;border-bottom:1px solid var(--border);padding-bottom:5px;margin:26px 0 10px;color:var(--accent)}
+h3{font-size:14px;margin:16px 0 6px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
+th,td{border:1px solid var(--border);padding:6px 9px;text-align:left;vertical-align:top}
+th{background:var(--surface2)}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 14px;min-width:92px;text-align:center}
+.metric-val{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.metric-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.m-ok .metric-val{color:var(--ok)} .m-erro .metric-val{color:var(--erro)} .m-bloq .metric-val{color:var(--bloq)} .m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex:1;min-width:280px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.pb-track{height:8px;background:var(--surface2);border-radius:999px;overflow:hidden;margin:8px 0}
+.pb-fill{height:100%;background:var(--accent)}
+.pb-pct{font-size:12px;color:var(--muted)}
+.hidden{display:none}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap;margin-left:6px}
+.badge-p1,.bloqueante{background:var(--p1);color:#fff}.badge-p2,.importante{background:var(--p2);color:#fff}.badge-p3,.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}.badge-erro{background:var(--erro);color:#2a0402}.badge-bloqueado{background:var(--bloq);color:#241a02}
+.group-header{background:#0078d4;color:#fff;font-weight:700;padding:7px 12px;border-radius:6px;margin:18px 0 8px}
+.subgroup-header{background:#1b2a3a;color:var(--accent);font-weight:600;padding:5px 12px;border-radius:6px;margin:10px 0 6px;font-size:13px}
+.info-box{background:#10233b;border-left:3px solid var(--accent);border-radius:4px;padding:9px 13px;margin:10px 0;font-size:13px}
+.warn-box{background:#2a2410;border-left:3px solid var(--bloq);border-radius:4px;padding:9px 13px;margin:10px 0;font-size:13px}
+.ok-box{background:#0d1f0d;border-left:3px solid var(--ok);border-radius:4px;padding:9px 13px;margin:10px 0;font-size:13px}
+.ct-block{border:1px solid var(--border);border-radius:8px;margin:9px 0;background:var(--surface);overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:10px 13px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ct-id{font-weight:700;color:var(--accent);font-family:monospace}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;color:var(--muted);font-size:12px}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 12px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+ol,ul{margin:4px 0;padding-left:22px} code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--muted)}
+.ct-ev{margin-top:8px}
+.ev-section{margin-top:8px}
+.ev-cap{font-size:11px;color:#888;margin:3px 0 10px}
+.ev-ok{background:#0d1f0d;border:1px solid #2ea043;border-radius:4px;padding:8px 12px;font-size:12px;margin-bottom:8px;color:#79c57e}
+.ev-or{font-size:12px;color:#c9d1d9;background:#161b22;border:1px solid #30363d;border-radius:4px;padding:8px 12px;margin-bottom:8px}
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:999;cursor:zoom-out;align-items:center;justify-content:center}
+#lb img{max-width:96vw;max-height:96vh;box-shadow:0 0 30px #000}
+</style></head><body>
+
+<header><div class="wrap">
+<span class="pbi-badge">BUG-8740 · Sprint 16 Citweb</span>
+<h1>Conversor aceita ramo inválido e inclui as averbações — Fairfax (ambiente numérico)</h1>
+<div style="color:var(--muted);font-size:13px">Plano de teste · CITWEB Conversor de Arquivos · HML <code>fairfax-hml-numerico</code> · QA: Wesley Moreira · 05/10/2026</div>
+</div></header>
+
+<div class="wrap">
+
+<div class="dash">
+<div class="metric"><span class="metric-val" id="exec-total">11</span><span class="metric-label">Total CTs</span></div>
+<div class="metric m-ok"><span class="metric-val" id="exec-aprovados">0</span><span class="metric-label">Aprovados</span></div>
+<div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
+<div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
+<div class="metric m-pend"><span class="metric-val" id="exec-pendentes">11</span><span class="metric-label">Pendentes</span></div>
+<div class="metric"><span class="metric-val">5/4/2</span><span class="metric-label">P1 / P2 / P3</span></div>
+<div class="dash-wide">
+<div class="pb-track"><div class="pb-fill" style="width:0%"></div></div>
+<div class="pb-pct">Executados 0 de 11 · 0 aprovados · 0 reprovados · 0 bloqueados — Falta testar: 11 CTs (5×P1 · 4×P2 · 2×P3)</div>
+<div class="hidden" id="EXEC_JSON">{"total":11,"aprovados":0,"reprovados":0,"bloqueados":0,"pendentes":11}</div>
+</div>
+</div>
+
+<div class="info-box"><b>Status do fluxo:</b> plano publicado — <b>Gate 2 (Produtos) pendente</b>. A execução só inicia após a validação de Produtos (fluxo de gates 04/09/2026). Dev: fix nos PRs <code>!2051</code> (hml) e <code>!2052</code> (hml_fix), mergeados em 02/10; validação do dev em HML = PASS (05/10, prints no card).</div>
+
+<h2>1. Identificação</h2>
+<table>
+<tr><th style="width:180px">Card</th><td>BUG-8740 — [ CITWEB - Fairfax ] [Ambiente numérico] Conversor aceita ramo inválido e inclui as averbações</td></tr>
+<tr><th>Projeto / Módulo</th><td>CITWEB — Conversor de Arquivos (averbação nacional)</td></tr>
+<tr><th>Sprint</th><td>Sprint 16 Citweb</td></tr>
+<tr><th>Ambiente</th><td><code>fairfax-hml-numerico</code> — https://fairfax-hml-faturamento.nsseg.com.br/Login (ambiente exclusivo deste card)</td></tr>
+<tr><th>Severidade / Prioridade</th><td>2 - High / P1</td></tr>
+<tr><th>Dev responsável</th><td>Diego Almeida (tasks #8954 dev · #8955 teste dev · #8956 PR/HML — todas Done)</td></tr>
+<tr><th>Autor / Data</th><td>Wesley Moreira · 05/10/2026</td></tr>
+<tr><th>Origem</th><td>Execução Voidr EXEC-001851, caso CONVE-33 (RN-015)</td></tr>
+</table>
+
+<h2>2. Descrição</h2>
+<p><b>Defeito:</b> o Conversor aceitava linhas com ramo inexistente (ex.: <code>99</code>). A conversão informava
+"incluídas" sem erro e o Processar gravava as averbações. Causa raiz confirmada pelo dev (01/10): o Conversor
+não gravava o 99 — <b>trocava o ramo inválido pelo ramo do layout em silêncio</b> (<code>c_rmo = 21</code> gravado
+na <code>tb_lay_out_cvr_tmp_act_cit</code>), e o Processar confiava no valor recebido sem revalidar.</p>
+<p><b>Fix (PRs !2051/!2052):</b> <code>Consiste_Ramo</code>/<code>Trata_Linha</code> passam a rejeitar ramo
+não vazio que seja inexistente na <code>tb_rmo_pro_cit</code> <b>ou não permitido para o layout</b>, informando
+linha e motivo; guarda defensiva no Processar antes da persistência; preservados o alias legado 52→58 e o
+default do ramo do layout quando o campo vem vazio.</p>
+<h3>Critérios de aceite (do card)</h3>
+<table>
+<tr><th style="width:70px">CA</th><th>Critério</th></tr>
+<tr><td><b>CA1</b></td><td>Rejeitar ramo inexistente ou não permitido para o layout/tenant.</td></tr>
+<tr><td><b>CA2</b></td><td>Informar linha e motivo da rejeição.</td></tr>
+<tr><td><b>CA3</b></td><td>Manter incluídos em zero para linhas inválidas.</td></tr>
+<tr><td><b>CA4</b></td><td>Revalidar a referência antes da persistência.</td></tr>
+</table>
+
+<div class="warn-box"><b>⚠️ Decisão de Produtos a referendar neste Gate 2</b> (apontada pelo dev em 01/10 e 05/10, ainda sem resposta de Produtos no card):<br>
+1) Um ramo <b>cadastrado</b> porém <b>diferente do ramo do layout</b> passa a ser <b>rejeitado</b> com "Ramo NN não permitido para o layout CIT-AVB-XXX!" (antes era trocado em silêncio pelo ramo do layout). Ex.: ramo 55 em arquivo do layout RCT.<br>
+2) O de-para legado <b>52→58</b> (layout RTA) segue <b>fixo no código</b>: ramo 52 no arquivo continua aceito como 58.<br>
+Os CTs CT-CVR-002/004/005/006 testam exatamente esse comportamento. <b>Se Produtos decidir diferente, o plano será atualizado e revalidado antes da execução.</b></div>
+
+<h2>3. Escopo</h2>
+<h3>In scope</h3>
+<ul>
+<li>Conversor de Arquivos CITWEB no tenant Fairfax <b>ambiente numérico</b>: layouts de averbação nacional <b>Transporte Nacional (ramo 21), RCT (54), RTA (58), RCA (56), RTF (38)</b>.</li>
+<li>Validação do campo funcional <b>Ramo</b> na conversão: inexistente (99), não permitido para o layout (ex.: 54 em TRN), não numérico, vazio (default do layout).</li>
+<li>Totalizadores da tela (Total de registros / Conversões incluídas / Registros com erro) e grid de críticas (linha + motivo).</li>
+<li>Persistência: nada gravado para linha rejeitada (conversão e averbação); fluxo válido segue gravando (regressão).</li>
+<li>Barreira de revalidação do Processar (CA4) — via semeadura SQL controlada (ver CT-CVR-011).</li>
+</ul>
+<h3>Out of scope</h3>
+<ul>
+<li><b>HML alfa</b> (<code>/alfa/login</code>): o card é exclusivo do ambiente numérico; o alfa foi coberto pela validação do dev (05/10, prints no card).</li>
+<li>Layouts internacionais (ramos 22/32) e manifesto <code>CIT-RCT-MDF</code>: ramo fixo no código, fora do alcance do bug (apontamento do dev).</li>
+<li>Processar de RCTR-VI / Importação / Exportação sem revalidação de ramo: candidato a card separado (apontamento do dev 05/10).</li>
+<li>Produção: <b>N/A</b> — QA não testa em PROD.</li>
+</ul>
+<div class="info-box"><b>Ramos cadastrados no tenant Fairfax numérico</b> (medido em 05/10/2026 via <code>tb_rmo_pro_cit</code>): 21, 22, 32, 38, 54, 55, 56, 58, 59. Os códigos <b>99</b> e <b>52</b> não existem na tabela — 99 é o "ramo inexistente" canônico do card; 52 só é aceito no RTA por alias legado de código.</div>
+
+<h2>4. Pré-requisitos</h2>
+<h3>Ambiente e acesso</h3>
+<ul>
+<li>URL de login (único URL digitado — todo o resto por clique): <code>https://fairfax-hml-faturamento.nsseg.com.br/Login</code></li>
+<li>Credencial CITWEB Fairfax: usuário de automação <code>ROT_AUTO</code> (senha no cofre <code>.env</code> — chave <code>HML_FAIRFAX_CITWEB_*</code>; não publicada — repositório público).</li>
+<li>Build HML com o fix: rodapé da tela do Conversor deve exibir build <b>≥ V 1.0.261002.1946</b> (build da validação do dev). Conferir antes de iniciar; build anterior = fix ausente, parar e reportar.</li>
+<li>Acesso de leitura ao banco <code>smt-hom-citweb-fairfax</code> (Azure SQL) para os SELECTs de oráculo.</li>
+</ul>
+<h3>Navegação (sempre por clique)</h3>
+<ol>
+<li>Login no CITWEB Fairfax numérico.</li>
+<li>Clicar no módulo <b>Conversor de Arquivos</b>.</li>
+<li>Menu superior <b>Converte Arquivo</b> → clicar no ramo do CT (ex.: <b>Transporte Nacional</b>).</li>
+<li>Para o CT-CVR-011: menu superior <b>Processa Averbações</b> → ramo correspondente.</li>
+</ol>
+<h3>Massa de dados (medida em 05/10/2026 no banco e na tela)</h3>
+<table>
+<tr><th>Item</th><th>Valor</th></tr>
+<tr><td>Layout TRN (Ramo lido da coluna A da planilha)</td><td><code>VOIDR-AUTO-9415571961</code> (usado na validação do dev; alternativos: <code>VOIDR-AUTO-9491119206</code>, <code>VOIDR-AUTO-9490904442</code>)</td></tr>
+<tr><td>Layout RCT</td><td><code>VOIDR-AUTO-9491131962</code> (ou qualquer <code>VOIDR-AUTO-*</code> do tipo CIT-AVB-RCT com Ramo = coluna A)</td></tr>
+<tr><td>Layout RTA</td><td><code>VOIDR-AUTO-9415639410</code></td></tr>
+<tr><td>Layout RCA</td><td><code>VOIDR-AUTO-9415670989</code></td></tr>
+<tr><td>Layout RTF</td><td><code>VOIDR-AUTO-9415669605</code></td></tr>
+<tr><td>Apólice vigente ramo 21 (caminho válido)</td><td>Apólice <code>1789490910061</code> · filial <code>1</code> · subgrupo <code>1</code> · vigência 01/09/2026 → 01/09/2027 (medida em <code>tb_apo_nac_cit</code>)</td></tr>
+<tr><td>CNPJ do segurado titular (coluna R na linha válida)</td><td>Valor completo <b>no card AzDO</b> (repo público não recebe CNPJ — norma de segurança). Obter: <code>SELECT CAST(u_cpf_cgc AS decimal(18,0)) FROM tb_cli WHERE c_idt_pes=1 AND c_org_prd=1</code></td></tr>
+<tr><td>CNPJ fictício (linhas de rejeição)</td><td><code>11222333000181</code> (mesmo da validação do dev — linha nunca persiste)</td></tr>
+<tr><td>Averbações de referência do dev</td><td><code>202617894910</code> / <code>202617894911</code> (ramo 21, apólice acima) — confirmadas no banco em 05/10</td></tr>
+</table>
+<h3>Formato do arquivo de teste (planilha .xlsx — layout VOIDR-AUTO TRN, colunas A..R)</h3>
+<table>
+<tr><th>Col</th><th>Campo</th><th>Linha VÁLIDA (modelo)</th><th>Linha INVÁLIDA (modelo)</th></tr>
+<tr><td>A</td><td>Ramo</td><td><code>21</code></td><td><code>99</code> (ou 54 / "AB" / vazio, conforme o CT)</td></tr>
+<tr><td>B</td><td>Apólice</td><td>vazio (resolvida por filial+CNPJ)</td><td>vazio</td></tr>
+<tr><td>C</td><td>Subgrupo</td><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td>D</td><td>Série Documento</td><td><code>1234</code></td><td><code>1</code></td></tr>
+<tr><td>E / F</td><td>UF Origem / UF Destino</td><td><code>SP</code> / <code>RJ</code></td><td><code>SP</code> / <code>RJ</code></td></tr>
+<tr><td>G</td><td>Tipo Transporte</td><td><code>T</code></td><td><code>R</code></td></tr>
+<tr><td>H / I / J</td><td>Dia / Mês / Ano de saída</td><td>data do dia da execução (dentro da vigência)</td><td>data do dia</td></tr>
+<tr><td>K</td><td>Placa</td><td><code>ABC1D23</code></td><td><code>ABC1234</code></td></tr>
+<tr><td>L</td><td>Valor Mercadoria</td><td><code>10000</code></td><td><code>1000</code></td></tr>
+<tr><td>M / N</td><td>Mercadoria / Embalagem</td><td><code>TESTE VOIDR</code> / <code>CAIXAS</code></td><td><code>1</code> / <code>1</code></td></tr>
+<tr><td>O</td><td>Observação</td><td><code>QA 8740 CT-XXX</code></td><td><code>QA 8740 CT-XXX</code></td></tr>
+<tr><td>P</td><td>Filial</td><td><code>1</code></td><td><code>1</code></td></tr>
+<tr><td>Q</td><td>Nr Documento</td><td>Nr doc ÚNICO do CT (tabela de docs abaixo)</td><td>Nr doc ÚNICO do CT</td></tr>
+<tr><td>R</td><td>CNPJ / CPF do Segurado</td><td>CNPJ do segurado titular (ver massa)</td><td><code>11222333000181</code></td></tr>
+</table>
+<div class="info-box"><b>Comportamento conhecido do grid de críticas:</b> a <b>linha 1 de cabeçalho</b> da planilha também é processada e criticada como <code>LIN=0001 POS=A Ramo CONTEUDO=Ramo MSG=CONTEÚDO NÃO É NUMÉRICO</code>, contando em "Total de registros" e "Registros com erro" (visto na validação do dev, print no card). Ao recontar placares, <b>descontar a linha de cabeçalho</b> — ela não é linha de dados.</div>
+<h3>Nr Documento por CT (rastreio no banco)</h3>
+<table>
+<tr><th>CT</th><th>Nr Doc (coluna Q)</th><th>CT</th><th>Nr Doc (coluna Q)</th></tr>
+<tr><td>CT-CVR-001</td><td>874101, 874102</td><td>CT-CVR-006</td><td>RCA: 874601/874602/874603 · RTF: 874604/874605/874606</td></tr>
+<tr><td>CT-CVR-002</td><td>874201</td><td>CT-CVR-007</td><td>874701</td></tr>
+<tr><td>CT-CVR-003</td><td>874301–874304</td><td>CT-CVR-008</td><td>874801</td></tr>
+<tr><td>CT-CVR-004</td><td>874401–874404</td><td>CT-CVR-009</td><td>874901</td></tr>
+<tr><td>CT-CVR-005</td><td>874501–874504</td><td>CT-CVR-011</td><td>874911 (linha semeada)</td></tr>
+</table>
+<h3>SELECTs de oráculo (banco <code>smt-hom-citweb-fairfax</code> — sempre filtrados; a temp tem resíduo histórico de ~257 mil linhas)</h3>
+<ul>
+<li>Conversão gravada? <code>SELECT c_rmo, u_apo_pnc, u_doc_ini, n_usu_inc, d_cvr FROM tb_lay_out_cvr_tmp_act_cit WHERE u_doc_ini IN (&lt;docs do CT&gt;)</code></li>
+<li>Averbação gravada? <code>SELECT u_avb, c_rmo, u_apo_pnc, u_doc_ini FROM tb_mov_avb_nac_cit WHERE u_doc_ini IN (&lt;docs do CT&gt;)</code></li>
+</ul>
+
+<h2>5. Casos de Teste</h2>
+
+<div class="group-header">Grupo A — Conversão rejeita ramo inválido (CA1 · CA2 · CA3)</div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-001</span><span class="ct-title">TRN: arquivo com 2 linhas de ramo 99 → ambas rejeitadas, incluídas = 0 (cenário do bug / EXEC-001851)</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Login Fairfax numérico; Conversor → Converte Arquivo → Transporte Nacional; layout <code>VOIDR-AUTO-9415571961</code> disponível no combo.</li><li>Planilha com 2 linhas de dados, ambas ramo <code>99</code>, docs <code>874101</code>/<code>874102</code>, CNPJ fictício <code>11222333000181</code>.</li></ul>
+<h4>Passos</h4><ol><li>Clicar em <b>Escolher arquivo</b>, selecionar a planilha e clicar em <b>Importar</b> (no modal de conversão para TXT, clicar <b>Não</b> para manter o preview).</li><li>Selecionar o layout <code>VOIDR-AUTO-9415571961</code> em "Nome do Arquivo de Lay-Out de Entrada".</li><li>Clicar em <b>Converter</b>.</li><li>Ler os 3 totalizadores e o grid de críticas; screenshot.</li><li>Rodar o SELECT de conversão com docs 874101/874102.</li></ol>
+<h4>Resultado esperado</h4><ul><li><b>Conversões incluídas: 0</b>; as 2 linhas de dados aparecem no grid de críticas com coluna/linha e motivo <b>"Ramo 99 inválido!"</b> (texto exato, confirmado na validação do dev).</li><li>Grid informa a <b>linha</b> (coluna "Linha") e o <b>motivo</b> de cada rejeição (CA2).</li><li>SELECT na <code>tb_lay_out_cvr_tmp_act_cit</code> → <b>0 linhas</b> para os docs do CT (nada persistido — nem com ramo trocado).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-001"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-002</span><span class="ct-title">TRN: ramo 54 (cadastrado, mas de outro layout) → rejeitado "não permitido para o layout"</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Mesma tela/layout do CT-CVR-001.</li><li>Planilha com 1 linha de dados: ramo <code>54</code>, doc <code>874201</code>, CNPJ fictício.</li><li>⚠️ Comportamento NOVO dependente da decisão de Produtos (warn-box da seção 2) — executar somente com Gate 2 aprovado.</li></ul>
+<h4>Passos</h4><ol><li>Importar a planilha (modal → <b>Não</b>), selecionar o layout e clicar em <b>Converter</b>.</li><li>Ler totalizadores + grid de críticas; screenshot.</li><li>SELECT de conversão com doc 874201.</li></ol>
+<h4>Resultado esperado</h4><ul><li><b>Conversões incluídas: 0</b>; crítica com o texto exato <b>"Ramo 54 não permitido para o layout CIT-AVB-TRN!"</b>.</li><li>SELECT → 0 linhas para o doc 874201 (nada persistido, nem trocado para 21).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-002"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-003</span><span class="ct-title">TRN: arquivo misto (2 válidas ramo 21 + 99 + 54) → só as válidas incluídas; rejeitadas com linha e motivo</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Mesma tela/layout; planilha com 4 linhas de dados: docs <code>874301</code> (ramo 21, CNPJ do segurado titular), <code>874302</code> (ramo 21, CNPJ do segurado titular), <code>874303</code> (ramo 99, CNPJ fictício), <code>874304</code> (ramo 54, CNPJ fictício).</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b>.</li><li>Conferir os totalizadores e cada linha do grid de críticas; screenshot com os 3 contadores e o grid visíveis.</li><li>SELECT de conversão com docs 874301–874304.</li></ol>
+<h4>Resultado esperado</h4><ul><li><b>Conversões incluídas: 2</b> (somente 874301/874302); <b>Registros com erro</b> inclui 874303 ("Ramo 99 inválido!") e 874304 ("Ramo 54 não permitido para o layout CIT-AVB-TRN!") — mais a crítica fixa da linha de cabeçalho.</li><li>Cada rejeição com linha e motivo legíveis no grid (CA2); contadores coerentes com a soma (CA3).</li><li>SELECT → exatamente 2 linhas (874301/874302), ambas <code>c_rmo = 21</code>; nenhuma linha para 874303/874304.</li></ul>
+<div class="ev-section" id="ev-CT-CVR-003"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-004</span><span class="ct-title">RCT: 99 inválido; 21 e 55 não permitidos para o layout; 54 passa a validação de ramo</span><span class="badge importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Conversor → Converte Arquivo → <b>RCT</b>; layout <code>VOIDR-AUTO-9491131962</code> (Ramo = coluna A).</li><li>Planilha com 4 linhas de dados (estrutura do layout RCT): ramos <code>99</code>/<code>21</code>/<code>55</code>/<code>54</code>, docs <code>874401</code>–<code>874404</code>, CNPJ fictício.</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b>.</li><li>Ler o grid de críticas linha a linha; screenshot.</li></ol>
+<h4>Resultado esperado</h4><ul><li>99 → <b>"Ramo 99 inválido!"</b>; 21 e 55 → <b>"não permitido para o layout CIT-AVB-RCT!"</b> (texto com o ramo da linha); 54 → <b>sem crítica de RAMO</b> (pode haver crítica de outra regra — ex. apólice inexistente para o CNPJ fictício —, o oráculo deste CT é exclusivamente a ausência de crítica de ramo na linha do 54).</li><li>Obs.: 55 rejeitado no RCT é a decisão de Produtos do warn-box (54↔55 eram sincronizados na averbação manual; no Conversor o layout RCT é do ramo 54).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-004"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-005</span><span class="ct-title">RTA: 99 e 54 rejeitados; 58 (ramo do layout) e 52 (alias legado) passam a validação de ramo</span><span class="badge importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Conversor → Converte Arquivo → <b>RTA</b>; layout <code>VOIDR-AUTO-9415639410</code>.</li><li>Planilha com 4 linhas (estrutura RCTA-C): ramos <code>99</code>/<code>54</code>/<code>58</code>/<code>52</code>, docs <code>874501</code>–<code>874504</code>, CNPJ fictício.</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b>.</li><li>Ler o grid de críticas; screenshot.</li></ol>
+<h4>Resultado esperado</h4><ul><li>99 → <b>"Ramo 99 inválido!"</b>; 54 → <b>"não permitido para o layout"</b>; 58 e <b>52</b> → sem crítica de ramo (52 convertido para 58 pelo alias legado fixo em código — comportamento referendado no Gate 2, ver warn-box).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-005"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-006</span><span class="ct-title">RCA e RTF: 99 e 54 rejeitados; ramo do próprio layout passa</span><span class="badge desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Layouts <code>VOIDR-AUTO-9415670989</code> (RCA) e <code>VOIDR-AUTO-9415669605</code> (RTF).</li><li>2 planilhas: RCA com ramos <code>99</code>/<code>54</code>/<code>56</code> (docs <code>874601</code>–<code>874603</code>); RTF com <code>99</code>/<code>54</code>/<code>38</code> (docs <code>874604</code>–<code>874606</code>); CNPJ fictício.</li></ul>
+<h4>Passos</h4><ol><li>Em Converte Arquivo → <b>RCA</b>: importar, selecionar layout, <b>Converter</b>; screenshot do grid.</li><li>Repetir em Converte Arquivo → <b>RTF</b>.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Em ambos: 99 → <b>"Ramo 99 inválido!"</b>; 54 → <b>"não permitido para o layout"</b> (CIT-AVB-RCA / CIT-AVB-RTF); 56 (RCA) e 38 (RTF) → sem crítica de ramo.</li></ul>
+<div class="ev-section" id="ev-CT-CVR-006"></div>
+</div></div>
+
+<div class="group-header">Grupo B — Bordas do campo Ramo (default e tipo)</div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-007</span><span class="ct-title">TRN: campo Ramo VAZIO → default do layout preservado (linha aceita com c_rmo = 21)</span><span class="badge importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Tela TRN + layout VOIDR-AUTO; planilha com 1 linha de dados completa e válida (CNPJ do segurado titular, doc <code>874701</code>) com a coluna A (Ramo) <b>vazia</b>.</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b>.</li><li>Ler totalizadores; SELECT de conversão com doc 874701; screenshot.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Linha <b>aceita</b> (vazio ≠ inválido): o default do layout é aplicado — SELECT mostra a linha com <code>c_rmo = 21</code>.</li><li>Nenhuma crítica de ramo para a linha (regressão do comportamento "vazio → ramo do layout", preservado pelo fix).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-007"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-008</span><span class="ct-title">TRN: Ramo não numérico ("AB") → crítica "CONTEÚDO NÃO É NUMÉRICO", sem exceção</span><span class="badge desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Tela TRN + layout VOIDR-AUTO; planilha com 1 linha de dados com Ramo = <code>AB</code>, doc <code>874801</code>, CNPJ fictício.</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b>; screenshot do grid.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Linha rejeitada com a crítica no padrão exato <code>LIN=000N POS=A Ramo CONTEUDO=AB MSG=CONTEÚDO NÃO É NUMÉRICO</code>; incluídas = 0; <b>sem erro de aplicação</b> (sem tela de exceção/500).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-008"></div>
+</div></div>
+
+<div class="group-header">Grupo C — Persistência e Processar (CA3 · CA4) + regressão do fluxo válido</div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-009</span><span class="ct-title">Controle positivo E2E (regressão): TRN ramo 21 válido → Converter inclui → Processar grava a averbação</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>Tela TRN + layout VOIDR-AUTO; planilha com 1 linha válida: ramo <code>21</code>, doc <code>874901</code>, CNPJ do segurado titular da apólice <code>1789490910061</code>, filial 1, subgrupo 1, data de saída = dia da execução.</li></ul>
+<h4>Passos</h4><ol><li>Importar (modal → <b>Não</b>), selecionar o layout, <b>Converter</b> → conferir <b>Conversões incluídas: 1</b> (screenshot).</li><li>SELECT de conversão (doc 874901) → 1 linha com <code>c_rmo = 21</code>.</li><li>Na mesma tela, clicar em <b>Processar</b> → conferir o resultado do processamento (incluídas/erros) na tela (screenshot).</li><li>SELECT de averbação (doc 874901) em <code>tb_mov_avb_nac_cit</code>.</li></ol>
+<h4>Resultado esperado</h4><ul><li>Conversão: 1 incluída, sem crítica de ramo. Processamento: 1 averbação incluída, 0 erros.</li><li>SELECT final → <b>1 averbação</b> com <code>c_rmo = 21</code>, apólice <code>1789490910061</code>, doc <code>874901</code> (assinatura de que o código sob teste executou — oráculo de banco + tela).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-009"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-010</span><span class="ct-title">Contraprova de persistência: nada gravado para as linhas rejeitadas (nem com ramo trocado)</span><span class="badge bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>CT-CVR-001, 002, 003 executados (docs 874101–874304 conhecidos).</li></ul>
+<h4>Passos</h4><ol><li>Rodar: <code>SELECT c_rmo, u_apo_pnc, u_doc_ini FROM tb_lay_out_cvr_tmp_act_cit WHERE u_doc_ini IN (874101,874102,874201,874303,874304)</code>.</li><li>Rodar: <code>SELECT u_avb, c_rmo, u_doc_ini FROM tb_mov_avb_nac_cit WHERE u_doc_ini IN (874101,874102,874201,874303,874304)</code>.</li><li>Salvar as duas saídas como evidência (arquivo .txt/print do terminal com a query visível).</li></ol>
+<h4>Resultado esperado</h4><ul><li><b>0 linhas nos dois SELECTs.</b> Em especial: nenhuma linha com <code>c_rmo = 21</code> para esses docs — o padrão do bug original era gravar a linha trocando o ramo inválido pelo do layout em silêncio (CA3 + CA4).</li></ul>
+<div class="ev-section" id="ev-CT-CVR-010"></div>
+</div></div>
+
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVR-011</span><span class="ct-title">Barreira do Processar (CA4): linha semeada com c_rmo = 99 direto na tabela de conversão NÃO vira averbação</span><span class="badge importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+<div class="ct-body">
+<h4>Pré-condições</h4><ul><li>CT-CVR-009 executado (linha válida do doc 874901 na <code>tb_lay_out_cvr_tmp_act_cit</code> disponível como molde — se o Processar a consumir/limpar, repetir só a etapa Converter com um doc novo para gerar o molde).</li><li>Pela tela o Conversor já não gera ramo inválido na temp (fix a montante) — por isso a semeadura é via SQL (HML, mutação autorizada), clonando a linha-molde: <code>INSERT INTO tb_lay_out_cvr_tmp_act_cit SELECT</code> ... com <code>c_rmo = 99</code> e <code>u_doc_ini = 874911</code> (demais colunas copiadas).</li></ul>
+<h4>Passos</h4><ol><li>Semear a linha 874911 com <code>c_rmo = 99</code> (INSERT...SELECT da linha-molde); confirmar com SELECT.</li><li>No Conversor, menu <b>Processa Averbações</b> → <b>Transporte Nacional</b>; executar o processamento das averbações pendentes (screenshot do resultado).</li><li>SELECT de averbação com doc 874911 em <code>tb_mov_avb_nac_cit</code>.</li><li>Cleanup: DELETE da linha semeada remanescente na temp (<code>u_doc_ini = 874911</code>).</li></ol>
+<h4>Resultado esperado</h4><ul><li>O Processar <b>não grava</b> averbação para a linha de ramo 99 (SELECT → 0 linhas) e sinaliza o erro no resultado (contador de erro ≥ 1 ou crítica de ramo).</li></ul>
+<div class="warn-box">Se a tela de <b>Processa Averbações</b> não alcançar a linha semeada (escopo restrito ao arquivo recém-convertido), documentar a limitação com evidência e tratar o CA4 como coberto por: rejeição a montante (CT-CVR-001/010) + testes unitários do dev (12/12, PR !2051). Nesse caso o CT encerra como <b>N/A justificado</b> — nunca como APROVADO sem oráculo.</div>
+<div class="ev-section" id="ev-CT-CVR-011"></div>
+</div></div>
+
+<h2>6. Matriz de Rastreabilidade</h2>
+<table>
+<tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+<tr><td>CA1 — Rejeitar ramo inexistente ou não permitido para o layout/tenant</td><td>CT-CVR-001 · 002 · 004 · 005 · 006 · 008</td><td><span class="badge badge-pendente">PENDENTE</span></td></tr>
+<tr><td>CA2 — Informar linha e motivo da rejeição</td><td>CT-CVR-001 · 003 · 008</td><td><span class="badge badge-pendente">PENDENTE</span></td></tr>
+<tr><td>CA3 — Manter incluídos em zero para linhas inválidas</td><td>CT-CVR-001 · 003 · 010</td><td><span class="badge badge-pendente">PENDENTE</span></td></tr>
+<tr><td>CA4 — Revalidar a referência antes da persistência</td><td>CT-CVR-010 · 011</td><td><span class="badge badge-pendente">PENDENTE</span></td></tr>
+<tr><td>Regressão — fluxo válido continua incluindo; default do layout com ramo vazio; alias 52→58</td><td>CT-CVR-003 · 007 · 009 · 005</td><td><span class="badge badge-pendente">PENDENTE</span></td></tr>
+</table>
+
+<h2>7. Métricas</h2>
+<table>
+<tr><th>Total de CTs</th><td>11 (5×P1 · 4×P2 · 2×P3)</td></tr>
+<tr><td>Cobertura dos critérios de aceite</td><td>4/4 CAs de produto cobertos (100%) + regressão</td></tr>
+<tr><td>Executados / Aprovados / Reprovados</td><td>0 / 0 / 0 — execução aguarda Gate 2 (Produtos)</td></tr>
+</table>
+
+<h2>8. Riscos</h2>
+<table>
+<tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+<tr><td>Decisão de Produtos pendente sobre a rejeição por layout (ramo cadastrado ≠ ramo do layout) e o alias 52→58</td><td>Média</td><td>Alto (muda o esperado de CT-CVR-002/004/005/006)</td><td>Warn-box explícita no plano; Gate 2 referenda ANTES da execução; se mudar, plano atualizado e revalidado.</td></tr>
+<tr><td>Resíduo histórico na <code>tb_lay_out_cvr_tmp_act_cit</code> (~257 mil linhas) contaminar os oráculos de banco</td><td>Média</td><td>Médio</td><td>Todos os SELECTs filtrados por <code>u_doc_ini</code> único por CT (série 874xxx) e usuário/data.</td></tr>
+<tr><td>Build do HML numérico anterior ao fix (deploy revertido/pendente)</td><td>Baixa</td><td>Alto</td><td>Pré-requisito: conferir build ≥ V 1.0.261002.1946 no rodapé antes do primeiro CT.</td></tr>
+<tr><td>CT-CVR-011: tela Processa Averbações pode não alcançar a linha semeada via SQL</td><td>Média</td><td>Baixo</td><td>Fallback documentado no CT (N/A justificado; CA4 coberto por CT-010 + unit tests do dev).</td></tr>
+<tr><td>Ambiente compartilhado: outra pessoa convertendo arquivos em paralelo durante a execução</td><td>Baixa</td><td>Médio</td><td>Docs únicos 874xxx; SELECTs nunca sem filtro; conferir <code>n_usu_inc</code> nas linhas encontradas.</td></tr>
+</table>
+
+</div>
+<div class="sig">Wesley Moreira</div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded')));
+</script>
+<div id="lb" onclick="this.style.display='none'"><img id="lbimg" src=""></div>
+<script>function openLb(im){document.getElementById('lbimg').src=im.src;document.getElementById('lb').style.display='flex';}</script>
+</body></html>
