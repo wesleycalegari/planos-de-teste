@@ -78,16 +78,16 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 <div class="wrap">
 
   <div class="dash">
-    <div class="metric m-total"><span class="metric-val" id="exec-total">14</span><span class="metric-label">Total CTs</span></div>
-    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">14</span><span class="metric-label">Aprovados</span></div>
+    <div class="metric m-total"><span class="metric-val" id="exec-total">17</span><span class="metric-label">Total CTs</span></div>
+    <div class="metric m-ok"><span class="metric-val" id="exec-aprovados">17</span><span class="metric-label">Aprovados</span></div>
     <div class="metric m-erro"><span class="metric-val" id="exec-reprovados">0</span><span class="metric-label">Reprovados</span></div>
     <div class="metric m-bloq"><span class="metric-val" id="exec-bloqueados">0</span><span class="metric-label">Bloqueados</span></div>
     <div class="metric m-pend"><span class="metric-val" id="exec-pendentes">0</span><span class="metric-label">Pendentes</span></div>
     <div class="metric"><span class="metric-val">10·4·0</span><span class="metric-label">P1 · P2 · P3</span></div>
     <div class="dash-wide">
-      <div class="pb-pct" id="pb-pct">14 de 14 CTs executados (100%) — 14 aprovados · 0 reprovados · 0 bloqueados. Execução em 01/10/2026, HML Fairfax numérico (build módulo DadosApolice V 1.0.260930.1851), nos 3 ramos (RCTA-C 58 · RCTR-C 54 · RCTF-C 38). Nada a testar.</div>
+      <div class="pb-pct" id="pb-pct">17 de 17 CTs executados (100%) — 17 aprovados · 0 reprovados · 0 bloqueados. Rodada 1 em 01/10/2026 (14 CTs, build DadosApolice V 1.0.260930.1851) + rodada 2 em 08/10/2026 (indicativo #9010 e TryParse #9051: CT-TDA-015/016/017 nas 3 telas, Fairfax V 1.0.261007.1720 e AXA V 1.0.261007.1719, com os CTs 003/007/011, 004/008/012 e 013 reexecutados). Nada a testar.</div>
       <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:100%"></div></div>
-      <span class="hidden" id="EXEC_JSON">{"total":14,"aprovados":14,"reprovados":0,"bloqueados":0,"pendentes":0,"p1":10,"p2":4,"p3":0}</span>
+      <span class="hidden" id="EXEC_JSON">{"total":17,"aprovados":17,"reprovados":0,"bloqueados":0,"pendentes":0,"p1":13,"p2":4,"p3":0}</span>
     </div>
   </div>
 
@@ -126,7 +126,7 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
     <li><b>Demais ramos com o mesmo par sem JS</b> (telas 21, 22, 32, 55, 56, 59 — apontados na análise do dev): fora do escopo do card; pergunta nº 1 ao Gate 2 (seção 8).</li>
     <li><b>Outros tenants</b>: o card é exclusivo do <code>fairfax-hml-numerico</code> (regra 9 — regra de um ambiente/ramo não se generaliza).</li>
     <li><b>Produção</b>: N/A — QA não testa em PROD.</li>
-    <li><b>Regra AXA #3733</b> (taxa 0,00 com opção selecionada, caminho de salvar AXA): não é observável no tenant Fairfax; coberta pelo teste unitário do PR (DoD) — risco registrado na seção 9.</li>
+    <li><b>Regra AXA #3733</b> (taxa 0,00 com opção selecionada): na rodada 1 não era observável no tenant Fairfax (coberta pelo teste unitário do PR). <b>Na rodada 2 entrou no escopo:</b> com o #9010 a regra passou a depender do indicativo <code>Ind_Permite_Taxa_Zero_Desc_Agravo</code> e foi exercida em tela na AXA HML (CT-TDA-017, com contraprova do indicativo em N) — ampliação de escopo comunicada a Produtos no comentário de resultado.</li>
   </ul>
 
   <h2>4. Pré-requisitos e massa de dados</h2>
@@ -490,6 +490,31 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
 </div>
 </div></div></div>
 
+  <div class="group-header">Rodada 2 (08/10/2026) — reteste do indicativo <code>Ind_Permite_Taxa_Zero_Desc_Agravo</code> (#9010) e do TryParse (#9051)</div>
+  <div class="info-box"><b>Por que a rodada 2:</b> depois do encerramento do QA em 01/10 o dev trocou o <code>if</code> da AXA pelo indicativo (#9010) e passou a ler a taxa com TryParse nos validadores (#9051) — código novo nos validadores do servidor das 3 telas (<code>CondicoesComerciais52/54/38.aspx.cs</code>). Build em tela: Fairfax <code>V 1.0.261007.1720</code> · AXA <code>V 1.0.261007.1719</code>. Script: <code>reteste_8741_indicativo.py</code> (repositório privado). Toda condição gravada no teste foi removida ao final (SQL: 0 linhas nas 6 apólices).</div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-TDA-015</span><span class="ct-title">Texto não numérico ("abc") na taxa, por cima da máscara: crítica amigável, nunca HTTP 500 — 3 telas, Fairfax e AXA</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><p>Negativo — robustez (achado de 06/10: HTTP 500 na RCTR-C)</p>
+      <h4>Pré-condições</h4><ul><li>Fairfax HML numérico (indicativo <b>ausente</b> = desligado): RCTA-C <code>1790000000223</code> · RCTR-C <code>1789491297274</code> · RCTF-C <code>1789490962968</code> (0 condições antes)</li><li>Também na AXA (indicativo ligado) — a combinação TryParse × indicativo S.</li></ul>
+      <h4>Passos</h4><ol><li>Login → módulo Nacional → Cadastros → Apólice → RCTA-C / RCTR-C / RCTF-C → filial 0001 + número da apólice → lupa → <b>Condições Comerciais</b> → Tipo de Taxa = <b>Desconto/Agravo Comercial</b>; demais obrigatórios da tela preenchidos (ex.: Tipo de Transporte, Sobre Taxa) para que a única crítica possível seja a do Desconto/Agravo</li><li>Selecionar Desconto(-); trocar o campo da taxa por um clone sem os eventos da máscara (na 54/38 a máscara ZZZ,0000 apaga o texto e devolve 0,0000) e gravar <code>abc</code> — como o forçado por JS do achado de 06/10; capturar o corpo do POST</li><li>Salvar — print + texto da mensagem</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O servidor recebe <code>abc</code> e responde com a crítica <b>“Informe Desconto/Agravo.”</b> — sem HTTP 500, nada persiste.</li></ul>
+      <h4>Resultado obtido (rodada 2 — 08/10/2026)</h4><ul><li>Nas 6 combinações (3 telas × Fairfax/AXA) o POST levou a taxa = <code>abc</code> e a resposta foi <b>“Informe Desconto/Agravo.”</b>, sem 500 e sem gravar (banco 0 linhas). Conforme — o TryParse foi exercido com texto de fato (inclusive na 54, a tela do 500 de 06/10).</li></ul>
+      <h4>Cobre</h4><p>#9051 — TryParse nos validadores (52, 54, 38).</p><div class="ev-section" id="ev-CT-TDA-015"><p>Evidências: anexos do card (comentário de resultado da rodada 2).</p></div></div></div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-TDA-016</span><span class="ct-title">Taxa 0,00 com opção Desconto(-) na Fairfax (indicativo desligado): bloqueia — 3 telas</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><p>Negativo — regra por seguradora via indicativo</p>
+      <h4>Pré-condições</h4><ul><li>Fairfax HML numérico (indicativo <b>ausente</b> = desligado): RCTA-C <code>1790000000223</code> · RCTR-C <code>1789491297274</code> · RCTF-C <code>1789490962968</code> (0 condições antes)</li></ul>
+      <h4>Passos</h4><ol><li>Login → módulo Nacional → Cadastros → Apólice → RCTA-C / RCTR-C / RCTF-C → filial 0001 + número da apólice → lupa → <b>Condições Comerciais</b> → Tipo de Taxa = <b>Desconto/Agravo Comercial</b>; demais obrigatórios da tela preenchidos (ex.: Tipo de Transporte, Sobre Taxa) para que a única crítica possível seja a do Desconto/Agravo</li><li>Selecionar Desconto(-) — a taxa habilita com 0,00</li><li>Salvar — print + texto; SQL da apólice depois</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Crítica <b>“Informe Desconto/Agravo.”</b> e nenhuma condição gravada.</li></ul>
+      <h4>Resultado obtido (rodada 2 — 08/10/2026)</h4><ul><li>52, 54 e 38: só a crítica <b>“Informe Desconto/Agravo.”</b>; SQL <code>tb_sgp_nac_cml_cit</code> com 0 linhas nas 3 apólices. Conforme.</li></ul>
+      <h4>Cobre</h4><p>#9010 — sem o indicativo, 0,00% exige crítica.</p><div class="ev-section" id="ev-CT-TDA-016"><p>Evidências: anexos do card (comentário de resultado da rodada 2).</p></div></div></div>
+<div class="ct-block"><div class="ct-head"><span class="ct-id">CT-TDA-017</span><span class="ct-title">Taxa 0,00 com opção Desconto(-) na AXA (indicativo ligado): salva — 3 telas</span><span class="badge badge-p1">P1</span><span class="ev-badge badge badge-ok">Aprovado</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><p>Positivo — exceção da AXA (#3733) preservada pelo indicativo</p>
+      <h4>Pré-condições</h4><ul><li>AXA HML (indicativo <code>Ind_Permite_Taxa_Zero_Desc_Agravo = 'S'</code> medido por SELECT em 08/10 19:12): RCTA-C <code>1789649436262</code> · RCTR-C <code>1789649833550</code> · RCTF-C <code>1789649437688</code> (0 condições antes)</li></ul>
+      <h4>Passos</h4><ol><li>Login → módulo Nacional → Cadastros → Apólice → RCTA-C / RCTR-C / RCTF-C → filial 0001 + número da apólice → lupa → <b>Condições Comerciais</b> → Tipo de Taxa = <b>Desconto/Agravo Comercial</b>; demais obrigatórios da tela preenchidos (ex.: Tipo de Transporte, Sobre Taxa) para que a única crítica possível seja a do Desconto/Agravo</li><li>Selecionar Desconto(-) com taxa 0,00</li><li>Salvar — print + texto; SQL da apólice depois; remover a condição de teste</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>“Condições comerciais salvos com sucesso.”</b>; banco com <code>e_dsc_agv_cml='-'</code> e <code>o_dsc_agv_cml=0</code>.</li></ul>
+      <h4>Resultado obtido (rodada 2 — 08/10/2026)</h4><ul><li>52, 54 e 38: <b>“Condições comerciais salvos com sucesso.”</b>; 1 linha <code>DACML</code> com <code>'-'</code>/<code>0.0</code> em cada apólice (19:11, 19:21, 19:18), apagadas por DELETE ao final. <b>Contraprova:</b> com o indicativo alternado para N na AXA HML (20:05, sessão nova) o mesmo 0,00 na 52 <b>bloqueou</b> com “Informe Desconto/Agravo.”; devolvido a S às 20:06 (SELECT antes/depois). Conforme — é o indicativo que decide, não o nome da seguradora.</li></ul>
+      <h4>Cobre</h4><p>#9010 — com o indicativo S, 0,00% é permitido; com N, bloqueia.</p><div class="ev-section" id="ev-CT-TDA-017"><p>Evidências: anexos do card (comentário de resultado da rodada 2).</p></div></div></div>
+  <div class="info-box"><b>CTs da rodada 1 reexecutados na rodada 2 (Fairfax, 3 telas):</b> CT-TDA-003/007/011 (Desconto(-) 5,00 → “Condições comerciais salvos com sucesso.”, banco <code>o_dsc_agv_cml=5</code>, apagado por DELETE — na rodada 2 só salvar + banco; a recarga e a exclusão pela tela ficaram da rodada 1) · CT-TDA-004/008/012 (taxa vazia → “Informe Desconto/Agravo.”, sem 500) · CT-TDA-013 (bypass: taxa 7 sem opção → “Indicar se é Desconto(-) ou Agravo(+).”, nada salvo) — todos conformes. Nas 21 execuções finais o campo estava desabilitado depois do postback do Tipo de Taxa (21/21) e, nas 12 em que a opção foi escolhida pela tela (sem destravar por script), habilitou ao escolher a opção — parte observável de 001/005/009; o “após Novo” não foi refeito. <b>Não reexecutados</b> (aprovados na rodada 1, 01/10, build V 1.0.260930.1851): 001/002/005/006/009/010 e 014 — o diff da rodada 2 (PRs 2059/2060 e 2073/2074) só altera os validadores e a gravação da taxa no servidor (<code>CondicoesComerciais52/54/38.aspx.cs</code> + Utility); nenhum commit no markup/JS dessas telas depois de 30/09 17:13Z (conferido no código pelo revisor independente).</div>
+
   <h2>6. Matriz de Rastreabilidade</h2>
   <table>
     <tr><th>Critério de Aceite</th><th>CTs</th><th>Resultado</th></tr>
@@ -523,7 +548,7 @@ code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px
     <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
     <tr><td>Fix parcial: dev replica o padrão #7753 só na tela 52 (RCTA-C), assumindo 54/38 cobertos — mas a build do Fairfax numérico não tem o #7753 (os 3 ramos reproduzem, medido 29/09)</td><td>Alta</td><td>Alto</td><td>CTs independentes por ramo; reprovação por ramo; pré-requisito de confirmar branch/build do deploy com o dev antes de executar.</td></tr>
     <tr><td>Branch divergente (<code>hml</code> × <code>hml_fix</code>): o #7753 não está nas branches <code>*_fix</code> — deploy pela branch errada re-expõe 54/38</td><td>Média</td><td>Alto</td><td>Registrar a build (rodapé da tela) na evidência de cada CT; comparar com a build declarada no card.</td></tr>
-    <tr><td>Regressão da regra AXA #3733 (taxa 0,00 permitida com opção selecionada) — não observável no tenant Fairfax</td><td>Média</td><td>Médio</td><td>Fora do escopo de execução; exigir teste unitário do caminho AXA no PR (DoD) e registrar no resultado.</td></tr>
+    <tr><td>Regressão da regra AXA #3733 (taxa 0,00 permitida com opção selecionada)</td><td>Média</td><td>Médio</td><td>Rodada 1: teste unitário do PR (DoD). Rodada 2: exercida em tela na AXA HML (CT-TDA-017) e contraprova com o indicativo em N; para a promoção, a linha do indicativo tem de existir só na base AXA de cada ambiente (task #9066).</td></tr>
     <tr><td>Erro 500 (FormatException em <code>ToDecimal("")</code>) ao salvar taxa vazia — regressão já vista no reteste do #7753 (15/07/2026)</td><td>Média</td><td>Alto</td><td>CT-TDA-004/008/012 dedicados (P1) — crítica amigável é oráculo, crash é REPROVADO.</td></tr>
     <tr><td>Validação só no cliente (JS) — servidor continua aceitando a combinação inconsistente</td><td>Média</td><td>Alto</td><td>CT-TDA-013 (P1) com bypass de JS + assinatura de banco (baseline 0 linhas inconsistentes).</td></tr>
     <tr><td>CCs criadas pelos CTs alteram a tarifação de averbações futuras do ambiente compartilhado</td><td>Baixa</td><td>Médio</td><td>Cleanup obrigatório ao final de cada CT de salvamento (excluir a condição criada; grade volta vazia).</td></tr>
