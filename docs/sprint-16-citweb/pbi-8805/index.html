@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8805 · Certificado sem CNPJ e código SUSEP da seguradora (CITNET 4.0 · Tokio Marine)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--erro);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--erro);color:#fff;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8805 · Sprint 16 Citweb</span>
+    <h1>Certificado sem CNPJ e código SUSEP da seguradora — Gerar Certificado RC-V da Consulta Nacional (CITNET 4.0 · Tokio Marine)</h1>
+    <div class="sub">CITNET 4.0 (novo) · Relatórios → Nacional → Consulta → Gerar Certificado · Ambiente: HML Tokio Marine · Ramo 59 (RCV) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">6</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">6</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">2/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 6 executados · 6 pendentes</strong> — plano publicado, aguardando validação de Produtos (Gate 2 — nenhum CT executado ainda). Falta testar: <strong>6 CTs</strong> (2×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 6, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 6}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET 4.0 (reescrita React/API) — Relatórios → Nacional → Consulta → <b>Gerar Certificado</b> (exclusivo RC-V) — tenant TOKIO MARINE</td></tr>
+    <tr><th>Card</th><td>BUG-8805 (Sprint 16 Citweb) · Ticket <code>BB-CITNET-TOKIO-HML-20260916-003</code> (Bug Bash 16/09/2026) · Dev: Fabiano Souza · Tags: Citnet, RCV, tenant:tokio, BugBash</td></tr>
+    <tr><th>Correção entregue</th><td>Data-fix nos <b>dados</b> do tenant: a tabela de cadastro da seguradora (<code>tb_cad_seg</code>) — fonte da seção “Dados da Seguradora” do certificado — <b>estava vazia</b> e foi populada (registrado pelo dev no card em 17/09/2026). Sem alteração de código informada.</td></tr>
+    <tr><th>Tasks filhas</th><td>#9078 [QA] Plano de teste</td></tr>
+    <tr><th>Ambiente</th><td>HML Tokio CITNET 4.0 — <code>https://hmlnssegfaturamento.atmtec.com.br/login</code> · usuário de teste <code>QAINTERNO</code> (credencial no .env, nunca neste documento) · API: <code>hmlnssegfaturamentoapi.atmtec.com.br</code></td></tr>
+    <tr><th>Ramo</th><td>59 (RCV) — a própria tela informa: “a geração de certificado existe apenas no RC-V”</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 08/10/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Bug Bash de 16/09/2026 no CITNET 4.0 Tokio Marine, o <b>certificado individual de seguro RC-V</b> gerado pela tela Relatórios → Nacional → Consulta (botão “Gerar Certificado” na linha da averbação) saía com a seção <b>DADOS DA SEGURADORA</b> incompleta: razão social “Tokio Marine” presente, mas <b>CNPJ e Código SUSEP vazios</b> (geração HTTP 200 — defeito de conteúdo, não de geração). O mesmo vazio foi observado no segundo PDF do lote. A causa registrada pelo dev: a <code>tb_cad_seg</code> do tenant (fonte desses campos, lida via <code>SeguradoraDomain().Obter()</code> — triagem no card aponta <code>Domain/RelatorioDomain.cs</code>) estava <b>vazia</b>; a correção foi um <b>data-fix</b> populando a tabela (17/09). Este plano valida em tela/PDF o certificado individual (CA1), os PDFs do lote ZIP com integridade e dados da averbação preservados (CA2) e a regressão do relatório da própria consulta, que lê o mesmo cadastro.</p>
+
+  <div class="info-box"><b>Medições de planejamento (08/10/2026 — banco HML do tenant Tokio, read-only, e tela):</b>
+    <ul>
+      <li><b><code>tb_cad_seg</code> está populada</b>: razão social <code>Tokio Marine Seguradora S.A.</code>, CNPJ preenchido (<code>cnpj_seg</code> — valor confirmado em banco; não reproduzido neste documento público), endereço/telefone, e <b>código SUSEP <code>6190</code></b> (coluna <code>c_seg_ssp</code>). Estes são os valores de cadastro contra os quais o PDF será conferido.</li>
+      <li><b>Grid medida em tela</b> (filtro filial 1 · ramo 59 · apólice 1303 · subgrupo 1 · 16/09–18/09/2026): 3 linhas — protocolo <b>1</b> (doc 160926001, 16/09, placa QAR1C59, SP/PR, averbação 2026000001, <i>Processado</i>, com botão “Gerar Certificado”), protocolo <b>2</b> (doc 160926002, 17/09, <i>Excluída pela Seguradora</i>, <b>sem</b> botão e <b>fora</b> da seleção), protocolo <b>3</b> (doc 123123123, 18/09, placa 1234abc, AC/AL, <i>Processado</i>, com botão). Contador do lote: “0 de <b>2</b> selecionados” + botão <b>“Gerar Todos (ZIP)”</b>.</li>
+      <li>⚠️ <b>Risco de fonte do SUSEP:</b> o “Código SUSEP” da seguradora deve vir do cadastro (<code>c_seg_ssp</code> = 6190). A <code>tb_prm_cit</code> do ramo 59 tem o <i>processo</i> SUSEP do produto (<code>c_ssp</code> = 682/2022) e <code>c_ssp_337</code> <b>vazio</b> — se o template buscar a fonte errada, o campo pode sair vazio ou incoerente mesmo após o data-fix.</li>
+      <li>⚠️ <b>Razão social:</b> no PDF defeituoso de 16/09 a razão social já saía “Tokio Marine” (fonte aparente ≠ <code>tb_cad_seg</code>, que estava vazia). O CA exige os três campos <b>coerentes com o cadastro</b> — divergência de razão social após o fix é julgada na execução (ver CT-CRT-001).</li>
+    </ul>
+    Oráculo primário do veredito = <b>o PDF gerado</b> (arquivo aberto e lido); banco (<code>tb_cad_seg</code>) = referência de coerência do CA.
+  </div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope (HML Tokio · CITNET 4.0)</h3>
+  <ul>
+    <li>Certificado individual RC-V — seção Dados da Seguradora preenchida e coerente com o cadastro (CT-CRT-001), demais seções preservadas (CT-CRT-002).</li>
+    <li>Lote “Gerar Todos (ZIP)” — integridade do ZIP e dos PDFs e preenchimento da seguradora em todos (CT-CRT-003), com os dados da própria averbação em cada PDF (CT-CRT-004).</li>
+    <li>Regressão: relatório “Imprimir / PDF” da própria consulta, que lê o mesmo cadastro da seguradora (CT-CRT-005); controle da linha excluída sem geração de certificado (CT-CRT-006).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em PROD (N/A).</li>
+    <li><b>Ramo 54 (RCTR-C)</b> — a tela só oferece certificado no RC-V (nota da própria tela); o relatório de consulta do ramo 54 não é objeto deste card (regra: validação de um ramo não se generaliza).</li>
+    <li><b>CITNET2 clássico</b> e outros tenants — o card é do CITNET 4.0 HML Tokio.</li>
+    <li><b>Conteúdo jurídico/condições gerais</b> do certificado (texto padrão) — fora do defeito; conferido apenas como presença da seção.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="info-box"><b>Massa medida em 08/10/2026 (banco <code>tb_mov_avb_rcv_cit</code> + grid em tela do tenant Tokio)</b> — reconfirmar em tela no dia da execução:
+    <table>
+      <tr><th>Papel</th><th>Valor</th><th>Situação medida</th></tr>
+      <tr><td><b>Filtro da consulta</b></td><td>Filial <code>1 - NSTECH - HML VALIDAÇÃO RCV</code> · Ramo <code>59 — RCV (Veicular)</code> · Apólice <code>1303</code> · Subgrupo <code>1 - TESTE RCV TOKIO</code> · Período <code>16/09/2026</code> a <code>18/09/2026</code></td><td>Retorna 3 linhas (2 geráveis) — grid confirmada em tela em 08/10</td></tr>
+      <tr><td><b>Certificado individual</b> (CT-CRT-001/002)</td><td>Protocolo <b>1</b> · Documento <code>160926001</code> · averbação <code>2026000001</code> · 16/09/2026 · placa QAR1C59 · SP→PR</td><td><i>Processado</i>, botão “Gerar Certificado” presente — é a averbação do repro original (certificado-baseline de 16/09 anexado ao card)</td></tr>
+      <tr><td><b>Segundo PDF do lote</b> (CT-CRT-003/004)</td><td>Protocolo <b>3</b> · Documento <code>123123123</code> · averbação <code>2026000002</code> · 18/09/2026 · placa 1234abc · AC→AL</td><td><i>Processado</i>, botão presente</td></tr>
+      <tr><td><b>Linha de controle</b> (CT-CRT-006)</td><td>Protocolo <b>2</b> · Documento <code>160926002</code> · 17/09/2026</td><td><i>Excluída pela Seguradora</i> — sem botão de certificado e fora da seleção do lote</td></tr>
+      <tr><td><b>Cadastro da seguradora</b> (oráculo de coerência)</td><td><code>SELECT n_seg, cnpj_seg, c_seg_ssp FROM tb_cad_seg</code></td><td>1 linha: <code>Tokio Marine Seguradora S.A.</code> · CNPJ preenchido · SUSEP <code>6190</code> (08/10)</td></tr>
+    </table>
+  </div>
+  <ul>
+    <li>HML Tokio CITNET 4.0 acessível; login <code>QAINTERNO</code> (credencial no .env — perfil interno; o Bug Bash de 16/09 usou este usuário).</li>
+    <li>Navegação sempre por clique a partir do login (única URL direta permitida: a de login do HML).</li>
+    <li>Os campos Data inicial/Data final são <code>input type="date"</code> (na UI digita-se dd/mm/aaaa; em automação preencher ISO <code>aaaa-mm-dd</code>) — medido em tela em 08/10.</li>
+    <li>CTs de download (001–005): a evidência <b>inclui o próprio arquivo</b> (PDF/ZIP) salvo, aberto e validado (tamanho &gt; 0, PDF abre sem erro, texto extraído com o campo do CA legível) — status HTTP 200 sozinho não aprova.</li>
+    <li>Ordem recomendada: CT-CRT-001 → 002 (mesmo PDF) → 006 (mesma grid) → 003 → 004 (mesmo ZIP) → 005.</li>
+  </ul>
+  <div class="warn-box"><b>Execução somente após:</b> aprovação do plano por <b>Produtos (Gate 2)</b> — escrita por Produtos no card. O DoD do dev já está cumprido (card em “Pronto para homologação”, data-fix aplicado em 17/09). Evidência de execução vive no <b>card</b> (anexo por CT), além do bloco de evidência de cada CT neste documento.</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Certificado individual (CA1: dados da seguradora preenchidos e coerentes)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-001</span><span class="ct-title">Certificado individual do protocolo 1 — Dados da Seguradora preenchidos e coerentes com o cadastro (reteste do defeito)</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Tokio CITNET 4.0; login <code>QAINTERNO</code> (credencial no .env).</li><li>Cadastro de referência lido no dia da execução: <code>SELECT n_seg, cnpj_seg, c_seg_ssp FROM tb_cad_seg</code> (em 08/10: razão social <code>Tokio Marine Seguradora S.A.</code>, CNPJ preenchido, SUSEP <code>6190</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Acessar <code>https://hmlnssegfaturamento.atmtec.com.br/login</code>, informar usuário/senha e clicar em <b>Entrar</b>.</li><li>No menu lateral, clicar em <b>Relatórios</b> → grupo <b>Nacional</b> → <b>Consulta</b>.</li><li>Preencher os filtros: Filial <code>1 - NSTECH - HML VALIDAÇÃO RCV</code>, Ramo <code>59 — RCV (Veicular)</code>, Apólice <code>1303</code> (dropdown com busca), Subgrupo <code>1 - TESTE RCV TOKIO</code>, Data inicial <code>16/09/2026</code>, Data final <code>18/09/2026</code> — screenshot EV1 do filtro preenchido.</li><li>Clicar em <b>Consultar</b> — screenshot EV2 da grid com as 3 linhas e a coluna Status legível.</li><li>Na linha do protocolo <b>1</b> (Documento <code>160926001</code>), clicar em <b>Gerar Certificado</b> e salvar o PDF baixado (registrar nome e tamanho do arquivo).</li><li>Abrir o PDF e localizar a seção <b>DADOS DA SEGURADORA</b> — screenshot EV3 da seção com os três campos legíveis; extrair o texto do PDF para o arquivo de evidência.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Seção DADOS DA SEGURADORA com os <b>três campos preenchidos</b>: Razão Social, CNPJ e Código SUSEP — nenhum vazio (em 16/09, CNPJ e SUSEP saíam vazios).</li><li><b>Coerência com o cadastro</b> (CA1, CERTI-14/CIT-178): CNPJ idêntico ao <code>cnpj_seg</code> e Código SUSEP idêntico ao <code>c_seg_ssp</code> (<code>6190</code>) lidos da <code>tb_cad_seg</code> no dia da execução; razão social coerente com <code>n_seg</code> (<code>Tokio Marine Seguradora S.A.</code>). Se a razão social exibir forma divergente do cadastro (ex.: “Tokio Marine” curto), registrar a divergência campo a campo e escalar a Produtos o julgamento de “coerente” <b>antes</b> do veredito do CT.</li><li>Evidência inclui o <b>arquivo PDF</b> (nome, tamanho, texto extraído) — não apenas screenshot.</li></ul>
+      <h4>Cobre</h4><p>CA1 (razão social, CNPJ e código SUSEP preenchidos e coerentes com o cadastro — geração individual).</p><div class="ev-section" id="ev-CT-CRT-001"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-002</span><span class="ct-title">Demais seções do certificado do protocolo 1 preservadas (comparação com o certificado-baseline de 16/09)</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>PDF do protocolo 1 gerado no CT-CRT-001.</li><li>Certificado-baseline de 16/09 (anexo <code>BUG-003-certificado.pdf</code> do card) disponível para comparação.</li></ul>
+      <h4>Passos</h4><ol><li>No PDF gerado, conferir seção a seção contra o baseline de 16/09: <b>DADOS DO CONTRATO</b> (Ramo 59, Produto RC-V, vigência da apólice 1303), <b>DADOS DA CORRETORA</b> (razão social, CNPJ e SUSEP idênticos aos do baseline — essa seção já saía correta), <b>DADOS DO SEGURADO</b> (TESTE RCV TOKIO), <b>DADOS DO VEÍCULO</b> (placa QAR1C59), <b>DADOS DA VIAGEM</b> (Origem SÃO PAULO, Destino PARANÁ, Data de Saída 16/09/2026, Tipo Outros, Documento 160926001), <b>COBERTURAS CONTRATADAS</b> (Danos Materiais R$ 10.000,00 · Danos Corporais R$ 10.000,00) e presença das CONDIÇÕES GERAIS.</li><li>Anexar tabela de comparação campo a campo no arquivo de evidência.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os campos das demais seções idênticos ao baseline — o data-fix <b>só</b> completou os dados da seguradora, sem alterar os dados da averbação (CA2: “preservando os dados da averbação”).</li></ul>
+      <h4>Cobre</h4><p>CA2 (dados da averbação preservados na geração individual) + regressão de conteúdo.</p><div class="ev-section" id="ev-CT-CRT-002"></div></div></div>
+
+  <div class="group-header">Grupo B — Lote “Gerar Todos (ZIP)” (CA2: preenchimento também no lote, com integridade)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-003</span><span class="ct-title">Lote ZIP com os 2 protocolos processados — ZIP íntegro, 2 PDFs válidos, seguradora preenchida em todos</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Grid da consulta carregada com o filtro do CT-CRT-001 (passos 1–4).</li></ul>
+      <h4>Passos</h4><ol><li>Marcar o checkbox de seleção das 2 linhas <i>Processado</i> (protocolos 1 e 3) — ou usar “Marcar tudo”; conferir o contador “<b>2 de 2 selecionados</b>” — screenshot EV1 com o contador e o botão habilitado legíveis.</li><li>Clicar em <b>Gerar Todos (ZIP)</b> e salvar o arquivo ZIP baixado (registrar nome e tamanho).</li><li>Abrir o ZIP: listar o conteúdo (registrar nomes e tamanhos) e extrair os PDFs.</li><li>Abrir <b>cada</b> PDF extraído e localizar a seção DADOS DA SEGURADORA — screenshots EV2/EV3 (um por PDF) com os três campos legíveis; extrair o texto de ambos.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>ZIP válido (abre sem erro) contendo <b>2 PDFs</b> — um por averbação selecionada — ambos íntegros (abrem, tamanho &gt; 0, conteúdo legível).</li><li>Em <b>ambos</b> os PDFs, DADOS DA SEGURADORA com razão social, CNPJ e Código SUSEP preenchidos e coerentes com o cadastro (mesmo critério do CT-CRT-001) — em 16/09 o vazio foi observado “também no segundo PDF do lote”.</li><li>Evidência inclui o <b>arquivo ZIP e os PDFs extraídos</b> (nomes, tamanhos, texto) — não apenas screenshot.</li></ul>
+      <h4>Cobre</h4><p>CA1 + CA2 (preenchimento correto nos PDFs de lote ZIP, com integridade dos arquivos).</p><div class="ev-section" id="ev-CT-CRT-003"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-004</span><span class="ct-title">PDF do protocolo 3 no lote — dados da própria averbação (conteúdo varia por averbação, não é cópia do primeiro)</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>PDFs extraídos do ZIP no CT-CRT-003.</li></ul>
+      <h4>Passos</h4><ol><li>No PDF correspondente ao protocolo <b>3</b>, conferir os dados da averbação: Documento <code>123123123</code>, Data de Saída <code>18/09/2026</code>, placa <code>1234abc</code>, percurso Acre → Alagoas (AC/AL na grid), coberturas DM/DC R$ 10.000,00 — screenshot EV1 das seções Veículo/Viagem legíveis.</li><li>Comparar com o PDF do protocolo 1 extraído do mesmo ZIP: os campos de averbação devem <b>diferir</b> conforme cada registro (documento, data, placa, percurso).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada PDF do lote carrega os dados da <b>própria</b> averbação — nenhum campo “vazado” de outro registro nem PDFs idênticos (CA2: “preservando os dados da averbação”).</li></ul>
+      <h4>Cobre</h4><p>CA2 (dados da averbação preservados em cada PDF do lote).</p><div class="ev-section" id="ev-CT-CRT-004"></div></div></div>
+
+  <div class="group-header" style="background:var(--grpB)">Grupo C — Regressão e controle da tela</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-005</span><span class="ct-title">Regressão — relatório “Imprimir / PDF” da consulta íntegro após o data-fix (mesmo cadastro da seguradora)</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Grid da consulta carregada com o filtro do CT-CRT-001 (passos 1–4).</li><li>Contexto: a triagem do card aponta que o relatório da consulta também lê <code>SeguradoraDomain().Obter()</code> (<code>Domain/RelatorioDomain.cs</code>) — o data-fix na <code>tb_cad_seg</code> afeta este artefato também.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Imprimir / PDF</b> (botão do bloco de filtros) e salvar o arquivo baixado (registrar nome e tamanho).</li><li>Abrir o arquivo: conferir que é um PDF/relatório válido, com as averbações do filtro listadas — screenshot EV1.</li><li>Se o relatório tiver bloco de identificação da seguradora (cabeçalho), conferir que está <b>preenchido</b> (razão social/CNPJ não vazios) e coerente com o cadastro — screenshot EV2 do bloco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Relatório gerado e íntegro (abre, conteúdo do filtro presente) — o data-fix não quebrou o artefato vizinho que lê o mesmo cadastro; bloco da seguradora (se existente no layout) preenchido.</li><li>Evidência inclui o <b>arquivo</b> baixado.</li></ul>
+      <h4>Cobre</h4><p>Regressão (artefato vizinho alimentado pela mesma <code>tb_cad_seg</code>).</p><div class="ev-section" id="ev-CT-CRT-005"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRT-006</span><span class="ct-title">Controle — averbação “Excluída pela Seguradora” permanece sem “Gerar Certificado” e fora da seleção do lote</span><span class="badge prio desejavel">P3</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Grid da consulta carregada com o filtro do CT-CRT-001 (passos 1–4).</li></ul>
+      <h4>Passos</h4><ol><li>Localizar a linha do protocolo <b>2</b> (Documento <code>160926002</code>, Status <i>Excluída pela Seguradora</i>) — screenshot EV1 da linha com a coluna Status e a coluna Ações legíveis.</li><li>Conferir: a linha <b>não</b> oferece o botão “Gerar Certificado” nem checkbox de seleção.</li><li>Com “Marcar tudo” acionado, conferir o contador: “2 de 2 selecionados” (a linha excluída não entra na contagem — comportamento medido em tela em 08/10, com 3 linhas na grid).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Averbação excluída continua <b>inelegível</b> para certificado (individual e lote) — o data-fix não habilitou geração indevida (comportamento de controle preservado).</li></ul>
+      <h4>Cobre</h4><p>Regressão/controle da tela (comportamento medido em 08/10, pré-execução — não deriva de CA; inferência documentada).</p><div class="ev-section" id="ev-CT-CRT-006"></div></div></div>
+
+  <div class="info-box"><b>Exploratório (NOR_QA_002 §11):</b> após os CTs formais, sessão de 15–30 min guiada por risco na tela de Consulta — gerar certificado de averbação antiga (08/2026, fora do período do fix), alternar ramo 54 (sem certificado, conferir a nota da tela), filtros com período sem resultados, paginação com 13 averbações (filtro amplo 01/08–30/09), download repetido do mesmo certificado. Achados viram work item conforme convenção; sem ocorrências → comentar no card.</div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — O certificado RCV apresenta razão social, CNPJ e código SUSEP da seguradora preenchidos e coerentes com o cadastro (CERTI-14 / CIT-178)</td><td>CT-CRT-001 (individual) · CT-CRT-003 (lote)</td><td>Pendente</td></tr>
+    <tr><td>CA2 — Preenchimento correto na geração individual e nos PDFs de lote ZIP, preservando os dados da averbação e a integridade dos arquivos</td><td>CT-CRT-002 (dados preservados, individual) · CT-CRT-003 (integridade ZIP/PDFs) · CT-CRT-004 (dados por averbação no lote)</td><td>Pendente</td></tr>
+    <tr><td>Regressão (derivada — não é CA do card)</td><td>CT-CRT-005 (relatório da consulta) · CT-CRT-006 (controle da linha excluída)</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>6 — 2×P1 (bloqueante) · 3×P2 (importante) · 1×P3 (desejável)</td></tr>
+    <tr><td>Cobertura dos critérios de aceite</td><td>2/2 CAs cobertos (100%) — CA1: 2 CTs · CA2: 3 CTs · +2 CTs de regressão/controle (derivados, não-CA)</td></tr>
+    <tr><td>Execução</td><td>0/6 executados (plano em Gate 2 — painel do cabeçalho é a fonte viva do placar)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><b>Fonte errada do Código SUSEP:</b> o cadastro tem <code>c_seg_ssp</code> = 6190, mas o produto (ramo 59) tem processo SUSEP <code>682/2022</code> e <code>c_ssp_337</code> vazio na <code>tb_prm_cit</code> — se o template ler a fonte errada, o campo sai vazio/incoerente mesmo com a <code>tb_cad_seg</code> populada</td><td>Média</td><td>Alto</td><td>CT-CRT-001 confere o valor exibido contra o cadastro, campo a campo; reprovação abre defeito com a query de evidência</td></tr>
+    <tr><td><b>Razão social divergente do cadastro:</b> em 16/09 o PDF exibia “Tokio Marine” com a <code>tb_cad_seg</code> vazia (fonte aparente distinta); o cadastro agora tem “Tokio Marine Seguradora S.A.”</td><td>Média</td><td>Médio</td><td>CT-CRT-001 registra a divergência e escala a Produtos o julgamento de “coerente” antes do veredito — decisão de Produtos só vale escrita no card</td></tr>
+    <tr><td><b>Fix é data-fix em HML:</b> pode não haver script/migration para os demais ambientes (staging/produção) — a tabela pode estar vazia lá</td><td>Média</td><td>Médio</td><td>Fora do veredito de HML; registrar a observação no resultado para Produtos/dev garantirem a carga nos demais ambientes na promoção</td></tr>
+    <tr><td>Lote com apenas 2 PDFs no período do filtro — amostra pequena para a integridade do ZIP</td><td>Baixa</td><td>Baixo</td><td>Exploratório amplia com filtro 01/08–30/09 (13 averbações) se necessário</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 08/10/2026 · plano em fase de Gate 2 (Produtos) · execução condicionada à aprovação de Produtos no card (DoD do dev já cumprido — card em “Pronto para homologação”) · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
