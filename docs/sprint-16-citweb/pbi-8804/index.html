@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8804 · Lista de UF com nome incorreto e opção sem sigla (CITNET 4.0 · Tokio Marine)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--erro);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.pbi-badge{display:inline-block;background:var(--erro);color:#fff;font-weight:700;font-size:12px;padding:3px 10px;border-radius:999px;letter-spacing:.03em}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.metric-val{font-size:24px;font-weight:700;display:block}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+.m-total .metric-val{color:var(--accent)}
+.m-ok .metric-val{color:var(--ok)}
+.m-erro .metric-val{color:var(--erro)}
+.m-bloq .metric-val{color:var(--bloq)}
+.m-pend .metric-val{color:var(--pend)}
+.dash-wide{flex-basis:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px}
+.pb-track{background:var(--surface2);border-radius:999px;height:12px;overflow:hidden;margin:8px 0}
+.pb-fill{background:linear-gradient(90deg,var(--ok),var(--accent));height:100%;width:0%}
+.pb-pct{font-size:13px;color:var(--text-muted)}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8804 · Sprint 16 Citweb</span>
+    <h1>Lista de UF contém nome incorreto e opção sem sigla — catálogo de UF do Novo Protocolo RCV (CITNET 4.0 · Tokio Marine)</h1>
+    <div class="sub">CITNET 4.0 (novo) · Averbações → Nacional → RCV → Novo Protocolo · Ambiente: HML Tokio Marine · Ramo 59 (RCV) · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">6</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">6</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/3/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 6 executados · 6 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>6 CTs</strong> (3×P1 · 3×P2 · 0×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 6, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 6}</span>
+  </div>
+</div>
+
+
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET 4.0 (reescrita React/API) — Averbações → Nacional → RCV → Novo Protocolo — tenant TOKIO MARINE</td></tr>
+    <tr><th>Card</th><td>BUG-8804 (Sprint 16 Citweb) · Ticket <code>BB-CITNET-TOKIO-HML-20260916-002</code> (Bug Bash 16/09/2026) · Dev: Fabiano Souza · Tags: Citnet, RCV, tenant:tokio, BugBash</td></tr>
+    <tr><th>Correção entregue</th><td>Ajuste nos <b>dados</b> do tenant (data-fix na base), registrado no card em 17/09/2026 com pedido de revalidação — a causa estava no catálogo persistido (<code>tb_uf_cit</code>), confirmada pelo payload da API anexado ao card (o JSON já trazia o nome corrompido)</td></tr>
+    <tr><th>Tasks filhas</th><td>#9074 [QA] Plano de teste</td></tr>
+    <tr><th>Ambiente</th><td>HML Tokio CITNET 4.0 — <code>https://hmlnssegfaturamento.atmtec.com.br/login</code> · usuário de teste <code>QAINTERNO</code> (credencial no .env, nunca neste documento) · API do catálogo: <code>hmlnssegfaturamentoapi.atmtec.com.br</code></td></tr>
+    <tr><th>Ramo</th><td>59 (RCV) — fluxo do card; o catálogo de UF (<code>tb_uf_cit</code>) é único por tenant</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 08/10/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Bug Bash de 16/09/2026 no CITNET 4.0 Tokio Marine, o seletor de <b>UF Origem</b> do <b>Novo Protocolo RCV</b> exibia a opção <b>“AL — ALAAS”</b> (nome incorreto — deveria ser ALAGOAS) e uma opção <b>sem sigla</b> (“— IÁS”, fragmento de GOIÁS com o mesmo código 20). O payload da API do catálogo (anexo do card) já trazia os dados corrompidos — a causa era o <b>dado persistido</b> no tenant, não a renderização. A correção foi um <b>data-fix na base</b> (17/09). Este plano valida, em tela, o catálogo de UF no fluxo do Novo Protocolo RCV (CA1 e CA2) e a regressão da criação de averbação RCV com SP e PR (CA3).</p>
+
+  <div class="info-box"><b>Medições de planejamento (08/10/2026, consulta read-only à base HML do tenant Tokio — <code>tb_uf_cit</code>):</b>
+    <ul>
+      <li><b>AL já está “ALAGOAS”</b> na base — o data-fix corrigiu o nome (CA1 atendido no dado; o veredito é da TELA).</li>
+      <li>⚠️ <b>A linha órfã AINDA EXISTE</b>: sigla vazia, nome “IÁS”, código 20 (duplicado de GOIÁS). Se o seletor da tela não a filtrar, o CA2 reprova — risco alto mapeado na seção 8.</li>
+      <li>⚠️ Duas entradas <b>novas</b> em relação ao payload de 16/09: <code>DV 99 DIVERSOS</code> e <code>NT 40 TESTE"&lt;&gt;</code> — a <b>NT</b> aparenta ser resíduo de teste do data-fix; se oferecida no seletor, fere a “identificação coerente” do CA2 (julgamento do CT-UF-003).</li>
+      <li>Grafias legadas sem acento (ex.: <code>MARANHAO</code>) já existiam no payload de 16/09 <b>antes</b> do fix e não são o defeito deste card — registradas como observação, não reprovam (ver Escopo/Riscos).</li>
+    </ul>
+    Oráculo primário do veredito = <b>TELA</b> (opções do seletor); banco (<code>tb_uf_cit</code>) e API do catálogo = complemento.
+  </div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope (HML Tokio · CITNET 4.0)</h3>
+  <ul>
+    <li>Catálogo de UF no seletor <b>UF Origem</b> do Novo Protocolo RCV: nome correto de AL (CT-UF-001) e ausência de opção sem sigla (CT-UF-002).</li>
+    <li>Preservação dos códigos <b>legítimos do domínio</b> não-geográficos (BI, CO, CA, DS, EX, UB etc.) com identificação coerente (CT-UF-003).</li>
+    <li>Seletor <b>UF Destino</b> — consome o mesmo catálogo (CT-UF-005).</li>
+    <li>Regressão: criação de averbação RCV com SP/São Paulo e PR/Curitiba segue funcionando (CT-UF-004).</li>
+    <li>Varredura das 27 UFs geográficas contra a grafia oficial (CT-UF-006).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em PROD (N/A).</li>
+    <li><b>Grafia/acentuação legada</b> pré-existente ao bug (ex.: MARANHAO sem til, presente no payload de 16/09 antes do fix) — não é o defeito do card; vira observação no resultado, para decisão de Produtos.</li>
+    <li><b>Outros fluxos/ramos</b> que consomem o mesmo catálogo (RCTR-C, Transporte Nacional etc.) — o card é do fluxo RCV (regra: regra/validação de um ramo não se generaliza). Como <code>tb_uf_cit</code> é única por tenant, a correção tende a beneficiá-los, mas o veredito deste card sai do fluxo RCV.</li>
+    <li><b>CITNET2 clássico</b> — o card é do CITNET 4.0 (HML 4.0).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="info-box"><b>Massa medida em 08/10/2026 no banco HML do tenant Tokio</b> (reconfirmar em tela no dia da execução):
+    <table>
+      <tr><th>Papel</th><th>Valor</th><th>Situação medida</th></tr>
+      <tr><td><b>Apólice RCV</b> (CT-UF-004)</td><td><code>1774628460341</code> · subgrupo 1 · ramo 59</td><td>Vigente 01/03/2026 – 01/03/2027, não cancelada; a mesma apólice já gravou averbação com sucesso no CITNET 4.0 Tokio em 08/2026 (protocolo histórico persistido)</td></tr>
+      <tr><td>Apólice alternativa</td><td><code>1789562760788</code> · ramo 59</td><td>Vigente 01/09/2026 – 01/09/2027, não cancelada — usar se a principal estiver indisponível</td></tr>
+      <tr><td>Catálogo de UF (oráculo complementar)</td><td><code>SELECT s_uf, c_uf_irb, n_uf FROM tb_uf_cit ORDER BY n_uf</code></td><td>48 linhas em 08/10 (inclui a órfã sem sigla e a NT de teste — ver seção 2)</td></tr>
+    </table>
+  </div>
+  <ul>
+    <li>HML Tokio CITNET 4.0 acessível; login <code>QAINTERNO</code> (credencial no .env — perfil interno; o Bug Bash de 16/09 usou este usuário).</li>
+    <li>Navegação sempre por clique a partir do login (única URL direta permitida: a de login do HML).</li>
+    <li>No CITNET 4.0, o form de averbação nacional usa blocos Identificação / Documento / Viagem / Veículo / Resultado do Cálculo; <b>placa e municípios de origem/destino são obrigatórios no RCV</b> e o nº de documento CTE aceita só dígitos (comportamento confirmado em tela no CITNET 4.0 em 07/10/2026).</li>
+    <li>Ordem recomendada: CT-UF-001 → 002 → 003 → 005 → 004 → 006 (001/002/003/005 são leituras do mesmo seletor; 004 grava massa; 006 consolida a varredura).</li>
+  </ul>
+  <div class="warn-box"><b>Execução somente após:</b> aprovação do plano por <b>Produtos (Gate 2)</b> — escrita por Produtos no card. O DoD do dev já está cumprido (card em “Pronto para homologação”, data-fix aplicado em 17/09). Evidência de execução vive no <b>card</b> (anexo por CT), além do bloco de evidência de cada CT neste documento.</div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Catálogo de UF no Novo Protocolo RCV (leitura do seletor)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-001</span><span class="ct-title">UF AL exibida com o nome ALAGOAS no seletor UF Origem (era “ALAAS”)</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Tokio CITNET 4.0; login <code>QAINTERNO</code> (credencial no .env).</li></ul>
+      <h4>Passos</h4><ol><li>Acessar <code>https://hmlnssegfaturamento.atmtec.com.br/login</code>, informar usuário/senha e clicar em <b>Entrar</b>.</li><li>No menu superior, clicar em <b>Averbações</b> → <b>Nacional</b> → <b>RCV</b>.</li><li>Clicar em <b>Novo Protocolo</b>.</li><li>No bloco Viagem, expandir o seletor <b>UF Origem</b> — screenshot EV1 da lista aberta com a opção da UF <b>AL</b> visível e legível.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A opção da UF AL exibe o nome <b>ALAGOAS</b> (formato sigla + nome do seletor). Em 16/09 exibia “AL — ALAAS”.</li><li>Oráculo complementar: <code>tb_uf_cit</code> com <code>n_uf='ALAGOAS'</code> para <code>s_uf='AL'</code> (já medido em 08/10) e/ou payload da API do catálogo com <code>"nome":"ALAGOAS"</code>.</li></ul>
+      <h4>Cobre</h4><p>CA1 (catálogo apresenta AL — ALAGOAS no fluxo de averbação RCV).</p><div class="ev-section" id="ev-CT-UF-001"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-002</span><span class="ct-title">Nenhuma opção sem sigla no seletor UF Origem (a antiga “— IÁS” não é oferecida)</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Seletor UF Origem aberto (CT-UF-001, passos 1–4).</li></ul>
+      <h4>Passos</h4><ol><li>Percorrer <b>todas</b> as opções do seletor (rolar a lista até o fim) — screenshots EV1..EVn cobrindo a lista inteira, sem trecho oculto por scroll interno.</li><li>Extrair a lista completa de opções exibidas (texto de cada option) e salvá-la em arquivo <code>CT-UF-002_lista_uf.txt</code> junto às evidências — a extração é a prova de completude da varredura.</li><li>Conferir, opção a opção: toda entrada possui <b>sigla não-vazia</b> antes do nome.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma opção sem sigla é oferecida — em particular, a antiga “— IÁS” (sigla vazia, código 20) não aparece.</li><li>⚠️ Medição de 08/10: a linha órfã <b>ainda existe</b> na <code>tb_uf_cit</code>. Se ela aparecer no seletor, o CT reprova (CA2 não atendido — data-fix incompleto) e abre-se defeito com a query de evidência; se não aparecer, registrar na evidência COMO o sistema a filtra (e o fato de o dado persistir, para decisão de Produtos sobre saneamento).</li></ul>
+      <h4>Cobre</h4><p>CA2 (a opção sem sigla não é oferecida como UF válida).</p><div class="ev-section" id="ev-CT-UF-002"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-003</span><span class="ct-title">Códigos legítimos do domínio preservados e sem entradas residuais de teste</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Lista completa extraída no CT-UF-002 (<code>CT-UF-002_lista_uf.txt</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Na lista extraída, conferir a <b>presença</b>, com sigla e nome, dos códigos não-geográficos legítimos do domínio registrados no payload de 16/09: <code>BI</code> (BENEFICIO INTERNO), <code>CO</code> (CENTRO OESTE), <code>CA</code> (COMPLEMENTAR AÉREO), <code>DS</code> (DVS - DIVERSOS), <code>EX</code> (EXTERIOR), <code>FN</code> (FERNANDO DE NORONHA), <code>FA</code> (FRETE AEREO), <code>IF</code> (INCENTIVO FISCAL), <code>JC</code>, <code>MI</code> (MOVIMENTAÇÃO INTERNA), <code>NE</code> (NORDESTE), <code>OP</code> (OPERAÇÃO ISOLADA), <code>RP</code> (REMESSA POSTAL), <code>SS</code> (SUDESTE), <code>S</code> (SUL), <code>TR</code>, <code>UB</code> (URBANO), <code>BE</code> (MOERDIJK) — screenshot EV1 de ao menos um bloco com esses códigos visíveis.</li><li>Conferir a <b>ausência</b> de entradas residuais de teste no seletor — em particular <code>NT — TESTE"&lt;&gt;</code> (entrada vista na base em 08/10, inexistente no catálogo de 16/09).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os códigos legítimos do domínio continuam oferecidos (o data-fix não os removeu) com identificação coerente (sigla + nome).</li><li>Nenhuma entrada residual/de teste é oferecida como UF válida. Se <code>NT — TESTE"&lt;&gt;</code> aparecer no seletor: identificação incoerente → reprova o CA2 (abrir defeito de saneamento); se houver dúvida sobre legitimidade de alguma entrada, escalar a Produtos antes do veredito.</li></ul>
+      <h4>Cobre</h4><p>CA2 (opções selecionáveis com identificação coerente, preservando os códigos legítimos do domínio).</p><div class="ev-section" id="ev-CT-UF-003"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-005</span><span class="ct-title">Seletor UF Destino íntegro (mesmo catálogo): AL — ALAGOAS presente e nenhuma opção sem sigla</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Tela do Novo Protocolo RCV aberta (CT-UF-001, passos 1–3).</li></ul>
+      <h4>Passos</h4><ol><li>No bloco Viagem, expandir o seletor <b>UF Destino</b> — screenshot EV1 com a opção AL visível.</li><li>Percorrer as opções e conferir: AL com nome ALAGOAS; nenhuma opção sem sigla; nenhuma entrada residual de teste.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>UF Destino consome o mesmo catálogo corrigido: AL — ALAGOAS presente, nenhuma opção de sigla vazia, nenhum resíduo de teste.</li></ul>
+      <h4>Cobre</h4><p>CA1 + CA2 (o defeito foi reportado no UF Origem; o destino consome o mesmo catálogo e participa do fluxo do CA3).</p><div class="ev-section" id="ev-CT-UF-005"></div></div></div>
+
+  <div class="group-header">Grupo B — Regressão do fluxo de averbação RCV + varredura do catálogo</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-004</span><span class="ct-title">Regressão — criar averbação RCV com Origem SP/São Paulo e Destino PR/Curitiba (gravação com protocolo)</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Tela do Novo Protocolo RCV aberta (CT-UF-001, passos 1–3).</li><li>Massa: apólice <code>1774628460341</code> · subgrupo 1 · ramo 59 (vigente, medida em banco 08/10). Alternativa: <code>1789562760788</code>.</li><li>No RCV do CITNET 4.0, placa e municípios de origem/destino são obrigatórios; nº de documento CTE aceita só dígitos (confirmado em tela em 07/10).</li></ul>
+      <h4>Passos</h4><ol><li>No bloco Identificação: selecionar a filial listada para o usuário (registrar na evidência a filial usada), informar a apólice <code>1774628460341</code> e o subgrupo 1.</li><li>No bloco Documento: Tipo <b>CTE</b>, número só dígitos (ex.: <code>88042026</code>), data = data corrente.</li><li>No bloco Viagem: <b>UF Origem = SP</b> (opção SÃO PAULO), <b>Município Origem = SÃO PAULO</b>; <b>UF Destino = PR</b> (opção PARANÁ), <b>Município Destino = CURITIBA</b> — screenshot EV1 do formulário completo, com os seletores preenchidos legíveis.</li><li>No bloco Veículo: informar a placa (ex.: <code>QAW8B04</code>).</li><li>Informar o valor da mercadoria/IS solicitado pela tela (registrar o valor exato na evidência) e clicar em <b>Gravar</b>.</li><li>Screenshot EV2 da confirmação com o <b>número do protocolo</b> legível (mensagem observada no CITNET 4.0 em 07/10: “Averbação gravada com sucesso. Protocolo N.” — registrar o texto EXATO exibido no Tokio).</li><li>Clicar em <b>Consultar Protocolo</b> (ou Relatórios → Consulta) e localizar o protocolo gravado — screenshot EV3 do registro persistido.</li><li>Oráculo de banco (complemento): o movimento existe em <code>tb_mov_avb_rcv_cit</code> com a apólice, UFs SP→PR e o protocolo da tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Averbação RCV gravada com sucesso com protocolo gerado — selecionar SP/São Paulo e PR/Curitiba segue funcionando após o data-fix (nenhuma regressão no fluxo de criação).</li><li>Movimento persistido com as UFs/municípios selecionados.</li></ul>
+      <h4>Cobre</h4><p>CA3 (selecionar SP/São Paulo e PR/Curitiba continua funcionando na criação de averbação RCV).</p><div class="ev-section" id="ev-CT-UF-004"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-UF-006</span><span class="ct-title">Varredura — as 27 UFs geográficas com grafia oficial (nenhum outro nome truncado)</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Lista completa extraída no CT-UF-002 (<code>CT-UF-002_lista_uf.txt</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Comparar as 27 UFs geográficas (AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO) da lista extraída contra a grafia oficial dos estados — anexar a comparação (tabela no arquivo de evidência).</li><li>Classificar divergências: <b>truncamento/corrupção</b> (tipo ALAAS/IÁS) = falha do CA1/CA2; <b>grafia legada sem acento</b> já presente no payload de 16/09 antes do fix (ex.: MARANHAO) = observação, não reprova (fora do escopo do card — registrar para Produtos).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma UF geográfica com nome truncado/corrompido além das já corrigidas; divergências legadas de acentuação apenas registradas como observação.</li></ul>
+      <h4>Cobre</h4><p>CA1 + CA2 (varredura de completude — garante que o data-fix não deixou outro nome corrompido).</p><div class="ev-section" id="ev-CT-UF-006"></div></div></div>
+
+  <div class="info-box"><b>Exploratório (NOR_QA_002 §11):</b> após os CTs formais, sessão de 15–30 min guiada por risco no Novo Protocolo RCV — busca/digitação no seletor de UF (filtro por texto, acentos), troca de UF após seleção de município, comportamento do catálogo em outros seletores da mesma tela. Achados viram work item conforme convenção; sem ocorrências → comentar no card.</div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — O catálogo de UF apresenta AL — ALAGOAS, com nome correto, no fluxo de averbação RCV</td><td>CT-UF-001 · CT-UF-005 · CT-UF-006 (varredura)</td><td>Pendente</td></tr>
+    <tr><td>CA2 — A opção sem sigla (“— IÁS”) não é oferecida; opções com identificação coerente, preservando os códigos legítimos do domínio</td><td>CT-UF-002 (sem sigla) · CT-UF-003 (domínio preservado + sem resíduos) · CT-UF-005 (destino)</td><td>Pendente</td></tr>
+    <tr><td>CA3 — Selecionar SP/São Paulo e PR/Curitiba continua funcionando na criação de averbação RCV</td><td>CT-UF-004</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><b>Data-fix incompleto:</b> a linha órfã (sigla vazia, “IÁS”, código 20) ainda existe na <code>tb_uf_cit</code> (medida em 08/10). Se o seletor exibi-la, o CA2 reprova</td><td>Alta</td><td>Alto</td><td>CT-UF-002 com extração completa da lista; em reprovação, defeito com a query de evidência pronta e devolução ao dev (saneamento da linha órfã)</td></tr>
+    <tr><td><b>Resíduo de teste no catálogo:</b> entrada <code>NT 40 TESTE"&lt;&gt;</code> criada após 16/09 (não existia no payload original) pode aparecer no seletor</td><td>Média</td><td>Médio</td><td>CT-UF-003 cobre; se aparecer, defeito de saneamento; dúvida de legitimidade → escalar a Produtos antes do veredito</td></tr>
+    <tr><td>A tela pode montar os labels de outra fonte/cache (API ≠ banco no momento da execução)</td><td>Baixa</td><td>Médio</td><td>Oráculo primário é a TELA; banco e API registrados como complemento — divergência entre eles vira evidência anexa</td></tr>
+    <tr><td>Catálogo único por tenant: o data-fix afeta outros fluxos que usam UF (fora do escopo de veredito deste card)</td><td>Baixa</td><td>Baixo</td><td>Regressão do fluxo do card coberta (CT-UF-004); demais fluxos ficam para o regressivo normal</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 08/10/2026 · plano em fase de Gate 2 (Produtos) · execução condicionada à aprovação de Produtos no card (DoD do dev já cumprido — card em “Pronto para homologação”) · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
