@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8915 · Réplica de embarques RCTR-C → RC-DC (CITWEB Nacional · AIG)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:96px;flex:1}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8915 · Sprint 16 Citweb</span>
+    <h1>Réplica de embarques — Replicar Apólices do RCTR-C (54) para RC-DC (55) — CITWEB Nacional · AIG</h1>
+    <div class="sub">CITWEB Nacional · Averbação → Replicar Apólices do (RCTR-C para RC-DC) · Ambiente: HML AIG · Ramos 54/55 · Autor QA: Wesley Moreira</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/4/3</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, aguardando validação de Produtos (Gate 2 — nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (7×P1 · 4×P2 · 3×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB Nacional — <b>Averbação → Replicar Apólices do (RCTR-C para RC-DC)</b> (tela <code>TTFCN0B4</code>) — seguradora AIG</td></tr>
+    <tr><th>Card</th><td>PBI-8915 (Sprint 16 Citweb) · Dev: José Ribeiro Carvalho · Tags: AIG, citweb</td></tr>
+    <tr><th>Correção entregue</th><td><b>Sem alteração de código</b> (análise do dev, 07/10): o indicativo <code>Ind_replicar_averbacao_54_55</code> (tabela <code>tb_ctl_sis_cit</code> da base da seguradora) existia em HML e <b>faltava na base AIG de produção</b> — por isso o menu não aparecia. Fix = DML pontual: em <b>HML já executado</b> pelo dev (sem erros); em PRD aguarda o DBA (task #9083 / Hubtech 2610070550). O menu só monta com o indicativo ligado (<code>MenuController.cs:535</code>) e o usuário precisa da tela <code>TTFCN0B4</code> no perfil.</td></tr>
+    <tr><th>Tasks filhas</th><td>#9054 Análise e Desenvolvimento (Done) · #9083 Chamado DBA — PRD (In Progress; fora do escopo de QA) · #9085 Teste Qa · #9089 [QA] Plano de teste</td></tr>
+    <tr><th>Ambiente</th><td>HML AIG CITWEB — <code>https://aig-hml-faturamento.nsseg.com.br/login/</code> · credencial no .env (<code>HML_AIG_CITWEB_*</code>, nunca neste documento) · build medido 08/10: <code>V 1.0.261002.1953</code></td></tr>
+    <tr><th>Ramos</th><td><b>54 (RCTR-C)</b> origem · <b>55 (RC-DC)</b> destino — a tela fixa os dois ramos (campos desabilitados). O checkbox “Replicar Averbações” é <b>exclusivo AIG</b>.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 08/10/2026</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Uma transportadora com apólices de RCTR-C (ramo 54) e RC-DC (ramo 55) precisa averbar os mesmos embarques nas duas. A tela <b>Replicar Apólices do (RCTR-C para RC-DC)</b> copia de uma vez, dentro de um período (recorte pela <b>data de saída da viagem</b>, limites inclusivos), as averbações <b>em aberto</b> do RCTR-C para a apólice de RC-DC: antes de copiar, <b>exclui todas as averbações em aberto do RC-DC no período</b> (inclusive lançadas manualmente) e então copia as do 54 — cópia <b>fiel</b> (número, subgrupo, documento, origem/destino, mercadoria, IS, taxas e prêmio idênticos, <b>sem recálculo</b> pelas condições do 55). Reexecutar o mesmo período substitui o resultado anterior (sem duplicidade). Com destino <b>ajustável</b>, as averbações vão para o controle de ajustáveis. Na <b>AIG</b>, o checkbox “Replicar Averbações” marcado também atualiza o protocolo da averbação do RCTR-C com a IS e o número da averbação do RC-DC. Este plano homologa a funcionalidade em <b>HML AIG</b>, onde o indicativo foi ativado pelo dev; a ativação em PRD (chamado DBA) está fora do escopo de QA (Produção = N/A).</p>
+
+  <div class="info-box"><b>Medições de planejamento (08/10/2026 — tudo confirmado EM TELA, HML AIG, build V 1.0.261002.1953):</b>
+    <ul>
+      <li><b>Item de menu presente</b>: Nacional → Averbação exibe “Replicar Apólices do (RCTR-C para RC-DC)” para o usuário interno de QA — prova de tela de que o indicativo está ativo em HML e o perfil tem a tela <code>TTFCN0B4</code>.</li>
+      <li><b>Tela conforme especificação do card</b>: Origem (Filial em combo com as 21 filiais AIG · Ramo fixo <code>54</code> desabilitado · Apólice RCTR-C · período De/Até <b>pré-preenchido 01/10/2026–08/10/2026</b> = dia 1º do mês até hoje) · Destino (Filial · Ramo fixo <code>55</code> desabilitado · Apólice RC-DC · <b>checkbox “Replicar Averbações” presente</b>) · botões <b>Novo</b> e <b>Processar</b>.</li>
+      <li><b>Massa 54/55 vigente medida</b> (Cadastros → Apólice → RCTR-C → Consulta, GERAL + Vigentes): exatamente <b>2 pares</b> — ver §4.</li>
+      <li><b>Telas de apoio validadas</b>: digitação Averbação → RCTR-C (para semear averbações com data de saída controlada; tem “Exclusão em Bloco RCF-DC” para zerar o 55), modal “Consultar Averbação” e Fechamento Mensal → <b>Prévia</b> (conferência indicada no próprio card).</li>
+      <li>⚠️ <b>Acesso SQL indisponível na sessão de planejamento</b> (VPN para o private link do banco HML fora do ar nesta máquina): o indicativo foi confirmado pelo <b>oráculo de tela</b> (o menu só monta com ele ligado — comportamento exato sob teste). O CT-RPL-002 (desligar o parâmetro) depende de acesso SQL no dia da execução; os scripts de ativação/rollback idempotentes estão no card.</li>
+    </ul>
+  </div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope (HML AIG · CITWEB Nacional)</h3>
+  <ul>
+    <li>Controle de acesso da tela: item de menu condicionado ao indicativo + permissão de perfil (CT-RPL-001/002).</li>
+    <li>Validações de apólice origem/destino inexistente na filial, com as mensagens do card e nenhuma alteração de dados (CT-RPL-003/004).</li>
+    <li>Replicação: caminho feliz com cópia fiel e mensagem de sucesso; recorte do período pela data de saída (limites inclusivos); substituição do destino; reexecução sem duplicidade; meses fechados intocados (CT-RPL-005 a 009).</li>
+    <li>Comportamento AIG do checkbox “Replicar Averbações” — marcado (atualização do protocolo do RCTR-C) e desmarcado (CT-RPL-010).</li>
+    <li>Mensagem de ausência de averbações (CT-RPL-011 — ver ponto em aberto nº 3 e pergunta a Produtos).</li>
+    <li>Filial de origem ≠ filial de destino; destino ajustável; execuções simultâneas isoladas (CT-RPL-012/013/014).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em PROD (N/A). A execução do DML pelo DBA em <code>smt-prd-citweb-aig</code> (task #9083) é verificada pelo dev/DBA; registraremos observação no encerramento para a promoção.</li>
+    <li><b>Tela irmã “Replicar Apólices do (RCTR-C para RCTA-C)”</b> (54→58) — não é objeto do card; apenas smoke de regressão visual do menu (continua listada — conferida na evidência do CT-RPL-001).</li>
+    <li><b>Outras seguradoras</b> — o checkbox “Replicar Averbações” é exclusivo AIG; regra de um tenant não se generaliza (regra 9).</li>
+    <li><b>Itens Técnicos (DoD)</b> do card — testes unitários, Sonar, 2 aprovadores no PR, homologação do PO em STAGING: processo de engenharia/gates fora do plano de QA (não geram CT; ver §6).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="info-box"><b>Massa medida em 08/10/2026 (grid Cadastros → Apólice → RCTR-C → Consulta, GERAL + Vigentes — HML AIG)</b> — reconfirmar em tela no dia da execução:
+    <table>
+      <tr><th>Papel</th><th>Valor</th><th>Situação medida</th></tr>
+      <tr><td><b>Par principal (CTs 005–011, 013)</b></td><td>Filial <code>0001 - NSTECH - HML VALIDAÇÃO RCV</code> · Apólice 54 <code>0000000000333</code> (subgrupo <code>001 - VOIDR TESTES</code>) · Apólice 55 <code>0000000000444</code></td><td>Vigentes 01/08/2026→01/08/2027 · tipo DIÁRIA · origem CITNET — par 54/55 na mesma linha da grid</td></tr>
+      <tr><td><b>Segundo par (CTs 012, 014)</b></td><td>Filial <code>0006 - SAO PAULO I</code> · Apólice 54 <code>0000000250954</code> · Apólice 55 <code>0000000250955</code></td><td>Vigentes 01/01/2026→01/01/2027 · tipo DIÁRIA · origem AT&M (nome do segurado real omitido deste documento público — ver inventário privado)</td></tr>
+      <tr><td><b>Averbações do 54</b> (semear)</td><td>Digitação em Nacional → Averbação → <b>RCTR-C</b>: Filial <code>1</code>, Apólice <code>333</code> + Enter (popula Subgrupo <code>001</code>), Data de Saída controlada por CT, Tipo Documento <code>Outros (NS, ETC)</code>, documento/mercadoria/IS concretos definidos no passo de cada CT</td><td>Tela validada 08/10 (form direto, sem iframe); ao gravar, <b>recusar</b> a geração automática do par RC-DC se o modal oferecer (manter o 55 vazio para o CT-RPL-005)</td></tr>
+      <tr><td><b>Zerar o 55 antes do caminho feliz</b></td><td>Botão <b>“Exclusão em Bloco RCF-DC”</b> na própria tela de digitação RCTR-C</td><td>Botão presente (medido 08/10) — usar se o 55 tiver averbações abertas residuais no período</td></tr>
+      <tr><td><b>Conferência das averbações</b></td><td>Modal “Consultar Averbação” (tela RCTR-C) + Fechamento Mensal → <b>Prévia</b> (caminho citado no card)</td><td>Ambos presentes (medidos 08/10)</td></tr>
+      <tr><td><b>Apólices inexistentes (CTs 003/004)</b></td><td>Número <code>9999999999999</code> nas filiais <code>0001</code>/<code>0002</code></td><td>Não consta na grid de vigentes medida em 08/10 (só os 2 pares acima existem como 54/55)</td></tr>
+    </table>
+  </div>
+  <ul>
+    <li>HML AIG CITWEB acessível; login interno (credencial no .env — <code>HML_AIG_CITWEB_*</code>).</li>
+    <li>Navegação sempre por clique a partir do login (única URL direta permitida: a de login do HML). O tile <b>Nacional</b> abre o módulo em <b>nova aba</b>.</li>
+    <li><b>CT-RPL-002</b> exige acesso SQL ao banco <code>smt-hom-citweb-aig</code> (VPN) para desligar/religar o indicativo com os scripts idempotentes do card (ativação + rollback) + logoff/login (indicativo fica em cache de sessão). Sem VPN no dia, o CT fica pendente de infraestrutura — não bloqueia os demais.</li>
+    <li><b>CT-RPL-009</b> exige competência fechada no 54: usar averbação em mês já fechado se existir, senão fechar uma competência de teste via Fechamento Mensal (ou marcar o cenário com a massa alternativa descrita no CT).</li>
+    <li><b>CT-RPL-013</b> exige apólice 55 <b>ajustável</b>: conferir o tipo da 444 em tela; se não for ajustável, criar/ajustar massa via Cadastros → Apólice (o campo “Tipo da Apólice” aceita <code>Ajustável</code> — visto em tela 08/10).</li>
+    <li>Evidência por CT: screenshot de cada tela de resultado + conferência das averbações (modal de consulta/Prévia), salvos no bloco do próprio CT e anexados ao card.</li>
+  </ul>
+  <div class="warn-box"><b>Execução somente após:</b> aprovação do plano por <b>Produtos (Gate 2)</b> — escrita por Produtos no card/task. O DoD do dev em HML está cumprido (card em “Pronto para homologação”; indicativo ativado em HML). <b>⚠️ Atenção operacional:</b> o Processar é <b>destrutivo no destino</b> (exclui averbações abertas do 55 no período) — executar apenas nas apólices de massa listadas acima.</div>
+
+  <div class="warn-box"><b>⚠️ Perguntas diretas a Produtos (responder neste card ou na task [PRODUTOS]):</b>
+    <ol>
+      <li><b>Ponto em aberto nº 3 (mensagem de ausência):</b> o dev registrou que, no fluxo <b>sem</b> o checkbox AIG, a mensagem “Não existem averbações a serem duplicadas.” <b>não é exibida</b> ao usuário (<code>ReplicarApolicesRCTR_RCFController.cs</code> L107–122) e manteve isso <b>fora do escopo</b> desta entrega (nenhuma alteração de código). Para o CT-RPL-011, qual o critério de aceite válido nesta homologação? <b>(a)</b> a mensagem é obrigatória nos dois fluxos — ausência REPROVA e abre defeito; ou <b>(b)</b> nesta entrega aceita-se sem mensagem no fluxo sem checkbox (o CT valida apenas que nada é copiado/alterado) e a mensagem fica para card futuro. Sem resposta até a execução, o QA seguirá a <b>descrição do card</b> (mensagem esperada — opção (a)).</li>
+      <li><b>Pontos em aberto nº 1 e nº 2:</b> a descrição do card referencia o “ponto em aberto nº 3” sem listar os anteriores. Existem pontos em aberto nº 1/nº 2 ativos que impactem esta homologação? Se sim, favor registrá-los no card.</li>
+    </ol>
+  </div>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Controle de acesso e tela (CA-menu/permissão, CA-campos)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-001</span><span class="ct-title">Item de menu visível com parâmetro ligado + permissão; tela abre com campos e defaults conforme especificação</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML AIG; indicativo <code>Ind_replicar_averbacao_54_55</code> ativo (estado atual do HML — ativado pelo dev); usuário interno com a tela <code>TTFCN0B4</code> no perfil (estado medido 08/10).</li></ul>
+      <h4>Passos</h4><ol><li>Acessar <code>https://aig-hml-faturamento.nsseg.com.br/login/</code>, informar usuário/senha (.env) e clicar em <b>Acessar</b>.</li><li>Na tela de tiles, clicar em <b>Nacional</b> (abre nova aba).</li><li>Clicar no menu <b>Averbação</b> — screenshot EV1 do dropdown aberto com o item <b>“Replicar Apólices do (RCTR-C para RC-DC)”</b> visível (e o item irmão “…para RCTA-C” preservado — regressão visual do menu).</li><li>Clicar no item — screenshot EV2 da tela carregada.</li><li>Conferir campo a campo: bloco <b>Origem da Apólice</b> (Filial em combo; Ramo fixo <code>54</code> desabilitado; Apólice RCTR-C; De = dia 1º do mês corrente; Até = data de hoje), bloco <b>Destino da Apólice</b> (Filial; Ramo fixo <code>55</code> desabilitado; Apólice RC-DC; checkbox <b>Replicar Averbações</b> visível), botões <b>Novo</b> e <b>Processar</b>.</li><li>Preencher qualquer campo, clicar em <b>Novo</b> e conferir que a tela limpa (período volta ao default).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Item de menu presente; tela abre com todos os campos e defaults exatamente como especificado no card (período = dia 1º do mês atual até hoje; ramos 54/55 fixos não editáveis; checkbox presente na AIG); botão Novo limpa a tela.</li></ul>
+      <h4>Cobre</h4><p>CA “item de menu só com parâmetro + permissão” (lado positivo) + CA “tela apresenta Origem/Destino conforme especificado”.</p><div class="ev-section" id="ev-CT-RPL-001"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-002</span><span class="ct-title">Controle de acesso negativo — parâmetro desligado e usuário sem permissão: item de menu não aparece</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Acesso SQL ao banco <code>smt-hom-citweb-aig</code> (VPN) — scripts idempotentes de ativação/rollback do indicativo estão no card (comentário do dev de 07/10).</li><li>⚠️ Restaurar o indicativo para <code>S</code> ao final (script de ativação) e confirmar o menu de volta — o ambiente não pode ficar com a feature desligada.</li></ul>
+      <h4>Passos</h4><ol><li><b>Cenário A (parâmetro desligado):</b> executar o script de <b>rollback</b> do card no banco AIG HML (<code>i_fun_sis = 'N'</code>) — guardar o output dos POST-CHECKS como evidência.</li><li>Fazer <b>logoff e login</b> no CITWEB AIG (indicativos ficam em cache de sessão), abrir Nacional → Averbação — screenshot EV1 do dropdown <b>sem</b> o item “Replicar Apólices do (RCTR-C para RC-DC)” (o item “…para RCTA-C” continua, se aplicável).</li><li>Reexecutar o script de <b>ativação</b> (<code>i_fun_sis = 'S'</code>), logoff/login, conferir o item de volta — screenshot EV2.</li><li><b>Cenário B (usuário sem permissão):</b> com o parâmetro ligado, logar com um usuário <b>sem</b> a tela <code>TTFCN0B4</code> no perfil (identificar na execução via módulo Segurança/Gestão; se nenhum usuário sem a tela existir, criar/ajustar perfil de teste) — screenshot EV3 do menu Averbação sem o item (ou do acesso negado ao abrir).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Parâmetro desligado → item de menu <b>não aparece</b> após relogin.</li><li>Usuário sem a tela no perfil → item não aparece (ou acesso negado), mesmo com o parâmetro ligado.</li><li>Ambiente restaurado ao final (indicativo S + item visível).</li></ul>
+      <h4>Cobre</h4><p>CA “item de menu só com parâmetro + permissão” (lado negativo — cenários 1 e 2 do card).</p><div class="ev-section" id="ev-CT-RPL-002"></div></div></div>
+
+  <div class="group-header">Grupo B — Validações de entrada (CA-mensagens de apólice inexistente)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-003</span><span class="ct-title">Apólice RCTR-C inexistente na filial — mensagem exata e nenhum dado alterado</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Tela Replicar aberta (passos 1–4 do CT-RPL-001).</li><li>Baseline: contagem de averbações abertas da 55 <code>444</code> no período (modal Consultar Averbação / Prévia) registrada ANTES.</li></ul>
+      <h4>Passos</h4><ol><li>Origem: Filial <code>0001 - NSTECH - HML VALIDAÇÃO RCV</code>, Apólice RCTR-C <code>9999999999999</code> (inexistente — conferido na consulta de vigentes em 08/10), período default.</li><li>Destino: Filial <code>0001</code>, Apólice RC-DC <code>444</code>.</li><li>Clicar em <b>Processar</b> — screenshot EV1 da mensagem exibida (texto integral legível).</li><li>Reconferir a contagem de averbações da 55 <code>444</code> no período — screenshot EV2 (idêntica ao baseline).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem <b>“Apólice de RCTR-C não cadastrada para a Filial selecionada”</b> (texto exato conferido em tela na execução) e <b>nenhuma</b> averbação do destino excluída/criada.</li></ul>
+      <h4>Cobre</h4><p>CA “mensagens de apólice não cadastrada + nada é alterado” (lado origem — cenário 3).</p><div class="ev-section" id="ev-CT-RPL-003"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-004</span><span class="ct-title">Apólice RC-DC inexistente na filial — mensagem exata e nenhum dado alterado</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Tela Replicar aberta; averbações semeadas no 54 <code>333</code> (podem já existir do CT-RPL-005 — ordem recomendada em §4).</li><li>Baseline: contagem de averbações abertas do 54 <code>333</code> no período registrada ANTES.</li></ul>
+      <h4>Passos</h4><ol><li>Origem: Filial <code>0001</code>, Apólice RCTR-C <code>333</code>, período default.</li><li>Destino: Filial <code>0001</code>, Apólice RC-DC <code>9999999999999</code> (inexistente).</li><li>Clicar em <b>Processar</b> — screenshot EV1 da mensagem exibida.</li><li>Reconferir que as averbações do 54 seguem intactas e que nenhuma averbação nova apareceu no 55 <code>444</code> — screenshot EV2.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem <b>“Apólice de RC-DC não cadastrada para a Filial selecionada”</b> (texto exato conferido em tela) e nada alterado em origem nem destino.</li></ul>
+      <h4>Cobre</h4><p>CA “mensagens de apólice não cadastrada + nada é alterado” (lado destino — cenário 4).</p><div class="ev-section" id="ev-CT-RPL-004"></div></div></div>
+
+  <div class="group-header">Grupo C — Replicação (CAs núcleo: período, abertas, substituição, fidelidade, reexecução)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-005</span><span class="ct-title">Caminho feliz — 54 com N averbações no período, 55 vazio: N replicadas, cópia fiel sem recálculo, mensagem de sucesso</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Semear <b>3 averbações</b> no 54 <code>333</code> (filial 0001, subgrupo 001) via digitação RCTR-C, com datas de saída <b>dentro</b> do período de teste (sugestão: <code>02/10/2026</code>, <code>05/10/2026</code>, <code>07/10/2026</code>), documento <code>8915A001</code>/<code>8915A002</code>/<code>8915A003</code> (Tipo <code>Outros (NS, ETC)</code>), IS Mercadoria <code>10.000,00</code>/<code>20.000,00</code>/<code>30.000,00</code> — registrar nº de averbação, taxas e prêmios gravados (print por averbação). Ao gravar, <b>recusar</b> a geração automática do par RC-DC (manter o 55 vazio).</li><li>55 <code>444</code> <b>sem averbações abertas</b> no período — se houver resíduo, limpar via “Exclusão em Bloco RCF-DC” e evidenciar o estado zerado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela Replicar (CT-RPL-001, passos 1–4).</li><li>Origem: Filial <code>0001</code>, Apólice <code>333</code>, De <code>01/10/2026</code>, Até <code>08/10/2026</code>. Destino: Filial <code>0001</code>, Apólice <code>444</code>. Checkbox “Replicar Averbações” <b>desmarcado</b>.</li><li>Clicar em <b>Processar</b> — screenshot EV1 da mensagem de retorno (texto integral).</li><li>Conferir o 55 <code>444</code> (modal Consultar Averbação e/ou Fechamento Mensal → Prévia): screenshot EV2 com as <b>3</b> averbações replicadas.</li><li>Abrir cada averbação replicada e comparar campo a campo com a correspondente do 54: nº da averbação, subgrupo, documento, origem/destino, mercadoria, IS, taxas e <b>prêmio</b> — tabela de comparação na evidência (EV3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem <b>“Embarques Replicados com Sucesso.”</b> (texto exato conferido em tela).</li><li>O 55 passa a ter exatamente as <b>mesmas 3</b> averbações do 54 no período; cópia <b>fiel</b>: todos os campos idênticos, prêmio <b>igual ao do 54</b> (sem recálculo pelas condições comerciais do 55).</li></ul>
+      <h4>Cobre</h4><p>CA “cópia fiel sem recálculo” + CA “mensagem de sucesso” (cenários 5 e 11 do card).</p><div class="ev-section" id="ev-CT-RPL-005"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-006</span><span class="ct-title">Período pela data de saída — limites De/Até inclusivos; averbações fora do período não são copiadas</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Semear no 54 <code>333</code> averbações com data de saída: <b>na borda De</b> (<code>02/10/2026</code>), <b>na borda Até</b> (<code>06/10/2026</code>), <b>antes</b> (<code>15/09/2026</code>) e <b>depois</b> (<code>07/10/2026</code>) do período de teste <code>02/10–06/10/2026</code> — documentos <code>8915B001</code>…<code>8915B004</code>; registrar nº e datas gravadas.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela Replicar: Origem Filial <code>0001</code> / Apólice <code>333</code> / De <code>02/10/2026</code> / Até <code>06/10/2026</code>; Destino Filial <code>0001</code> / Apólice <code>444</code>; Processar — screenshot EV1 da mensagem.</li><li>Conferir o conteúdo do 55 no período e fora dele — screenshot EV2 da consulta com as datas de saída visíveis.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Copiadas <b>somente</b> as averbações com data de saída dentro do período, <b>incluindo as duas bordas</b> (02/10 e 06/10).</li><li>As averbações de 15/09 e 07/10 <b>não</b> aparecem no 55 (recorte usa a data de saída da viagem, não a data de digitação).</li></ul>
+      <h4>Cobre</h4><p>CA “período usa a data de saída” + limites inclusivos (cenários 6 e 7).</p><div class="ev-section" id="ev-CT-RPL-006"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-007</span><span class="ct-title">Substituição do destino — averbações manuais do 55 no período são excluídas e substituídas; fora do período ficam intactas</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>54 <code>333</code> com averbações abertas no período de teste (reutilizar as do CT-RPL-005/006).</li><li>Semear <b>manualmente no 55</b> <code>444</code>: 1 averbação com data de saída <b>dentro</b> do período (doc <code>8915C001</code>) e 1 <b>fora</b> (doc <code>8915C002</code>) — registrar números; (a digitação do 55 nasce da própria tela RCTR-C/bloco RC-DC ou da geração aceita no modal — registrar o caminho usado na evidência).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar baseline do 55: lista de averbações com números e datas — screenshot EV1.</li><li>Replicar: Origem <code>0001/333</code>, período de teste; Destino <code>0001/444</code>; Processar.</li><li>Conferir o 55: screenshot EV2 — a manual de dentro do período sumiu (substituída pelas do 54); a manual fora do período continua intacta (mesmo nº).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Averbações abertas do 55 <b>no período</b> (inclusive lançadas manualmente) são <b>excluídas</b> antes da cópia e substituídas pelas do 54.</li><li>Averbações do 55 <b>fora do período</b> não são alteradas nem excluídas.</li></ul>
+      <h4>Cobre</h4><p>CA “replicação substitui o destino (inclusive manuais)” (cenários 8 e 9).</p><div class="ev-section" id="ev-CT-RPL-007"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-008</span><span class="ct-title">Reexecução no mesmo período — sem duplicidade; quantidade final igual à do 54</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Replicação do CT-RPL-005 (ou 007) recém-executada; contagem do 55 no período registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Sem alterar nada no 54, repetir o <b>Processar</b> com os mesmos parâmetros (origem <code>0001/333</code>, mesmo período, destino <code>0001/444</code>) — screenshot EV1 da mensagem.</li><li>Recontar as averbações do 55 no período — screenshot EV2.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma duplicidade: a quantidade do 55 no período permanece <b>igual à do 54</b> (o resultado substitui a execução anterior).</li></ul>
+      <h4>Cobre</h4><p>CA “reexecutar não duplica — reprocessamento seguro” (cenário 10).</p><div class="ev-section" id="ev-CT-RPL-008"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-009</span><span class="ct-title">Meses fechados — averbações fechadas/faturadas do 54 não são copiadas; averbações fechadas do 55 não são alteradas</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Competência <b>fechada</b> no par 333/444 contendo averbações no 54 (e idealmente no 55). Se não existir em HML: semear averbações em competência anterior e fechá-la via Fechamento Mensal → Emissão (fluxo padrão), registrando o fechamento na evidência. Se o fechamento não for viável no ambiente, registrar o impedimento e executar o cenário com a competência que o ambiente oferecer.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar baseline: averbações do 54 e do 55 na competência fechada (números + status fechado/faturado) — screenshot EV1.</li><li>Replicar com período cobrindo a competência fechada (De/Até abrangendo aquelas datas de saída); Processar — screenshot EV2 da mensagem.</li><li>Conferir: nenhuma averbação fechada do 54 foi copiada para o 55; nenhuma averbação fechada do 55 foi excluída/alterada — screenshot EV3 (mesmos números e status do baseline).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Só averbações <b>em aberto</b> entram na replicação; movimentos de meses fechados/faturados ficam <b>intocados</b> nos dois ramos (integridade do faturamento preservada).</li></ul>
+      <h4>Cobre</h4><p>CA “só averbações em aberto; meses fechados não são copiados nem alterados” (cenário 12).</p><div class="ev-section" id="ev-CT-RPL-009"></div></div></div>
+
+  <div class="group-header" style="background:var(--grpB)">Grupo D — Comportamento AIG do checkbox “Replicar Averbações”</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-010</span><span class="ct-title">Checkbox AIG marcado — protocolo do RCTR-C atualizado com IS e nº da averbação do RC-DC; desmarcado — sem atualização de protocolo</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>54 <code>333</code> com averbações abertas no período (registrar o <b>protocolo</b> de cada averbação do 54 ANTES — print da averbação aberta na digitação RCTR-C/consulta, campos de protocolo visíveis).</li></ul>
+      <h4>Passos</h4><ol><li><b>Cenário A (marcado):</b> na tela Replicar, preencher origem <code>0001/333</code>, período de teste, destino <code>0001/444</code>, <b>marcar</b> “Replicar Averbações” e Processar — screenshot EV1.</li><li>Reabrir as averbações do 54: conferir o protocolo atualizado com a <b>IS</b> e o <b>nº da averbação do RC-DC</b> gerada — screenshot EV2 (antes × depois).</li><li><b>Cenário B (desmarcado):</b> repetir a replicação com o checkbox <b>desmarcado</b> (mesma massa, nova rodada) e conferir que a cópia ocorre normalmente (igual CT-RPL-005) <b>sem</b> nova atualização de protocolo no 54 — screenshot EV3.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Marcado: além da cópia, o protocolo da averbação do RCTR-C é atualizado com a IS e o nº da averbação do RC-DC (rastreabilidade usada hoje no CIT VB6).</li><li>Desmarcado: comportamento idêntico ao caminho feliz, sem mexer no protocolo do 54.</li></ul>
+      <h4>Cobre</h4><p>CA “comportamento AIG com checkbox marcado e desmarcado” (cenários 16 e 17).</p><div class="ev-section" id="ev-CT-RPL-010"></div></div></div>
+
+  <div class="group-header" style="background:var(--grpB)">Grupo E — Mensagem de ausência (ponto em aberto nº 3 — ver pergunta a Produtos em §4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-011</span><span class="ct-title">54 sem averbações no período — mensagem “Não existem averbações a serem duplicadas.” e nada alterado</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Período SEM averbações no 54 <code>333</code> (ex.: <code>01/09/2026–10/09/2026</code>, conferido vazio na consulta antes do teste).</li><li>Baseline do 55 no mesmo período registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela Replicar: origem <code>0001/333</code>, De <code>01/09/2026</code> / Até <code>10/09/2026</code>; destino <code>0001/444</code>; checkbox <b>desmarcado</b>; Processar — screenshot EV1 do retorno da tela (com ou sem mensagem — captura integral).</li><li>Repetir com o checkbox <b>marcado</b> — screenshot EV2 do retorno.</li><li>Conferir que nada mudou no 55 no período — screenshot EV3.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Pela descrição do card:</b> mensagem <b>“Não existem averbações a serem duplicadas.”</b> e nenhuma alteração nos dados.</li><li>⚠️ <b>Ponto em aberto nº 3 (dev, 07/10):</b> no fluxo <b>sem</b> checkbox a mensagem hoje <b>não é exibida</b> (código não alterado nesta entrega — fora do escopo declarado). O veredito deste CT segue a resposta de Produtos à pergunta nº 1 (§4); sem resposta até a execução, vale a descrição do card (ausência de mensagem no fluxo sem checkbox = REPROVADO com defeito referenciando o ponto em aberto).</li><li>Em qualquer hipótese: <b>nada é copiado nem excluído</b> no destino.</li></ul>
+      <h4>Cobre</h4><p>CA “mensagem de ausência de averbações” (cenário 13 + ponto em aberto nº 3).</p><div class="ev-section" id="ev-CT-RPL-011"></div></div></div>
+
+  <div class="group-header" style="background:var(--grpB)">Grupo F — Cenários complementares</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-012</span><span class="ct-title">Filial de origem diferente da filial de destino — averbações vão para a filial/apólice de destino</span><span class="badge prio desejavel">P3</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>54 <code>333</code> (filial 0001) com averbações abertas no período; 55 <code>0000000250955</code> (filial <code>0006 - SAO PAULO I</code>) como destino — baseline do destino registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela Replicar: Origem Filial <code>0001</code> / Apólice <code>333</code> / período de teste; Destino Filial <code>0006</code> / Apólice <code>250955</code>; Processar — screenshot EV1.</li><li>Conferir as averbações replicadas na apólice/filial de destino — screenshot EV2.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Replicação aceita filiais distintas; as averbações aparecem na apólice 55 da <b>filial de destino</b>, fiéis às do 54 de origem.</li></ul>
+      <h4>Cobre</h4><p>Cenário 14 do card (filial origem ≠ destino — campo Destino.Filial “pode ser diferente da filial de origem”).</p><div class="ev-section" id="ev-CT-RPL-012"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-013</span><span class="ct-title">Apólice de destino ajustável — averbações replicadas entram no controle de ajustáveis</span><span class="badge prio desejavel">P3</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Apólice 55 de destino com Tipo da Apólice = <b>Ajustável</b>: conferir o tipo da <code>444</code> em tela (Cadastros → Apólice); se não for ajustável, ajustar/criar massa (campo “Tipo da Apólice” aceita <code>Ajustável</code> — visto em tela 08/10) e registrar a configuração na evidência.</li><li>54 com averbações abertas no período.</li></ul>
+      <h4>Passos</h4><ol><li>Replicar origem <code>0001/333</code> → destino ajustável; Processar — screenshot EV1.</li><li>Conferir onde as averbações entraram: consulta de averbações <b>ajustáveis</b> (controle de ajustáveis) vs. movimento comum — screenshot EV2 das averbações no controle de ajustáveis.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com destino ajustável, as averbações replicadas vão para o <b>controle de averbações ajustáveis</b>, não para o movimento comum (aparecem nas consultas de ajustável — cenário 15).</li></ul>
+      <h4>Cobre</h4><p>CA “destino ajustável → controle de ajustáveis”.</p><div class="ev-section" id="ev-CT-RPL-013"></div></div></div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RPL-014</span><span class="ct-title">Execuções simultâneas em pares de apólices diferentes — resultados isolados, sem mistura</span><span class="badge prio desejavel">P3</span><span class="ev-badge badge badge-pendente">Pendente</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Dois pares com averbações abertas no período: <code>333→444</code> (filial 0001) e <code>250954→250955</code> (filial 0006) — semear averbações no 250954 com documentos distintos (<code>8915D00x</code>) para diferenciar.</li><li>Duas sessões de navegador independentes logadas no HML AIG.</li></ul>
+      <h4>Passos</h4><ol><li>Nas duas sessões, preencher a tela Replicar com os dois pares (um por sessão) e acionar <b>Processar</b> o mais próximo possível em simultâneo — screenshots EV1/EV2 das duas mensagens de retorno.</li><li>Conferir o conteúdo dos dois destinos: cada 55 só com as averbações do <b>seu</b> 54 (documentos 8915A/B/C× vs 8915D×) — screenshots EV3/EV4.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada execução produz o próprio resultado; nenhuma averbação de um par aparece no destino do outro (isolamento entre usuários/execuções — cenário 18).</li></ul>
+      <h4>Cobre</h4><p>CA “execuções simultâneas em apólices diferentes não se misturam”.</p><div class="ev-section" id="ev-CT-RPL-014"></div></div></div>
+
+  <div class="info-box"><b>Exploratório (NOR_QA_002 §11):</b> após os CTs formais, sessão de 15–30 min guiada por risco — De &gt; Até (período invertido), período futuro, campos vazios + Processar, apólice 54 digitada no campo do 55 (e vice-versa), replicação com o 54 suspenso, clique duplo rápido em Processar (replay), comportamento do botão Novo após erro. Achados viram work item conforme convenção; sem ocorrências → registrar no card.</div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de Aceite (funcional — validação pelo QA)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Item de menu só com parâmetro ligado e permissão no perfil</td><td>CT-RPL-001 (positivo) · CT-RPL-002 (negativo)</td><td>Pendente</td></tr>
+    <tr><td>Tela com Origem (Filial, Ramo 54 fixo, Apólice, Período com default dia 1º→hoje) e Destino (Filial, Ramo 55 fixo, Apólice)</td><td>CT-RPL-001</td><td>Pendente</td></tr>
+    <tr><td>Mensagens de apólice não cadastrada (RCTR-C e RC-DC) e nada alterado</td><td>CT-RPL-003 · CT-RPL-004</td><td>Pendente</td></tr>
+    <tr><td>Período usa a data de saída da viagem</td><td>CT-RPL-006</td><td>Pendente</td></tr>
+    <tr><td>Só averbações em aberto; meses fechados não copiados nem alterados</td><td>CT-RPL-009</td><td>Pendente</td></tr>
+    <tr><td>Substituição das averbações em aberto do RC-DC no período (inclusive manuais)</td><td>CT-RPL-007</td><td>Pendente</td></tr>
+    <tr><td>Cópia fiel (número, subgrupo, documento, origem/destino, mercadoria, IS, taxas, prêmio — sem recálculo)</td><td>CT-RPL-005</td><td>Pendente</td></tr>
+    <tr><td>Reexecução do mesmo período sem duplicidade</td><td>CT-RPL-008</td><td>Pendente</td></tr>
+    <tr><td>Destino ajustável → controle de ajustáveis</td><td>CT-RPL-013</td><td>Pendente</td></tr>
+    <tr><td>AIG: checkbox Replicar Averbações marcado (protocolo do RCTR-C atualizado com IS + nº averbação RC-DC) e desmarcado</td><td>CT-RPL-010</td><td>Pendente</td></tr>
+    <tr><td>Mensagens de sucesso e de ausência de averbações</td><td>CT-RPL-005 (sucesso) · CT-RPL-011 (ausência — ponto em aberto nº 3)</td><td>Pendente</td></tr>
+    <tr><td>Execuções simultâneas em apólices diferentes não se misturam</td><td>CT-RPL-014</td><td>Pendente</td></tr>
+    <tr><td colspan="3" style="color:var(--text-muted)">Itens “Técnicos (baseados na DoD)” do card — unit/integração passando, Sonar nível A, PR com 2 aprovadores, homologação do PO em STAGING — são critérios de <b>processo/DoD de engenharia</b>, garantidos por branch policy + fluxo de gates; <b>não geram CT</b> (NOR_QA_002/qa-expert: CT exige oráculo de produto). O registro de execução em HML com evidência por cenário é cumprido por este próprio plano + anexos no card.</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Indicador</th><th>Valor</th></tr>
+    <tr><td>Total de CTs</td><td>14 — 7×P1 (bloqueante) · 4×P2 (importante) · 3×P3 (desejável)</td></tr>
+    <tr><td>Cobertura dos critérios de aceite</td><td>12/12 CAs funcionais cobertos (100%) — os 5 itens técnicos de DoD não geram CT (processo)</td></tr>
+    <tr><td>Execução</td><td>0/14 executados (plano em Gate 2 — painel do cabeçalho é a fonte viva do placar)</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><b>Processar é destrutivo no destino:</b> exclui averbações abertas do 55 no período — rodar com apólice/período errados apaga massa alheia do ambiente</td><td>Média</td><td>Alto</td><td>Executar só nos pares de massa listados (333/444 e 250954/250955); baseline fotografado antes de cada Processar; HML AIG com liberdade de massa</td></tr>
+    <tr><td><b>Ponto em aberto nº 3:</b> mensagem de ausência não exibida no fluxo sem checkbox (dev manteve fora do escopo) — critério do CT-RPL-011 ambíguo</td><td>Alta</td><td>Médio</td><td>Pergunta direta a Produtos no §4; sem resposta, vale a descrição do card (ausência = REPROVA com defeito)</td></tr>
+    <tr><td><b>Linkagem 54↔55 na digitação:</b> ao semear averbações no 54, o sistema pode oferecer/gerar o par no RC-DC automaticamente, contaminando o “55 vazio” do caminho feliz</td><td>Média</td><td>Médio</td><td>Recusar a geração automática no modal ao gravar; conferir o 55 antes de replicar; zerar com “Exclusão em Bloco RCF-DC” se preciso (botão medido em tela 08/10)</td></tr>
+    <tr><td><b>Acesso SQL (VPN) indisponível</b> no dia da execução — CT-RPL-002 (desligar indicativo) não executável</td><td>Média</td><td>Baixo</td><td>CT isolado (não bloqueia os demais); registrar pendência de infraestrutura e executar quando a VPN voltar; scripts idempotentes já estão no card</td></tr>
+    <tr><td><b>Massa de competência fechada</b> (CT-RPL-009) pode não existir e o fechamento de competência em HML tem efeitos colaterais no par</td><td>Média</td><td>Médio</td><td>Preferir competência já fechada existente; fechar competência de teste só no par de massa; registrar o estado antes/depois</td></tr>
+    <tr><td><b>Ativação em PRD depende do DBA</b> (task #9083 In Progress) — homologação em HML não garante o menu em produção</td><td>—</td><td>—</td><td>Fora do escopo de QA (PROD = N/A); observação registrada no encerramento para a promoção/staging</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · 08/10/2026 · plano em fase de Gate 2 (Produtos) · execução condicionada à aprovação de Produtos no card (DoD do dev em HML cumprido — card em “Pronto para homologação”; PRD via DBA fora do escopo) · evidências de execução: anexo por CT no card + blocos ev-section deste documento.</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
