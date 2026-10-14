@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9105 · Replicar Apólices (RCTR-C para RC-DC): controle de acesso por permissão de tela (TTFCN0B4) — CITWEB Nacional</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.amb{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#1f2a3a;border:1px solid #2f4a6b;color:#9cc8ff;margin-left:4px}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9105 · Sprint 17 Citweb</span>
+    <h1>Replicar Apólices (RCTR-C para RC-DC) — controle de acesso por permissão de tela (TTFCN0B4) — CITWEB Nacional</h1>
+    <div class="sub">CITWEB Nacional · Averbação → Replicar Apólices do (RCTR-C para RC-DC) · tela irmã "…para RCTA-C" (TTFCN0B1) · Ambientes: HML AIG + HML ZURICH · Ramos 54/55 (irmã: 54/58) · Autor QA: Wesley Moreira · versão 1.0 (14/10/2026 — plano shift-left: card In Progress, fix ainda não entregue; execução só após DoD do dev)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>9 CTs</strong> (5×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB Nacional — <b>Averbação → Replicar Apólices do (RCTR-C para RC-DC)</b> (tela <code>TTFCN0B4</code>) e tela irmã <b>"…do (RCTR-C para RCTA-C)"</b> (<code>TTFCN0B1</code>) · módulo <b>Segurança</b> (cadastro de permissões de tela por usuário)</td></tr>
+    <tr><th>Card</th><td>BUG-9105 (Sprint 17 Citweb) · Severidade 2-High · Dev: José Ribeiro Carvalho · Tags: AIG, citweb, DEFEITO, ZURICH · Aberto pelo QA em 09/10/2026 durante a homologação do PBI-8915 (CT-RPL-002, cenário B) · Relacionado: PBI-8915</td></tr>
+    <tr><th>Defeito</th><td>O controle de acesso da tela Replicar Apólices (RCTR-C para RC-DC) não atende aos critérios de permissão por perfil. <b>Detalhe técnico do comportamento atual restrito ao card #9105 e seus anexos (interno)</b> — ver nota de segurança no §2. Reproduzido em HML AIG (09/10, rodada 1 do 8915) e HML Zurich (09/10, rodada 2 — complemento no card, comentário do QA).</td></tr>
+    <tr><th>Entrega esperada (CAs do card)</th><td>(1) A tela <code>TTFCN0B4</code> consta no catálogo de telas e pode ser <b>concedida/revogada por perfil</b> pelo cadastro de permissões; (2) usuário <b>sem</b> <code>TTFCN0B4</code>: o item de menu não aparece (ou fica desabilitado) <b>e</b> o acesso direto à tela é negado; (3) usuário <b>com</b> <code>TTFCN0B4</code>: item habilitado e tela acessível; (4) mesma avaliação para a tela irmã <code>TTFCN0B1</code>.</td></tr>
+    <tr><th>Tasks filhas</th><td>#9148 [QA] Plano de teste (esta entrega) · tasks de dev ainda não abertas no card (In Progress em 14/10)</td></tr>
+    <tr><th>Cards relacionados</th><td><b>PBI-8915</b> (Réplica de embarques — origem do achado; usuários de teste e roteiro reutilizados) · <b>#9097</b> (HTTP 500 da réplica — fix mesclado; <b>não</b> é pré-condição deste plano: nenhum CT aciona Processar) · <b>PBI-9112</b> (checkbox para todas as seguradoras — card separado, fora de escopo)</td></tr>
+    <tr><th>Ambientes</th><td><b>HML AIG CITWEB</b> — <code>https://aig-hml-faturamento.nsseg.com.br/login/</code> · credenciais no .env (<code>HML_AIG_CITWEB_*</code>, nunca neste documento)<br><b>HML ZURICH CITWEB</b> — <code>https://zurich-hml-faturamento.nsseg.com.br/login/</code> · credenciais no .env (<code>HML_ZURICH_CITWEB_*</code>)<br>Defeito reproduzido nos dois tenants → CAs 1–3 validados nos dois (card multiambiente).</td></tr>
+    <tr><th>Ramos</th><td><b>54 (RCTR-C)</b> → <b>55 (RC-DC)</b> na tela principal; <b>54 → 58 (RCTA-C)</b> na tela irmã. O controle de acesso é <b>da tela</b> (permissão de perfil), não regra de ramo.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 14/10/2026 — v1.0 (plano gerado com o card In Progress — shift-left; DoR verificado: Bug com as 7 seções completas, 4 CAs testáveis com oráculo observável, ramos e ambientes declarados, evidências anexadas ao card)</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>A tela <b>Replicar Apólices do (RCTR-C para RC-DC)</b> (menu Averbação do módulo Nacional) executa a replicação de apólices/averbações do ramo 54 para o 55 — rotina com efeito <b>destrutivo no destino</b> (apaga as averbações em aberto do período antes de copiar; comportamento já descrito no plano público do PBI-9112). Por isso o acesso a ela deve ser governado pela <b>permissão de tela <code>TTFCN0B4</code></b> no perfil do usuário, como as demais telas do módulo: o item de menu só habilitado para quem tem a permissão, o acesso direto negado para quem não tem, e a permissão concedível/revogável pelo <b>cadastro de permissões</b> (módulo Segurança do CITWEB).</p>
+  <p>O BUG-9105 registra que esse controle <b>não atende aos critérios acima</b>, nos dois tenants medidos (AIG e Zurich). O fix deve fazer a tela existir no catálogo de telas, ser concedível por perfil e ser efetivamente conferida pelo menu e pelo acesso — os 4 critérios de aceite do card. A tela irmã "…do (RCTR-C para RCTA-C)" (<code>TTFCN0B1</code>) entra na mesma avaliação (CA 4).</p>
+  <div class="warn-box"><b>🔒 Nota de segurança deste documento (público).</b> Por se tratar de defeito de <b>controle de acesso</b>, o detalhe do comportamento atual — mecanismo, medições, SQL e evidências — fica <b>restrito ao card #9105 e seus anexos</b> (ambiente interno). Este plano descreve apenas o <b>comportamento esperado pós-fix</b> e os passos de verificação. Evidências de execução seguem a mesma regra: resultado público genérico ("APROVADO/REPROVADO — detalhe no card"), detalhe completo no card.</div>
+  <div class="info-box"><b>O que o fix muda × o que os CTs homologam.</b> A visibilidade do item de menu continua condicionada <b>também</b> ao indicativo <code>Ind_replicar_averbacao_54_55</code> da base do tenant (gate de configuração — não é alterado por este card e é pré-condição de ambiente dos CTs de menu). O que este plano homologa é a camada de <b>permissão por perfil</b>: catálogo/concessão (CA 1), negação sem permissão (CA 2), acesso com permissão (CA 3) e a irmã (CA 4) — nos dois tenants. <b>Nenhum CT deste plano aciona o botão Processar</b>: a funcionalidade da réplica é escopo do PBI-8915/PBI-9112, o que torna este plano independente do build do fix #9097.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Catálogo de telas + concessão/revogação da permissão <code>TTFCN0B4</code> pelo cadastro de permissões — AIG (CT-ACS-001) e Zurich (CT-ACS-002).</li>
+    <li>Usuário sem a permissão: item de menu ausente/desabilitado <b>e</b> acesso direto negado — AIG (CT-ACS-003) e Zurich (CT-ACS-004).</li>
+    <li>Usuário com a permissão: item habilitado e tela acessível — AIG (CT-ACS-005) e Zurich (CT-ACS-006).</li>
+    <li>Tela irmã <code>TTFCN0B1</code> ("…para RCTA-C"): mesma avaliação — AIG (CT-ACS-007) e Zurich (CT-ACS-008).</li>
+    <li>Regressão do filtro de permissões do menu para as demais telas do módulo Nacional (CT-ACS-009).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A). Qualquer decisão sobre ambientes produtivos é de Produtos/dev-ops e vive no card.</li>
+    <li><b>Funcionalidade da réplica</b> (Processar, cópia de averbações, mensagens) — planos do PBI-8915 e do PBI-9112. Nenhum CT aqui aciona Processar.</li>
+    <li><b>Checkbox "Replicar Averbações" multi-tenant</b> — PBI-9112 (card separado).</li>
+    <li><b>Gate do indicativo</b> <code>Ind_replicar_averbacao_54_55</code> — já coberto no plano do PBI-9112 (CT-RSG-003); aqui o indicativo é só pré-condição de ambiente.</li>
+    <li><b>Itens de processo/DoD de engenharia</b> (PR aprovado, unit tests, Sonar) — garantidos por branch policy + DoD do dev; não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>⛔ Execução somente após (gate de DoD + Gate de Produtos):</b>
+    <ol>
+      <li>Card <b>#9105</b> em "Pronto para homologação" (em 14/10: In Progress — o fix ainda não existe; os 2 commits linkados ao card são os PRs do <b>#9097</b>, cuja descrição declara explicitamente o #9105 como card separado/fora do escopo).</li>
+      <li>Plano validado por <b>Produtos (Gate 2)</b> — escrita de Produtos no card/task.</li>
+      <li>Build HML <b>dos dois tenants</b> contendo o fix do #9105 — conferir a versão no rodapé da tela de login (data ≥ data do deploy anunciado pelo dev no card). Se o fix incluir carga de dados (registro da tela no catálogo), confirmar com o dev que a carga foi aplicada <b>nas duas bases</b>.</li>
+      <li>Indicativo <code>Ind_replicar_averbacao_54_55</code> ligado no tenant do CT de menu (Zurich = S, medido 09/10 · AIG = religar no HML; autorizado no PR 2100 do #9097 para o reteste do QA). Sem o indicativo o item não aparece para <b>ninguém</b> e o resultado do CT de menu fica indistinguível.</li>
+      <li>Credencial com acesso ao módulo <b>Segurança</b> (cadastro de permissões) — ver nota de medição abaixo.</li>
+    </ol>
+  </div>
+  <div class="info-box"><b>Medição de 14/10/2026 (planejamento):</b> o usuário CITWEB AIG do .env (perfil Gestor) <b>não exibe o tile Segurança</b> na tela de módulos (tiles medidos: Tabelas · Internacional · Nacional · Conversor de Arquivos · Importar/Exportar · Interface WI/Siscomex · Liberação de Cobertura · Gestão · Interface · CITNET — print em disco, sonda read-only). O cadastro de permissões (Segurança → Usuário CIT) existe no produto, mas exige credencial com esse módulo no perfil. <b>Pré-requisito da execução:</b> obter do dev/infra uma credencial HML com o módulo Segurança nos dois tenants (ou o dev indicar no card o mecanismo de concessão que o fix adotar). Sem isso, o CT-ACS-001/002 usa o oráculo de banco (leitura) + a concessão executada pelo dev/humano, registrada no card.</div>
+  <div class="info-box"><b>Massa / usuários de teste (nenhuma apólice ou averbação é necessária — nenhum CT aciona Processar):</b>
+    <table>
+      <tr><th>Papel</th><th>Como obter</th><th>Observações</th></tr>
+      <tr><td><b>Usuário de teste SEM a permissão <code>TTFCN0B4</code></b> (CTs 003, 004, 007, 008)</td><td>Clone do perfil Gestor do tenant, sem <code>TTFCN0B4</code>/<code>TTFCN0B1</code> e sem 2 telas de controle (ex.: <code>TTFCN020</code>/<code>TTFCN030</code>) para provar o filtro ativo — mesmo procedimento das rodadas 1/2 do PBI-8915 (roteiro nos scripts do repositório privado de automação, <code>sprint-16-citweb/pbi-8915/execucao/</code>)</td><td>Criar no dia da execução e <b>remover ao final</b> (zero resíduo, conferido). Em modo automático a criação por SQL é bloqueada por política (mutação é do humano/dev) — criar em sessão supervisionada ou solicitar ao dev, registrando no card.</td></tr>
+      <tr><td><b>Usuário de teste COM a permissão</b> (CTs 005, 006, parte final do 007/008)</td><td>O mesmo usuário de teste, após a concessão de <code>TTFCN0B4</code> executada no CT-ACS-001/002 (cadastro de permissões)</td><td>A concessão em si é o objeto do CA 1 — conceder, conferir, e ao final revogar/remover.</td></tr>
+      <tr><td><b>Usuário controle (perfil completo)</b> (CT-ACS-009)</td><td>Usuário CITWEB atual do .env de cada tenant (AIG: Gestor com 72 permissões — medido no 8915; Zurich: usuário QA das rodadas do 8915)</td><td>Serve de referência "antes/depois" do filtro do menu.</td></tr>
+      <tr><td><b>Conferência por banco (leitura)</b></td><td>Consultas read-only de catálogo de telas e permissões por usuário nas bases HML dos dois tenants — queries no roteiro interno (scripts privados; não reproduzidas aqui — ver nota de segurança §2)</td><td>Toda conferência = antes × depois (print/dump no bloco do CT e anexo no card).</td></tr>
+    </table>
+  </div>
+  <ul>
+    <li>Navegação sempre por clique a partir do login (única URL direta: a de login do HML). Tile <b>Nacional</b> abre o módulo em <b>nova aba</b>; menu <b>Averbação</b>.</li>
+    <li><b>Exceção documentada de navegação:</b> o passo de "acesso direto à tela" dos CTs 003/004/007/008 digita a rota da tela na barra de endereço <b>porque esse é o objeto do teste</b> (CA 2 exige que o acesso direto seja negado) — não é atalho de navegação.</li>
+    <li>Evidência por CT: print do menu/tela/mensagem + conferência de banco (leitura) antes/depois, no bloco do próprio CT e <b>anexada ao card</b> (evidência vive no card). Nos CTs deste plano o conteúdo sensível segue a nota de segurança do §2.</li>
+    <li>Capturar a <b>versão/build</b> do rodapé do login em cada tenant no início da rodada (a evidência vale para aquele build).</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Catálogo de telas e concessão/revogação da permissão (CA 1)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-001</span><span class="ct-title">AIG: tela TTFCN0B4 consta no catálogo e é concedida/revogada pelo cadastro de permissões</span><span class="amb">AIG</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML AIG com build contendo o fix #9105 (versão do login conferida). Credencial com módulo Segurança (pré-requisito do §4; alternativa: concessão executada pelo dev/humano com registro no card). Usuário de teste criado (sem <code>TTFCN0B4</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Conferência de banco (leitura): catálogo de telas da base AIG lista a tela <code>TTFCN0B4</code> — EV1: print do resultado (query no roteiro interno).</li><li>Login CITWEB AIG com a credencial de Segurança → tile <b>Segurança</b> → <b>Usuário CIT</b> → localizar o usuário de teste — EV2: tela do usuário com a lista de permissões carregada e <code>TTFCN0B4</code> disponível para concessão.</li><li>Conceder <code>TTFCN0B4</code> ao usuário de teste e salvar — EV3: print da confirmação/estado salvo.</li><li>Conferência de banco (leitura): permissão gravada para o usuário — EV4: print antes × depois.</li><li>Ao final da rodada (após os CTs 005/007): <b>revogar</b> a permissão pela mesma tela e salvar — EV5: print + conferência de banco (remoção efetivada).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela consta no catálogo e a permissão é concedida <b>e</b> revogada pelo cadastro de permissões, sem erro, com efeito confirmado por leitura de banco (CA 1). Falha na concessão/revogação, tela ausente do catálogo ou erro ao salvar = REPROVADO (detalhe no card, não neste documento — nota §2).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-002</span><span class="ct-title">Zurich: tela TTFCN0B4 consta no catálogo e é concedida/revogada pelo cadastro de permissões</span><span class="amb">ZURICH</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Zurich com build contendo o fix #9105. Credencial com módulo Segurança no tenant Zurich (mesmo pré-requisito do §4). Usuário de teste Zurich criado (sem <code>TTFCN0B4</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Conferência de banco (leitura): catálogo de telas da base Zurich lista <code>TTFCN0B4</code> — EV1.</li><li>Segurança → Usuário CIT → usuário de teste → conceder <code>TTFCN0B4</code> → salvar — EV2/EV3 (tela + confirmação).</li><li>Conferência de banco (leitura): permissão gravada — EV4 (antes × depois).</li><li>Ao final da rodada: revogar e conferir — EV5.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo comportamento do CT-ACS-001 na base Zurich (CA 1). As bases dos dois tenants têm deltas de estrutura já medidos nas rodadas do 8915 — por isso o CA 1 é validado <b>nos dois</b>, nunca generalizado de um para o outro (regra: regra de um tenant não vale para todos).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-002"></div>
+    </div>
+  </div>
+
+  <div class="group-header" style="background:var(--grpB);color:#02160a">Grupo B — Usuário SEM a permissão: menu e acesso direto negados (CA 2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-003</span><span class="ct-title">AIG, usuário sem TTFCN0B4: item de menu ausente/desabilitado E acesso direto à tela negado</span><span class="amb">AIG</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML AIG com build do fix. Indicativo <code>Ind_replicar_averbacao_54_55</code> <b>ligado</b> (religado para o reteste — sem ele o item some para todos e o CT fica indistinguível). Usuário de teste <b>sem</b> <code>TTFCN0B4</code> (e sem 2 telas de controle, ex. <code>TTFCN020</code>/<code>TTFCN030</code>, para provar o filtro ativo). Permissão ainda <b>não</b> concedida (executar antes da concessão do CT-ACS-001, ou após a revogação).</li></ul>
+      <h4>Passos</h4><ol><li>Login HML AIG com o usuário de teste → tile <b>Nacional</b> (nova aba) → clicar no menu <b>Averbação</b> — EV1: dropdown aberto.</li><li>Conferir os itens de controle (telas que o usuário não tem, ex. "RCTR-C"/"RCA-C"): devem vir desabilitados/ausentes — prova de que o filtro de permissões está ativo para este usuário — EV1 (mesmo print).</li><li>Conferir o item <b>"Replicar Apólices do (RCTR-C para RC-DC)"</b> — EV2: ausente <b>ou</b> desabilitado (conforme CA 2; padrão das demais telas do módulo = desabilitado/esmaecido).</li><li><b>Acesso direto (objeto do teste — exceção documentada de navegação):</b> digitar a rota da tela na barra de endereço — EV3: acesso negado (bloqueio/redirecionamento/mensagem — capturar o texto exato exibido; não pode carregar a tela com o botão Processar).</li><li>Conferência de banco (leitura): usuário segue sem a permissão — EV4.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Item não aparece (ou desabilitado) <b>e</b> o acesso direto é negado (CA 2). Tela carregada/acessível sem a permissão = REPROVADO (resultado público genérico; detalhe no card — nota §2).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-004</span><span class="ct-title">Zurich, usuário sem TTFCN0B4: item de menu ausente/desabilitado E acesso direto à tela negado</span><span class="amb">ZURICH</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Zurich com build do fix. Indicativo ligado (Zurich = S, medido 09/10 — reconferir por leitura no dia). Usuário de teste Zurich <b>sem</b> <code>TTFCN0B4</code> (clone como na rodada 2 do 8915), antes da concessão do CT-ACS-002 ou após a revogação.</li></ul>
+      <h4>Passos</h4><ol><li>Login HML Zurich com o usuário de teste → <b>Nacional</b> → menu <b>Averbação</b> — EV1: dropdown com os itens de controle desabilitados (filtro ativo).</li><li>Conferir o item "Replicar Apólices do (RCTR-C para RC-DC)" — EV2: ausente ou desabilitado.</li><li>Acesso direto à rota da tela (objeto do teste) — EV3: negado, com o comportamento/mensagem exata capturada.</li><li>Conferência de banco (leitura): usuário sem a permissão — EV4.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo comportamento do CT-ACS-003 no tenant Zurich (CA 2 — defeito foi reproduzido nos dois; o fix é validado nos dois).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-004"></div>
+    </div>
+  </div>
+
+  <div class="group-header">Grupo C — Usuário COM a permissão: acesso funciona (CA 3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-005</span><span class="ct-title">AIG, usuário com TTFCN0B4: item habilitado e tela acessível</span><span class="amb">AIG</span><span class="badge prio bloqueante">P1</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML AIG com build do fix. Indicativo ligado. Usuário de teste <b>com</b> <code>TTFCN0B4</code> concedida (CT-ACS-001 executado). <b>Não acionar Processar</b> (fora de escopo — a réplica é destrutiva e pertence ao 8915/9112).</li></ul>
+      <h4>Passos</h4><ol><li>Login HML AIG com o usuário de teste (agora com a permissão) → <b>Nacional</b> → menu <b>Averbação</b> — EV1: item <b>"Replicar Apólices do (RCTR-C para RC-DC)"</b> habilitado.</li><li>Clicar no item — EV2: tela carregada com os blocos Origem/Destino (Filial, Ramo fixo 54/55, Apólice, período) e botões <b>Novo</b>/<b>Processar</b> visíveis (estrutura validada em tela em 08/10 — feature <code>replicar-apolices-rctrc-rcdc.md</code>).</li><li>Sair da tela <b>sem</b> acionar Processar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com a permissão no perfil, o item aparece habilitado e a tela abre normalmente (CA 3) — o fix não pode bloquear quem tem a permissão.</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-006</span><span class="ct-title">Zurich, usuário com TTFCN0B4: item habilitado e tela acessível</span><span class="amb">ZURICH</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Zurich com build do fix. Indicativo ligado. Usuário de teste Zurich <b>com</b> <code>TTFCN0B4</code> (CT-ACS-002). Não acionar Processar.</li></ul>
+      <h4>Passos</h4><ol><li>Login HML Zurich com o usuário de teste → <b>Nacional</b> → <b>Averbação</b> — EV1: item habilitado.</li><li>Clicar no item — EV2: tela carregada (na Zurich a tela não tem o checkbox "Replicar Averbações" até o PBI-9112 — não é defeito deste CT).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo comportamento do CT-ACS-005 no tenant Zurich (CA 3).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-006"></div>
+    </div>
+  </div>
+
+  <div class="group-header" style="background:#6e40c9;color:#fff">Grupo D — Tela irmã "…para RCTA-C" (TTFCN0B1) (CA 4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-007</span><span class="ct-title">AIG, tela irmã TTFCN0B1: catálogo/concessão + sem permissão (negado) + com permissão (acessível)</span><span class="amb">AIG</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML AIG com build do fix. Indicativo da tela irmã ligado, se houver gate próprio (confirmar com o dev no card qual indicativo governa a irmã; se o item "…para RCTA-C" não aparecer nem para o usuário controle, registrar e tratar o CT como N/A por gate de configuração, nunca como aprovado). Usuário de teste da rodada (CT-ACS-001) <b>sem</b> <code>TTFCN0B1</code>.</li></ul>
+      <h4>Passos</h4><ol><li>Conferência de banco (leitura): catálogo lista <code>TTFCN0B1</code> — EV1.</li><li>Com o usuário de teste <b>sem</b> a permissão: menu <b>Averbação</b> — EV2: item <b>"Replicar Apólices do (RCTR-C para RCTA-C)"</b> ausente/desabilitado; acesso direto à rota da tela irmã negado — EV3 (objeto do teste).</li><li>Conceder <code>TTFCN0B1</code> pelo cadastro de permissões — EV4.</li><li>Relogar com o usuário de teste: item habilitado e tela irmã abre (origem ramo 54, destino ramo 58) — EV5. Sair sem Processar.</li><li>Revogar ao final — EV6 (conferência de banco).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela irmã tem o mesmo controle de acesso da principal: concedível, negada sem permissão, acessível com permissão (CA 4).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-007"></div>
+    </div>
+  </div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-008</span><span class="ct-title">Zurich, tela irmã TTFCN0B1: mesma avaliação (catálogo + sem/com permissão)</span><span class="amb">ZURICH</span><span class="badge prio desejavel">P3</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML Zurich com build do fix. Mesmas condições do CT-ACS-007 no tenant Zurich (gate de configuração da irmã conferido com o usuário controle antes de julgar).</li></ul>
+      <h4>Passos</h4><ol><li>Conferência de banco (leitura): catálogo Zurich lista <code>TTFCN0B1</code> — EV1.</li><li>Usuário de teste sem a permissão: item da irmã ausente/desabilitado + acesso direto negado — EV2/EV3.</li><li>Conceder, relogar, tela abre — EV4/EV5; revogar ao final — EV6.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo comportamento do CT-ACS-007 na Zurich (CA 4 nos dois tenants).</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-008"></div>
+    </div>
+  </div>
+
+  <div class="group-header" style="background:#d29922;color:#241a02">Grupo E — Regressão do filtro de permissões do menu</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ACS-009</span><span class="ct-title">Regressão: o filtro de permissões das demais telas do menu não muda com o fix (AIG + spot-check Zurich)</span><span class="amb">AIG + ZURICH</span><span class="badge prio importante">P2</span><span class="ev-badge badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>HML com build do fix nos dois tenants. Usuário controle (perfil completo — .env) e usuário de teste restrito (o mesmo dos CTs anteriores).</li></ul>
+      <h4>Passos</h4><ol><li>AIG, usuário controle: abrir os menus do módulo Nacional (Averbação, Cadastros, Fechamento Mensal) — EV1: itens que ele já via continuam habilitados (comparar com o estado conhecido das rodadas do 8915 — nenhum item a menos).</li><li>AIG, usuário restrito: os itens que ele não tem (ex. "RCTR-C", "RCA-C") continuam desabilitados/ausentes — EV2: o fix não "abriu" nem "fechou" telas além da <code>TTFCN0B4</code>/<code>TTFCN0B1</code>.</li><li>Abrir 1 tela que o usuário restrito TEM permissão (qualquer uma habilitada no menu dele) — EV3: abre normalmente (o fix não bloqueou telas concedidas).</li><li>Zurich (spot-check): repetir os passos 1–2 — EV4.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Filtro de permissões do menu preservado para as demais telas nos dois tenants: nenhuma tela perdida pelo usuário controle, nenhum bloqueio novo indevido, nenhum item indevidamente liberado ao usuário restrito.</li></ul>
+      <div class="ev-section" id="ev-CT-ACS-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de aceite (card #9105)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA 1 — Tela <code>TTFCN0B4</code> no catálogo de telas, concedível/revogável pelo cadastro de permissões</td><td>CT-ACS-001 (AIG) · CT-ACS-002 (Zurich)</td><td>Pendente</td></tr>
+    <tr><td>CA 2 — Usuário sem <code>TTFCN0B4</code>: item não aparece (ou desabilitado) e acesso direto negado</td><td>CT-ACS-003 (AIG) · CT-ACS-004 (Zurich)</td><td>Pendente</td></tr>
+    <tr><td>CA 3 — Usuário com <code>TTFCN0B4</code>: item habilitado e tela acessível</td><td>CT-ACS-005 (AIG) · CT-ACS-006 (Zurich)</td><td>Pendente</td></tr>
+    <tr><td>CA 4 — Mesma avaliação para a tela irmã "…para RCTA-C" (<code>TTFCN0B1</code>)</td><td>CT-ACS-007 (AIG) · CT-ACS-008 (Zurich)</td><td>Pendente</td></tr>
+    <tr><td>Regressão (implícita — fix não altera o filtro das demais telas)</td><td>CT-ACS-009 (AIG + Zurich)</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td><b>Fix ainda não desenvolvido</b> (card In Progress em 14/10; commits linkados são do #9097, que declara o #9105 como card separado)</td><td>—</td><td>—</td><td>Plano shift-left: execução só com o card em "Pronto para homologação" e build conferido no login dos dois tenants</td></tr>
+    <tr><td><b>Cadastro de permissões inacessível com a credencial atual</b> (medição 14/10: sem tile Segurança no perfil do .env AIG)</td><td>Alta</td><td>Alto (CA 1 inexecutável pela UI)</td><td>Pré-requisito explícito no §4: credencial com módulo Segurança nos dois tenants, solicitada ao dev/infra no reteste; fallback: concessão executada pelo dev/humano + oráculo de banco (leitura) pelo QA — registrado no card</td></tr>
+    <tr><td><b>Criação do usuário de teste</b> — mutação por SQL é do humano/dev (bloqueada em modo automático)</td><td>Média</td><td>Médio</td><td>Criar em sessão supervisionada ou via dev, com registro e remoção ao final (procedimento já exercido nas rodadas do 8915)</td></tr>
+    <tr><td><b>Indicativo AIG desligado</b> (desligado pelo dev em 09/10) — sem ele os CTs de menu ficam indistinguíveis</td><td>Alta</td><td>Alto</td><td>Religar no HML AIG antes da rodada (autorizado no PR 2100 para o reteste do QA); conferir por leitura no dia; alinhar com o reteste do 8915 (mesmo pré-requisito)</td></tr>
+    <tr><td><b>Forma do fix em aberto</b> — o CA 2 aceita "não aparece OU desabilitado"; o mecanismo de negação do acesso direto não está especificado</td><td>Média</td><td>Médio</td><td>Capturar o comportamento real (print + texto exato) e confrontar com o CA; ambiguidade de interpretação → pergunta objetiva a Produtos/dev no card, nunca suposição</td></tr>
+    <tr><td><b>Carga de dados do fix por tenant</b> — o registro da tela no catálogo pode ser migração/carga aplicada por base; aplicar em um tenant e não no outro deixaria o fix pela metade</td><td>Média</td><td>Alto</td><td>CA 1 validado nos DOIS tenants (CT-ACS-001/002), nunca generalizado (deltas de base entre AIG e Zurich já medidos nas rodadas do 8915)</td></tr>
+    <tr><td><b>Documento público × defeito de acesso</b></td><td>—</td><td>Alto</td><td>Nota de segurança §2 aplicada: mecanismo/medições/SQL restritos ao card; resultados públicos genéricos ("detalhe no card")</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (14/10/2026) · plano gerado com o card In Progress (shift-left — Sprint 17); execução condicionada a: card em "Pronto para homologação" + Gate de Produtos aprovado + build HML com o fix nos dois tenants + credencial com módulo Segurança · evidências de execução: anexo por CT no card + blocos ev-section deste documento (conteúdo sensível restrito ao card — nota §2).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
