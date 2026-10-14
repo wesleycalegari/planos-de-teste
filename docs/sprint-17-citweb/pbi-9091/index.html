@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9091 · Conversor Processa Averbações TRN (data de saída nula) · Fairfax</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2129; --border:#30363d;
+  --text:#c9d1d9; --muted:#8b949e; --blue:#0078d4; --blue-txt:#58a6ff;
+  --green:#2ea043; --red:#d13438; --orange:#ca5010; --yellow:#d29922;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-size:14px;line-height:1.55;padding-bottom:60px}
+.container{max-width:1100px;margin:0 auto;padding:0 18px}
+header{background:linear-gradient(135deg,#0d2440 0%,#0d1117 100%);border-bottom:2px solid var(--blue);padding:26px 0 20px}
+header h1{font-size:21px;color:#fff;font-weight:600}
+header .sub{color:var(--muted);margin-top:6px;font-size:13px}
+.pbi-badge{display:inline-block;background:var(--blue);color:#fff;font-weight:700;font-size:12px;letter-spacing:.06em;border-radius:4px;padding:3px 10px;margin-bottom:10px}
+.dash{max-width:1100px;margin-left:auto;margin-right:auto;padding-left:18px;padding-right:18px}
+h2.section{font-size:17px;color:var(--blue-txt);border-bottom:1px solid var(--border);padding-bottom:7px;margin:34px 0 14px}
+.info-grid{display:grid;grid-template-columns:190px 1fr;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px}
+.info-grid .k{background:var(--surface);padding:9px 13px;font-weight:600;border-bottom:1px solid var(--border);font-size:13px}
+.info-grid .v{background:var(--bg);padding:9px 13px;border-bottom:1px solid var(--border);font-size:13px}
+.info-grid .k:last-of-type,.info-grid .v:last-of-type{border-bottom:none}
+.info-box{background:#0d2440;border:1px solid #1f6feb;border-left:4px solid #1f6feb;border-radius:6px;padding:12px 15px;margin:12px 0;font-size:13px}
+.warn-box{background:#1f1a0d;border:1px solid var(--yellow);border-left:4px solid var(--yellow);border-radius:6px;padding:12px 15px;margin:12px 0;font-size:13px}
+.group-header{background:var(--blue);color:#fff;font-weight:600;font-size:14.5px;padding:10px 15px;border-radius:7px 7px 0 0;margin-top:22px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:7px;margin:10px 0}
+.ct-head{cursor:pointer;user-select:none;padding:11px 15px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.ct-head .ct-id{font-weight:700;color:var(--blue-txt);font-family:Consolas,monospace;font-size:13px}
+.ct-head .ct-title{flex:1;font-size:13.5px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;border-top:1px solid var(--border);padding:14px 16px}
+.ct-block.expanded .ct-body{display:block}
+.badge{display:inline-block;font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 10px;letter-spacing:.04em}
+.prio{text-transform:uppercase}
+.bloqueante{background:var(--red);color:#fff}
+.importante{background:var(--orange);color:#fff}
+.desejavel{background:#6e7681;color:#fff}
+.badge-pendente{background:#2d333b;color:#9ea7b3;border:1px solid #444c56}
+.badge-ok{background:#0d1f0d;color:#3fb950;border:1px solid var(--green)}
+.badge-erro{background:#1f0d0d;color:#f1707a;border:1px solid var(--red)}
+.badge-bloqueado{background:#1f1a0d;color:var(--yellow);border:1px solid var(--yellow)}
+.badge-auto{background:#0d2440;color:#58a6ff;border:1px solid #1f6feb}
+.ct-body h4{font-size:12.5px;color:var(--blue-txt);text-transform:uppercase;letter-spacing:.05em;margin:13px 0 6px}
+.ct-body h4:first-child{margin-top:0}
+.ct-body ol,.ct-body ul{margin-left:22px}
+.ct-body li{margin:4px 0;font-size:13px}
+.ct-body p{font-size:13px;margin:5px 0}
+code{background:#21262d;border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:Consolas,monospace;font-size:12px;color:#79c0ff}
+.result-box{background:#0d1f0d;border:1px solid var(--green);border-radius:6px;padding:10px 13px;margin-top:8px;font-size:13px}
+.ev-section{border:1px dashed var(--border);border-radius:6px;padding:12px;margin-top:13px;color:var(--muted);font-size:12.5px}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13px}
+th{background:var(--surface);color:var(--blue-txt);text-align:left;padding:8px 11px;border:1px solid var(--border)}
+td{padding:8px 11px;border:1px solid var(--border)}
+tr:nth-child(even) td{background:var(--surface)}
+.footer-note{color:var(--muted);font-size:12px;margin-top:36px;border-top:1px solid var(--border);padding-top:14px}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px Consolas,monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.88);border:1px solid var(--border);color:var(--muted)}
+.lb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;cursor:zoom-out;align-items:center;justify-content:center}
+.lb-overlay img{max-width:94vw;max-height:92vh;border:1px solid var(--border);border-radius:6px}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 0 20px;border-bottom:1px solid #30363d;margin-bottom:6px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <span class="pbi-badge">BUG-9091 · Sprint 17 Citweb</span>
+    <h1>Plano de Teste — Conversor · Processa Averbações TRN: linha de ramo válido com data de saída nula (SqlDateTime overflow)</h1>
+    <div class="sub">CITWEB · FAIRFAX HML (numérico) · Ramo 21 (Transporte Nacional) · Defeito achado pelo QA (exploratório do reteste #8740, 08/10/2026)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">5</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">5</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/2/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 5 executados · 5 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>5 CTs</strong> (3×P1 · 2×P2 · 0×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 5, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 5}</span>
+  </div>
+</div>
+
+
+<div class="container">
+
+  <h2 class="section">1. Identificação</h2>
+  <div class="info-grid">
+    <div class="k">Card</div><div class="v">BUG-9091 — [CITWEB - FAIRFAX] Processa Averbações TRN — linha de ramo válido com data de saída nula derruba o lote com alerta técnico "SqlDateTime overflow" (BulkCopy de rejeitadas)</div>
+    <div class="k">Projeto / Módulo</div><div class="v">CITWEB · Conversor de Arquivos → Processa Averbações → Transporte Nacional</div>
+    <div class="k">Sprint</div><div class="v">Sprint_17_Citweb</div>
+    <div class="k">Seguradora / Ambiente</div><div class="v">FAIRFAX — HML numérico (<code>fairfax-hml-faturamento.nsseg.com.br</code>)</div>
+    <div class="k">Ramo</div><div class="v">21 — Transporte Nacional (regra deste card é específica do fluxo Processa Averbações TRN; não generalizar para outros ramos sem evidência)</div>
+    <div class="k">Dev responsável</div><div class="v">Diego Almeida (fix relacionado: PR !2099; mesmo controller/fluxo do fix #9041)</div>
+    <div class="k">Autor / Data</div><div class="v">Wesley Moreira · 14/10/2026 · plano v1.0</div>
+    <div class="k">Cards relacionados</div><div class="v">#8740 (bug de origem — Conversor aceita ramo inválido), #9041 (defeito R1 do 8740, corrigido), #9090 (ramo 99 + data nula → erro genérico; card próprio, FORA deste plano)</div>
+  </div>
+
+  <h2 class="section">2. Descrição</h2>
+  <p>Defeito encontrado pelo QA em exploratório (08/10/2026, build <code>V 1.0.261007.1603</code>): em
+  <strong>Conversor &gt; Processa Averbações &gt; Transporte Nacional</strong>, uma linha de <strong>ramo válido (21)</strong>
+  com <strong>data de saída nula</strong> (<code>d_sda_vgm = NULL</code>) na tabela temporária de conversão faz o
+  <em>Processar</em> falhar com alerta técnico em tela:</p>
+  <div class="warn-box"><strong>Comportamento defeituoso (pré-fix, medido em tela):</strong><br>
+  "Erro ao salvar dados: Falha no processamento do lote 3: Erro não-SQL no BulkCopy para tabela tb_lay_out_prs_tmp_rjt_cit, lote 3: <strong>SqlDateTime overflow</strong>. Must be between 1/1/1753 12:00:00 AM and 12/31/9999 11:59:59 PM." + "Há registros não processados, faça as correções necessárias e efetue novo processamento."<br><br>
+  Efeitos medidos: o lote inteiro não processa (0 averbações, inclusive a linha válida); contadores contraditórios
+  (Total de registros 2 · Averbações incluídas 0 · Registros com erro 0); vazamento de detalhe técnico ao usuário
+  (nome de tabela, BulkCopy, SqlDateTime). Determinístico (3 execuções, prints finais byte-idênticos).</div>
+  <p><strong>Comportamento esperado (contrato do card):</strong> a linha com data de saída ausente/inválida é listada em
+  <em>Registros com erro</em> com mensagem de negócio (ex.: data de saída não informada); as demais linhas válidas do lote
+  são processadas; nenhum detalhe técnico é exibido; contadores coerentes.</p>
+  <div class="info-box"><strong>Alcançabilidade (medição 08/10/2026):</strong> 0 linhas com data de saída nula em 257.340 linhas
+  reais da temp de conversão Fairfax — o caso só é alcançável por semeadura. Por isso a execução usa a MESMA semeadura
+  controlada do achado original (<code>controle_data_nula.py --ramo 21</code>), conforme o critério de aceite 3 do card.</div>
+
+  <h2 class="section">3. Escopo</h2>
+  <p><strong>In scope:</strong></p>
+  <ul style="margin-left:22px;font-size:13px">
+    <li>Processa Averbações TRN (ramo 21) com lote misto: linha válida + linha ramo 21 com data de saída nula semeada na temp (CA1);</li>
+    <li>Higiene das mensagens ao usuário — ausência de SqlDateTime / BulkCopy / nome de tabela (CA2);</li>
+    <li>Coerência dos contadores da tela (Total = incluídas + erros) (CA1);</li>
+    <li>Regressão do caminho feliz TRN (lote 100% válido) e do tratamento de ramo inválido do fix #9041 (mesmo pipeline de rejeitadas).</li>
+  </ul>
+  <p><strong>Out of scope:</strong></p>
+  <ul style="margin-left:22px;font-size:13px">
+    <li><strong>#9090</strong> (ramo 99 inválido + data nula → "Ocorreu um erro inesperado!" e coluna Ramo=0 em Rejeitadas) — card próprio do Diego, reteste separado;</li>
+    <li>Conversor de outros ramos (RCTR-C, RCTA-C, RCTF-C, RCA-C) e Conversor CITNET;</li>
+    <li>Outras seguradoras (regra medida no Fairfax HML; não generalizar);</li>
+    <li>Produção (QA não testa em PROD — N/A por norma).</li>
+  </ul>
+
+  <h2 class="section">4. Pré-requisitos</h2>
+  <div class="info-grid">
+    <div class="k">Gate de execução</div><div class="v">⛔ Executar SOMENTE com: (1) fix deployado em HML Fairfax — card em "Pronto para homologação" (build da tela &gt; <code>V 1.0.261007.1603</code>, anotar o build na evidência); (2) plano validado por Produtos (Gate 2). Card em desenvolvimento = espera legítima.</div>
+    <div class="k">Acesso</div><div class="v">Login CITWEB Fairfax HML (credenciais internas do QA — gestão via ambiente, nunca publicadas). Navegação 100% por clique a partir do login.</div>
+    <div class="k">Banco (oráculo)</div><div class="v">SQL Server <code>smt-hom-citweb-fairfax</code> — leitura/escrita autorizada em HML para semeadura e oráculo (tabelas <code>tb_lay_out_cvr_tmp_act_cit</code>, <code>tb_mov_avb_nac_cit</code>).</div>
+    <div class="k">Massa — apólice</div><div class="v">Apólice TRN vigente do titular de testes: referência medida 05–06/10/2026 = <code>1789490910061</code> (ramo 21, filial 1, subgrupo 1, vigente até 01/09/2027). <strong>Reconfirmar vigência na data da execução</strong>; a resolução por filial+CNPJ do titular escolhe a mais recente vigente — documentar a apólice efetivamente usada.</div>
+    <div class="k">Massa — documentos</div><div class="v">Par de documentos exclusivo na faixa de QA 874xxx (ex.: <code>874980,874981</code>), confirmando antes que a faixa está limpa na temp e em averbações (o script faz esse assert) e limpando a temp ao final.</div>
+    <div class="k">Layout de entrada</div><div class="v">Layout TRN salvo no tenant: <code>VOIDR-AUTO-9415571961</code> (colunas A=Ramo, B=Apólice [vazia — resolução por filial+CNPJ], C=Subgrupo, H/I/J=Data de Saída, P=Filial, R=CNPJ...).</div>
+    <div class="k">Automação</div><div class="v">Scripts prontos (repo privado <code>testes-automatizados/sprint-16-citweb/bug-8740/</code>): <code>controle_data_nula.py</code> (cenário principal — citado no CA3 do card), <code>ct_conversor_ramo_invalido_fairfax.py</code> (helpers/bateria), <code>ct10_ct11_processar_semeado.py</code>, <code>ct011_reteste_rodada2.py</code>. Rodar sequencial — 2 sessões Playwright com o mesmo usuário derrubam a 1ª.</div>
+  </div>
+  <div class="warn-box"><strong>Armadilhas de tela confirmadas (06–08/10/2026):</strong> (1) "Converte Arquivo" e "Processa Averbações"
+  têm itens homônimos "Transporte Nacional" — abrir o menu certo e clicar no link <em>visível</em>; (2) na tela Processa,
+  selecionar o layout no combo de layout de conversão ANTES de Processar (clicar sem selecionar não processa nada e exibe
+  Total N/0/0); (3) após Processar, aguardar os TOTAIS mudarem (até ~240s), não uma palavra-chave; (4) a tabela de rejeitadas
+  não retém linhas após a exibição — o oráculo da rejeição é a TELA (screenshot + texto extraído), não o banco.</div>
+
+  <h2 class="section">5. Casos de Teste</h2>
+
+  <div class="group-header">G1 — Correção do defeito (CA1 e CA2) — lote misto com semeadura de data nula</div>
+
+  <!-- CT-CVR-001 -->
+  <div class="ct-block" id="CT-CVR-001">
+    <div class="ct-head"><span class="ct-id">CT-CVR-001</span><span class="ct-title">Lote misto TRN: linha válida vira averbação e linha ramo 21 com data de saída nula cai em "Registros com erro" com mensagem de negócio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-auto">AUTOMATIZADO</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4>
+      <ul>
+        <li>Fix do #9091 em HML Fairfax (card "Pronto para homologação"; build da tela &gt; V 1.0.261007.1603 — registrar);</li>
+        <li>Faixa de documentos limpa (ex.: 874980/874981) na temp e em <code>tb_mov_avb_nac_cit</code>;</li>
+        <li>Apólice TRN do titular vigente na data de saída usada (ver §4).</li>
+      </ul>
+      <h4>Passos (execução automatizada — mesma semeadura do achado, CA3 do card)</h4>
+      <ol>
+        <li>Rodar <code>python controle_data_nula.py --ramo 21 --docs 874980,874981</code> (repo privado, pasta bug-8740). O script executa, em tela e banco:</li>
+        <li>Login CITWEB Fairfax HML → clicar no módulo <strong>Conversor de Arquivos</strong> (nova aba);</li>
+        <li>Menu <strong>Converte Arquivo → Transporte Nacional</strong>: importar XLSX com 1 linha válida (ramo 21, doc 874980, data de saída = hoje), responder <strong>Não</strong> no modal de conversão TXT, selecionar o layout de entrada <code>VOIDR-AUTO-9415571961</code> e clicar <strong>Converter</strong> (1 linha na temp);</li>
+        <li>Semear via SQL o clone da linha na temp com <code>c_rmo=21</code>, <code>u_doc_ini=874981</code>, <code>u_seq+1</code> e <code>d_sda_vgm=NULL</code>; conferir por SELECT que a temp tem as 2 linhas (uma com data NULL);</li>
+        <li>Menu <strong>Processa Averbações → Transporte Nacional</strong> (link visível); selecionar o layout no combo de layout de conversão; aguardar a tela carregar os totais;</li>
+        <li>Clicar <strong>Processar</strong> e aguardar os TOTAIS mudarem (até 240s); capturar screenshot e o texto integral da tela;</li>
+        <li>Oráculo de banco: SELECT em <code>tb_mov_avb_nac_cit</code> por <code>u_doc_ini IN (874980,874981)</code> e estado da temp antes do cleanup;</li>
+        <li>Cleanup: DELETE das linhas semeadas na temp (o script faz).</li>
+      </ol>
+      <h4>Resultado esperado</h4>
+      <div class="result-box">
+        • Doc 874980 (válido) <strong>vira averbação</strong>: 1 registro em <code>tb_mov_avb_nac_cit</code> com u_doc_ini=874980, ramo 21;<br>
+        • Doc 874981 (data nula) listado em <strong>"Registros com erro"</strong> na tela, com <strong>mensagem de negócio</strong> indicando a data de saída ausente/inválida (texto exato capturado em tela na execução);<br>
+        • <strong>Sem</strong> alerta "Erro ao salvar dados ... SqlDateTime overflow" e <strong>sem</strong> "Ocorreu um erro inesperado!";<br>
+        • Nenhuma linha residual do par na temp após o fluxo normal de limpeza.
+      </div>
+      <p><strong>Tipo:</strong> Negativo (tratamento de dado inválido) + Positivo (linha válida processa). <strong>Oráculo:</strong> TELA (grid Registros com erro + mensagem) + BANCO (averbação criada). <strong>Rastreia:</strong> CA1, CA3.</p>
+      <div class="ev-section" id="ev-CT-CVR-001">Evidências do CT-CVR-001 serão inseridas aqui após a execução (screenshots da tela pós-Processar + dump SQL antes/depois).</div>
+    </div>
+  </div>
+
+  <!-- CT-CVR-002 -->
+  <div class="ct-block" id="CT-CVR-002">
+    <div class="ct-head"><span class="ct-id">CT-CVR-002</span><span class="ct-title">Higiene da mensagem: nenhum texto exibido ao usuário contém "SqlDateTime", "BulkCopy" ou nome de tabela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-auto">AUTOMATIZADO</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4>
+      <ul><li>Mesma rodada do CT-CVR-001 (a verificação é feita sobre o texto integral da tela pós-Processar capturado naquela execução).</li></ul>
+      <h4>Passos</h4>
+      <ol>
+        <li>Na tela pós-Processar do CT-CVR-001, extrair o texto integral do body (o script salva <code>tela_pos_processar</code>);</li>
+        <li>Varrer o texto pelos termos proibidos (case-insensitive): <code>SqlDateTime</code>, <code>BulkCopy</code>, <code>tb_lay_out_prs_tmp_rjt_cit</code> e qualquer identificador <code>tb_*</code>;</li>
+        <li>Conferir que a mensagem da linha rejeitada é de negócio (fala de data de saída, não de tabela/lote técnico);</li>
+        <li>Screenshot da área de mensagens legível.</li>
+      </ol>
+      <h4>Resultado esperado</h4>
+      <div class="result-box">0 ocorrências de termo técnico em qualquer mensagem visível; mensagens em linguagem de negócio. (CA2: "Nenhuma mensagem ao usuário contém nome de tabela, BulkCopy ou SqlDateTime".)</div>
+      <p><strong>Tipo:</strong> Negativo (conteúdo de mensagem). <strong>Oráculo:</strong> TELA (texto integral extraído + screenshot). <strong>Rastreia:</strong> CA2.</p>
+      <div class="ev-section" id="ev-CT-CVR-002">Evidências do CT-CVR-002 serão inseridas aqui após a execução.</div>
+    </div>
+  </div>
+
+  <!-- CT-CVR-003 -->
+  <div class="ct-block" id="CT-CVR-003">
+    <div class="ct-head"><span class="ct-id">CT-CVR-003</span><span class="ct-title">Contadores coerentes no lote misto: Total de registros = Averbações incluídas + Registros com erro (2 = 1 + 1)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-auto">AUTOMATIZADO</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4>
+      <ul><li>Mesma rodada do CT-CVR-001.</li></ul>
+      <h4>Passos</h4>
+      <ol>
+        <li>Na tela pós-Processar, extrair os 3 contadores: <em>Total de registros</em>, <em>Averbações incluídas</em>, <em>Registros com erro</em> (o script extrai por regex do texto da tela);</li>
+        <li>Comparar: Total = incluídas + erros; confrontar com o oráculo de banco do CT-CVR-001 (1 averbação criada, 1 rejeitada em tela);</li>
+        <li>Screenshot dos totalizadores legíveis.</li>
+      </ol>
+      <h4>Resultado esperado</h4>
+      <div class="result-box">Total de registros 2 · Averbações incluídas 1 · Registros com erro 1. Nunca o estado contraditório pré-fix (2 · 0 · 0).</div>
+      <p><strong>Tipo:</strong> Positivo (consistência de totalizadores). <strong>Oráculo:</strong> TELA (contadores) cruzada com BANCO. <strong>Rastreia:</strong> CA1.</p>
+      <div class="ev-section" id="ev-CT-CVR-003">Evidências do CT-CVR-003 serão inseridas aqui após a execução.</div>
+    </div>
+  </div>
+
+  <div class="group-header">G2 — Regressão do pipeline Processar (não quebrar o que já funciona)</div>
+
+  <!-- CT-CVR-004 -->
+  <div class="ct-block" id="CT-CVR-004">
+    <div class="ct-head"><span class="ct-id">CT-CVR-004</span><span class="ct-title">Regressão caminho feliz TRN: lote 100% válido processa integralmente, sem erros</span><span class="badge prio importante">P2</span><span class="badge badge-auto">AUTOMATIZADO</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4>
+      <ul><li>Fix em HML; doc exclusivo limpo na faixa 874xxx; apólice TRN vigente (ver §4).</li></ul>
+      <h4>Passos</h4>
+      <ol>
+        <li>Converte Arquivo → Transporte Nacional: importar XLSX com 1 linha válida (ramo 21, data de saída = hoje), modal TXT → Não, layout <code>VOIDR-AUTO-9415571961</code>, Converter;</li>
+        <li><strong>Sem semeadura</strong> — temp fica só com a linha válida;</li>
+        <li>Processa Averbações → Transporte Nacional (link visível) → selecionar layout → Processar → aguardar totais;</li>
+        <li>Oráculo de banco: averbação criada em <code>tb_mov_avb_nac_cit</code> para o doc; screenshot dos totais; cleanup.</li>
+        <li>Base de script: <code>ct10_ct11_processar_semeado.py ct10</code> (fluxo Processar com molde válido) ou a etapa equivalente do <code>controle_data_nula.py</code> sem o clone.</li>
+      </ol>
+      <h4>Resultado esperado</h4>
+      <div class="result-box">Total 1 · incluídas 1 · erros 0; averbação criada no banco; sem mensagens de erro de qualquer tipo.</div>
+      <p><strong>Tipo:</strong> Regressão (happy path). <strong>Oráculo:</strong> TELA + BANCO. <strong>Rastreia:</strong> CA1 (parte "as demais linhas válidas são processadas").</p>
+      <div class="ev-section" id="ev-CT-CVR-004">Evidências do CT-CVR-004 serão inseridas aqui após a execução.</div>
+    </div>
+  </div>
+
+  <!-- CT-CVR-005 -->
+  <div class="ct-block" id="CT-CVR-005">
+    <div class="ct-head"><span class="ct-id">CT-CVR-005</span><span class="ct-title">Regressão fix #9041: linha de ramo 99 inválido (com data de saída preenchida) segue em Rejeitadas com "Ramo 99 inválido!" e a linha válida é averbada</span><span class="badge prio importante">P2</span><span class="badge badge-auto">AUTOMATIZADO</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4>
+      <ul>
+        <li>Fix em HML; par de docs exclusivo limpo na faixa 874xxx; apólice TRN vigente;</li>
+        <li>Comportamento de referência: aprovado na rodada 2 do #8740 (08/10/2026) — o fix do #9091 mexe no mesmo pipeline de rejeitadas (BulkCopy) e não pode regredi-lo.</li>
+      </ul>
+      <h4>Passos</h4>
+      <ol>
+        <li>Converter 1 linha válida (ramo 21) como no CT-CVR-004;</li>
+        <li>Semear via SQL um clone na temp com <code>c_rmo=99</code> e <strong>data de saída preenchida</strong> (sem NULL — o caso 99+NULL é o #9090, fora deste plano);</li>
+        <li>Processa Averbações → TRN → selecionar layout → Processar → aguardar totais;</li>
+        <li>Conferir na tela a lista de Rejeitadas com a mensagem <code>Ramo 99 inválido!</code> e no banco a averbação do doc válido; screenshots; cleanup.</li>
+        <li>Script de referência: <code>ct011_reteste_rodada2.py</code> / <code>ct10_ct11_processar_semeado.py ct11</code>.</li>
+      </ol>
+      <h4>Resultado esperado</h4>
+      <div class="result-box">Linha ramo 99 em Rejeitadas com "Ramo 99 inválido!" (coluna Ramo exibindo o valor correto é acompanhada no #9090, não reprova aqui); linha válida averbada; sem alerta técnico; contadores coerentes (Total 2 · incluídas 1 · erros 1).</div>
+      <p><strong>Tipo:</strong> Regressão (comportamento do fix #9041). <strong>Oráculo:</strong> TELA + BANCO. <strong>Rastreia:</strong> regressão do pipeline (CA1/CA2 por extensão).</p>
+      <div class="ev-section" id="ev-CT-CVR-005">Evidências do CT-CVR-005 serão inseridas aqui após a execução.</div>
+    </div>
+  </div>
+
+  <h2 class="section">6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de aceite do card</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Lote misto: a válida vira averbação; a de data nula vai para Registros com erro com mensagem de negócio; sem alerta técnico; contadores coerentes</td><td>CT-CVR-001 · CT-CVR-003 · CT-CVR-004 (regressão da parte "válidas processam")</td><td>Pendente</td></tr>
+    <tr><td>CA2 — Nenhuma mensagem ao usuário contém nome de tabela, BulkCopy ou SqlDateTime</td><td>CT-CVR-002 (e verificação estendida no CT-CVR-005)</td><td>Pendente</td></tr>
+    <tr><td>CA3 — Reteste pelo QA com a mesma semeadura (controle_data_nula.py --ramo 21)</td><td>CT-CVR-001 (usa exatamente o script e a semeadura do achado original)</td><td>Pendente</td></tr>
+    <tr><td>Regressão (obrigatória por norma): pipeline Processar TRN não regride</td><td>CT-CVR-004 · CT-CVR-005</td><td>Pendente</td></tr>
+  </table>
+  <p style="font-size:12.5px;color:var(--muted)">Cobertura: 3/3 critérios de aceite de produto cobertos (100%). Itens de processo (PR, deploy) não geram CT — são DoD do dev.</p>
+
+  <h2 class="section">8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Sessões Playwright simultâneas com o mesmo usuário derrubam a 1ª (medido 06/10)</td><td>Média</td><td>Falso-negativo de execução</td><td>Rodar os CTs sequencialmente; nunca 2 baterias em paralelo no mesmo tenant.</td></tr>
+    <tr><td>Menus homônimos "Transporte Nacional" (Converte × Processa) levam o clique ao link invisível</td><td>Média</td><td>Trava de 300s / tela errada</td><td>Abrir o menu correto e clicar só no link visível (padrão já implementado nos scripts).</td></tr>
+    <tr><td>Execução abortada deixa linhas semeadas na temp (contamina rodada seguinte)</td><td>Baixa</td><td>Assert de massa limpa falha</td><td>Cleanup por DELETE na faixa 874xxx; o script valida faixa limpa antes de iniciar.</td></tr>
+    <tr><td>Defeito #9090 (ramo 99 + data nula) ainda aberto no mesmo fluxo pode confundir a triagem</td><td>Média</td><td>Reprovação indevida / duplicidade</td><td>Fronteira explícita: "Ocorreu um erro inesperado!" com ramo 99+NULL = #9090 (fora); este card cobre só ramo VÁLIDO + data nula.</td></tr>
+    <tr><td>Apólice de referência perder a vigência até a execução</td><td>Baixa</td><td>Falso-negativo ("fora da vigência")</td><td>Reconfirmar vigência na data da execução; a resolução por filial+CNPJ pega a mais recente vigente.</td></tr>
+  </table>
+
+  <div class="footer-note">
+    Plano gerado em 14/10/2026 · Fontes: card #9091 (7 seções), rodadas 1–2 do #8740 (06–08/10/2026), feature
+    <code>features/Conversor/ProcessaAverbacoes-DataSaidaNula.feature</code>, flows do Conversor e scripts do repo privado.
+    Execução condicionada a: fix em HML (DoD do dev) + validação de Produtos (Gate 2). Evidências serão anexadas por CT no card AzDO e injetadas neste HTML.
+  </div>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+<div class="lb-overlay" id="lb" onclick="this.style.display='none'"><img id="lb-img" src="" alt=""></div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+document.addEventListener('click',e=>{
+  if(e.target.tagName==='IMG'&&e.target.closest('.ev-section')){
+    document.getElementById('lb-img').src=e.target.src;
+    document.getElementById('lb').style.display='flex';
+  }
+});
+</script>
+</body>
+</html>
