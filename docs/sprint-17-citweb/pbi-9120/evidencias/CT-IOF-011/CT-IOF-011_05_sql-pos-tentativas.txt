@@ -1,0 +1,32 @@
+CT-IOF-011 — Dump SQL pós-tentativas de Processar (emissão 07/2026)
+Data: 15/10/2026 13:00 · Build Nacional V 1.0.261014.1729 · AXA HML · base smt-hom-citweb-axa
+
+VALORES EXTRAÍDOS DO MODAL (browser_evaluate, antes de Confirmar):
+  IS=100.000,00 | QtdAvb=0002 | PrêmioReferencial=40,00 | PrêmioComercial=30,00 |
+  Desc/Agravo=0,00000/0,00 | ComercialLíquido=30,00 | Mínimo=0,00 | Manutenção=0,00 |
+  PrêmioLíquido=30,00 | Juros=0,15 | Custo=0,00 | PrêmioTotal=30,15 |
+  hidden IOF=0 | Taxa(juros)=0,5 | Vencimento sugerido=01/11/2026 (aceito sem alterar)
+CONTA (sem IOF): 30,00 (líquido) + 0,15 (juros) + 0,00 (custo) = 30,15 = Prêmio Total exibido ✓ (exata, sem tolerância necessária)
+  Juros = 30,00 × 0,50000% = 0,15 ✓ · Nenhuma parcela de IOF no total (baseline 05/2026 tinha +0,30 de IOF)
+
+PROCESSAR — 2 TENTATIVAS, AMBAS COM ERRO (fluxo completo refeito na 2ª: Selecionar → lápis → CONFIRMAR → Processar → popover "Confirma o processamento do(s) Fechamento(s) Mensal(ais)?" → Sim):
+  Tentativa 1 (12:58): POST /Nacional/Emissao/Processar → HTTP 500 → página "Ocorreu um erro inesperado! Por favor contacte o administrador do sistema."
+  Tentativa 2 (13:00): idem — HTTP 500 (console: "Failed to load resource: the server responded with a status of 500 @ /Nacional/Emissao/Processar")
+  SEM pendência anterior: tb_cme_cit 202607 = 0 linha ANTES das tentativas (verificado 12:55).
+
+SQL PÓS-TENTATIVA 2 (nada persistiu — estado íntegro):
+  SELECT u_fch_mes,u_sgp,d_ano_mes_ref,v_iof,v_pmo_tot FROM tb_cme_cit WHERE u_apo_pnc=1778531976824 AND d_ano_mes_ref=202607
+  -> (0 linha(s))
+  SELECT d_ano_mes_ref,COUNT(*),MAX(u_fch_mes) FROM tb_mov_avb_nac_cit WHERE u_apo_pnc=1778531976824 AND d_ano_mes_ref=202607 GROUP BY d_ano_mes_ref
+  -> 202607 | 2 | 0   (averbações seguem livres, fch=0)
+
+ADENDO 13:20-13:29 — PERSISTÊNCIA PROVADA PELA VIA ALTERNATIVA (Emissão especial):
+Para não deixar a sprint sem a prova de persistência (e destravar CT-013/014), o fechamento 07/2026
+foi emitido via Fechamento Mensal -> Emissão especial (mesmas 2 averbações 202617785320/21):
+  tb_cme_cit -> 568 | 1 | 202607 | v_iof=0.0 | v_pmo_tot=30.15 | v_jro=0.15 | v_cus=0.0 | v_pmo_liq=30.0
+  (averbações migraram de tb_mov_avb_nac_cit para tb_cme_avb_nac_cit com u_fch_mes=568 — padrão de emissão)
+Reconsulta na tela de Emissão (07/2026): "Não existe Fechamento Mensal para os critérios informados."
+-> competência saiu dos pendentes (screenshot _07).
+CONCLUSÃO: o cálculo e a persistência SEM IOF estão corretos; o REPROVADO deste CT é pelo
+endpoint POST /Nacional/Emissao/Processar (Emissão NORMAL) retornar HTTP 500 nas 2 tentativas,
+impedindo o fluxo principal da tela sob teste. Defeito candidato.

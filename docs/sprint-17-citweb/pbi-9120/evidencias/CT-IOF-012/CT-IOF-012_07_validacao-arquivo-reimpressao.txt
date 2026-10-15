@@ -1,0 +1,44 @@
+CT-IOF-012 — Histórico preservado após emissões com IOF 0,00
+Executado em 15/10/2026 ~13:42 BRT — AXA HML CITWEB · build módulo Nacional V 1.0.261014.1729
+Usuário HML: FRED
+
+CONTEXTO: baseline = fechamento 05/2026 (fch 567) da apólice ramo 54 nº 1778531976824,
+emitido HOJE 12:33 com IOF 7,38% vigente (v_iof=0.3, v_pmo_tot=4.32, venc. 01/11/2026).
+Depois o IOF foi zerado (tb_iof_cit.o_iof=0.0) e nova emissão 07/2026 (fch 568) foi feita
+às 13:20 com v_iof=0.0. Este CT verifica que o histórico 05/2026 NÃO foi recalculado.
+
+(1) ORÁCULO BANCO — dump CT-IOF-012_04_sql-historico-pos-emissoes-iof0_*.txt
+    SELECT u_fch_mes, d_ano_mes_ref, v_iof, v_pmo_tot, d_ven_cme, d_usu_inc, n_usu_alt,
+    d_usu_alt FROM tb_cme_cit WHERE u_apo_pnc=1778531976824 ORDER BY d_ano_mes_ref:
+      567 | 202605 | v_iof=0.3 | v_pmo_tot=4.32 | d_ven=2026-11-01 | inc 15/10 12:33 | SEM alteração (n_usu_alt/d_usu_alt vazios)
+      535 | 202606 | v_iof=4.82 | v_pmo_tot=70.15 | (fechamento antigo, também intacto)
+      568 | 202607 | v_iof=0.0 | v_pmo_tot=30.15 | inc 15/10 13:20 (a emissão nova com IOF 0)
+    → linha 202605 permanece EXATAMENTE v_iof=0.3 / v_pmo_tot=4.32 — INALTERADA. ✓
+
+(2) ORÁCULO TELA/DOCUMENTO — Nacional → Fechamento Mensal → Impressão →
+    Apólice/Referência → Ramo RCTR-C → Apólice 1778531976824 → Mês/Ano 05/2026 →
+    Selecionar → grid lista o fechamento (Prêmio Líquido 4,00 · Prêmio Total 4,32 ·
+    venc. 01/11/2026) → linha selecionada + Relação de Embarques + Resumo de Embarques
+    (comerciais) → Exportar → "Confirma a(s) impressão(ões)?" → Sim →
+    download 1778531976824-05-2026.zip.
+
+VALIDAÇÃO DO ARQUIVO (zip 05/2026, extraído em zip_extraido/):
+  - COM-EMB-RCTRC-1778531976824-001-05-2026-00567.xlsx (9.201 bytes, 1 embarque,
+    averbação 202617785319, saída 12/05/2026, valor 10.000,00, prêmio 4,00)
+  - COM-RESUMO-RCTRC-1778531976824-001-05-2026-00567.xlsx (8.777 bytes) — bloco de valores:
+      Prêmio Comercial: 4,00
+      Prêmio Líquido:   4,00
+      Prêmio Mínimo:    0,00
+      Prêmio Manutenção (+): 0,00
+      Prêmio Líquido:   4,00
+      Juros:            0,02
+      Custos:           0,00
+      IOF:              0,30     ← IOF ORIGINAL PRESERVADO no documento reimpresso
+      Prêmio Total:     4,32     ← 4,00 + 0,02 + 0,00 + 0,30 = 4,32 ✓
+  Nome dos arquivos contém "00567" = nº do fechamento baseline (fch 567).
+
+RESULTADO: APROVADO — com o IOF parametrizado em 0,00 e nova emissão 07/2026 feita com
+IOF 0, o fechamento histórico 05/2026 mantém o IOF 0,30 e o total 4,32 tanto no banco
+(tb_cme_cit, sem recálculo) quanto no documento reimpresso (Resumo de Embarques).
+
+Wesley Moreira

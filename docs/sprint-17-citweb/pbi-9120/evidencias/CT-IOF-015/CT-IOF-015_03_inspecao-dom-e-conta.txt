@@ -1,0 +1,56 @@
+CT-IOF-015 — Fechamento Mensal INTERNACIONAL sem IOF (IOF = 0,00)
+Executado em 15/10/2026 ~13:37 BRT — AXA HML CITWEB (https://axa-hml-faturamento.nsseg.com.br)
+Build Login: V 1.0.261009.1128 · Build módulo Internacional: V 1.0.261014.1729
+Usuário HML: FRED (credencial via .env)
+
+MASSA (descoberta dinâmica via SQL, smt-hom-citweb-axa — somente SELECT):
+- Apólice internacional: 3333 · ramo 22 · filial 1 (0001 SAO PAULO) · produto 28 EXPORTAÇÃO
+  vigência 01/09/2026–01/09/2027 · i_can_apo='N' · segurado "SEGURADO VOIDR"
+- Averbações em competência aberta (tb_mov_avb_int_cit, u_fch_mes=0):
+  u_avb_dfv 2026000007 e 2026000008, d_sda_vgm=01/10/2026, v_is=1.101,74 cada (US$)
+- Cotação USD (tb_cbi_moe, C_MOE=220): outubro/2026 presente de 01 a 13/10
+  (01/10 = 5,2079) — NÃO foi necessário cadastrar cotação.
+- Estado do parâmetro: tb_iof_cit.o_iof = 0.0 (IOF zerado — pré-condição do CT)
+
+NAVEGAÇÃO (por clique): Login → tile Internacional (nova aba) → Fechamento Mensal →
+Emissão → Tipo de Seleção "Apólice" → Filial 0001 / Produto EXPORTAÇÃO / Apólice 3333 /
+Referência 10/2026 → Selecionar → grid retorna 1 linha (CITNET · 001 · 0000000003333 ·
+001 · SEGURADO VOIDR · 0002 avb · US$ · VS 2.203,48 · Prêmio Tarifário 3,48 ·
+Prêmio Referencial 3,48) → lápis (Detalhe) → painel "Fechamento Mensal".
+
+INSPEÇÃO DOM (browser_evaluate, página da Emissão com painel aberto):
+- #divLinhaIOF → EXISTE no DOM, getComputedStyle(...).display = "none"  (linha IOF OCULTA)
+  innerText interno: "IOF ... 0,00"
+- #divIOF (valor) → texto "0,00", invisível (offsetParent null — dentro do divLinhaIOF oculto)
+- input hidden #IOF → value = "0"
+- input #IndicativoIOF → "true"/"false" (par checkbox-hidden ASP.NET, ambos invisíveis)
+- innerText visível do painel: NÃO contém a palavra "IOF" (modal_contem_palavra_IOF = false)
+- Linhas visíveis do painel: Importância Segurada · Quantidade de Averbações ·
+  Prêmio Referencial · Prêmio Comercial · Desconto/Agravo Comercial · Prêmio Comercial
+  Líquido · Prêmio Mínimo · Prêmio Manutenção · Ajuste · Prêmio Líquido · Juros · Custo ·
+  Prêmio Total  — SEM linha IOF.
+
+VALORES EXTRAÍDOS (browser_evaluate):
+  Importância Segurada ....... US$ 2.203,48
+  Prêmio Comercial ........... 3,48
+  Desconto/Agravo Comercial .. 0,00
+  Prêmio Comercial Líquido ... 3,48
+  Prêmio Mínimo .............. 0,00
+  Prêmio Manutenção .......... 0,00
+  Ajuste ..................... 0,00
+  Prêmio Líquido ............. 3,48
+  Juros ...................... 0,00
+  Custo ...................... 0,00
+  Prêmio Total ............... 3,48
+  IOF (oculto, #divIOF) ...... 0,00
+
+CONTA (sem parcela de IOF):
+  Prêmio Total = Prêmio Líquido + Juros + Custo = 3,48 + 0,00 + 0,00 = 3,48 ✓
+  Nenhuma parcela de IOF somada ao total (IOF interno = 0,00; linha oculta).
+
+RESULTADO: APROVADO — com IOF 0,00 o fechamento internacional não exibe a linha IOF
+(#divLinhaIOF display:none, mesmo padrão do Nacional) e o Prêmio Total não contém
+parcela de IOF. Emissão NÃO confirmada (não necessária — valores visíveis no painel;
+massa preservada para não consumir as averbações abertas).
+
+Wesley Moreira
