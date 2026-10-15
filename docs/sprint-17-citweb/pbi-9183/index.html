@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9183 · CNPJ Alfanumérico — Disponibilização do ambiente para testes — STG</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9183 · Sprint 17 Citweb</span>
+    <h1>CNPJ Alfanumérico — Disponibilização do ambiente para testes — STG (validação da análise dos 25 cenários NOK)</h1>
+    <div class="sub">CITWEB · Tenant STG — ambiente HML ALFA (build CNPJ alfanumérico) · Validação-fonte: 02/10/2026 (anexos do card) · Autor QA: Wesley Moreira · v1.0 (15/10/2026 — plano shift-left: card em "Committed / Pronto para desenvolvimento", dev José Ribeiro Carvalho)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/5/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, aguardando aprovação do Gate 1 (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (6×P1 · 5×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Card</th><td>BUG-9183 — "CNPJ Alfanumérico - Disponibilização do ambiente para testes - STG" (tipo Bug · item de <strong>análise</strong>, sem alteração de código prevista)</td></tr>
+    <tr><th>Sprint / Board</th><td>Sprint_17_Citweb · CITWEB Team</td></tr>
+    <tr><th>Sistema / Seguradora</th><td>CITWEB · tenant <strong>STG</strong> (tags do card: <code>citweb; CNPJ Alfanumerico; main; STG</code>)</td></tr>
+    <tr><th>Dev responsável</th><td>José Ribeiro Carvalho</td></tr>
+    <tr><th>Insumos</th><td>Anexos do card: planilha "Revisado Plano de Testes - CNPJ Alfanumerico - CITWEB - 02.10.2026" (matriz E2E ~160 cenários, 25 NOK) + doc "Validacao de Cenarios STG - CNPJ ALFA 02.10.2026" (4 evidências reproduzidas em tela)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 15/10/2026 · v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição e contexto de negócio</h2>
+  <p>O programa regulatório <strong>CNPJ Alfanumérico</strong> disponibilizou para o tenant <strong>STG</strong> o ambiente de testes com a build alfanumérica (HML ALFA). Na validação de 02/10/2026, a equipe executou a matriz E2E do CITWEB (~160 cenários — Nacional, Internacional, Conversor, Gestão, Importar/Exportar e WI/Siscomex) e registrou <strong>25 cenários NOK</strong>. Este card entrega a <strong>análise desses 25 NOK</strong>: classificação em 6 categorias (o que vira bug × o que não vira), causa raiz com log/stacktrace, vínculo de cenários em cascata ao cenário raiz, vínculo de causas comuns a cards já existentes, abertura dos bugs derivados com severidade/prioridade, parecer consolidado sobre o que impede ou não a liberação, e confirmação explícita sobre a existência (ou não) de defeito <em>exclusivo</em> do CNPJ alfanumérico.</p>
+  <p>O QA homologa a <strong>entrega da análise</strong> (Grupo 1 — cada CA funcional com oráculo observável no AzDO) e faz a <strong>contraprova em tela</strong> das 4 evidências documentadas (Grupo 2 — reprodutibilidade dos NOK que sustentam a causa raiz).</p>
+
+  <div class="info-box"><strong>Distribuição dos 25 NOK (recontados da planilha anexa — linha a linha):</strong><br>
+  • 3× Nacional → Averbação → RCTR-C (embarque comum / Taxa Embarcador / DDR) — falham com CNPJ tomador <strong>tradicional</strong>; os pares com CNPJ <strong>alfanumérico passam OK</strong> (Evidência 1: "Erro ao tentar enviar os dados" ao Gravar; consulta sem registro).<br>
+  • 2× Relatório de Impressão em PDF (Nacional + Internacional) — obs. "N/A" (sem evidência anexa; precedentes ZURICH #7590/#7593 eram "sem opção de impressão PDF", tag <code>regranegocio</code>).<br>
+  • 2× Internacional → Fechamento mensal → Impressão (relação/resumo de embarques) — Evidência 3 (erro ao exportar).<br>
+  • 2× Internacional → Fechamento mensal especial (relação/resumo) — Evidência 9 (erro ao EFETIVAR FECHAMENTO).<br>
+  • 2× Gestão → Relatórios (status de faturamento / prêmio mínimo) — obs. "N/A".<br>
+  • 8× Importar/Exportar → Atualização Automática (Consumer ATM/CTE × sumarizado/detalhado × CNPJ padrão/alfa) — obs. "N/A".<br>
+  • 6× WI/Siscomex: Carga ×2 (Evidência 8 — erro após confirmar a carga) + Resultado da Carga ×2 e Exclusão de Pacotes ×2 (<strong>cascata declarada</strong>: "não ok por conta do erro no item acima").</div>
+
+  <h2>3. Inferências documentadas (DoR por interpretação — fronteira G7)</h2>
+  <div class="info-box">
+  <strong>I1 — Seguradora:</strong> o card não tem tag de seguradora tradicional; o doc de validação declara "Seguradora: STG" e a tag <code>STG</code> está no card → tenant STG.<br>
+  <strong>I2 — Ambiente:</strong> login <code>https://stg-hml-faturamento.nsseg.com.br/alfa/Login</code> (único URL direto permitido — login). O sufixo <code>/alfa/</code> genérico foi descontinuado em 20/08/2026, mas o programa CNPJ Alfanumérico usa build HML-ALFA própria (cf. Débito Técnico #9086, Sprint 16, tag <code>HML-ALFA</code>) — o card é justamente a disponibilização desse ambiente. <strong>Capturar a data da build no título da tela de login como parte da evidência</strong> (prova de que não é o alfa defasado).<br>
+  <strong>I3 — Repro do Bug:</strong> a descrição do card é vazia; o repro vive nos anexos (passo a passo por cenário na planilha + 4 evidências reproduzidas no doc) — DoR atendido por anexo, não por descrição.<br>
+  <strong>I4 — Ramos:</strong> a matriz cobre nacionais 21/38/54/56/58 + internacionais 25/28/32 + módulos transversais (Conversor, Gestão, Importar/Exportar, WI/Siscomex). Escopo restrito ao tenant STG — nenhuma conclusão é generalizada para outras seguradoras (regra 9).<br>
+  <strong>I5 — Precedentes diretos:</strong> KI-007/BUG-7887 (averbação RCTR-C: campo <code>u_cpf_cgc_emb</code> Int64 → HTTP 500 com a mesma mensagem genérica da Evidência 1) e KI-008 (a mensagem "Erro ao tentar enviar os dados." é genérica — pode ser sessão expirada/302 OU erro real/500: a causa raiz exige o log, não a tela).
+  </div>
+  <div class="warn-box"><strong>⚠️ Taxonomia das 6 categorias — a confirmar no Gate 2 (Produtos).</strong> O CA exige classificação dos 25 NOK em "seis categorias", mas o card não as enumera. Taxonomia proposta por inferência dos próprios CAs: <strong>(1)</strong> defeito novo exclusivo do CNPJ alfanumérico; <strong>(2)</strong> defeito novo não exclusivo (ocorre também com CNPJ padrão); <strong>(3)</strong> cascata — consequência de cenário raiz NOK; <strong>(4)</strong> causa comum a card já existente (vincular, não duplicar); <strong>(5)</strong> problema de ambiente/configuração do HML-ALFA; <strong>(6)</strong> não-defeito (comportamento esperado / regra de negócio / massa indisponível). O CT-ALF-001 valida <em>completude e exclusividade</em> da classificação (25/25, exatamente 1 categoria por cenário, conjunto fechado de 6 definido no documento de análise) — e vale qualquer que seja a taxonomia final que Produtos confirmar.</div>
+
+  <h2>4. Escopo</h2>
+  <table>
+    <tr><th>In scope</th><td>Homologar os 7 CAs funcionais do card (entrega da análise dos 25 NOK) + contraprova em tela das Evidências 1, 3, 8 e 9 no ambiente STG HML-ALFA + regressão de sanidade do ambiente (amostra de cenários OK de 02/10).</td></tr>
+    <tr><th>Out of scope</th><td>CAs "Técnicos (baseados na DoD)" — unit/Sonar/PR/homologação em RELEASE são processo (branch policy/DoD do dev; o próprio card os remete aos cards de correção derivados). Correção dos defeitos (vive nos bugs derivados, cada um com seu ciclo). Reexecução integral da matriz de ~160 cenários (já executada em 02/10 — só amostra de sanidade). Outras seguradoras/tenants.</td></tr>
+    <tr><th>Ramos</th><td>Nacionais 21/38/54/56/58 · Internacionais 25/28/32 · módulos transversais (sem regra exclusiva de ramo neste card; onde o cenário é de um ramo, a pré-condição do CT declara)</td></tr>
+  </table>
+
+  <h2>5. Pré-requisitos</h2>
+  <table>
+    <tr><th>Ambiente</th><td>CITWEB STG HML-ALFA — login em <code>https://stg-hml-faturamento.nsseg.com.br/alfa/Login</code> (navegação interna somente por clique). Registrar a data da build do título da tela de login em toda evidência.</td></tr>
+    <tr><th>Credenciais</th><td>Mesmo login/senha de acesso da seguradora (doc de validação). Chaves no <code>.env</code> (bloco STG ALFA) — nunca em texto no plano/scripts.</td></tr>
+    <tr><th>Massa</th><td>CNPJ padrão <code>11222333000181</code> (cód. 778) e CNPJ alfanumérico <code>12ABC34501DE35</code> (cód. 777) — massa sintética registrada na planilha anexa ao card (o alfanumérico é o exemplo público do novo formato SERPRO). Apólices com CC/Taxa Embarcador/DDR do tenant STG: descobrir dinamicamente via UI (Relação de Apólices) ou banco, confirmando vigência na data de operação — filtro <code>(i_can_apo IS NULL OR i_can_apo = 'N')</code>.</td></tr>
+    <tr><th>Insumos da análise</th><td>Documento/tabela de classificação dos 25 NOK entregue no card (anexo ou comentário) + bugs derivados abertos no AzDO + parecer consolidado — são o oráculo do Grupo 1.</td></tr>
+    <tr><th>Logs</th><td>Graylog HML (<code>graylog-hml.nsseg.com.br</code>, credencial no <code>.env</code>) para stacktrace do lado servidor (CT-ALF-002/008). Dado de log não vai para este repo público.</td></tr>
+    <tr><th>Reuso de automação</th><td><code>testes-automatizados/sprint-9/pbi-7617/ct_cnpj_relatorio_kovr_alfa.py</code> (relatórios em ambiente alfa), <code>sprint-10/bug-7754/ct_ges_relatorio_export_axa_alfa.py</code> (Gestão → export), <code>sprint-8-sustentacao/bug-7705/reteste_conversor_kovr_alfa.py</code> (conversor alfa) — adaptar CONFIG/tenant para STG. Averbação RCTR-C STG: sem script — executar via MCP e criar script se APROVADO.</td></tr>
+  </table>
+
+  <h2>6. Casos de Teste</h2>
+
+  <div class="group-header">GRUPO 1 — Validação da entrega da análise (oráculo: artefatos no card/AzDO) — 7 CTs</div>
+
+  <div class="ct-block" id="CT-ALF-001">
+    <div class="ct-head"><span class="ct-id">CT-ALF-001</span><span class="ct-title">Classificação 25/25 — cada cenário NOK classificado em exatamente 1 das 6 categorias</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Documento/tabela de análise entregue no card #9183 (anexo ou comentário) pelo responsável pela análise.</li><li>Planilha-fonte de 02/10 (anexo do card) aberta para recontagem independente.</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Abrir o card #9183 no AzDO → aba de anexos/comentários → localizar o documento de análise.</li>
+        <li>Extrair a lista de cenários NOK classificados e recontar (programaticamente, não de cabeça) contra os 25 NOK da planilha-fonte: Averbação RCTR-C ×3 · Impressão PDF ×2 · Fech. Internacional Impressão ×2 · Fech. Especial Internacional ×2 · Gestão ×2 · Consumer ATM/CTE ×8 · WI/Siscomex ×6.</li>
+        <li>Verificar que o documento define um conjunto fechado de 6 categorias e que cada um dos 25 tem exatamente 1 categoria atribuída.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>25/25 classificados; nenhuma linha sem categoria; nenhuma linha com mais de uma; nenhuma categoria fora do conjunto de 6. Divergência de contagem (cenário faltando ou "novo") = REPROVADO.</p>
+      <h4>Oráculo</h4><p>Conteúdo do documento de análise no card (fonte: comentário/anexo) + recontagem própria pela planilha-fonte. Evidência: screenshot do documento + tabela de recontagem.</p>
+      <div class="ev-section" id="ev-CT-ALF-001"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-002">
+    <div class="ct-head"><span class="ct-id">CT-ALF-002</span><span class="ct-title">Causa raiz por bloco de análise com log/stacktrace como evidência (não "achismo de tela")</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Documento de análise entregue (CT-ALF-001).</li><li>Acesso ao Graylog HML para conferência por amostragem.</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Para cada bloco de análise (agrupamento de NOK por causa), localizar no documento a causa raiz declarada e a evidência de log/stacktrace anexada.</li>
+        <li>Conferir que o stacktrace corresponde ao módulo/fluxo do bloco (ex.: bloco da Averbação RCTR-C deve apontar para o fluxo de gravação de averbação — precedente KI-007: <code>u_cpf_cgc_emb</code> Int64; não aceitar stacktrace de outro módulo como prova).</li>
+        <li>Amostragem (mín. 2 blocos): reproduzir a consulta no Graylog e confirmar que o log citado existe no período da validação ou da reprodução.</li>
+        <li>Aplicar o crivo KI-008 ao bloco da Evidência 1: a mensagem "Erro ao tentar enviar os dados." é genérica — exigir que a análise distinga sessão expirada (302) de erro real (500) pelo log/rede, não pela tela.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Todo bloco tem causa raiz + log/stacktrace coerente com o módulo. Bloco com causa "sem evidência" ou evidência incompatível = REPROVADO (CA exige log como fundamento da classificação).</p>
+      <h4>Oráculo</h4><p>Documento de análise + Graylog (amostragem). Evidência: screenshot do bloco + screenshot da consulta Graylog correspondente (log fica fora do repo público — anexar no card).</p>
+      <div class="ev-section" id="ev-CT-ALF-002"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-003">
+    <div class="ct-head"><span class="ct-id">CT-ALF-003</span><span class="ct-title">Cenários em cascata vinculados ao cenário raiz — contagem de defeitos não inflada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Documento de análise entregue. A planilha-fonte já declara 4 cascatas no WI/Siscomex: Resultado da Carga ×2 e Exclusão de Pacotes ×2 — "não ok por conta do erro no item acima" (raiz = Carga / Evidência 8).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>No documento de análise, verificar que esses 4 cenários estão classificados como cascata e referenciam o cenário raiz (Carga).</li>
+        <li>Verificar que a contagem final de defeitos NÃO conta cascata como defeito próprio (ex.: WI/Siscomex 6 NOK → no máx. 1–2 defeitos raiz, não 6).</li>
+        <li>Varrer os demais 21 NOK: pares padrão×alfa do mesmo fluxo com a mesma causa (ex.: Consumer ATM/CTE ×8) também não devem gerar 1 bug por linha — verificar o critério de agrupamento declarado.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Cascatas vinculadas ao raiz; nenhuma cascata virou bug próprio; placar de defeitos ≤ nº de causas raiz. Cascata contada como defeito = REPROVADO (CA3 existe exatamente para não inflar).</p>
+      <h4>Oráculo</h4><p>Documento de análise + lista de bugs derivados (CT-ALF-005). Evidência: screenshot da seção de cascata + recontagem.</p>
+      <div class="ev-section" id="ev-CT-ALF-003"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-004">
+    <div class="ct-head"><span class="ct-id">CT-ALF-004</span><span class="ct-title">Causa comum a cards já existentes → vínculo ao card, sem duplicar trabalho</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Documento de análise entregue.</li><li>Precedentes do programa levantados pelo QA (WIQL tag <code>CNPJ Alfanumerico</code>, 84 cards): candidatos óbvios — Relatório de Impressão em PDF (ZURICH #7590/#7593, tag <code>regranegocio</code>); averbação RCTR-C × CNPJ (KI-007/BUG-7887); fechamento/fatura (#7587/#7588).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Para cada NOK classificado como "causa comum a card existente", abrir o card citado no AzDO e verificar que o vínculo (Related/Duplicate ou referência explícita no texto) existe de fato.</li>
+        <li>Contraprova reversa: para os candidatos óbvios acima, verificar se a análise os considerou — Impressão PDF sem vínculo a #7590/#7593 (ou justificativa) é lacuna.</li>
+        <li>Verificar que nenhum bug novo foi aberto para causa já coberta por card existente ativo.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Todo NOK de causa comum tem vínculo verificável a card existente; candidatos óbvios tratados (vinculados ou descartados com justificativa); zero bug duplicado.</p>
+      <h4>Oráculo</h4><p>Links entre work items no AzDO (GET relations) + texto da análise. Evidência: screenshot dos vínculos.</p>
+      <div class="ev-section" id="ev-CT-ALF-004"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-005">
+    <div class="ct-head"><span class="ct-id">CT-ALF-005</span><span class="ct-title">Bugs derivados abertos com severidade + prioridade propostas e conteúdo completo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Análise concluída com a lista de "vira bug" (categorias 1–2 da taxonomia).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Levantar via AzDO (WIQL por tag <code>CNPJ Alfanumerico</code> + data ≥ data da análise, e relações do #9183) os cards de bug abertos a partir desta análise.</li>
+        <li>Para cada um: verificar Severidade e Prioridade propostas preenchidas.</li>
+        <li>Verificar as 7 seções obrigatórias: descrição clara · passos do erro · evidência · comportamento esperado · URL do sistema · tags (sistema em MAIÚSCULO + seguradora STG + <code>CNPJ Alfanumerico</code>) · critério de aceite.</li>
+        <li>Cruzar com a classificação do CT-ALF-001: todo NOK das categorias "vira bug" tem card; nenhum NOK de categoria "não vira" tem card novo.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>1 card por causa raiz classificada como defeito, com severidade/prioridade e as 7 seções. Bug sem severidade/prioridade ou sem passos = devolver para completar (REPROVADO no CA5).</p>
+      <h4>Oráculo</h4><p>Work items no AzDO (GET campos + relations). Evidência: tabela id×severidade×prioridade×seções.</p>
+      <div class="ev-section" id="ev-CT-ALF-005"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-006">
+    <div class="ct-head"><span class="ct-id">CT-ALF-006</span><span class="ct-title">Parecer consolidado — o que impede e o que não impede a liberação, registrado no card</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Classificação e bugs derivados concluídos.</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Localizar no card #9183 o parecer consolidado (comentário ou anexo).</li>
+        <li>Verificar que o parecer separa explicitamente: (a) pontos que IMPEDEM a liberação do ambiente/entrega regulatória para a seguradora; (b) pontos que NÃO impedem (com justificativa); (c) posição por bloco dos 25 NOK.</li>
+        <li>Verificar coerência: nenhum bloco classificado como defeito severidade alta pode estar fora da lista de impeditivos sem justificativa escrita.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Parecer existe no card, cobre os 25 NOK e é internamente coerente com a classificação e as severidades. "Decisão de Produtos só vale se Produtos escreveu no card" — relato verbal não conta.</p>
+      <h4>Oráculo</h4><p>Texto do parecer no card (GET comments/attachments). Evidência: screenshot do parecer.</p>
+      <div class="ev-section" id="ev-CT-ALF-006"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-007">
+    <div class="ct-head"><span class="ct-id">CT-ALF-007</span><span class="ct-title">Confirmação explícita: existe (ou não) defeito EXCLUSIVO do CNPJ alfanumérico?</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Parecer consolidado entregue (CT-ALF-006).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Verificar que o parecer contém afirmação EXPLÍCITA (sim/não + fundamento) sobre defeito exclusivo do CNPJ alfanumérico — não apenas implícita na classificação.</li>
+        <li>Contraprova pela planilha-fonte: nos 25 NOK, os pares padrão×alfa falham JUNTOS (Consumer ATM/CTE ×8, WI/Siscomex Carga ×2) ou falha só o CNPJ TRADICIONAL (Averbação RCTR-C ×3 — o alfa passa); não há na matriz de 02/10 nenhum NOK que falhe SÓ com alfa. Se a análise concluir que existe defeito exclusivo do alfa, exigir o cenário/log que o prove; se concluir que não existe, verificar que a afirmação cita essa simetria.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Afirmação explícita presente e sustentada pelos dados (matriz + logs). Ausência da afirmação, ou afirmação contraditória com a matriz sem evidência nova = REPROVADO (CA7 é o insumo de risco da entrega regulatória).</p>
+      <h4>Oráculo</h4><p>Texto do parecer × recontagem da matriz-fonte. Evidência: citação do trecho + tabela de pares padrão/alfa.</p>
+      <div class="ev-section" id="ev-CT-ALF-007"></div>
+    </div>
+  </div>
+
+  <div class="group-header alt">GRUPO 2 — Contraprova em tela no STG HML-ALFA (Evidências 1/3/8/9 + sanidade) — 5 CTs · ⛔ executar somente após Gate 2</div>
+
+  <div class="ct-block" id="CT-ALF-008">
+    <div class="ct-head"><span class="ct-id">CT-ALF-008</span><span class="ct-title">Evidência 1 — Averbação RCTR-C com CNPJ tomador TRADICIONAL → "Erro ao tentar enviar os dados"</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Login no STG HML-ALFA (credencial do <code>.env</code>); build do login registrada.</li><li>Apólice RCTR-C (ramo 54) do tenant STG com CC ativa e vigência cobrindo a data de operação — descobrir via Relação de Apólices ou banco.</li><li>CNPJ tomador tradicional <code>11222333000181</code> (massa sintética da planilha).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Na tela inicial, clicar em <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>RCTR-C</strong>.</li>
+        <li>Selecionar a Filial da massa; informar o nº da apólice com CC no campo Apólice → sistema carrega os subgrupos; selecionar o Subgrupo.</li>
+        <li>Clicar no botão <strong>+</strong> para atribuir, preencher a averbação com o CNPJ tomador tradicional e os demais campos obrigatórios.</li>
+        <li>Capturar o formulário preenchido; clicar em <strong>Gravar</strong>.</li>
+        <li>Capturar a resposta da tela e, via rede/console, o status HTTP da gravação (distinguir 302-sessão de 500-real — KI-008); registrar o stacktrace no Graylog.</li>
+        <li>Consultar as averbações da apólice e capturar a (não-)criação do registro.</li>
+        <li>Repetir o fluxo nas variantes Taxa Embarcador e DDR (apólices com a respectiva configuração), 1 gravação cada.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p><strong>Pré-correção (estado documentado 02/10):</strong> mensagem exata <em>"Erro ao tentar enviar os dados"</em> ao Gravar e nenhum registro criado — NOK reproduzido, sustentando a causa raiz do bloco (CT-ALF-002). O veredito deste CT é sobre a <strong>reprodutibilidade</strong>: reproduziu = evidência da análise confirmada; não reproduziu (gravou OK) = registrar divergência e confrontar a análise (ambiente pode ter recebido fix — exige nova rodada da análise).</p>
+      <h4>Oráculo</h4><p>Tela (mensagem exata + consulta de averbações) + HTTP/Graylog. Evidência: form preenchido · mensagem · consulta vazia · log (log só no card, não no repo público).</p>
+      <div class="ev-section" id="ev-CT-ALF-008"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-009">
+    <div class="ct-head"><span class="ct-id">CT-ALF-009</span><span class="ct-title">Evidência 3 — Internacional → Fechamento mensal → Impressão: exportar Relação/Resumo de embarques → erro</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Login STG HML-ALFA; fatura internacional existente no período (descobrir via tela de Impressão).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Clicar em <strong>Internacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Impressão</strong>.</li>
+        <li>Selecionar a Filial da massa e o Produto; clicar em <strong>Selecionar</strong>; marcar a fatura desejada no grid.</li>
+        <li>Em Relatórios Comerciais, marcar <strong>Relação de Embarques</strong> e exportar; capturar o resultado (tela + rede).</li>
+        <li>Repetir com <strong>Resumo de Embarques</strong>.</li>
+        <li>Se o export gerar arquivo: a evidência é o próprio arquivo (validar não-vazio e conteúdo); se der erro: capturar o texto exato + log no Graylog.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Estado documentado 02/10: erro ao exportar (Evidência 3). Mesmo critério de reprodutibilidade do CT-ALF-008 — reproduziu = análise sustentada; mudou = divergência registrada.</p>
+      <h4>Oráculo</h4><p>Tela + arquivo (quando gerado) + Graylog.</p>
+      <div class="ev-section" id="ev-CT-ALF-009"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-010">
+    <div class="ct-head"><span class="ct-id">CT-ALF-010</span><span class="ct-title">Evidência 8 — WI/Siscomex → Declarações Adições → Carga: receber pacotes (padrão e alfa) → erro após confirmar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Login STG HML-ALFA com perfil de acesso ao módulo Interface CIT × WI/Siscomex; pacotes disponíveis para carga (verificar na própria tela).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Clicar em <strong>WI / Siscomex</strong> → <strong>Declarações Adições</strong> → <strong>Carga</strong>.</li>
+        <li>Selecionar pacote(s) para carga (primeiro com CNPJ padrão; depois com CNPJ alfanumérico, se houver massa distinta).</li>
+        <li>Confirmar a carga; capturar o erro apresentado (texto exato) + log do Graylog.</li>
+        <li>Abrir <strong>Carga → Resultado da Carga</strong> e <strong>Pacotes WI → Exclusão de Pacotes</strong> e registrar que seguem impedidos pela mesma causa (confirma a cascata do CT-ALF-003 — sem contar como defeito novo).</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Estado documentado 02/10: erro após confirmar a carga, nas duas variantes de CNPJ. Critério de reprodutibilidade idêntico aos anteriores. Se não houver pacote disponível (dependência de integração externa Siscomex), BLOQUEADO por causa externa comprovada — nunca "aprovado por ausência de movimento".</p>
+      <h4>Oráculo</h4><p>Tela (erro exato) + Graylog; cascata conferida em tela.</p>
+      <div class="ev-section" id="ev-CT-ALF-010"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-011">
+    <div class="ct-head"><span class="ct-id">CT-ALF-011</span><span class="ct-title">Evidência 9 — Internacional → Fechamento mensal especial: erro ao EFETIVAR FECHAMENTO</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Login STG HML-ALFA; apólice internacional com averbação no período (necessária para a Relação de Embarques — observação da própria matriz).</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Clicar em <strong>Internacional</strong> → <strong>Fechamento Mensal</strong> → <strong>Emissão especial</strong>.</li>
+        <li>Selecionar Filial e Produto; informar a apólice e a referência; selecionar o(s) subgrupo(s) no grid.</li>
+        <li>Marcar os relatórios comerciais (Relação/Resumo de Embarques); clicar em <strong>EFETIVAR FECHAMENTO</strong>.</li>
+        <li>Capturar o erro (texto exato) + HTTP + Graylog. ⚠️ Operação de mutação: registrar antes/depois o estado da fatura para possibilitar limpeza (HML tem liberdade total, mas documentar o que foi criado).</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Estado documentado 02/10: erro ao efetivar (Evidência 9). Critério de reprodutibilidade idêntico aos anteriores.</p>
+      <h4>Oráculo</h4><p>Tela (erro exato) + Graylog + estado da fatura antes/depois.</p>
+      <div class="ev-section" id="ev-CT-ALF-011"></div>
+    </div>
+  </div>
+
+  <div class="ct-block" id="CT-ALF-012">
+    <div class="ct-head"><span class="ct-id">CT-ALF-012</span><span class="ct-title">Regressão de sanidade do STG HML-ALFA — amostra dos cenários OK de 02/10 segue OK</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body">
+      <h4>Pré-condições</h4><ul><li>Login STG HML-ALFA.</li></ul>
+      <h4>Passos</h4><ol>
+        <li>Clicar em <strong>Nacional</strong> → <strong>Cadastros</strong> → <strong>Segurado</strong>; cadastrar/consultar segurado com CNPJ alfanumérico <code>12ABC34501DE35</code> — capturar mensagem de sucesso e o registro persistido (grid/consulta).</li>
+        <li>Clicar em <strong>Nacional</strong> → <strong>Averbação</strong> → <strong>RCTR-C</strong>; gravar 1 embarque com CNPJ tomador ALFANUMÉRICO (par OK da Evidência 1) — capturar sucesso + averbação na consulta.</li>
+      </ol>
+      <h4>Resultado esperado</h4><p>Ambos os fluxos seguem OK como em 02/10 (mensagem de sucesso real + registro persistido). Confirma que o ambiente segue apto e que o comportamento "alfa OK × tradicional NOK" da averbação se mantém — insumo direto do CT-ALF-007. Falha aqui = regressão do ambiente → registrar e confrontar a análise.</p>
+      <h4>Oráculo</h4><p>Tela (mensagem de sucesso exata) + registro na consulta/grid.</p>
+      <div class="ev-section" id="ev-CT-ALF-012"></div>
+    </div>
+  </div>
+
+  <h2>7. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério de aceite (funcional)</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — 25 cenários NOK classificados em 1 das 6 categorias (o que vira bug × o que não)</td><td>CT-ALF-001</td><td>Pendente</td></tr>
+    <tr><td>CA2 — causa raiz por bloco, com log/stacktrace como evidência</td><td>CT-ALF-002 (+ contraprova 008–011)</td><td>Pendente</td></tr>
+    <tr><td>CA3 — cenários em cascata vinculados ao cenário raiz (não inflar contagem)</td><td>CT-ALF-003 (+ 010)</td><td>Pendente</td></tr>
+    <tr><td>CA4 — causa comum a cards existentes vinculada a eles (não duplicar)</td><td>CT-ALF-004</td><td>Pendente</td></tr>
+    <tr><td>CA5 — bugs abertos com severidade e prioridade propostas</td><td>CT-ALF-005</td><td>Pendente</td></tr>
+    <tr><td>CA6 — parecer consolidado: o que impede × o que não impede a liberação</td><td>CT-ALF-006</td><td>Pendente</td></tr>
+    <tr><td>CA7 — confirmação explícita sobre defeito exclusivo do CNPJ alfanumérico</td><td>CT-ALF-007 (+ 008 · 012)</td><td>Pendente</td></tr>
+    <tr><td style="color:var(--text-muted)">CAs Técnicos (DoD: unit/Sonar/PR/RELEASE)</td><td style="color:var(--text-muted)">Processo — não geram CT (o próprio card remete aos cards de correção derivados)</td><td style="color:var(--text-muted)">N/A</td></tr>
+  </table>
+
+  <h2>9. Riscos</h2>
+  <table>
+    <tr><th>#</th><th>Risco</th><th>Prob.</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>R1</td><td>Ambiente HML-ALFA é build específica — pode estar defasada ou receber fix entre a análise e a contraprova, mudando a reprodutibilidade</td><td>Média</td><td>Médio</td><td>Registrar a data da build (título do login) em toda evidência; divergência de reprodução = registrar e confrontar a análise, não aprovar/reprovar às cegas</td></tr>
+    <tr><td>R2</td><td>Mensagem "Erro ao tentar enviar os dados." é genérica (KI-008): causa raiz errada se a análise se basear só na tela (302-sessão × 500-real)</td><td>Média</td><td>Alto</td><td>CT-ALF-002 exige log/stacktrace coerente; CT-ALF-008 captura o HTTP real via rede + Graylog</td></tr>
+    <tr><td>R3</td><td>Cenários WI/Siscomex e Consumer ATM/CTE dependem de integração/arquivos externos — contraprova pode não ter massa</td><td>Média</td><td>Médio</td><td>BLOQUEADO só com causa externa comprovada (print da ausência + origem externa); nunca "aprovado por ausência de movimento"</td></tr>
+    <tr><td>R4</td><td>Credencial CITWEB do tenant STG pode não estar no <code>.env</code> (doc diz "mesmo login/senha da seguradora")</td><td>Baixa</td><td>Médio</td><td>Chaves STG ALFA já existem no <code>.env</code>; se a de CITWEB faltar, criar/ajustar a chave antes da execução (nunca pedir/expor em texto)</td></tr>
+    <tr><td>R5</td><td>Taxonomia das 6 categorias não enumerada no card — a análise pode vir com conjunto diferente do proposto</td><td>Média</td><td>Baixo</td><td>CT-ALF-001 valida completude/exclusividade independentemente da taxonomia; conjunto final confirmado no Gate 2</td></tr>
+    <tr><td>R6</td><td>NOK com observação "N/A" (Impressão PDF, Gestão, Consumer) não têm evidência anexa na validação de 02/10 — a análise pode não conseguir fundamentá-los</td><td>Média</td><td>Médio</td><td>CT-ALF-002: bloco sem evidência exige reprodução nova (log atual) — "sem evidência" não fundamenta classificação</td></tr>
+  </table>
+
+  <h2>10. DoR / DoD</h2>
+  <table>
+    <tr><th>DoR (verificado 15/10/2026)</th><td>Tags sistema+programa ✓ (<code>citweb; CNPJ Alfanumerico; STG; main</code>; seguradora = STG por inferência I1) · CAs funcionais testáveis com oráculo observável (artefatos AzDO + tela/log) ✓ · Repro: descrição vazia, suprida pelos anexos (I3) ✓ · Ramos declarados na matriz anexa (I4) ✓ · 6 categorias não enumeradas → inferência I-taxonomia documentada, a confirmar no Gate 2 (não bloqueia DoR: oráculo do CA1 é completude/exclusividade)</td></tr>
+    <tr><th>DoD da execução</th><td>12 CTs executados com evidência por CT (screenshot + extração programática + log onde indicado) · evidências anexadas no card por CT · comentário NOR_QA_002 · exploratório 15–30 min pós-CTs (focado em pares padrão×alfa não cobertos) · features/ atualizada com deltas do STG HML-ALFA</td></tr>
+  </table>
+
+</div>
+<div class="sig">Wesley Moreira</div>
+<script>
+document.querySelectorAll('.ct-head').forEach(h => {
+  h.addEventListener('click', () => h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
