@@ -70,7 +70,7 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
   <div class="wrap">
     <span class="pbi-badge">PBI-9120 · Sprint 17 Citweb</span>
     <h1>Reforma Tributária — Módulo Tabelas: Extinção do IOF (todos os ramos)</h1>
-    <div class="sub">CITWEB · Tabelas → Parâmetros (Custo/IOF · Customização) · Fechamento Mensal Nacional e Internacional (Emissão, Emissão Especial, Prêmio mínimo s/ averbação, Sem prêmio e s/ averbação) · Fatura · Integrações · Ambiente de referência: HML AXA · Autor QA: Wesley Moreira · v1.0 (13/10/2026 — plano shift-left: card em "Pronto para desenvolvimento")</div>
+    <div class="sub">CITWEB · Tabelas → Parâmetros (Custo/IOF · Customização) · Fechamento Mensal Nacional e Internacional (Emissão, Emissão Especial, Prêmio mínimo s/ averbação, Sem prêmio e s/ averbação) · Fatura · Integrações · Ambiente de referência: HML AXA · Autor QA: Wesley Moreira · v1.1 (14/10/2026 — Gate 2 APROVADO; ajustes da entrega do dev incorporados, comentários 3448947/3449483)</div>
   </div>
 </header>
 
@@ -127,15 +127,17 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
 
   <h2>4. Pré-requisitos</h2>
   <ul>
-    <li><b>DoD do dev cumprido:</b> card em "Pronto para homologação"/"Em homologação" com deploy em HML — hoje (13/10) o card está em <b>Pronto para desenvolvimento</b>; nenhum CT executa antes disso.</li>
+    <li><b>DoD do dev cumprido (14/10):</b> card em <b>Em homologação</b> — build <code>CITWEB-HML 20261014.3</code> (branch hml, PR 2115) publicado nos HML de <b>AIG, AXA, STARR e TOKIO</b>; na tela a versão aparece como <code>V 1.0.261014.hhmm</code> — <b>conferir o rodapé antes de executar</b> (branches <code>*_fix</code> NÃO receberam o fix). ⚠️ Ponto de operação (dev): <code>tb_iof_cit</code> não tem vigência — fechamentos de competências ≤ 12/2026 devem ser concluídos ANTES de zerar o IOF.</li>
     <li><b>Ambiente:</b> HML AXA CITWEB — login por clique em <code>/Login/</code> (Usuário + Senha + botão <b>Acessar</b>), tile <b>Tabelas</b> abre em nova aba (fechar aba duplicada quando ocorrer). Credenciais via <code>.env</code>.</li>
     <li><b>Massa (medida em 13/10/2026 — tela + SQL somente leitura, base <code>smt-hom-citweb-axa</code>):</b> IOF vigente <b>7,38%</b> (<code>tb_iof_cit.o_iof = 7.38</code>; grid Custo/IOF com faixa única 0,00 → 1.000.000.000.000.000,00 · % Custo 7,38) · Customização ramo 54 / produto 2-RCTR-C / SUSEP 3006004646: Moeda Corrente com Cobrar Custo = S, Cobrar Juros = S, <b>Cobrar IOF = N (habilitado)</b>, 30 dias p/ vencimento (<code>tb_prm_cit</code>).</li>
     <li><b>Massa de fechamento:</b> apólice ramo 54 vigente com averbação aberta na competência do teste — localizar via <b>Nacional → Relatórios → Relação de Apólices</b> + <b>Fechamento Mensal → Prévia</b>; se não houver, criar averbação própria (feature <code>features/averbacao/</code>). Não há emissão com IOF &gt; 0 na base AXA hoje (<code>tb_ems_prp</code> sem <code>v_iof &gt; 0</code>) — a <b>baseline histórica do CT-IOF-012 é construída na execução</b>, emitindo uma fatura com IOF 7,38% ANTES de zerar o parâmetro.</li>
     <li><b>Cotação de moeda</b> (só CT-IOF-015): câmbio USD (código 220) do mês em Tabelas → Cadastros → Cotações de Moeda.</li>
-    <li><b>Oráculos de banco mapeados (13/10):</b> parâmetro <code>tb_iof_cit.o_iof</code> · Customização <code>tb_prm_cit.i_cbr_iof_cme</code> · emissão <code>tb_ems_prp.v_iof / o_iof / i_iof_cme</code> · histórico <code>tb_hst_cit.v_iof</code> · integração de fatura <code>tb_brz_cit_fatura.brz_fat_vl_iof</code> · flag por apólice <code>tb_apo_nac_cit.i_iof_cme</code> / <code>tb_apo_int_cit.i_iof_cme</code>.</li>
+    <li><b>Oráculos de banco (corrigidos pelo dev em 14/10, comentário 3448947):</b> parâmetro <code>tb_iof_cit.o_iof</code> · Customização <code>tb_prm_cit.i_cbr_iof_cme</code> (só grava ao <b>Salvar</b> a Customização) · fechamento: <b><code>tb_cme_cit.v_iof</code></b> (conta mensal, não aceita NULL) copiado para <b><code>tb_hst_cit.v_iof</code></b> — usar apenas <code>v_iof</code> (colunas o_iof/i_iof_cme não existem nessas tabelas) · <code>tb_ems_prp</code> NÃO é gravada pelo CITWEB (verificação extra opcional) · integrações (WSFatura, <code>tb_brz_cit_fatura</code>) NÃO foram alteradas nesta entrega — recebem o IOF 0 vindo do fechamento.</li>
   </ul>
 
   <div class="warn-box"><b>⚠️ O IOF em Tabelas é configuração GLOBAL do tenant.</b> Zerar o IOF no AXA HML afeta qualquer fechamento feito no tenant enquanto o teste roda. Disciplina de execução: (1) registrar a baseline (7,38%) antes de alterar; (2) executar os CTs dependentes de IOF = 0,00 em sequência, na mesma janela; (3) <b>restaurar 7,38%</b> ao final da rodada — o CT-IOF-006 (contraprova) já cumpre esse papel e fica por último na ordem de execução.</div>
+
+  <div class="info-box"><b>Regra adicional da entrega (dev, 14/10):</b> a linha IOF também fica <b>oculta</b> quando os indicativos <code>Ind_VencFat</code> e <code>Ind_CalcEnc</code> estão desligados (Emissão, Prêmio Mínimo e Liberação de Prévia, Nacional e Internacional) — verificação coberta na sessão exploratória. <b>Armadilha de navegação (pré-existente):</b> ir de Emissão Especial para Prêmio Mínimo/Sem Prêmio pode dar "Ocorreu um erro inesperado" (sessão da tela anterior) — clicar em <b>NOVO</b> antes de trocar de tela.</div>
 
   <h2>5. Casos de Teste</h2>
 
@@ -156,7 +158,7 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
         <li>Conferir a persistência no banco: <code>SELECT o_iof FROM tb_iof_cit</code> (esperado 0.00).</li>
       </ol>
       <h4>Resultado esperado</h4>
-      <ul><li>Salvar com IOF = 0,00 é <b>aceito</b>, com mensagem de sucesso (texto exato a capturar na execução) — a validação <i>"Informar o Percentual de IOF."</i> não dispara mais para 0,00.</li><li>Valor 0,00 persistido: tela após recarregar + <code>tb_iof_cit.o_iof = 0</code>.</li></ul>
+      <ul><li>Salvar com IOF = 0,00 é <b>aceito</b>, com mensagem de sucesso (texto exato a capturar na execução) — a validação <i>"Informar o Percentual de IOF."</i> não dispara mais para 0,00.</li><li>Valor 0,00 persistido: tela após recarregar + <code>tb_iof_cit.o_iof = 0</code>. Nota do dev (14/10): após gravar, o campo pode exibir <b>0</b> em vez de 0,00 — apenas exibição; o valor no banco é 0.</li></ul>
       <div class="ev-section" id="ev-CT-IOF-001"></div>
     </div>
   </div>
@@ -189,7 +191,7 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
         <li>Clicar em <b>Salvar</b> e capturar o comportamento (mensagem/normalização).</li>
       </ol>
       <h4>Resultado esperado</h4>
-      <ul><li>Tratamento controlado: ou a validação <i>"Informar o Percentual de IOF."</i> permanece para campo <b>vazio</b> (vazio ≠ 0,00), ou o sistema normaliza para 0,00 — nunca erro de servidor/500. O card não define qual das duas; registrar o comportamento observado e confirmar a intenção no Gate 2 (ver Riscos R3).</li></ul>
+      <ul><li>Conforme a entrega (dev, 14/10): com o campo vazio a gravação é <b>bloqueada pela validação padrão de campo obrigatório</b> (texto exato capturado na execução) — não a mensagem antiga, e nunca erro de servidor. Oráculo: mensagem de validação na tela + <code>tb_iof_cit.o_iof</code> inalterado.</li></ul>
       <div class="ev-section" id="ev-CT-IOF-003"></div>
     </div>
   </div>
@@ -224,8 +226,9 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
       <ol>
         <li>Com a pré-condição montada (Cobrar IOF = S), ir a <b>Custo / IOF</b> e salvar IOF = <b>0,00</b>.</li>
         <li>Voltar a <b>Customização</b> → ramo 54 → produto 2-RCTR-C.</li>
-        <li>Inspecionar o checkbox Cobrar IOF (Moeda Corrente): estado e habilitação.</li>
-        <li>Conferir a persistência no banco: <code>SELECT i_cbr_iof_cme FROM tb_prm_cit WHERE c_rmo = 54 AND c_pro = 2 AND e_moe_apo = 'N'</code>.</li>
+        <li>Inspecionar o checkbox Cobrar IOF (Moeda Corrente): estado e habilitação (desmarcado + bloqueado na TELA).</li>
+        <li><b>Clicar em Salvar na Customização</b> (ramo 54 / 2-RCTR-C) — ajuste do dev 14/10: zerar o IOF não grava <code>tb_prm_cit</code>; o 'N' só persiste ao salvar a Customização.</li>
+        <li>Conferir a persistência no banco: <code>SELECT i_cbr_iof_cme FROM tb_prm_cit WHERE c_rmo = 54 AND c_pro = 2 AND e_moe_apo = 'N'</code> → 'N'. (Sem efeito no cálculo: com IOF 0,00 o valor calculado é 0 mesmo com o parâmetro 'S'.)</li>
       </ol>
       <h4>Resultado esperado</h4>
       <ul><li>A seleção anterior é <b>removida</b> (checkbox desmarcado) e o campo fica <b>bloqueado</b> — conforme o card: "deve remover a seleção do menu CUSTOMIZAÇÕES e deixar bloqueado".</li><li>Oráculo: tela (unchecked + disabled) + banco (<code>i_cbr_iof_cme = 'N'</code>).</li></ul>
@@ -314,11 +317,11 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
       <h4>Passos</h4>
       <ol>
         <li><b>Nacional</b> → <b>Fechamento Mensal</b> → submenu da emissão sem prêmio/sem averbação ("Períodos sem movimento" no menu atual — confirmar label exato na execução; o card nomeia "Emissão sem prêmio e sem averbação").</li>
-        <li>Selecionar a massa e abrir o detalhe.</li>
-        <li>Inspecionar presença/ausência do campo IOF; screenshot.</li>
+        <li>Selecionar a massa e tentar abrir o detalhe. ⚠️ Problema PRÉ-EXISTENTE (dev, 14/10): esta tela <b>não abre o modal "Fechamento Mensal"</b> (o retorno da seleção não executa nada no JS) — já ocorria antes deste PBI; o dev abrirá card separado para o modal.</li>
+        <li>Conferir que o <b>grid</b> da tela não exibe coluna/valor de IOF; screenshot.</li>
       </ol>
       <h4>Resultado esperado</h4>
-      <ul><li>Campo IOF <b>não exibido</b> com IOF = 0,00 nesta modalidade de emissão.</li></ul>
+      <ul><li>Grid sem IOF com IOF = 0,00. O passo do modal fica <b>BLOQUEADO por problema pré-existente</b> (externo a este PBI — a view do modal já está preparada para ocultar o IOF, conforme o dev); não reprova esta entrega.</li></ul>
       <div class="ev-section" id="ev-CT-IOF-010"></div>
     </div>
   </div>
@@ -332,10 +335,10 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
       <ol>
         <li>No modal "Fechamento Mensal" da Emissão (IOF = 0,00), extrair via evaluate os valores: Prêmio Líquido, Juros, Custo e <b>Prêmio Total</b>.</li>
         <li>Somar manualmente os componentes exibidos e comparar com o Prêmio Total.</li>
-        <li>Confirmar a emissão (botão <b>Confirmar</b>) e conferir o registro gerado: <code>SELECT v_iof, i_iof_cme FROM tb_ems_prp WHERE u_apo_pnc = [apólice de teste]</code> (esperado <code>v_iof = 0</code>).</li>
+        <li>Confirmar a emissão (botão <b>Confirmar</b>) e conferir o registro gerado: <code>SELECT v_iof FROM tb_cme_cit WHERE u_apo_pnc = [apólice de teste] AND [competência]</code> (esperado <b>0</b>, não NULL) e o mesmo em <code>tb_hst_cit</code> — oráculo corrigido pelo dev 14/10 (o CITWEB grava tb_cme_cit e copia p/ tb_hst_cit; tb_ems_prp não é gravada pelo CITWEB).</li>
       </ol>
       <h4>Resultado esperado</h4>
-      <ul><li><b>Prêmio Total = Prêmio Líquido + Juros + Custo</b> (± demais componentes exibidos), <b>sem nenhuma parcela de IOF</b> — a conta fecha exata na tela.</li><li>Registro da emissão com IOF zerado no banco (<code>tb_ems_prp.v_iof = 0</code>).</li></ul>
+      <ul><li><b>Prêmio Total = Prêmio Líquido + Juros + Custo</b> (± demais componentes exibidos), <b>sem nenhuma parcela de IOF</b> — a conta fecha exata na tela.</li><li>Registro da emissão com IOF zerado no banco (<code>tb_cme_cit.v_iof = 0</code> e <code>tb_hst_cit.v_iof = 0</code>).</li></ul>
       <div class="ev-section" id="ev-CT-IOF-011"></div>
     </div>
   </div>
@@ -386,9 +389,10 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
       <ul><li>Emissão do CT-IOF-011 confirmada (registros gerados com IOF = 0,00).</li><li>Acesso SQL somente leitura à base <code>smt-hom-citweb-axa</code>.</li></ul>
       <h4>Passos</h4>
       <ol>
-        <li>Consultar o registro da emissão: <code>SELECT v_iof, o_iof, i_iof_cme FROM tb_ems_prp WHERE u_apo_pnc = [apólice]</code> — campo presente, valor <b>0</b> (não NULL).</li>
-        <li>Consultar o histórico gerado: <code>SELECT v_iof FROM tb_hst_cit WHERE [chave da fatura nova]</code> — valor 0 (não NULL).</li>
-        <li>SE a entrega alterar integrações específicas (listar nas tasks de dev quando existirem — ex.: <code>tb_brz_cit_fatura.brz_fat_vl_iof</code>, WSFatura AXA): gerar o artefato correspondente e conferir o campo IOF presente e zerado no contrato.</li>
+        <li>Consultar o registro da emissão: <code>SELECT v_iof FROM tb_cme_cit WHERE u_apo_pnc = [apólice] AND [competência]</code> — campo presente, valor <b>0</b> (a coluna não aceita NULL).</li>
+        <li>Consultar o histórico gerado: <code>SELECT v_iof FROM tb_hst_cit WHERE [chave da fatura nova]</code> — valor 0.</li>
+        <li>Verificação extra (opcional): <code>tb_ems_prp</code> — depende de processo fora do CITWEB, não é oráculo deste CT.</li>
+        <li><b>Integrações específicas: N/A nesta entrega</b> (dev, 14/10): nenhuma integração foi alterada (WSFatura e <code>tb_brz_cit_fatura</code> não tocadas) — elas recebem o IOF 0 vindo do fechamento; sem artefato próprio a validar.</li>
       </ol>
       <h4>Resultado esperado</h4>
       <ul><li>O campo IOF <b>existe e vale 0</b> em todos os registros/contratos gerados após a mudança — nenhuma integração quebra por campo ausente/nulo (CA: "continuar recebendo-o com valor zero").</li><li>Oráculo: estado do banco (nunca "não deu erro").</li></ul>
@@ -418,7 +422,7 @@ pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;
 
   <div class="group-header alt">Grupo 7 — Data de corte 01/01/2027 — ⚠️ CONDICIONAL</div>
 
-  <div class="warn-box"><b>⚠️ EXECUTAR SE</b> a entrega implementar controle <b>por data</b> (vigência/data de corte parametrizável ou fixa no código — a tarefa técnica do card deixa a decisão ao dev). Se o controle da extinção for exclusivamente o valor 0,00 cadastrado manualmente em Tabelas, este grupo vira <b>N/A</b> (a trava de data passa a ser operacional, de Produtos) e os grupos 1–6 cobrem o card por completo. Confirmar a mecânica no Gate 2 e na entrega do dev.</div>
+  <div class="warn-box"><b>✔ RESOLVIDO na entrega (dev, 14/10, comentário 3448947): NÃO há data de corte no código.</b> A virada acontece quando o IOF é gravado como 0,00 em Tabelas → Parâmetros → Custo/IOF — o controle é operacional. <b>CT-IOF-016 = N/A</b> (como o parecer de Produtos já previa); os grupos 1–6 cobrem o card por completo. Ponto de operação: fechar as competências ≤ 12/2026 ANTES de zerar o IOF (tb_iof_cit sem vigência).</div>
 
   <div class="ct-block" id="CT-IOF-016">
     <div class="ct-head"><span class="ct-id">CT-IOF-016</span><span class="ct-title">Corte por data — competência anterior a 01/01/2027 preserva IOF; a partir dela, sem IOF</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
