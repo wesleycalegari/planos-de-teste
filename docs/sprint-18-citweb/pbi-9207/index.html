@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-9207 · PR Gate de promoção entre ambientes</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-9207 · Sprint 18 Citweb</span>
+    <h1>[DÉBITO TÉCNICO] PR Gate de promoção entre ambientes (hml → stg → main)</h1>
+    <div class="sub">Azure DevOps — repositório CITWEB (branch policies, pipeline do PR Gate e skill de promoção) · Débito técnico · Autor QA: Wesley Moreira · versão 1.0 (26/10/2026) — plano para revisão: nenhum CT executado</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">35</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">35</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">22/12/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 35 executados · 35 pendentes</strong> — plano publicado, aguardando a validação do Gate 2 de Produtos (nenhum CT executado ainda). Falta testar: <strong>35 CTs</strong> (22×P1 · 12×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 35, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 35}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>Azure DevOps — repositório <b>CITWEB</b>: policies das branches de ambiente (stg, stg_fix, main, main_fix), pipeline do PR Gate e skill de promoção (<code>/promotebranch</code>). Transversal: vale para todas as seguradoras e ramos.</td></tr>
+    <tr><th>Card</th><td>PBI-9207 — [DÉBITO TÉCNICO] PR Gate de promoção entre ambientes (hml → stg → main) (Sprint 18 Citweb) · estado <b>New</b> · tags citweb, débito-técnico, gitflow, pipeline · sem tasks filhas · 1 comentário do dev (estimativa de esforço) · relacionado: #7270 (pipelines)</td></tr>
+    <tr><th>Tasks de QA</th><td>#9350 [QA] Plano de teste (To Do; Wesley Moreira) — fecha na entrega do plano</td></tr>
+    <tr><th>Ambiente</th><td>Azure DevOps — <code>https://dev.azure.com/SimetriasDev/CITWEB</code> · conta corporativa do QA (credencial fora deste documento) · sem módulo CITWEB/CITNET e sem banco SQL neste card</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 26/10/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Hoje cada card é promovido entre os ambientes por <b>cherry-pick</b> independente (skill de promoção), porque cada card tem o próprio tempo de validação em HML (QA) e em STG (Produtos e cliente) e cada cliente tem a própria release e o próprio banco. <b>Nada impede um dev de abrir a PR direto para main sem o card ter passado por HML e STG.</b> Este card cria um <b>PR Gate</b> — policy Build validation obrigatória em <code>stg</code>, <code>stg_fix</code>, <code>main</code> e <code>main_fix</code> — que impede a PR de chegar a stg sem o conteúdo já estar em hml e a main sem já estar em stg (e hml), exige que a branch de origem seja <code>promote/*</code>, e muda o skill para <code>cherry-pick -x</code>, porque o cherry-pick gera hashes novos e a comparação precisa de uma chave estável (hash original no trailer, com patch-id como alternativa). Este plano valida, com PRs de teste reais que nunca são concluídas, os 7 critérios de aceite do card e os itens de escopo que não têm critério próprio.</p>
+  <div class="warn-box"><b>DoR-for-QA (26/10/2026):</b> descrição completa (Quem · O quê/Como · Por quê/Para · Onde), restrição técnica, escopo, fora do escopo, riscos e <b>7 critérios de aceite</b> com oráculo observável antes do código (resultado do check do gate na PR, texto do log do build, trailer no commit, permissão efetiva). O card não tem tasks filhas; há 1 comentário (estimativa de esforço do dev, que inclui testar os 7 CAs com PRs reais). Tags: sistema <code>citweb</code> (+ <code>débito-técnico</code>, <code>gitflow</code>, <code>pipeline</code>); <b>não há seguradora nem ramo</b>: o card é transversal ao repositório (todas as seguradoras e ramos) — inferência documentada. Estado do card: <b>New</b> (sem DoD do dev): o plano é elaborado agora e a execução espera a entrega. <b>Inferências adotadas</b> (sem bloquear o plano): o oráculo de cada CA é o item do gate na PR + o log do build; o texto exato da mensagem é capturado na execução; o gate sai em modo bloqueante (os CAs dizem «reprova»). <b>Pontos que dependem de decisão</b> estão na tabela abaixo (D1 a D7) e afetam o esperado de CT-PRG-008, 019, 023, 031 a 033 — cada um já traz a posição do QA.</div>
+  <h3>Decisões e perguntas que o QA levará ao Gate 2 (depois da revisão deste plano)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Fonte e posição do QA / o que ratificar</th></tr>
+    <tr><td><b>D1</b></td><td><b>Nome da branch de promoção: promote/* × padrão atual do skill</b></td><td>O card exige origem <code>promote/*</code> e reprova <code>feature/</code>/<code>fix/</code>, mas o skill atual cria <code>${BRANCH_ORIGEM}-to-${BRANCH_DESTINO}</code> (começa com <code>fix/…</code>) e o escopo lista só a troca para <code>-x</code>. Medido: 28% das últimas 240 PRs usam <code>promote/*</code>, 43% usam o padrão do skill e 28% saem de outros prefixos. <b>Pergunta:</b> o escopo inclui o skill passar a gerar <code>promote/…</code>? Há período de adaptação do time? <b>Posição do QA:</b> CT-PRG-019 espera reprovação (texto literal do card) e CT-PRG-023 só aprova se o skill gerar <code>promote/*</code>.</td></tr><tr><td><b>D2</b></td><td><b>Pareamento entre as linhas: hml ↔ hml_fix</b></td><td>O escopo diz «stg | stg_fix → hml | hml_fix» (por linha) e o CA2 diz «já em <code>hml</code> ou <code>hml_fix</code>». <b>Pergunta:</b> um commit que está só em <code>hml_fix</code> satisfaz uma PR para <code>stg</code> (e vice-versa)? <b>Posição do QA:</b> CT-PRG-008 espera aprovação pela leitura literal do CA2; muda o esperado conforme a resposta.</td></tr><tr><td><b>D3</b></td><td><b>Exceção de hotfix emergencial: contrato mínimo</b></td><td>O card dá a tag como «por exemplo» e não traz CA. O gate lê a tag do card vinculado (estimativa do dev). <b>Pergunta:</b> qual é a tag e quem pode aplicá-la? O que exatamente o gate «registra» e onde (log do build, comentário no card)? A exceção vale para a regra de origem, para a de commits ou para as duas? <b>Posição do QA:</b> grupo G condicional, P2 enquanto não houver CA.</td></tr><tr><td><b>D4</b></td><td><b>Modo de transição (só alerta) na entrega</b></td><td>O card manda avaliar um período em que o gate só alerta; a estimativa do dev prevê uma variável para isso. <b>Pergunta:</b> o gate sai em modo bloqueante (como os CA1, 3 e 4 descrevem) ou em modo alerta? Por quanto tempo? <b>Posição do QA:</b> o plano assume bloqueante; o grupo H cobre o modo alerta e fica N/A se o modo for bloqueante.</td></tr><tr><td><b>D5</b></td><td><b>Quem pode desligar o gate (permissão de editar policies)</b></td><td>O escopo restringe a permissão de bypass, mas quem pode <b>editar ou remover</b> a policy do gate também consegue desligá-lo. <b>Pergunta:</b> a revisão dessa permissão entra no escopo deste card ou em outro? <b>Posição do QA:</b> o CT-PRG-029 cobre só o bypass (texto do card); a medição da conta do QA foi registrada no card, não neste plano público.</td></tr><tr><td><b>D6</b></td><td><b>Commit com trailer que não corresponde ao conteúdo</b></td><td>A chave principal é um texto escrito pelo autor do commit. <b>Pergunta:</b> se o hash do trailer existe no ambiente mas o conteúdo do commit da PR é outro, qual é o resultado esperado (o fallback por patch-id também confirma o trailer)? <b>Posição do QA:</b> fora dos CAs; entra no exploratório e fica como candidato a CT depois da resposta.</td></tr><tr><td><b>D7</b></td><td><b>Onde executar: repositório real × espelho de teste</b></td><td>Os CTs abrem PRs de teste (nunca concluídas) contra branches de ambiente do repositório real, com o protocolo de segurança da seção 4. <b>Pergunta:</b> existe ou pode existir um repositório espelho com as mesmas branches e policies? <b>Posição do QA:</b> sem espelho, executar no real com o protocolo e em lote curto, avisando o time antes.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Regras do gate por alvo: stg/stg_fix exigem o commit em hml/hml_fix e main/main_fix exigem em stg/stg_fix e em hml/hml_fix (CT-PRG-001 a 013), por hash original (trailer) e por patch-id como alternativa.</li>
+    <li>Regra da branch de origem (<code>promote/*</code>) e o que fica fora do gate: hml, hml_fix e branches não cobertas (CT-PRG-014 a 019 e 024 a 026).</li>
+    <li>Skill de promoção com <code>cherry-pick -x</code> e o trailer nos commits promovidos (CT-PRG-020 a 023).</li>
+    <li>Configuração: Build validation obrigatória e automática nas 4 branches, vínculo de work item, permissão de bypass e estratégia de merge sem squash (CT-PRG-027 a 030); conclusão bloqueada para quem não tem bypass (CT-PRG-028).</li>
+    <li>Condicionais: exceção de hotfix emergencial (CT-PRG-031/032, decisão D3) e modo só alerta (CT-PRG-033, decisão D4). Regressão: policies pré-existentes preservadas (CT-PRG-034/035).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A); <b>mudar o modelo de branches</b> e <b>reescrever o histórico</b> das branches de ambiente (fora do escopo do card).</li>
+    <li><b>Concluir PR em ambiente compartilhado</b> — o QA nunca conclui PR; a conclusão é só observada (disponível ou bloqueada).</li>
+    <li><b>Documentação do fluxo (wiki e ADR)</b> e demais itens de DoD de engenharia (PR, Sonar, testes unitários) — não geram CT; conferidos na revisão do card.</li>
+    <li><b>Exploratório</b> (NOR_QA_002 §11, 15–30 min guiado por risco), depois dos CTs: PR com commit de merge; PR sem commits novos; origem <code>Promote/…</code> (caixa) e <code>promote</code> sem barra; PR com muitos commits (duração do gate); troca do alvo da PR depois de criada; PR em rascunho; commit com trailer inconsistente com o conteúdo (D6). Ocorrência vira defeito; sem ocorrência, comentário padrão no card.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano para revisão (26/10/2026):</b> nenhum CT foi executado. Os valores de baseline abaixo foram <b>medidos em 26/10/2026</b> por leitura (consultas somente-leitura ao repositório, às policies, às PRs concluídas e às permissões da conta do QA); nada foi criado, alterado ou concluído. Na execução, reconfirmar a massa antes de cada CT (as branches de ambiente mudam todo dia).</div>
+  <ul><li><b>Ambiente</b> — Azure DevOps — organização SimetriasDev, projeto CITWEB, repositório <b>CITWEB</b> (<code>https://dev.azure.com/SimetriasDev/CITWEB</code>). Não há tela nem banco do CITWEB/CITNET neste card: o objeto sob teste é o <b>check do gate na pull request</b> (policy Build validation + pipeline do PR Gate) e o skill de promoção. Preflight antes do 1º CT e sempre que um passo falhar com cara de ambiente: a API do Azure DevOps responde 200 e o pool do pipeline tem agente online (conferir uma execução recente de build do repositório). Serviço ou agente indisponível = interromper <b>sem veredito</b> (não é reprovação).</li><li><b>Estado atual medido em 26/10/2026 (baseline, antes da entrega)</b> — As seis branches de ambiente existem (<code>hml</code>, <code>hml_fix</code>, <code>stg</code>, <code>stg_fix</code>, <code>main</code>, <code>main_fix</code>). Nas quatro branches-alvo do gate já existem as policies: build do repositório, vínculo obrigatório de work item, comentários resolvidos, mínimo de 2 revisores e estratégia de merge <b>somente no-fast-forward</b>; o <b>gate ainda não existe</b>. O skill de promoção atual não usa <code>-x</code> e nomeia a branch de promoção como <code>${BRANCH_ORIGEM}-to-${BRANCH_DESTINO}</code> (não é <code>promote/*</code>). Esse retrato é o baseline do CT-PRG-034.</li><li><b>Por que o gate não pode comparar hash (medido em 26/10/2026)</b> — Por hash, as branches de ambiente divergem em centenas de commits nos dois sentidos (hml à frente de stg: 1.118 · stg à frente de hml: 672 · hml_fix à frente de stg_fix: 832 · stg_fix à frente de hml_fix: 594), porque cada promoção é um cherry-pick que gera hash novo. Confirma a restrição técnica do card e que há massa natural em abundância.</li><li><b>Código sob teste</b> — Pipeline do PR Gate (sem trigger próprio, acionado pela policy), a policy <b>Build validation obrigatória</b> em <code>stg</code>, <code>stg_fix</code>, <code>main</code> e <code>main_fix</code>, a permissão de bypass restrita a administradores e o skill de promoção com <code>cherry-pick -x</code>. A execução só começa com o Gate 2 aprovado por Produtos <b>e</b> o DoD do dev cumprido (card em «Pronto para homologação»).</li><li><b>Conta e ferramentas do QA</b> — Medido em 26/10/2026 na conta do QA: pode criar branch, enviar commit e criar/atualizar PR no repositório e <b>não</b> possui a permissão «Bypass policies when completing pull requests» — por isso a própria conta do QA faz o papel do «dev sem bypass» do CA7. Ferramentas: git com <b>clone completo</b> do repositório (≈ 207 MB), Python 3 e curl para a leitura REST; o token pessoal do QA fica no arquivo de ambiente do time (fora deste documento). Reuso: helpers de leitura de PR/commit do repositório de automação (card #9112) — nenhum script existente cobre o gate.</li></ul>
+  <div class="warn-box"><b>Protocolo de segurança dos CTs (inegociável).</b> Os CTs abrem PRs de teste contra branches de ambiente reais. (1) O QA <b>nunca</b> clica em Complete nem em Set auto-complete: toda PR de teste termina <b>Abandonada</b> e a branch de teste é apagada. (2) Os commits de teste são <b>vazios</b> (ou, se o Azure DevOps recusar abrir PR sem alteração, 1 arquivo texto sob <code>.qa-teste/</code>) — nunca código — e a mensagem começa com <code>qa(9207)</code>; os commits copiados de hml/stg por cherry-pick só entram em branch de teste que não é concluída. (3) Nomes sempre com <code>qa-9207</code> para facilitar a limpeza. (4) Criar PR para <code>main</code>/<code>main_fix</code> notifica os revisores configurados: avisar o time no card antes da janela e executar em lote curto. (5) Se uma PR for concluída por engano, avisar na hora o dev responsável e a coordenação para reverter — não tentar corrigir sozinho.</div>
+  <h3>Navegação base (N1–N6) e definições de oráculo</h3>
+  <ol><li><b>N1 — Ambiente e identidade:</b> navegador em <code>https://dev.azure.com/SimetriasDev/CITWEB</code> com a conta corporativa do QA (login corporativo); a mesma identidade é usada nos comandos git e na leitura REST (token pessoal fora deste documento).</li><li><b>N2 — Clone e branches de ambiente:</b> <code>git clone</code> do repositório CITWEB (ou <code>git fetch --all --prune</code> no clone existente) e conferir que existem <code>origin/hml</code>, <code>origin/hml_fix</code>, <code>origin/stg</code>, <code>origin/stg_fix</code>, <code>origin/main</code> e <code>origin/main_fix</code>.</li><li><b>N3 — Branch de teste e commit:</b> <code>git checkout -b NOME_DA_BRANCH origin/ALVO</code> → criar o conteúdo do CT (commit vazio: <code>git commit --allow-empty -m "qa(9207): CT-PRG-NNN - texto"</code>, ou cherry-pick conforme o CT) → <code>git push origin NOME_DA_BRANCH</code> → anotar o hash (<code>git rev-parse HEAD</code>).</li><li><b>N4 — Abrir a PR por clique:</b> no navegador, menu lateral <b>Repos</b> → <b>Pull requests</b> → <b>New pull request</b>; Source = a branch de teste, Target = a branch de ambiente do CT; título <code>[QA-9207][CT-PRG-NNN] teste do gate — NÃO CONCLUIR</code>; em <b>Work items</b> clicar <b>Add</b> e vincular o #9207 (a policy de work item exige o vínculo); <b>Create</b>. Não marcar auto-complete.</li><li><b>N5 — Ler o veredito do gate:</b> aguardar o check do gate rodar (até 15 min por PR). Na aba <b>Overview</b> da PR, seção de policies/checks (Required), localizar o item do gate e anotar o status (Succeeded/Failed); clicar no item abre o build → <b>Logs</b> → passo do gate: copiar a mensagem. Em paralelo, salvar em arquivo a avaliação das policies da PR (REST <code>policy/evaluations</code>) e o log do build. Evidência primária = esses dois arquivos + o print da PR com o status do gate legível.</li><li><b>N6 — Encerrar o CT:</b> na PR, menu <b>⋯</b> → <b>Abandon</b>; apagar a branch de teste (<code>git push origin --delete NOME_DA_BRANCH</code>). Nunca <b>Complete</b>.</li><li><b>Definições de oráculo.</b> <b>Gate reprova</b> = o item do gate na PR fica <b>Failed</b> (avaliação <code>rejected</code>, bloqueante), o build do gate termina em falha e o log cita o <b>hash do commit reprovado</b> e o <b>ambiente onde ele não foi encontrado</b> (conteúdo mínimo definido no escopo do card); o texto exato da mensagem é capturado na execução e registrado no resultado. <b>Gate aprova</b> = item do gate <b>Succeeded</b> (<code>approved</code>) e build com sucesso, com o log confirmando onde cada commit foi encontrado. <b>Gate não bloqueia</b> = o item do gate <b>não aparece</b> na PR e não há execução do gate para ela (controle positivo: as demais policies do alvo aparecem na mesma tela — «sem item» só vale com o controle). <b>Concluir a PR</b> nunca é feito pelo QA: o que se observa é se a conclusão está disponível ou bloqueada.</li></ol>
+  <h3>Massa e valores de teste (descoberta dinâmica; registrar hash e data no resultado de cada CT)</h3>
+  <ul><li><b>M1 — Commit inédito (CA1):</b> commit <b>vazio</b> criado pelo QA numa branch nascida do alvo; por construção não existe em nenhuma branch de ambiente. Provar antes de abrir a PR: <code>git branch -r --contains HASH_INEDITO</code> lista só a própria branch de teste e <code>git cherry origin/hml HASH_INEDITO</code> (e com <code>origin/hml_fix</code>) devolve <code>+</code>.</li><li><b>M2 — Commit X «promovido a hml, ainda não a stg» (CA1/CA2/CA3/CA4):</b> o commit <b>não-merge</b> mais recente de <code>origin/hml</code> (<code>git log origin/hml --no-merges -n 40</code>) que (a) devolve <code>+</code> em <code>git cherry origin/stg HASH_X</code> e em <code>git cherry origin/stg_fix HASH_X</code> (ainda não está em stg nem em stg_fix) e (b) aplica <b>sem conflito</b> sobre <code>origin/stg</code> e sobre <code>origin/main</code>. Registrar hash e data no resultado. Equivalente da linha fix: HASH_XF, de <code>origin/hml_fix</code> sobre <code>origin/stg_fix</code> / <code>origin/main_fix</code> (e que devolve <code>+</code> em <code>git cherry origin/stg_fix</code>).</li><li><b>M3 — Commit Z «em stg e em hml, ainda não em main»:</b> de <code>git cherry origin/hml origin/stg</code> escolher um commit com <code>-</code> (equivalente já existente em hml) e conferir <code>git cherry origin/main HASH_Z</code> = <code>+</code>; não-merge, aplicando limpo sobre <code>origin/main</code>. Equivalente da linha fix: HASH_ZF (de <code>origin/stg_fix</code>, equivalente em <code>origin/hml_fix</code>, ausente de <code>origin/main_fix</code>).</li><li><b>M4 — Commit W «em stg, mas não em hml/hml_fix» (CA3, cobre bypass e histórico):</b> de <code>git cherry origin/hml origin/stg</code> escolher um commit com <code>+</code> (existe em stg e não tem equivalente em hml), conferir também em <code>origin/hml_fix</code> e que está ausente de <code>origin/main</code>. É massa de <b>histórico</b> (PRs que foram direto a stg): o QA não consegue criá-la, pois exige escrever em ambiente compartilhado. Se a consulta não achar nenhum, registrar a consulta e o resultado vazio no CT-PRG-013.</li><li><b>M5 — Commit HASH_XH «só em hml_fix» (decisão D2):</b> commit de <code>origin/hml_fix</code> que não tem equivalente em <code>origin/hml</code> (<code>git cherry origin/hml HASH_XH</code> = <code>+</code>) e aplica limpo sobre <code>origin/stg</code>.</li><li><b>M6 — Work item de teste do hotfix (grupo G):</b> Task filha do #9207, título «[QA] Massa de teste do PR Gate — hotfix-emergencial (não executar)», com a tag <code>hotfix-emergencial</code>; criada só durante o grupo G e, ao final, com a tag removida e estado Removed.</li><li><b>Baseline de nomenclatura da branch de origem (medido em 26/10/2026):</b> das últimas <b>240</b> PRs concluídas para <code>stg</code>, <code>stg_fix</code>, <code>main</code> e <code>main_fix</code> (jul–out/2026): <b>28%</b> saíram de <code>promote/*</code>; <b>43%</b> do padrão atual do skill (<code>&lt;origem&gt;-to-&lt;destino&gt;</code>); <b>28%</b> de outros prefixos (feat/fix/bug/test) e 2% de outro padrão. Entrada da decisão D1 e do risco R1.</li><li><b>Baseline de trailer (medido em 26/10/2026):</b> de uma amostra de 60 commits promovidos (mensagem completa lida commit a commit) apenas <b>6 (10%)</b> trazem <code>(cherry picked from commit …)</code>: no histórico atual o caminho dominante do gate é o fallback por patch-id (CT-PRG-005 é P1 por isso).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li><b>Preflight</b> (ambiente) e leitura somente das configurações: <b>CT-PRG-027</b>, <b>029</b>, <b>030</b> e <b>034</b> — confirmam que o gate existe e quem pode concluir PR antes de abrir qualquer PR de teste (se o gate não existir, a execução para sem veredito).</li><li><b>Aviso no card</b> de que PRs de teste serão abertas e abandonadas (notificam revisores de main/main_fix) e <b>descoberta da massa</b> M1 a M5 (registrar hashes e datas).</li><li><b>Lote stg/stg_fix:</b> CT-PRG-001 a 008 · <b>lote main/main_fix:</b> CT-PRG-009 a 013 · <b>regra de origem:</b> CT-PRG-014 a 019 · <b>não bloqueia:</b> CT-PRG-024 a 026 · <b>bypass:</b> CT-PRG-028 e 035. Cada CT cria e abandona a própria PR (CTs independentes); abrir as PRs em paralelo e ler os gates ao final do lote.</li><li><b>Skill:</b> CT-PRG-020 a 023 (por último, porque o CT-PRG-023 abre PR com a branch criada pelo skill).</li><li><b>Condicionais:</b> grupo G (se a exceção de hotfix for entregue) e grupo H (se o modo for só alerta) — criar e remover a massa M6 no mesmo dia.</li><li><b>Fechamento:</b> conferir que <b>nenhuma</b> PR de teste ficou ativa e que todas as branches <code>qa-9207</code> foram apagadas (<code>git ls-remote --heads origin "*qa-9207*"</code> vazio); exploratório de 15 a 30 min (seção 3).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Alvo stg / stg_fix: o commit precisa já estar em hml / hml_fix (CA1 e CA2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-001</span><span class="ct-title">PR de promote/* para stg com commit inédito (inexistente em hml/hml_fix): o gate reprova citando o commit</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue (DoD) e preflight ok. Massa M1. Alvo <code>stg</code>; ambientes de referência <code>hml</code>/<code>hml_fix</code>. Branch de teste <code>promote/qa-9207-ct001</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2 e N3: <code>git checkout -b promote/qa-9207-ct001 origin/stg</code> → <code>git commit --allow-empty -m "qa(9207): CT-PRG-001 - commit inedito (nao promover)"</code> → <code>git push origin promote/qa-9207-ct001</code>; anotar HASH_INEDITO.</li><li>Provar a premissa M1: <code>git branch -r --contains HASH_INEDITO</code> lista só <code>origin/promote/qa-9207-ct001</code>; <code>git cherry origin/hml HASH_INEDITO</code> e <code>git cherry origin/hml_fix HASH_INEDITO</code> devolvem <code>+</code>.</li><li>N4: abrir a PR <code>promote/qa-9207-ct001</code> → <b>stg</b> (vincular o #9207).</li><li>N5: aguardar o gate; anotar o status do item do gate e copiar o texto do log; salvar a avaliação das policies e o log em arquivo.</li><li>N6: abandonar a PR e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O item do gate fica <b>Failed</b> (bloqueante) e o build do gate termina em falha; o log cita o <b>HASH_INEDITO</b> e o ambiente em que ele não foi encontrado (<code>hml</code>/<code>hml_fix</code>) — texto exato registrado no resultado. Nenhuma outra policy é alterada por esta falha.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-002</span><span class="ct-title">PR de promote/* para stg_fix com commit inédito: o gate reprova citando o commit e o ambiente hml_fix</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M1. Alvo <code>stg_fix</code>; referência <code>hml_fix</code>. Branch <code>promote/qa-9207-ct002</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2 e N3: <code>git checkout -b promote/qa-9207-ct002 origin/stg_fix</code> → commit vazio <code>qa(9207): CT-PRG-002 - commit inedito (nao promover)</code> → push; anotar HASH_INEDITO.</li><li>Provar M1: <code>git branch -r --contains HASH_INEDITO</code> só a própria branch; <code>git cherry origin/hml_fix HASH_INEDITO</code> = <code>+</code>.</li><li>N4: PR <code>promote/qa-9207-ct002</code> → <b>stg_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> (bloqueante); o log cita o HASH_INEDITO e o ambiente <code>hml_fix</code> (a linha fix é comparada com a linha fix) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-003</span><span class="ct-title">PR de promote/* para stg com commit já em hml (cherry-pick -x, hash diferente, mesmo commit de origem): o gate aprova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X em hml, ausente de stg, aplica limpo). Branch <code>promote/qa-9207-ct003</code>. Contraprova de CT-PRG-014 (mesmo commit, origem fora do padrão).</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X conforme M2 e registrar hash e data.</li><li>N3: <code>git checkout -b promote/qa-9207-ct003 origin/stg</code> → <code>git cherry-pick -x HASH_X</code> → <code>git push origin promote/qa-9207-ct003</code>.</li><li>Conferir: <code>git log -1 --format=%B</code> termina com <code>(cherry picked from commit HASH_X)</code> e <code>git rev-parse HEAD</code> é diferente de HASH_X.</li><li>N4: PR <code>promote/qa-9207-ct003</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b>; o log confirma que o commit da PR foi encontrado em <code>hml</code> pela chave principal (hash original = HASH_X) — texto exato registrado. A PR segue sujeita às demais policies; o QA não a conclui.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-004</span><span class="ct-title">PR de promote/* para stg_fix com commit já em hml_fix (cherry-pick -x): o gate aprova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 da linha fix (HASH_XF em hml_fix, ausente de stg_fix, aplica limpo). Branch <code>promote/qa-9207-ct004</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_XF (M2, linha fix) e registrar hash e data.</li><li>N3: <code>git checkout -b promote/qa-9207-ct004 origin/stg_fix</code> → <code>git cherry-pick -x HASH_XF</code> → push; conferir o trailer e que o hash difere de HASH_XF.</li><li>N4: PR <code>promote/qa-9207-ct004</code> → <b>stg_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b>; o log confirma o commit em <code>hml_fix</code> — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-005</span><span class="ct-title">PR de promote/* para stg com commit equivalente ao de hml, mas SEM trailer (histórico anterior à mudança): o gate aprova pelo fallback de patch-id</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X). Branch <code>promote/qa-9207-ct005</code>. Cobre o caminho dominante do histórico atual (só ≈10% dos commits promovidos têm trailer).</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X (M2).</li><li>N3: <code>git checkout -b promote/qa-9207-ct005 origin/stg</code> → <code>git cherry-pick HASH_X</code> (<b>sem</b> <code>-x</code>) → push.</li><li>Conferir: a mensagem do commit <b>não</b> contém <code>cherry picked from commit</code> e o hash é diferente de HASH_X.</li><li>N4: PR <code>promote/qa-9207-ct005</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b>; o commit sem trailer é reconhecido por equivalência de conteúdo (patch-id) com o commit de <code>hml</code>. O texto exato do log é registrado; se o log não nomear o método, a distinção em relação ao CT-PRG-003 (mesmo commit, com trailer) fica registrada pelo par de resultados.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-006</span><span class="ct-title">PR de promote/* com 2 commits para stg (1 já em hml + 1 inédito): o gate reprova citando apenas o inédito</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massas M1 e M2. Branch <code>promote/qa-9207-ct006</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X (M2).</li><li>N3: <code>git checkout -b promote/qa-9207-ct006 origin/stg</code> → <code>git cherry-pick -x HASH_X</code> → <code>git commit --allow-empty -m "qa(9207): CT-PRG-006 - commit inedito"</code> → push; anotar HASH_INEDITO e o hash do commit promovido.</li><li>N4: PR <code>promote/qa-9207-ct006</code> → <b>stg</b>; conferir na PR que há 2 commits.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b>; a mensagem lista o <b>HASH_INEDITO</b> e o ambiente, e <b>não</b> lista o commit promovido como faltante (cada commit é avaliado individualmente) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-007</span><span class="ct-title">PR reprovada que recebe um novo push removendo o commit inédito: o gate reexecuta e aprova</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massas M1 e M2. Branch <code>promote/qa-9207-ct007</code>. O QA reescreve apenas a própria branch de teste.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o CT-PRG-006 até obter o gate <b>Failed</b> (2 commits: 1 promovido + 1 inédito); anotar o identificador do build reprovado.</li><li>Remover o commit inédito: <code>git reset --hard HEAD~1</code> → <code>git push --force-with-lease origin promote/qa-9207-ct007</code>.</li><li>N5: aguardar a nova execução do gate disparada pelo push; anotar o identificador do segundo build; salvar status, avaliação e log do segundo build.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O push dispara <b>novo</b> build do gate (identificador diferente do primeiro); o item do gate passa de <b>Failed</b> para <b>Succeeded</b> e a PR deixa de ser bloqueada pelo gate. Evidência: os dois status e os dois logs.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-008</span><span class="ct-title">PR de promote/* para stg com commit que existe apenas em hml_fix: comportamento conforme o AC2 literal («hml ou hml_fix») — decisão D2</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Limite</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M5 (HASH_XH só em hml_fix). Branch <code>promote/qa-9207-ct008</code>. O esperado segue a leitura literal do CA2; se a decisão D2 for «pareamento por linha», o esperado passa a reprovar citando <code>hml</code> e o CT é atualizado no Gate 2.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_XH (M5).</li><li>N3: <code>git checkout -b promote/qa-9207-ct008 origin/stg</code> → <code>git cherry-pick -x HASH_XH</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct008</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Conforme o CA2 («todos os commits já em <code>hml</code> ou <code>hml_fix</code>»): gate <b>Succeeded</b>, com o log informando em qual das duas branches o commit foi encontrado. O resultado obtido é registrado e confrontado com a resposta da decisão D2.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo B — Alvo main / main_fix: o commit precisa já estar em stg / stg_fix e em hml / hml_fix (CA3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-009</span><span class="ct-title">PR de promote/* para main com commit que está em hml mas não em stg/stg_fix: o gate reprova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X: em hml, <code>+</code> em stg e em stg_fix). Branch <code>promote/qa-9207-ct009</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X (M2) e provar <code>git cherry origin/stg HASH_X</code> = <code>+</code> e <code>git cherry origin/stg_fix HASH_X</code> = <code>+</code>.</li><li>N3: <code>git checkout -b promote/qa-9207-ct009 origin/main</code> → <code>git cherry-pick -x HASH_X</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct009</code> → <b>main</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b>; o log cita o commit e o ambiente <code>stg</code>/<code>stg_fix</code> como onde ele não foi encontrado (o commit existe em hml, que sozinho não basta para <code>main</code>) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-010</span><span class="ct-title">PR de promote/* para main_fix com commit que está em hml_fix mas não em stg_fix: o gate reprova citando stg_fix</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 da linha fix (HASH_XF: em hml_fix, <code>+</code> em stg_fix). Branch <code>promote/qa-9207-ct010</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_XF e provar <code>git cherry origin/stg_fix HASH_XF</code> = <code>+</code>.</li><li>N3: <code>git checkout -b promote/qa-9207-ct010 origin/main_fix</code> → <code>git cherry-pick -x HASH_XF</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct010</code> → <b>main_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b>; o log cita o commit e o ambiente <code>stg_fix</code> — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-011</span><span class="ct-title">PR de promote/* para main com commit já em stg e em hml (promoção em cadeia): o gate aprova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M3 (HASH_Z em stg e, por equivalência, em hml; ausente de main). Branch <code>promote/qa-9207-ct011</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_Z (M3) e registrar as saídas dos <code>git cherry</code>.</li><li>N3: <code>git checkout -b promote/qa-9207-ct011 origin/main</code> → <code>git cherry-pick -x HASH_Z</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct011</code> → <b>main</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b>; o log confirma o commit em <code>stg</code> e em <code>hml</code> — texto exato registrado. Contraprova do CT-PRG-009 e do CT-PRG-013.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-012</span><span class="ct-title">PR de promote/* para main_fix com commit já em stg_fix e em hml_fix: o gate aprova</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M3 da linha fix (HASH_ZF). Branch <code>promote/qa-9207-ct012</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_ZF e registrar os <code>git cherry</code> (stg_fix/hml_fix vs. main_fix).</li><li>N3: <code>git checkout -b promote/qa-9207-ct012 origin/main_fix</code> → <code>git cherry-pick -x HASH_ZF</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct012</code> → <b>main_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b>; o log confirma o commit em <code>stg_fix</code> e em <code>hml_fix</code> (o mapeamento da linha fix não bloqueia indevidamente).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-013</span><span class="ct-title">PR de promote/* para main com commit que está em stg mas não em hml/hml_fix (bypass/histórico): o gate reprova citando hml</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M4 (HASH_W em stg, sem equivalente em hml/hml_fix). Massa natural de histórico: se a consulta não a encontrar, o CT registra a consulta e o resultado vazio e fica PENDENTE por ser um estado que o QA não pode criar (exige escrever em ambiente compartilhado). Branch <code>promote/qa-9207-ct013</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_W (M4); salvar a saída das consultas.</li><li>N3: <code>git checkout -b promote/qa-9207-ct013 origin/main</code> → <code>git cherry-pick -x HASH_W</code> → push.</li><li>N4: PR <code>promote/qa-9207-ct013</code> → <b>main</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b>; o log cita o commit e o ambiente <code>hml</code>/<code>hml_fix</code> como onde ele não foi encontrado, apesar de estar em <code>stg</code> (o escopo do card exige o commit também em hml) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-013"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Regra da branch de origem: só promote/* chega aos ambientes (CA4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-014</span><span class="ct-title">PR direta de feature/* para stg (com commit válido): o gate reprova pela regra de source branch</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X, commit <b>válido</b> — assim só a regra de origem pode falhar). Branch <code>feature/qa-9207-ct014</code>. Contraprova: CT-PRG-003 (mesmo commit, origem <code>promote/*</code>, aprova).</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X (M2).</li><li>N3: <code>git checkout -b feature/qa-9207-ct014 origin/stg</code> → <code>git cherry-pick -x HASH_X</code> → push.</li><li>N4: PR <code>feature/qa-9207-ct014</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b>; a mensagem cita a regra de origem (só <code>promote/*</code> chega ao ambiente) e o nome da branch de origem, e <b>não</b> aponta o commit como faltante (ele existe em hml) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-015</span><span class="ct-title">PR direta de fix/* para stg_fix (com commit válido): o gate reprova pela regra de source branch</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 da linha fix (HASH_XF). Branch <code>fix/qa-9207-ct015</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_XF.</li><li>N3: <code>git checkout -b fix/qa-9207-ct015 origin/stg_fix</code> → <code>git cherry-pick -x HASH_XF</code> → push.</li><li>N4: PR <code>fix/qa-9207-ct015</code> → <b>stg_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> pela regra de origem (mesmo texto de regra do CT-PRG-014), sem apontar o commit como faltante — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-015"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-016</span><span class="ct-title">PR direta de feature/* para main (com commit válido): o gate reprova pela regra de source branch</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M3 (HASH_Z, válido para main). Branch <code>feature/qa-9207-ct016</code>. Contraprova: CT-PRG-011.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_Z.</li><li>N3: <code>git checkout -b feature/qa-9207-ct016 origin/main</code> → <code>git cherry-pick -x HASH_Z</code> → push.</li><li>N4: PR <code>feature/qa-9207-ct016</code> → <b>main</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> pela regra de origem, sem apontar o commit como faltante (ele está em stg e hml) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-016"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-017</span><span class="ct-title">PR direta de fix/* para main_fix (com commit válido): o gate reprova pela regra de source branch</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M3 da linha fix (HASH_ZF). Branch <code>fix/qa-9207-ct017</code>. Contraprova: CT-PRG-012.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_ZF.</li><li>N3: <code>git checkout -b fix/qa-9207-ct017 origin/main_fix</code> → <code>git cherry-pick -x HASH_ZF</code> → push.</li><li>N4: PR <code>fix/qa-9207-ct017</code> → <b>main_fix</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> pela regra de origem, sem apontar o commit como faltante — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-017"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-018</span><span class="ct-title">PR de branch com prefixo fora da lista (bug/) para stg: só promote/* é aceito — o gate reprova</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Limite</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X). Branch <code>bug/qa-9207-ct018</code>. A regra do card é «source deve ser <code>promote/*</code>» (lista de um só padrão): qualquer outro prefixo reprova, não só <code>feature/</code> e <code>fix/</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X.</li><li>N3: <code>git checkout -b bug/qa-9207-ct018 origin/stg</code> → <code>git cherry-pick -x HASH_X</code> → push.</li><li>N4: PR <code>bug/qa-9207-ct018</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> pela regra de origem (o prefixo <code>bug/</code> não é <code>promote/*</code>) — texto exato registrado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-018"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-019</span><span class="ct-title">PR de branch no padrão atual do skill (…-to-stg) para stg: reprova pela regra literal de origem — decisão D1</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Limite</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2 (HASH_X). Branch <code>fix/qa-9207-ct019-to-stg</code> (mesmo desenho das 43% de PRs recentes, que hoje seguem o padrão <code>&lt;origem&gt;-to-&lt;destino&gt;</code>). O esperado segue o texto do card; se a decisão D1 aceitar esse padrão, o esperado passa a aprovar e o CT é atualizado no Gate 2.</li></ul>
+      <h4>Passos</h4><ol><li>N2: descobrir HASH_X.</li><li>N3: <code>git checkout -b fix/qa-9207-ct019-to-stg origin/stg</code> → <code>git cherry-pick -x HASH_X</code> → push.</li><li>N4: PR <code>fix/qa-9207-ct019-to-stg</code> → <b>stg</b>.</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Pela regra literal (origem precisa ser <code>promote/*</code>): gate <b>Failed</b> pela regra de origem — texto exato registrado. O resultado obtido é confrontado com a resposta da decisão D1.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-019"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo D — Skill de promoção: cherry-pick -x e trailer no commit promovido (CA6)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-020</span><span class="ct-title">Skill de promoção: todas as formas de cherry-pick de promoção (range e por hash) usam -x</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Configuração</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Entrega do skill disponível na branch do card. Verificação estática do texto entregue (o comportamento é provado nos CT-PRG-021 a 023).</li></ul>
+      <h4>Passos</h4><ol><li>No navegador: <b>Repos</b> → <b>Files</b>, selecionar a branch/commit da entrega e abrir o arquivo do skill <code>promotebranch</code> (pasta de skills do repositório); salvar o texto.</li><li>Localizar todas as linhas com <code>git cherry-pick</code>: a forma por <b>range</b> (<code>origin/${BRANCH_DESTINO}..${BRANCH_ORIGEM}</code>) e a forma por <b>hashes</b> (lista de hashes) precisam trazer <code>-x</code>; as linhas de <code>--continue</code> e <code>--abort</code> (tratamento de conflito) não precisam.</li><li>Registrar o padrão de nome definido em <code>BRANCH_PROMOTE</code> (insumo da decisão D1) e salvar a saída do <code>grep -n "cherry-pick"</code> + o print do arquivo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas formas de cherry-pick de promoção trazem <code>-x</code>; nenhuma delas fica sem. O padrão de <code>BRANCH_PROMOTE</code> entregue fica registrado e é confrontado com a regra de origem do gate.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-020"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-021</span><span class="ct-title">Promoção por range com o skill atualizado: cada commit promovido traz o trailer com o hash original</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Skill atualizado entregue. Massa: branch de origem <code>fix/qa-9207-skill-origem</code> nascida de <code>origin/hml</code> com 2 commits vazios (A e B). Os Passos 1.5 e 1.6 do skill (regressão e review por IA) não fazem parte deste CT; vale o bloco de comandos do Passo 2.</li></ul>
+      <h4>Passos</h4><ol><li>N2 e N3: <code>git checkout -b fix/qa-9207-skill-origem origin/hml</code> → 2 commits <code>--allow-empty</code> (A e B) → push; anotar HASH_A e HASH_B.</li><li>Aplicar <b>literalmente</b> o Passo 2 do skill atualizado com BRANCH_ORIGEM=<code>fix/qa-9207-skill-origem</code> e BRANCH_DESTINO=<code>hml</code> (variáveis, fetch, <code>git log</code>, criação da branch de promoção a partir de <code>origin/hml</code>, cherry-pick por <b>range</b>). Não fazer o push da branch de promoção.</li><li>Conferir: a branch de promoção tem 2 commits e a mensagem de cada um termina com <code>(cherry picked from commit HASH_A)</code> e <code>(cherry picked from commit HASH_B)</code>, respectivamente, com hashes iguais aos da branch de origem.</li><li>Salvar a saída de <code>git log --format="%H%n%B"</code> antes e depois; apagar as branches locais e a remota de origem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>2 de 2 commits promovidos com o trailer <code>(cherry picked from commit &lt;hash original&gt;)</code>, e cada hash do trailer é exatamente o hash do commit correspondente na branch de origem (conferido por comparação, não por leitura visual).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-021"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-022</span><span class="ct-title">Promoção por hashes específicos com o skill atualizado: cada commit promovido traz o trailer com o hash original</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Skill atualizado entregue. Massa: a mesma estrutura do CT-PRG-021 numa branch própria <code>fix/qa-9207-skill-origem2</code> (cada CT cria a sua massa).</li></ul>
+      <h4>Passos</h4><ol><li>N2 e N3: criar <code>fix/qa-9207-skill-origem2</code> a partir de <code>origin/hml</code> com 2 commits vazios; anotar HASH_A e HASH_B; push.</li><li>Aplicar o Passo 2 do skill atualizado na forma <b>por hashes</b> (<code>git cherry-pick</code> com a lista de hashes informada na forma indicada pelo skill) para a branch de promoção; não fazer o push.</li><li>Conferir os 2 commits e os 2 trailers com os hashes de origem (comparação por script). Salvar as saídas e apagar as branches.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>2 de 2 commits com o trailer apontando para o hash original correto (forma por hash do skill).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-022"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-023</span><span class="ct-title">Promoção ponta a ponta com o skill atualizado: a branch criada pelo skill é aceita pela regra de origem e o gate aprova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Skill atualizado e gate entregues. Massa M2 (HASH_X). Origem <code>fix/qa-9207-skill-ct023</code> nascida de <code>origin/stg</code> com a cópia do commit de hml (cherry-pick de HASH_X, sem trailer) — reproduz o fluxo real: hml tem a cópia antiga, a PR de stg traz o commit com <code>-x</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N2 e N3: <code>git checkout -b fix/qa-9207-skill-ct023 origin/stg</code> → <code>git cherry-pick HASH_X</code> → push.</li><li>Aplicar o Passo 2 do skill atualizado com BRANCH_ORIGEM=<code>fix/qa-9207-skill-ct023</code> e BRANCH_DESTINO=<code>stg</code>, <b>incluindo o push</b> da branch de promoção; registrar o nome exato da branch criada pelo skill.</li><li>N4: abrir a PR dessa branch para <b>stg</b> (Passo 4 do skill feito por clique).</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar a PR e apagar as duas branches.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>(a) o nome da branch criada pelo skill começa com <code>promote/</code> — se não começar, o CT é reprovado: o skill entregue produz uma branch que a regra do próprio gate rejeita (decisão D1); (b) o commit promovido traz o trailer; (c) o gate fica <b>Succeeded</b>, mesmo com o trailer apontando para uma cópia que não está em hml (cai no fallback por conteúdo).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-023"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo E — O gate não bloqueia hml / hml_fix nem branches não cobertas (CA5)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-024</span><span class="ct-title">PR para hml com origem fora do padrão e commit inédito: o gate não bloqueia</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M1. Branch <code>feature/qa-9207-ct024</code>. A mesma PR seria reprovada em stg (CT-PRG-001/014); aqui o alvo não é coberto.</li></ul>
+      <h4>Passos</h4><ol><li>N3: <code>git checkout -b feature/qa-9207-ct024 origin/hml</code> → commit vazio inédito → push.</li><li>N4: PR <code>feature/qa-9207-ct024</code> → <b>hml</b>.</li><li>N5 (variante «sem item»): na PR, listar as policies exibidas; conferir em <b>Pipelines</b> → <b>Runs</b> que <b>não</b> há execução do gate para esta PR; <b>controle positivo</b>: as policies já existentes de hml (build, work item, revisores) aparecem normalmente na mesma tela.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O gate <b>não aparece</b> entre as policies da PR para <code>hml</code> e não há execução dele; as policies pré-existentes continuam listadas (controle positivo). A PR não é bloqueada pelo gate.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-024"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-025</span><span class="ct-title">PR para hml_fix com origem fora do padrão e commit inédito: o gate não bloqueia</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M1. Branch <code>fix/qa-9207-ct025</code>.</li></ul>
+      <h4>Passos</h4><ol><li>N3: <code>git checkout -b fix/qa-9207-ct025 origin/hml_fix</code> → commit vazio inédito → push.</li><li>N4: PR <code>fix/qa-9207-ct025</code> → <b>hml_fix</b>.</li><li>N5 (variante «sem item»): conferir que o gate não aparece e não há execução dele; controle positivo: as policies existentes de hml_fix aparecem.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate ausente e sem execução; policies pré-existentes listadas na mesma tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-025"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-026</span><span class="ct-title">PR para uma branch não coberta pelo gate (develop): o gate não bloqueia</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M1. Branch <code>feature/qa-9207-ct026</code>; alvo <code>develop</code> (branch com policies próprias, sem relação com o gate).</li></ul>
+      <h4>Passos</h4><ol><li>N3: <code>git checkout -b feature/qa-9207-ct026 origin/develop</code> → commit vazio inédito → push.</li><li>N4: PR <code>feature/qa-9207-ct026</code> → <b>develop</b>.</li><li>N5 (variante «sem item»): conferir que o gate não aparece e não há execução dele; controle positivo: as policies existentes de develop aparecem.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate ausente e sem execução; policies de develop listadas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-026"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo F — Configuração das policies e permissão de bypass (CA7 e escopo)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-027</span><span class="ct-title">Build validation do gate obrigatória e automática em stg, stg_fix, main e main_fix — e ausente de hml e hml_fix; vínculo de work item exigido</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Configuração</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue. Leitura somente (sem alterar nenhuma policy). Baseline de 26/10/2026 salvo no repositório de automação para o CT-PRG-034.</li></ul>
+      <h4>Passos</h4><ol><li>No navegador: <b>Project settings</b> → <b>Repositories</b> → <b>CITWEB</b> → aba <b>Policies</b> → seção <b>Branch Policies</b> → clicar a branch <b>stg</b>.</li><li>Na seção <b>Build validation</b> localizar a entrada do gate (nome definido pelo dev): anotar <b>Policy requirement = Required</b>, <b>Trigger = Automatic</b>; na seção <b>Check for linked work items</b> anotar <b>Required</b>. Print de cada seção.</li><li>Repetir para <b>stg_fix</b>, <b>main</b> e <b>main_fix</b>; depois abrir <b>hml</b> e <b>hml_fix</b> e conferir que o gate <b>não</b> está nas Build validations.</li><li>Cruzar com a leitura REST (<code>policy/configurations</code> filtrada pelo repositório): o gate tem <code>isEnabled=true</code> e <code>isBlocking=true</code> em exatamente 4 escopos de branch; salvar o JSON filtrado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O gate aparece como <b>Required</b>, <b>Automatic</b> e habilitado em <code>stg</code>, <code>stg_fix</code>, <code>main</code> e <code>main_fix</code> (4 e somente 4 escopos), com o vínculo de work item também Required nas quatro; ausente em <code>hml</code> e <code>hml_fix</code>. UI e REST concordam.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-027"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-028</span><span class="ct-title">PR com o gate reprovado: quem não tem a permissão de bypass não consegue concluí-la</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Conta do QA sem a permissão de bypass (conferida no CT-PRG-029). Massa M1. Branch <code>promote/qa-9207-ct028</code>. ⛔ Nesta verificação o QA <b>observa</b> a tela; não clica em Complete merge nem em Set auto-complete.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o CT-PRG-001 até o gate <b>Failed</b> (commit inédito, alvo <code>stg</code>).</li><li>Com a conta do QA, abrir a PR e observar a área de conclusão: o botão <b>Complete</b>/<b>Set auto-complete</b>, a mensagem de policies não satisfeitas e a <b>ausência</b> de qualquer opção de bypass (ex.: caixa «Override branch policies» / «Bypass policies»). Print da área de conclusão.</li><li>Leitura REST da PR (<code>pullrequests</code>): estado <b>active</b> e <code>mergeStatus</code>; <code>policy/evaluations</code> com o gate <code>rejected</code> e bloqueante. Salvar os dois JSON.</li><li>N6: abandonar a PR e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conclusão da PR está bloqueada para a conta do QA (botão Complete indisponível ou rejeitado por policy) e nenhuma opção de bypass é oferecida; a PR permanece <b>Active</b> até o abandono. Evidência: print da área de conclusão + JSON.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-028"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-029</span><span class="ct-title">Permissão «Bypass policies when completing pull requests» restrita a administradores no repositório e nas 4 branches</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Configuração</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue. Leitura somente. A <b>lista de quem possui</b> a permissão fica registrada <b>no card (privado)</b>, não neste plano.</li></ul>
+      <h4>Passos</h4><ol><li>REST: <code>permissions</code> do namespace de Git (permissão <b>PullRequestBypassPolicy</b>) para o token do repositório com a identidade do QA; salvar a resposta.</li><li>No navegador: <b>Project settings</b> → <b>Repositories</b> → <b>CITWEB</b> → aba <b>Security</b>; para o grupo de desenvolvedores comuns e para cada grupo de administração, anotar o valor de «Bypass policies when completing pull requests» (Allow / Deny / Not set). Print.</li><li>Repetir na segurança de <b>cada uma das 4 branches</b> (Branches → ⋯ → <b>Branch security</b>), pois a permissão pode ser concedida por branch.</li><li>Registrar no card a lista de identidades com Allow (efetivo) em cada escopo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A permissão efetiva da conta do QA e a do grupo de desenvolvedores comuns é <b>não concedida</b> no repositório e nas 4 branches; só identidades de administração têm Allow. Qualquer concessão a desenvolvedor comum reprova o CT e é descrita no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-029"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-030</span><span class="ct-title">Estratégia de merge das branches de ambiente sem squash (os trailers dos commits não podem ser apagados)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Configuração</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue. Leitura somente. Baseline de 26/10/2026: estratégia <b>no-fast-forward</b> apenas, nas branches de ambiente.</li></ul>
+      <h4>Passos</h4><ol><li>No navegador: <b>Project settings</b> → <b>Repositories</b> → <b>CITWEB</b> → <b>Policies</b> → cada uma de <b>hml</b>, <b>hml_fix</b>, <b>stg</b>, <b>stg_fix</b>, <b>main</b>, <b>main_fix</b> → seção <b>Limit merge types</b>: anotar quais tipos estão marcados. Print de cada.</li><li>Cruzar com a leitura REST do tipo «Require a merge strategy» das 6 branches; salvar o JSON.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas 6 branches só <b>Merge (no fast-forward)</b> está marcado; <b>Squash</b> e <b>Rebase</b> não. Qualquer branch de ambiente com squash permitido reprova o CT.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-030"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo G — ⚠️ EXECUTAR SE: a exceção de hotfix emergencial for entregue neste PBI (item de escopo sem CA — decisão D3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-031</span><span class="ct-title">Exceção de hotfix emergencial: PR vinculada a work item com a tag hotfix-emergencial é aceita pelo gate e a exceção fica registrada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exceção</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>⚠️ EXECUTAR SE a exceção for entregue (decisão D3). Premissa do QA, a ratificar: o gate lê as tags do work item vinculado à PR e, havendo <code>hotfix-emergencial</code>, aprova e <b>registra</b> a exceção no log. Massas M1 e M6. Branch <code>feature/qa-9207-ct031</code>, alvo <code>main</code>.</li></ul>
+      <h4>Passos</h4><ol><li>Criar o work item de teste M6 com a tag <code>hotfix-emergencial</code>.</li><li>N3: <code>git checkout -b feature/qa-9207-ct031 origin/main</code> → commit vazio inédito → push.</li><li>N4: PR <code>feature/qa-9207-ct031</code> → <b>main</b>, vinculando o work item M6 (e não o #9207).</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar a PR, apagar a branch, remover a tag do work item M6 e movê-lo para Removed.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Succeeded</b> e o log registra a exceção citando a tag <code>hotfix-emergencial</code> e o work item vinculado (texto exato registrado). O formato do registro é o que a decisão D3 definir.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-031"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-032</span><span class="ct-title">Contraprova da exceção: a mesma PR sem a tag no work item vinculado continua reprovada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>⚠️ EXECUTAR SE a exceção for entregue (decisão D3). Massa M1. Branch <code>feature/qa-9207-ct032</code>, alvo <code>main</code>; work item vinculado <b>sem</b> a tag (o #9207).</li></ul>
+      <h4>Passos</h4><ol><li>N3: <code>git checkout -b feature/qa-9207-ct032 origin/main</code> → commit vazio inédito → push.</li><li>N4: PR <code>feature/qa-9207-ct032</code> → <b>main</b> vinculada ao #9207 (sem a tag).</li><li>N5: ler o gate e salvar status, avaliação e log.</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gate <b>Failed</b> (regra de origem e commit inédito); nenhuma exceção é registrada — prova que a tag é o que muda o resultado do CT-PRG-031.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-032"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo H — ⚠️ EXECUTAR SE: o gate for entregue em modo de transição, só alerta (decisão D4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-033</span><span class="ct-title">Modo de transição (só alerta): a PR com commit inédito não é bloqueada, mas o aviso aparece no log</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Limite</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>⚠️ EXECUTAR SE o gate for entregue com a variável de transição ligada (decisão D4). Se estiver no modo bloqueante, os CT-PRG-001 a 019 valem como escritos e este CT fica N/A. Massa M1. Branch <code>promote/qa-9207-ct033</code>, alvo <code>stg</code>.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir os passos do CT-PRG-001 com o modo de transição ativo.</li><li>N5: ler o gate; salvar status, avaliação e log; comparar o texto do aviso com o texto de erro do modo bloqueante (CT-PRG-001).</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O build do gate <b>não falha</b> (conclui com aviso) e a PR não é bloqueada por causa do gate; o log traz o mesmo conteúdo do erro do modo bloqueante (commit e ambiente) marcado como aviso.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-033"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo I — Regressão: o gate é aditivo e não enfraquece as policies existentes</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-034</span><span class="ct-title">As policies pré-existentes das 6 branches de ambiente foram preservadas (comparação com o baseline de 26/10/2026)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue. Leitura somente. Baseline: retrato REST das policies das 6 branches em 26/10/2026, salvo no repositório de automação antes da entrega.</li></ul>
+      <h4>Passos</h4><ol><li>Ler de novo as policies das 6 branches (REST <code>policy/configurations</code>, filtro pelo repositório) e salvar o JSON.</li><li>Comparar com o baseline por script (tipo, habilitada, bloqueante, escopo e parâmetros: mínimo de 2 revisores, estratégia de merge, comentários, work item, build existente) e salvar o diff.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O diff mostra <b>apenas adições</b> (o gate nas 4 branches do CA e eventual ajuste de permissão); nenhuma policy pré-existente foi removida, desabilitada ou afrouxada em nenhuma das 6 branches.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-034"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRG-035</span><span class="ct-title">Gate aprovado não substitui as demais policies: a PR que passou no gate continua exigindo revisores, comentários e work item</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Gate entregue e preflight ok. Massa M2. Branch <code>promote/qa-9207-ct035</code> (mesmo desenho do CT-PRG-003, PR própria).</li></ul>
+      <h4>Passos</h4><ol><li>Repetir os passos do CT-PRG-003 até o gate <b>Succeeded</b>.</li><li>Na mesma PR, anotar o estado das demais policies exigidas (mínimo de revisores, comentários, work item, build do repositório) — nenhuma delas é satisfeita pelo gate — e observar a área de conclusão (sem clicar).</li><li>N6: abandonar e apagar a branch.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com o gate <b>Succeeded</b>, a PR continua <b>não concluível</b> enquanto as demais policies obrigatórias não forem satisfeitas (a de revisores aparece pendente); o gate é um check adicional.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução só começa com o Gate 2 aprovado por Produtos e o DoD do dev cumprido. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRG-035"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — PR de promote/* para stg com commit ainda não promovido a hml/hml_fix → gate reprova citando o commit</td><td>CT-PRG-001, CT-PRG-002, CT-PRG-006, CT-PRG-007</td><td>Pendente</td></tr><tr><td>CA2 — PR de promote/* para stg com todos os commits já em hml/hml_fix (hash diferente, mesmo commit de origem) → gate aprova</td><td>CT-PRG-003, CT-PRG-004, CT-PRG-005, CT-PRG-008</td><td>Pendente</td></tr><tr><td>CA3 — PR de promote/* para main com commit em hml e não em stg/stg_fix → gate reprova (mais: aprova quando em stg e hml; reprova quando falta hml)</td><td>CT-PRG-009, CT-PRG-010, CT-PRG-011, CT-PRG-012, CT-PRG-013</td><td>Pendente</td></tr><tr><td>CA4 — PR de feature/* ou fix/* direto para stg, stg_fix, main ou main_fix → gate reprova pela regra de origem</td><td>CT-PRG-014, CT-PRG-015, CT-PRG-016, CT-PRG-017, CT-PRG-018, CT-PRG-019</td><td>Pendente</td></tr><tr><td>CA5 — PR para hml/hml_fix ou para branches não cobertas → gate não bloqueia</td><td>CT-PRG-024, CT-PRG-025, CT-PRG-026</td><td>Pendente</td></tr><tr><td>CA6 — Commit promovido com o skill atualizado contém o trailer (cherry picked from commit <hash original>)</td><td>CT-PRG-020, CT-PRG-021, CT-PRG-022, CT-PRG-023</td><td>Pendente</td></tr><tr><td>CA7 — Dev sem permissão de bypass não conclui PR com o gate reprovado</td><td>CT-PRG-028, CT-PRG-029</td><td>Pendente</td></tr><tr><td>Escopo — skill com cherry-pick -x (range e por hash)</td><td>CT-PRG-020, CT-PRG-021, CT-PRG-022</td><td>Pendente</td></tr><tr><td>Escopo — pipeline do gate: regras de alvo, de origem e mensagem com commit e ambiente</td><td>CT-PRG-001 a CT-PRG-019</td><td>Pendente</td></tr><tr><td>Escopo — Branch Policy Build validation (Required) em stg, stg_fix, main, main_fix + vínculo de work item</td><td>CT-PRG-027, CT-PRG-034</td><td>Pendente</td></tr><tr><td>Escopo — permissão de bypass restrita a administradores</td><td>CT-PRG-029</td><td>Pendente</td></tr><tr><td>Escopo — merge strategy das branches de ambiente sem squash</td><td>CT-PRG-030</td><td>Pendente</td></tr><tr><td>Escopo — exceção para hotfix emergencial (item de escopo sem CA; condicional à decisão D3)</td><td>CT-PRG-031, CT-PRG-032</td><td>Pendente</td></tr><tr><td>Riscos do card — período de transição só alerta (condicional à decisão D4)</td><td>CT-PRG-033</td><td>Pendente</td></tr><tr><td>Regressão — policies pré-existentes preservadas; gate aprovado não substitui revisores/work item</td><td>CT-PRG-034, CT-PRG-035</td><td>Pendente</td></tr><tr><td>Escopo — documentar o novo fluxo (wiki e ADR)</td><td>Sem CT: entregável documental / DoD de engenharia (não gera CT no plano de QA); conferido na revisão do card</td><td>Pendente</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>R1 — A regra de origem promote/* bloqueia a maior parte do fluxo atual (72% das PRs recentes não saíram de promote/*)</td><td>Alta</td><td>Alto</td><td>Decisões D1 e D4: skill gerar promote/*, comunicação ao time e/ou período só alerta; CT-PRG-019 e CT-PRG-023 expõem o conflito antes do deploy.</td></tr><tr><td>R2 — Histórico sem trailer (≈90% da amostra): o fallback por patch-id vira o caminho dominante e dá falso negativo quando houve conflito resolvido no cherry-pick</td><td>Alta</td><td>Médio</td><td>CT-PRG-005 como P1; período só alerta (D4); registrar no exploratório o caso de conflito resolvido.</td></tr><tr><td>R3 — PR de teste concluída por engano promove commit para um ambiente compartilhado</td><td>Baixa</td><td>Alto</td><td>Protocolo de segurança (seção 4): QA nunca conclui, commits vazios, conta sem bypass, abandono imediato, nomes qa-9207.</td></tr><tr><td>R4 — Pipeline ou agente indisponível durante a execução</td><td>Média</td><td>Médio</td><td>Preflight; indisponibilidade = interromper sem veredito (não é reprovação); retomar quando voltar.</td></tr><tr><td>R5 — Massa natural insuficiente para o CT-PRG-013 (commit em stg e ausente de hml)</td><td>Média</td><td>Médio</td><td>Consulta por git cherry registrada; se vazia, o CT fica PENDENTE com a consulta anexada (estado que o QA não pode criar sem escrever em ambiente compartilhado).</td></tr><tr><td>R6 — Quem edita policies pode desligar o gate (permissão fora do escopo literal)</td><td>Média</td><td>Alto</td><td>Decisão D5; registro privado no card.</td></tr><tr><td>R7 — Tempo do gate com clone completo (repositório de ≈207 MB) pode atrasar o fluxo de PRs</td><td>Média</td><td>Médio</td><td>Registrar a duração de cada execução do gate nos CTs; não há CA de tempo — o dado alimenta o dev.</td></tr><tr><td>R8 — Notificação a revisores configurados ao abrir PRs de teste para main/main_fix</td><td>Alta</td><td>Baixo</td><td>Avisar no card antes da janela; lote curto; abandonar logo após a leitura.</td></tr><tr><td>R9 — Mensagem exata do gate ainda não existe (o card define só o conteúdo mínimo: commit + ambiente)</td><td>Alta</td><td>Baixo</td><td>O texto é capturado na execução e registrado por CT; o oráculo é o status do item do gate e o conteúdo mínimo da mensagem.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (26/10/2026) · Sprint 18 · card em New · plano antes do Gate 2 · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
