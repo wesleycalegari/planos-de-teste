@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9275 · RCTR-C botão Excluir ausente (CITNET Novo · KEV)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.cb{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#1f2a3a;border:1px solid #2f4a6b;color:#9cc8ff;margin-left:4px}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9275 · Sprint 18 Citweb</span>
+    <h1>RCTR-C: botão Excluir ausente na tela de edição da averbação</h1>
+    <div class="sub">CITNET Novo (React/API) — Averbações → Nacional → RCTR-C · Tenant KEV SEGUROS S.A. · Ambiente: HML CITNET Novo e HML CITWEB Nacional (legado, oráculo de paridade) · Autor QA: Wesley Moreira · versão 1.0 (29/10/2026)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/3/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%;background:#3fb950"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>8 CTs: 0 executados.</strong> Falta testar: 8 CTs (5×P1 · 3×P2 · 0×P3) — plano de execução publicado em 29/10/2026; Bug: sem Gate 2 de Produtos.</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8, "na": 0}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET Novo (nsseg Faturamento — front React + API) · Averbações → Nacional → <b>RCTR-C</b> (ramo 54, com RC-DC no ramo 55) — tela de edição do protocolo; paridade com o CITWEB Nacional (legado) do mesmo tenant</td></tr>
+    <tr><th>Card</th><td>BUG-9275 — [CITNET Novo] [NSSEG - KEV] Averbação RCTR-C: botão Excluir ausente na tela de edição · Sprint 18 Citweb · Severity <b>2 - High</b> · Prioridade 1 · Tags: citnet-novo; KEV; nsseg · Criado por Wesley Moreira (QA) em 21/10/2026 (CT-RTR-007 da varredura do CITNET Novo) · Dev: José Ribeiro Carvalho · estado <b>Pronto para homologação</b> desde 29/10/2026</td></tr>
+    <tr><th>Tasks filhas</th><td>#9419 Análise e Desenvolvimento (Done; José Ribeiro Carvalho)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 (Produtos não aprova plano de Bug — decisão de 26/10/2026). Plano publicado com o marcador de execução pronta; a execução é feita em HML e o resultado segue no formato NOR_QA_002 no card.</td></tr>
+    <tr><th>Resposta do dev</th><td>Comentário de 29/10/2026: «comportamento igual ao legado — não é ausência do botão». Segundo o dev, o 4º botão da barra é a ação Excluir e o rótulo troca para «Cancelar» quando o campo de certificado/chave do movimento está preenchido; pede que o QA ajuste o critério de aceite. Sem alteração de código. <b>Relato do dev não é oráculo:</b> cada afirmação é conferida em tela, nos dois sistemas (CT-9275-01 a 08).</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET Novo e HML do CITWEB Nacional (legado) · tenant <b>KEV SEGUROS S.A.</b> · perfil <b>INTERNO</b> no app novo e usuário Nacional no legado (credenciais do QA — fora deste documento) · Filial 1 - SÃO PAULO · Apólice 333 · banco consultado somente para leitura</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 29/10/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo (tenant KEV, perfil INTERNO), em <b>Averbações → RCTR-C</b>, a tela «Editar Averbação RCTR-C» mostra a barra de ações Novo · Gravar · Imprimir · <b>Cancelar</b>, sem o botão «Excluir» que o RCA-C (ramo 56) e o Transporte Nacional (ramo 21) têm na mesma posição. O QA reportou em 21/10 (protocolo 10 da apólice 333 e protocolo 2 da apólice 5409052026/5509052026) e, na reconfirmação de 22/10, descreveu o 4º botão como vermelho com ícone de lixeira, rotulado «Cancelar», sem medir o que ele faz. O dev respondeu em 29/10 que o botão é a ação de exclusão e que o rótulo muda para «Cancelar» quando o campo de certificado/chave do movimento está preenchido, o que seria uma regra do legado. Este plano mede, em tela e no banco, o que o botão faz e como o legado se comporta para os mesmos protocolos, para decidir se o app novo é igual ao legado (defeito não procede) ou diverge (reprovado, devolvido ao dev).</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com cenário atual, comportamento esperado e critério de aceite descritos pelo QA, usuário/tenant/ambiente e apólices declarados e evidências de 21–22/10 no card. O oráculo é a <b>tela</b> (rótulo e estado dos botões, texto do modal e da mensagem), o <b>banco</b> (situação do protocolo/averbação) e o <b>legado</b> em tela (paridade). Nunca «não deu erro».</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>RCTR-C no app novo: rótulo e função do 4º botão da barra de edição para protocolo «Outros» (CT-9275-01, 02), sem certificado/chave (CT-9275-03) e com CT-e (CT-9275-04); cenário original do card (CT-9275-05).</li>
+    <li>RCTR-C no legado do KEV: botões Excluir/Cancelar, modal e mensagens para «Outros» e CT-e (CT-9275-06, 07).</li>
+    <li>Regressão: RCA-C e Transporte Nacional seguem com «Excluir» (CT-9275-08).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A).</li>
+    <li><b>Itens de DoD de engenharia</b> (PR, testes unitários, deploy) — não geram CT.</li>
+    <li><b>Outros tenants e ramos</b> — a regra de um ramo não vale para os demais; só RCTR-C no KEV (RCA-C e Transporte Nacional apenas como regressão).</li>
+    <li><b>Massa do dev e de outros cards</b> — não é tocada.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação sempre por clique a partir do login — nunca por URL direta (exceto o endereço do login). Evidência por CT no bloco do próprio CT e anexada ao card (nunca no repositório público). Massa criada pelo QA é excluída pela tela no fim e a exclusão é provada por consulta.</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET Novo e HML do CITWEB Nacional (legado) no ar (conferido antes de cada bloco); banco do tenant KEV acessível para leitura.</li>
+    <li><b>Perfis:</b> INTERNO do KEV no app novo e usuário Nacional do KEV no legado. Um login por bloco de CTs (limite de tentativas de login do ambiente; falha de comunicação no login é bloqueio de ambiente, não reprovação).</li>
+    <li><b>Apólices:</b> Filial <code>1 - SÃO PAULO</code> · Apólice <code>333</code> · Subgrupo 1 (RCTR-C, RCA-C e Transporte Nacional); Apólice <code>5409052026/5509052026</code> (par 54/55) e Apólice <code>1</code> para o protocolo sem certificado.</li>
+    <li><b>Massa já existente (somente leitura):</b> protocolo 10 da apólice 333 (série RT001, documento 21120012) e protocolo 2 da apólice 5409052026; protocolo do QA de 05/10/2026 (apólice 1, série 1, documento 7990001) com o campo de certificado/chave vazio.</li>
+    <li><b>Massa criada na rodada:</b> série <code>QA275</code> com documentos inéditos (Outros e CT-e) no app novo e no legado, excluída/cancelada pela tela nos próprios CTs.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — App novo (CITNET Novo, KEV): o 4º botão da barra de edição do RCTR-C</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-01</span><span class="ct-title">Protocolo «Outros» (série + documento): o 4º botão da barra de edição deve ser «Excluir» — como no legado e no critério de aceite do card</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 - SÃO PAULO · Apólice 333 · Subgrupo 1 (ramo 54, RCTR-C). Massa criada pelo QA na rodada: série <code>QA275</code> + documento inédito de 8 dígitos (Tipo Documento = Outros). Com o protocolo gravado, a consulta somente leitura ao banco mostra o campo de certificado/chave preenchido (série-documento) — é o caso do protocolo 10 do card.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b> → <b>Novo Protocolo</b>; Filial 1, Apólice 333, Tipo Documento <b>Outros (NS, ETC)</b>, Série QA275, Documento inédito, Data de saída de hoje, Placa <code>ABC1D23</code>, Meio de transporte Rodoviário, Origem SP / <code>50308 — SÃO PAULO</code>, Destino RJ / <code>4557 — RIO DE JANEIRO</code>, Mercadoria <code>0000000639 — CAFE EM GRAOS</code>, Valor IS 70.000,00, Observações; <b>Gravar</b> (toast «Averbação gravada com sucesso. Protocolo N.»).</li><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; Filial 1, Apólice 333, <b>Consultar</b>; clicar na linha do documento QA275 (tela «Editar Averbação RCTR-C · Protocolo N»).</li><li>Ler por DOM a barra de ações (rótulo e habilitado/desabilitado de cada botão); recarregar com F5 e ler de novo; conferir no banco (somente leitura) a situação do protocolo (cadastrado) e o campo de certificado/chave.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Barra: Novo · Gravar · Imprimir · <b>Excluir</b> (habilitado). O legado, para o mesmo tipo de documento, mostra «Excluir» habilitado (CT-9275-06). O rótulo «Cancelar» no lugar de «Excluir» reprova o critério de aceite do card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-01_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-01_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-02</span><span class="ct-title">Protocolo «Outros»: o clique no botão de exclusão pede a confirmação de exclusão, mostra a mensagem de exclusão e remove o protocolo (grid, F5 e banco)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). O mesmo protocolo do CT-9275-01 (massa descartável do QA; é consumida por este CT).</li></ul>
+      <h4>Passos</h4><ol><li>Na edição do protocolo, clicar no 4º botão da barra (botão vermelho com lixeira); ler o texto exato do modal de confirmação.</li><li>Clicar em <b>Sim</b>; ler a mensagem exata exibida.</li><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; Filial 1, Apólice 333, <b>Consultar</b>; conferir que a linha do documento QA275 não aparece; recarregar com F5 e repetir; conferir no banco a situação do protocolo (excluído).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Modal «Confirma a exclusão?» e toast «Exclusão efetuada com sucesso!» (textos do legado para o mesmo tipo de documento — CT-9275-06); protocolo fora do grid depois do F5 e banco = excluído.</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-02_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-02_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-03</span><span class="ct-title">Protocolo SEM certificado/chave (campo vazio): o botão é «Excluir» e a exclusão funciona (regra do próprio dev)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Massa do QA já existente no banco: protocolo cadastrado por QATESTE em 05/10/2026 (Filial 1 · Apólice 1 · série 1 · documento 7990001), com o campo de certificado/chave vazio (confirmado por consulta somente leitura antes do CT). Se a tela não o listar, a massa equivalente é criada pelo QA na rodada (protocolo QA275 com o campo esvaziado no banco) e o fato é registrado no resultado.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; Filial 1, Apólice 1, <b>Consultar</b>; clicar na linha do documento 7990001.</li><li>Ler por DOM a barra de ações.</li><li>Clicar no 4º botão; ler o modal; clicar em <b>Sim</b>; ler a mensagem; reconsultar o grid e recarregar com F5; conferir no banco a situação do protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>4º botão rotulado «Excluir» (o dev afirma que o rótulo só vira «Cancelar» com o campo preenchido); clique abre a confirmação, exclui e o banco confirma (excluído).</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-03_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-03_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-03"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-04</span><span class="ct-title">Protocolo COM certificado de CT-e (chave de 44 posições): o 4º botão é «Cancelar» e a ação é cancelamento de CT-e (nunca exclusão)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 · Apólice 333 · Subgrupo 1 (ramo 54). Massa criada pelo QA na rodada: Tipo Documento = CTE com chave sintética de 44 dígitos (dígito verificador válido; CNPJ sintético, só em evidência privada).</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b> → <b>Novo Protocolo</b>; Filial 1, Apólice 333, Tipo Documento <b>CTE</b>, chave sintética; completar os obrigatórios (data de saída, placa, meio de transporte, origem/destino, mercadoria, valor IS, CNPJ Embarcador sintético, observações); <b>Gravar</b>.</li><li>Abrir o protocolo pelo grid; ler por DOM a barra de ações; clicar no 4º botão; ler o modal; clicar em <b>Sim</b>; ler a mensagem; reconsultar o grid e recarregar com F5; conferir no banco a situação do protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>4º botão rotulado «Cancelar»; modal «Confirma cancelamento do CTE?» e toast «Cancelamento efetuado com sucesso!» (textos do legado para CT-e — CT-9275-07); o protocolo sai do grid e o banco confirma.</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-04_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-04_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-05</span><span class="ct-title">Cenário do card (21–22/10): reabrir o protocolo 10 (apólice 333, Filial 1) e o protocolo 2 da apólice 5409052026/5509052026 (ramos 54/55) e explicar a barra à luz da regra</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Protocolos do ReproSteps do card (massa do QA de 21/10; somente leitura — nada é gravado nem clicado nos botões). Consulta somente leitura ao banco para o tipo de documento e o campo de certificado/chave de cada um.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; Filial 1, Apólice 333, <b>Consultar</b>; clicar na linha do Protocolo 10; ler por DOM a barra; F5; ler de novo.</li><li>Repetir com a Apólice 5409052026/5509052026 (par 54/55) e o Protocolo 2.</li><li>Conferir no banco o tipo de documento e o campo de certificado/chave dos dois protocolos.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Reproduz o relato do card: 4 botões (Novo · Gravar · Imprimir · 4º botão vermelho). Critério de aceite do card: o 4º botão deve ser «Excluir», como no legado para o mesmo protocolo (CT-9275-06).</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-05_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-05_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-05"></div>
+    </div>
+  </div>
+  <div class="group-header">B — Paridade com o legado (CITWEB Nacional, KEV)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-06</span><span class="ct-title">PARIDADE — legado (CITWEB Nacional, KEV): protocolo «Outros» (inclusive o protocolo 10 do card) mostra «Excluir» habilitado e «Cancelar» desabilitado; a exclusão pede «Confirma a exclusão?»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITWEB Nacional do KEV (legado), usuário Nacional do QA (credencial fora deste documento). Filial 1 · Apólice 333 · Subgrupo 1. Leitura do protocolo 10 do card (averbação processada) e massa criada pelo QA na rodada (série <code>QA275</code>, Tipo Documento = Outros), excluída pela tela no fim.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbação</b> → <b>RCTR-C</b>; Filial 1, Apólice 333, Subgrupo 1; abrir <b>Consulta Averbação</b> → <b>POR NRO DOCUMENTO</b> (Documento 21120012) → <b>Pesquisar</b> → clicar na linha (protocolo 10); ler a barra de ações (rótulo e habilitado) sem clicar.</li><li>Gravar uma averbação «Outros» do QA (série QA275, documento inédito); consultá-la pela mesma Consulta; ler a barra.</li><li>Clicar em <b>Excluir</b>; ler o texto do modal; clicar em <b>Sim</b>; ler a mensagem; conferir no banco que a averbação saiu da tabela de averbações.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Barra: Novo · Gravar · Imprimir · <b>Excluir</b> (habilitado) · <b>Cancelar</b> (desabilitado) para «Outros»; «Confirma a exclusão?»; «Exclusão efetuada com sucesso!»; averbação removida (banco).</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-06_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-06_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-06"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-07</span><span class="ct-title">PARIDADE — legado: averbação com CT-e mostra «Excluir» e «Cancelar» habilitados; «Cancelar» pede «Confirma cancelamento do CTE?»</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITWEB Nacional do KEV (legado), usuário Nacional do QA (credencial fora deste documento). Averbação com CT-e já existente da apólice 333 (massa do QA, somente leitura para a barra) e, se o legado aceitar a chave sintética, massa do QA criada na rodada para o clique em «Cancelar».</li></ul>
+      <h4>Passos</h4><ol><li>Pela Consulta Averbação (POR APÓLICE ou POR CTE), abrir uma averbação com CT-e; ler a barra de ações.</li><li>Quando houver massa do QA com CT-e: clicar em <b>Cancelar</b>; ler o modal; clicar em <b>Sim</b>; ler a mensagem; conferir no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Barra com «Excluir» e «Cancelar» habilitados para CT-e; modal «Confirma cancelamento do CTE?»; mensagem «Cancelamento efetuado com sucesso!».</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-07_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-07_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-07"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Regressão nas outras telas de edição</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9275-08</span><span class="ct-title">Regressão — RCA-C (ramo 56) e Transporte Nacional (ramo 21): o botão «Excluir» continua presente e habilitado na tela de edição</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 · Apólice 333; protocolos existentes do QA (somente leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCA-C</b>; Filial 1, Apólice 333, <b>Consultar</b>; abrir um protocolo; ler a barra por DOM.</li><li>Repetir em <b>Averbações</b> → <b>Transporte Nacional</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nos dois ramos a barra mostra «Excluir» habilitado (não pode regredir).</li></ul>
+      <h4>Resultado da execução</h4><ul><li>Ainda não executado (plano de execução).</li></ul>
+      <p class="sub">Evidência: anexos do card #9275 com o nome «ev_CT-9275-08_…» (tela, banco e rede, do login ao fim do cenário) e o pacote «CT-9275-08_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9275-08"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério de aceite do card: a tela de Editar Averbação RCTR-C deve exibir e permitir usar o botão «Excluir», igual aos demais ramos de Averbação Nacional, para remover uma averbação existente</td><td>CT-9275-01, 02, 03, 05, 08</td><td>Pendente</td></tr><tr><td>Premissa do dev (comentário de 29/10): o rótulo troca para «Cancelar» só quando o campo de certificado/chave está preenchido, «igual ao legado» — o oráculo é o legado em tela</td><td>CT-9275-03, 04, 06, 07</td><td>Pendente</td></tr><tr><td>Cenário reportado em 21–22/10 (protocolo 10 da apólice 333 e protocolo 2 da apólice 5409052026/5509052026)</td><td>CT-9275-05</td><td>Pendente</td></tr><tr><td>Regressão: RCA-C e Transporte Nacional seguem com «Excluir» na edição</td><td>CT-9275-08</td><td>Pendente</td></tr><tr><td>DoD de engenharia (PR com aprovadores, testes unitários, deploy)</td><td>— sem CT</td><td>Enforçado pela branch policy e pelo DoD do dev, fora da homologação</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Total de CTs</th><th>P1</th><th>P2</th><th>P3</th><th>Aprovados</th><th>Reprovados</th><th>Bloqueados</th><th>N/A</th><th>Pendentes</th><th>Cobertura dos critérios de produto</th></tr>
+    <tr><td>8</td><td>5</td><td>3</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>8</td><td>Critério de aceite do card, premissa do dev, cenário original (21–22/10), paridade com o legado e regressão mapeados a CT; itens de DoD fora do plano por serem de processo</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O dev não alterou código (comentário de 29/10): o que se testa é o comportamento atual do HML, não um fix</td><td>Alta</td><td>Alto</td><td>Cada CT mede em tela o que o HML serve hoje; o relato do dev é insumo, não oráculo.</td></tr><tr><td>Rate-limit do login do CITNET Novo (várias sessões de QA no mesmo ambiente)</td><td>Alta</td><td>Médio</td><td>Um login por bloco de CTs, espaçado; falha de comunicação no login é bloqueio de ambiente, nunca reprovação.</td></tr><tr><td>Protocolo sem certificado é raro na base do KEV (só 2 de ~9.500 do RCTR-C)</td><td>Média</td><td>Médio</td><td>Usar o protocolo do QA já existente (CT-9275-03) e, na falta dele, massa equivalente do QA com o campo esvaziado, registrado no resultado.</td></tr><tr><td>Consumo de massa pelos CTs destrutivos</td><td>Média</td><td>Baixo</td><td>Só massa do QA (série QA275 e protocolo do QA de 05/10); massa do dev e de outros cards não é tocada; exclusões provadas por consulta.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (29/10/2026) · Sprint 18; card em Pronto para homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
