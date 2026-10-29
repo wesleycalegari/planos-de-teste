@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9319 · RCA-C reabrir protocolo mostra valor antigo (CITNET Novo · KEV)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.cb{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#1f2a3a;border:1px solid #2f4a6b;color:#9cc8ff;margin-left:4px}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9319 · Sprint 18 Citweb</span>
+    <h1>RCA-C: reabrir na mesma sessão um protocolo recém-editado mostra o valor antigo (detalhe em cache de 60 s sem invalidação após o Gravar)</h1>
+    <div class="sub">CITNET Novo (React/API) — Averbações → RCA-C / Transporte Nacional / RCTR-C · Tenant KEV SEGUROS S.A. · Ambiente: HML CITNET Novo · Autor QA: Wesley Moreira · versão 1.0 (29/10/2026) — reteste do fix em HML: <b>5 aprovados · 0 reprovados · 1 N/A</b></div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">6</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">6</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 6 executados · 6 pendentes</strong> — plano publicado, aguardando a validação do Gate 2 de Produtos (nenhum CT executado ainda). Falta testar: <strong>6 CTs</strong> (3×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 6, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 6}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET Novo (nsseg Faturamento — front React + API) · Averbações → Nacional → <b>RCA-C</b> (ramo 56), <b>Transporte Nacional</b> (ramo 21) e <b>RCTR-C</b> (ramo 54, regressão) — tela de edição do protocolo</td></tr>
+    <tr><th>Card</th><td>BUG-9319 — RCA-C: reabrir na mesma sessão um protocolo recém-editado mostra o valor antigo (detalhe em cache de 60 s sem invalidação após o Gravar) · Sprint 18 Citweb · Severity <b>3 - Medium</b> · Tags: citnet-novo; DEFEITO; KEV; nsseg · Criado por Wesley Moreira (QA) em 23/10/2026, achado do CT-CNE-014 do Bug #9271 · Dev: Diego Almeida · estado <b>Pronto para homologação</b> desde 27/10/2026 · Relacionados: #9271 e #9311</td></tr>
+    <tr><th>Tasks filhas</th><td>#9360 Desenvolvimento (Done) · #9361 Teste do desenvolvedor (Done) · #9362 PR e testes HML (Done) · #9363 QA e testes HML (Done; Wesley Moreira)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 (Produtos não aprova plano de Bug — decisão de 26/10/2026). O reteste foi executado em 29/10/2026 e este plano formaliza os CTs, a rastreabilidade e os resultados da rodada; o comentário de resultado (NOR_QA_002) está no card.</td></tr>
+    <tr><th>Fix do dev</th><td>PRs 18814 e 18816 (relato do dev, comentários 3458948, 3458949 e 3458966): só front — o detalhe do protocolo passa a ser relido depois do Gravar (invalidação do cache de 60 s). <b>Relato do dev não é oráculo:</b> a QA provou o comportamento em tela e no banco (CT-9319-01 a 05).</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET Novo · tenant <b>KEV SEGUROS S.A.</b> · perfil <b>INTERNO</b> (credencial do QA — fora deste documento) · Filial 1 - SÃO PAULO · Apólice 333 · banco consultado somente para leitura</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 29/10/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo (tenant KEV, perfil INTERNO), em <b>Averbações → RCA-C</b>, depois de editar um protocolo e clicar em <b>Gravar</b> (toast de sucesso, gravação HTTP 201), reabrir o mesmo protocolo na mesma sessão — voltando à Consulta pelo breadcrumb ou pelo Início — mostrava na tela de edição o valor <b>antigo</b> do campo (medido no Empurrador) e a «Data de alteração» antiga, embora o banco e a lista da Consulta já tivessem o valor novo. Em sessão nova a tela mostrava o valor persistido. A causa informada pelo dev: o detalhe do protocolo é guardado em cache por 60 s e o Gravar não o invalidava (padrão também presente no Transporte Nacional; o RCTR-C já relia o detalhe a cada abertura). Este plano valida, em HML, que depois do fix a tela reaberta mostra o valor gravado e a data nova, dentro e fora da janela de 60 s, que o banco confere, que o Transporte Nacional segue o mesmo comportamento e que o RCTR-C não regrediu.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com cenário atual descrito, comportamento esperado derivável (a tela de edição mostra o que foi gravado), usuário/tenant/ambiente e apólice declarados e evidências de 23/10 no card. O oráculo de cada CT é a <b>tela</b> (valor do campo e «Data de alteração»), o <b>banco</b> (persistência) e a <b>rede</b> (releitura do detalhe depois do Gravar) — nunca «não deu erro».</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>RCA-C (ramo 56): reabrir o protocolo depois de editar e gravar — pela Consulta (breadcrumb) e pelo Início, antes e depois da janela de 60 s (CT-9319-01, 02) e em sessão nova (CT-9319-03).</li>
+    <li>Transporte Nacional (ramo 21): mesmo padrão de cache (CT-9319-04).</li>
+    <li>Regressão do RCTR-C (ramo 54): edição do CNPJ Embarcador e reabertura (CT-9319-05).</li>
+    <li>Cadastro de operação: item do fix informado pelo dev (CT-9319-06 — N/A: tela inexistente no app novo em HML).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A).</li>
+    <li><b>Itens de DoD de engenharia</b> (PR, testes unitários, deploy) — não geram CT; ver matriz.</li>
+    <li><b>RCA-C em outro tenant (AXA)</b> — exigiria massa nova no cliente; opcional e não executado.</li>
+    <li><b>RCV, RCTAC e RCTFC</b> — já invalidavam o cache antes do fix, sem alteração.</li>
+    <li><b>Exclusão seguida de Consulta (RCTA-C/RCTF-C)</b> — outro Bug (#9349), não faz parte deste.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação sempre por clique a partir do login — nunca por URL direta (exceto o endereço do login). Evidência por CT no bloco do próprio CT e anexada ao card (nunca no repositório público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET Novo com o front do fix já implantado (conferido por comportamento, não por relato do dev) e o banco do tenant KEV acessível para leitura.</li>
+    <li><b>Perfil:</b> INTERNO do tenant KEV SEGUROS S.A. (credencial do QA — fora deste documento). Um login por bloco de CTs (limite de tentativas de login do ambiente).</li>
+    <li><b>Apólice:</b> Filial <code>1 - SÃO PAULO</code> · Apólice <code>333</code> · Subgrupo 1 — usada nos três ramos desta rodada (RCA-C 56, TRN 21 e RCTR-C 54).</li>
+    <li><b>Massa:</b> protocolos criados pelo QA na rodada, série <code>QA319</code> (RCA-C documento 32946455; TRN documento 32957483; RCTR-C documento 32945157); CNPJs sintéticos de teste com dígito verificador válido. Ao final, a massa do QA é excluída pela tela e a exclusão é provada por consulta.</li>
+    <li><b>Janela de 60 s:</b> medir o tempo entre o Gravar e a reabertura (CT-9319-01 abaixo de 60 s; CT-9319-02 acima de 60 s).</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — RCA-C: o defeito do card (cache do detalhe após o Gravar)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-01</span><span class="ct-title">RCA-C: reabrir na MESMA sessão, menos de 60 s depois do Gravar, mostra o valor novo e a «Data de alteração» nova</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 - SÃO PAULO · Apólice 333 · Subgrupo 1 (ramo 56, RCA-C). Massa criada pelo QA na própria rodada (série QA319).</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCA-C</b> → <b>Novo Protocolo</b>; preencher Filial 1, Apólice 333, Subgrupo 1, série QA319, documento 32946455, data de saída 29/10/2026, 1ª balsa, UF SP→RJ, mercadoria 0000000639, valor 60.000,00; <b>Gravar</b> (toast «Averbação gravada com sucesso. Protocolo 24.»).</li><li>Na edição do protocolo, digitar Empurrador = <code>EMP A 142419</code>; <b>Gravar</b>; clicar no breadcrumb <b>Averbação RCA-C</b>; <b>Limpar</b>, Filial 1, Apólice 333, <b>Consultar</b>; clicar na linha do mesmo documento; ler o campo Empurrador.</li><li>Trocar para Empurrador = <code>EMP B 142419</code>; <b>Gravar</b>; breadcrumb; refazer os filtros; <b>Consultar</b>; clicar na mesma linha (reabertura ~13 s depois do Gravar); ler Empurrador e «Data de alteração»; conferir o valor no banco (consulta somente leitura) e o tráfego de rede da reabertura.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela de edição reaberta mostra o valor gravado e a «Data de alteração» nova (não a antiga); banco = tela; depois do Gravar o app relê o detalhe do protocolo (invalida o cache de 60 s).</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li>Valor A: tela com <code>EMP A 142419</code> e Data de alteração 29/10/2026 14:25; banco = tela, reabertura 12,7 s depois do Gravar.</li><li>Valor B: tela com <code>EMP B 142419</code> e Data de alteração 29/10/2026 14:26 (era 14:25); banco = tela, reabertura 12,7 s depois do Gravar.</li><li>Rede: depois de cada gravação (HTTP 201) o app emite a leitura do detalhe do protocolo em ~0,17 s (invalidação); na reabertura, dentro dos 60 s, a tela usa o dado já atualizado (nenhuma leitura extra). Antes do fix (23/10, anexos do card) essa releitura não era emitida e a tela mostrava o valor antigo.</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-01_…» (tela, banco e rede) e o pacote «CT-9319-01_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-02</span><span class="ct-title">RCA-C: voltando pelo Início e controle da janela de 60 s (reabertura depois de mais de 60 s)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Mesmo protocolo do CT-9319-01, já com o valor B gravado.</li></ul>
+      <h4>Passos</h4><ol><li>(b1) Clicar em <b>Início</b> → <b>Averbações</b> → <b>RCA-C</b>; <b>Limpar</b>, Filial 1, Apólice 333, <b>Consultar</b>; clicar na mesma linha (~27 s depois do Gravar do valor B); ler Empurrador e «Data de alteração».</li><li>(b2) Trocar para Empurrador = <code>EMP C 142419</code>; <b>Gravar</b>; esperar 70 s; breadcrumb; refazer os filtros; <b>Consultar</b>; clicar na mesma linha (~83 s depois do Gravar); ler o campo e a «Data de alteração»; conferir o banco e o tráfego de rede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>b1 mostra o valor B e a Data de alteração 14:26; b2 (cache de 60 s expirado) mostra o valor C e a data nova, e a leitura do detalhe é emitida na reabertura.</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li>b1: tela com <code>EMP B 142419</code>, Data de alteração 29/10/2026 14:26 (sem leitura extra: dentro dos 60 s e já atualizado).</li><li>b2: tela com <code>EMP C 142419</code>, Data de alteração 29/10/2026 14:27; banco = tela.</li><li>Rede (b2): leitura do detalhe 0,19 s depois da gravação e de novo na reabertura (82,9 s depois do Gravar, janela de 60 s expirada).</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-02_…» (tela, banco e rede) e o pacote «CT-9319-02_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-03</span><span class="ct-title">Contraprova com NOVO login: valor persistido (RCA-C) e CNPJ persistido (RCTR-C)</span><span class="badge prio importante">P2</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento) — sessão de navegador nova (sem cookies). Protocolos do QA dos CT-9319-01/02 (RCA-C) e do CT-9319-05 (RCTR-C).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir uma sessão de navegador nova e fazer novo login (perfil INTERNO, KEV).</li><li>Clicar em <b>Averbações</b> → <b>RCA-C</b>; filtros; <b>Consultar</b>; clicar na linha do documento 32946455; ler Empurrador e «Data de alteração»; conferir o banco.</li><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; filtros; <b>Consultar</b>; clicar na linha do documento 32945157; ler o CNPJ Embarcador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A sessão nova mostra o valor persistido (RCA-C: <code>EMP C 142419</code>, alteração 14:27) e o CNPJ novo (RCTR-C).</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li>RCA-C: tela com <code>EMP C 142419</code>, Data de alteração 29/10/2026 14:27; banco igual ao último valor gravado (mesmo estado do CT-9319-02 b2; a diferença é a sessão nova).</li><li>RCTR-C (protocolo 51): o CNPJ Embarcador é igual ao valor digitado na edição (conferido por script).</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-03_…» (tela, banco e rede) e o pacote «CT-9319-03_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-03"></div>
+    </div>
+  </div>
+  <div class="group-header">B — Mesmo padrão em outras telas e regressão (TRN e RCTR-C)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-04</span><span class="ct-title">TRN (ramo 21): reabrir na mesma sessão depois de editar e gravar mostra o valor novo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 · Apólice 333 (ramo 21, Transporte Nacional). Massa criada pelo QA na rodada.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>Transporte Nacional</b> → <b>Novo Protocolo</b>; Filial 1, Apólice 333, série QA319, documento 32957483, Veículo V0144228, Rodoviário, cobertura AMPLA A, UF SP→RJ, mercadoria 50.000,00; <b>Gravar</b> (toast, Protocolo 39).</li><li>Na edição, Veículo = <code>VA144228</code>; <b>Gravar</b>; breadcrumb <b>Averbação Transporte Nacional</b>; filtros; <b>Consultar</b> (próxima página da grade); clicar na mesma linha; ler o campo.</li><li>Veículo = <code>VB144228</code>; <b>Gravar</b>; breadcrumb; filtros; <b>Consultar</b>; mesma linha (~14,5 s depois do Gravar); ler o campo; conferir o banco e o tráfego de rede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela reaberta mostra o valor gravado (A, depois B) e o banco confere; o detalhe é relido depois do Gravar.</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li>Valor A: tela com <code>VA144228</code>; banco = tela, 14,5 s depois do Gravar.</li><li>Valor B: tela com <code>VB144228</code>; banco = tela, 14,5 s depois do Gravar.</li><li>Rede: leitura do detalhe emitida em 0,17 s e 0,16 s depois de cada gravação (HTTP 201); nenhuma leitura extra na reabertura (cache atualizado). A tela do TRN não exibe «Data de alteração».</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-04_…» (tela, banco e rede) e o pacote «CT-9319-04_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-05</span><span class="ct-title">RCTR-C (ramo 54) — regressão do CT-CNE-009: editar o CNPJ Embarcador e reabrir na mesma sessão</span><span class="badge prio importante">P2</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Filial 1 · Apólice 333 (ramo 54, RCTR-C). CNPJ sintético de teste (dígito verificador válido). Massa criada pelo QA na rodada.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b> → <b>Novo Protocolo</b>; Filial 1, Apólice 333, tipo Outros, série QA319, documento 32945157, CNPJ Embarcador sintético; <b>Gravar</b> (Protocolo 51).</li><li>Na edição, trocar o CNPJ Embarcador por outro CNPJ sintético válido; <b>Gravar</b>; clicar em <b>Averbações</b> → <b>RCTR-C</b>; filtros; <b>Consultar</b>; mesma linha (~15 s depois do Gravar); ler o campo; conferir o banco e o tráfego de rede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela reaberta mostra o CNPJ novo, igual ao digitado; o banco confere (o RCTR-C já relia o detalhe a cada abertura — não pode regredir).</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li>Tela reaberta com o CNPJ novo (diferente do anterior), valor completo igual ao digitado (conferido por script); banco igual ao CNPJ digitado.</li><li>Rede: leitura do detalhe 0,21 s depois da gravação e de novo na reabertura (o RCTR-C relê a cada abertura).</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-05_…» (tela, banco e rede) e o pacote «CT-9319-05_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-05"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Cadastro de operação (fora do escopo testável em HML)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9319-06</span><span class="ct-title">Cadastro de operação: reabrir após alterar</span><span class="badge prio desejavel">P3</span><span class="badge badge-na">N/A</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir cada grupo do menu lateral (<b>Averbações</b>, <b>Relatórios</b>, <b>Conversor</b>, <b>Faturamento</b>, <b>Manuais</b>) e listar os itens pelo DOM, procurando «Operações».</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Encontrar o menu Operações para repetir o cenário do cache no cadastro de operação.</li></ul>
+      <h4>Resultado da execução (29/10/2026)</h4><ul><li><b>N/A (fora do escopo testável em HML):</b> o menu do KEV INTERNO não tem «Operações» (nenhum item com esse texto e nenhum link de operação nos 5 grupos; 0 de 18 itens listados). O dev informa que só há teste unitário para essa tela (comentário 3458966); sem prova da QA, o CT não é aprovado nem reprovado.</li></ul>
+      <p class="sub">Evidência: anexos do card #9319 e da task #9363 com o nome «ev_CT-9319-06_…» (tela, banco e rede) e o pacote «CT-9319-06_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9319-06"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Reabrir o protocolo do RCA-C na mesma sessão, depois do Gravar, deve mostrar o valor e a «Data de alteração» novos (comportamento esperado do Bug)</td><td>CT-9319-01, CT-9319-02</td><td>Aprovado</td></tr><tr><td>A releitura do detalhe só pode depender do Gravar, não do tempo: depois de 60 s o valor novo continua aparecendo</td><td>CT-9319-02</td><td>Aprovado</td></tr><tr><td>Em sessão nova (novo login) a tela mostra o valor persistido (contraprova do banco)</td><td>CT-9319-03</td><td>Aprovado</td></tr><tr><td>Mesmo padrão de cache no TRN (ramo 21): reabrir depois de editar mostra o valor novo</td><td>CT-9319-04</td><td>Aprovado</td></tr><tr><td>Regressão: o RCTR-C (que já relia o detalhe) não pode piorar com o fix</td><td>CT-9319-05, CT-9319-03</td><td>Aprovado</td></tr><tr><td>Cadastro de operação (fix informado pelo dev)</td><td>CT-9319-06</td><td>N/A (tela inexistente no app novo em HML; só teste unitário do dev)</td></tr><tr><td>DoD de engenharia (PR com aprovadores, testes unitários, deploy)</td><td>— sem CT</td><td>Enforçado pela branch policy e pelo DoD do dev, fora da homologação</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O fix é só de front: se o HML servir um build antigo, o reteste não prova o fix</td><td>Média</td><td>Alto</td><td>Medido em 29/10: o front servido já tem o fix — a releitura do detalhe após o Gravar aparece na rede (CT-9319-01/04); o sintoma de 23/10 (sem releitura) não se repetiu.</td></tr><tr><td>RCA-C em outro tenant (AXA) não exercitado nesta rodada</td><td>Baixa</td><td>Médio</td><td>O código é o mesmo para todos os tenants (a chave do cache não depende do tenant); exigiria massa nova no cliente — opcional, fora desta rodada.</td></tr><tr><td>Regravar a partir de uma tela desatualizada (sobrescrita silenciosa) não foi medido</td><td>Baixa</td><td>Médio</td><td>Com o fix a tela reaberta já mostra o dado atual (CT-9319-01/02/04); a regravação a partir de tela antiga deixa de ocorrer.</td></tr><tr><td>Massa do QA e do dev ficarem no banco</td><td>Média</td><td>Baixo</td><td>Massa do QA (série QA319) excluída pela tela e provada por consulta; a massa do dev (série T93) é pendência do dev.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (29/10/2026) · Sprint 18; card em Pronto para homologação; fix em HML (PRs 18814 e 18816) · reteste de 29/10: nenhum CT reprovado · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
