@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9332 · CNPJ Embarcador vazio no KEV (CITNET Novo · RCTR-C)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.cb{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#1f2a3a;border:1px solid #2f4a6b;color:#9cc8ff;margin-left:4px}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9332 · Sprint 18 Citweb</span>
+    <h1>KEV: Averbação RCTR-C (Tipo Documento Outros) gravava com o CNPJ Embarcador vazio — o legado do KEV exige o CNPJ</h1>
+    <div class="sub">CITNET Novo (React/API) — Averbações → RCTR-C → Novo Protocolo · Tenants KEV (defeito), AXA, Chubb, AIG e ALLIANZ (regressão) · Ambiente: HML CITNET Novo · Autor QA: Wesley Moreira · versão 1.0 (29/10/2026) — plano publicado antes da execução</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/4/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#3fb950"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>8 CTs: 0 executados · 8 pendentes (P1: 4 · P2: 4 · P3: 0)</strong> — plano publicado em 29/10/2026; Bug sem Gate 2 (Produtos não aprova plano de Bug); execução na sequência. Falta testar: 8 CTs (4×P1 · 4×P2).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8, "na": 0}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET Novo (nsseg Faturamento — front React + API) · Averbações → Nacional → <b>RCTR-C</b> (ramo 54) — tela «Nova Averbação»: campo CNPJ Embarcador no Tipo Documento «Outros (NS, ETC)» (e CTE no CT-9332-05)</td></tr>
+    <tr><th>Card</th><td>BUG-9332 — KEV: Averbação RCTR-C (Tipo Documento Outros) gravava com o CNPJ Embarcador vazio — o legado do KEV exige o CNPJ · Sprint 18 Citweb · Severity proposta <b>2 - High</b> · Tags: citnet-novo; DEFEITO; KEV; nsseg · Criado por Wesley Moreira (QA) em 25/10/2026 como achado do CT-CNE-011 do PBI/Bug #9271 · Dev: José Ribeiro Carvalho · estado <b>Pronto para homologação</b></td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 (Produtos não aprova plano de Bug — decisão de 26/10/2026). Plano publicado antes da execução noturna de 29/10/2026; o resultado é postado no card no formato NOR_QA_002.</td></tr>
+    <tr><th>Fix do dev</th><td>Relato do dev (comentário 3461575, 29/10/2026): o KEV é tratado como instalação CORE (PR 18623) e a CORE estava na lista de tenants que dispensam o CNPJ vazio; a correção (PR 18796, promovida para a HML) tira a CORE da lista e deixa só a AXA dispensando. <b>Relato do dev não é oráculo:</b> a QA prova o comportamento em tela e no banco; não verifica release × commit.</td></tr>
+    <tr><th>Já provado hoje (reaproveitado)</th><td>Reteste do QA de 29/10 (comentário 3461528 do card): no KEV, Tipo Documento Outros e CNPJ vazio → «CNPJ Inválido;», HTTP 400, 0 linhas; controle positivo no mesmo formulário gravou o protocolo 52. Esta rodada noturna repete o cenário no CT-9332-01/02 com a evidência desde o login (rodada nova) e <b>acrescenta</b> o que a correção de «tirar o CORE da lista» pode ter quebrado.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET Novo · tenants KEV SEGUROS S.A. (apólice 333, filial 1), AXA Seguros S/A (apólice 9124220054), Chubb Seguros do Brasil S.A (apólice 36326, filial 34), AIG e ALLIANZ · perfil INTERNO (credencial do QA — fora deste documento) · bancos consultados somente para leitura · oráculo de paridade: legado do KEV (CITWEB Nacional)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 29/10/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo do KEV (RCTR-C → Novo Protocolo, Tipo Documento «Outros»), o Gravar com o campo CNPJ Embarcador em branco era aceito e o banco recebia a averbação com o CNPJ zerado, embora o legado do KEV recuse a mesma ação («Informar o CNPJ do Tomador.») e o indicativo que isenta o CNPJ do Tomador exista só nas bases de AXA, ALLIANZ e (desde 27/10) AIG — não na do KEV. Produtos decidiu (D2 = A, comentário 3457424 do #9271) que o KEV exige o CNPJ. A causa informada pelo dev: o KEV foi traduzido para a instalação CORE e a CORE constava da lista fixa de tenants que dispensam o CNPJ; a correção retira a CORE da lista, de modo que só a AXA segue dispensada. Este plano valida, em HML, (1) a recusa do vazio no KEV e o controle positivo com CNPJ válido, (2) que o CNPJ mascarado e as demais validações do CNPJ não regrediram, (3) o Tipo Documento CTE, e (4) o efeito colateral multi-tenant: AXA continua dispensando, Chubb continua recusando e AIG/ALLIANZ — com indicativo de isenção no banco mas fora da lista fixa — são medidos e classificados.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com cenário atual, comportamento esperado, passos, ambiente e critério de aceite (a)–(d) declarados; decisão de Produtos escrita (D2 = A). O oráculo de cada CT é a <b>tela</b> (toast, estado do formulário, protocolo), o <b>banco</b> (linhas e CNPJ gravado; indicativo por tenant) e o <b>legado</b> do tenant — nunca «não deu erro».</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>KEV: recusa do CNPJ Embarcador vazio no Tipo Documento Outros, controle positivo, CNPJ mascarado (digitado e colado), CNPJ inválido e zerado, e Tipo Documento CTE (CT-9332-01 a 05).</li>
+    <li>Efeito colateral multi-tenant da retirada da CORE da lista de isenção: AXA (continua dispensando), Chubb (continua recusando), AIG e ALLIANZ (medir e classificar) (CT-9332-06 a 08).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A).</li>
+    <li><b>Paridade do TEXTO da recusa</b> («CNPJ Inválido;» × «Informar o CNPJ do Tomador.») — observação; só vira requisito se o PO pedir (o dev registrou isso no encerramento).</li>
+    <li><b>Mecanismo de isenção por indicativo do banco</b> (critério (d)) — a lista fixa atual é decisão pendente de Produtos para AXA e ALLIANZ; a QA apenas mede o comportamento.</li>
+    <li><b>Itens de DoD de engenharia</b> (PR, testes unitários, deploy, sincronização da branch do #9381) — não geram CT; ver matriz.</li>
+    <li><b>Demais tenants do CITNET Novo</b> (Akad, Berkley, EZZE, Fairfax, MAPFRE, Mitsui, STARR, STG, SURA, Tokio, Zurich): indicativo ausente nas bases (CNPJ obrigatório); não exercitados nesta rodada.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação sempre por clique a partir do login — nunca por URL direta (exceto o endereço do login). Evidência por CT no bloco do próprio CT e anexada ao card (nunca no repositório público). Toda massa criada pelo QA é excluída pela tela e a exclusão é provada por consulta.</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET Novo com o back-end da correção já promovido (conferido por comportamento) e os bancos dos tenants acessíveis para leitura; legado do KEV (CITWEB Nacional) para o oráculo do CT-9332-05.</li>
+    <li><b>Perfil:</b> INTERNO de cada tenant. Um login por tenant (limite de tentativas de login do ambiente); capturas do login copiadas para a evidência de cada CT daquela sessão.</li>
+    <li><b>KEV:</b> Filial 1 - SÃO PAULO · Apólice 333 · Subgrupo 1 · RCTR-C (ramo 54). <b>AXA:</b> apólice 9124220054 (filial 1; vigência 22/10/2026 a 22/10/2027; sem protocolos). <b>Chubb:</b> Filial 34 · Apólice 36326 (vigência até 31/12/2026). <b>AIG:</b> apólice 333 (filial 1).</li>
+    <li><b>Massa:</b> protocolos do QA na rodada, série <code>QA332</code>, documento inédito de 8 dígitos por CT; CNPJs sintéticos com dígito verificador válido (4 finais nas evidências); chave de CT-e sintética de 44 dígitos (CT-9332-05).</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — KEV (tenant do defeito): recusa do vazio, controle positivo, máscara, regressão das validações e CTE</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-01</span><span class="ct-title">KEV: Gravar com o CNPJ Embarcador vazio (Tipo Documento Outros) é recusado — nenhum protocolo é criado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Massa do QA criada na rodada: Filial 1 - SÃO PAULO, Apólice 333 (ramo 54, RCTR-C), Subgrupo 1, Tipo Documento <b>Outros (NS, ETC)</b>, série QA332, documento inédito de 8 dígitos, data de saída = hoje, placa ABC1D23, Meio de Transporte Rodoviário, Origem SP → SÃO PAULO (50308), Destino RJ → RIO DE JANEIRO (4557), Mercadoria CAFE EM GRAOS, Valor IS 70.000,00, Observações livre. Antes: consulta somente leitura do documento (0 linhas) e do total de protocolos da apólice 333.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login (tela de login → ambiente KEV SEGUROS S.A. → «Ou entre com usuário e senha» → usuário e senha → <b>Entrar</b>) e conferir a tela inicial.</li><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b> → <b>Novo Protocolo</b>; escolher Filial 1 - SÃO PAULO e a Apólice 333; selecionar Tipo Documento <b>Outros (NS, ETC)</b>.</li><li>Preencher todos os campos obrigatórios (valores acima) e <b>não</b> preencher o CNPJ Embarcador; conferir que o campo está em branco.</li><li>Clicar em <b>Gravar</b>; ler o toast, o estado da tela («Nova Averbação RCTR-C») e o resultado da requisição de gravação; consultar o banco (somente leitura): linhas do documento e total de protocolos da apólice.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Toast vermelho de recusa (o texto não é critério: o legado diz «Informar o CNPJ do Tomador.» e o app novo diz «CNPJ Inválido;»); requisição de gravação com HTTP 400; a tela continua em «Nova Averbação RCTR-C», sem número de protocolo; 0 linhas para o documento e total de protocolos da apólice inalterado. Oráculo: decisão de Produtos D2 = A (o KEV exige o CNPJ — comentário 3457424 do #9271) e o legado do KEV (CT-CNE-006 do #9271).</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-01_…» (tela desde o login, banco e rede) e o pacote «CT-9332-01_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-02</span><span class="ct-title">KEV: controle positivo — no MESMO formulário, só com um CNPJ Embarcador válido o Gravar passa, e o banco guarda 14 dígitos; a massa do QA é excluída pela tela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Continuação do CT-9332-01 na mesma sessão e no mesmo formulário (a recusa deixou a tela em «Nova Averbação»). CNPJ sintético de teste com dígito verificador válido, digitado sem máscara (14 dígitos).</li></ul>
+      <h4>Passos</h4><ol><li>No formulário recusado do CT-9332-01, preencher só o CNPJ Embarcador com o CNPJ sintético (14 dígitos, sem máscara); conferir o campo.</li><li>Clicar em <b>Gravar</b>; ler o toast («Averbação gravada com sucesso. Protocolo N.»), o resultado da gravação (HTTP 200/201) e a tela («Editar Averbação RCTR-C»); consultar o banco: 1 linha para o documento com o CNPJ de 14 dígitos.</li><li>Excluir a massa pela tela: abrir o protocolo pela Consulta (<b>Averbações</b> → <b>RCTR-C</b> → filtros → <b>Consultar</b> → clicar na linha) e usar o botão de exclusão com confirmação; consultar o banco (situação do protocolo = excluído).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Gravação aceita (toast de sucesso, protocolo criado, HTTP 200/201); banco com 1 linha e o CNPJ de 14 dígitos igual ao digitado — prova que a recusa do CT-9332-01 é do CNPJ vazio e que o KEV grava com CNPJ válido (sem regressão do CT-CNE-001 a 010 do #9271); depois da exclusão pela tela o protocolo fica com a situação «excluído».</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-02_…» (tela desde o login, banco e rede) e o pacote «CT-9332-02_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-03</span><span class="ct-title">KEV: CNPJ Embarcador COM máscara (digitado e colado) grava com 14 dígitos e reabre igual — o dev não exercitou o CNPJ mascarado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Mesma apólice e mesmos campos do CT-9332-01; CNPJ sintético com máscara (pontos, barra e hífen); documento inédito.</li></ul>
+      <h4>Passos</h4><ol><li>Averbações → RCTR-C → Novo Protocolo → Filial 1, Apólice 333, Tipo Documento Outros; preencher os campos obrigatórios; digitar o CNPJ sintético COM máscara (tecla a tecla) e conferir o valor do campo.</li><li><b>Gravar</b>; ler o toast e o protocolo; consultar o banco (CNPJ com 14 dígitos).</li><li>Reabrir o protocolo pela Consulta (clique na linha) e ler o campo CNPJ Embarcador; limpar o campo, colar o mesmo CNPJ mascarado (Ctrl+V) e conferir o valor sem gravar; excluir a massa pela tela e conferir no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Digitado e colado com máscara o campo guarda os mesmos 14 dígitos; o Gravar é aceito; o banco guarda 14 dígitos; o protocolo reaberto mostra o CNPJ igual ao digitado; a massa é excluída pela tela (situação «excluído»).</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-03_…» (tela desde o login, banco e rede) e o pacote «CT-9332-03_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-03"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-04</span><span class="ct-title">Regressão no KEV: CNPJ com dígito verificador inválido e CNPJ só de zeros continuam recusados (nenhum protocolo)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento). Mesma apólice e campos do CT-9332-01; CNPJ de 14 dígitos com dígito verificador errado; CNPJ 00.000.000/0000-00.</li></ul>
+      <h4>Passos</h4><ol><li>Averbações → RCTR-C → Novo Protocolo → Filial 1, Apólice 333, Tipo Documento Outros; preencher os campos obrigatórios; digitar um CNPJ com dígito verificador inválido; <b>Gravar</b>; ler o toast e consultar o banco (linhas do documento).</li><li>Trocar o campo pelo CNPJ só de zeros; <b>Gravar</b>; ler o toast e consultar o banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas gravações são recusadas (toast vermelho; HTTP 400); 0 linhas no banco para o documento; a tela segue em «Nova Averbação RCTR-C». (A correção só retirou a isenção do tenant do KEV; as demais validações do CNPJ não podem mudar.)</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-04_…» (tela desde o login, banco e rede) e o pacote «CT-9332-04_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-05</span><span class="ct-title">KEV: Tipo Documento CTE com o CNPJ Embarcador vazio — medir o comportamento do app novo e compará-lo com o legado do KEV (não generalizar o resultado do Tipo Outros)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant KEV SEGUROS S.A., perfil INTERNO (credencial do QA — fora deste documento) e login no legado do KEV (CITWEB Nacional, usuário Nacional — credencial do QA). Chave de CT-e sintética de 44 dígitos com dígito verificador válido (massa só do QA). Apólice 333.</li></ul>
+      <h4>Passos</h4><ol><li>No app novo: Averbações → RCTR-C → Novo Protocolo → Filial 1, Apólice 333, Tipo Documento <b>CTE</b>; informar a chave de 44 dígitos, preencher os obrigatórios e deixar o CNPJ Embarcador em branco; <b>Gravar</b>; ler o toast, o resultado da gravação e o banco (linhas da chave).</li><li>No legado do KEV: Averbação → RCTR-C, apólice 333, Subgrupo 001, tipo de documento CTE com a mesma chave sintética e o «Cnpj Tomador» em branco; <b>Gravar</b>; ler a mensagem e o banco.</li><li>Se alguma das duas gravar, excluir a massa pela tela (app novo: botão de exclusão; legado: exclusão da averbação) e conferir no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O app novo se comporta como o legado do KEV para o mesmo cenário (recusa nos dois ou aceitação nos dois, com a mesma regra); o resultado medido é registrado para este tipo de documento sem estendê-lo ao Tipo Outros. Divergência entre app novo e legado neste cenário só reprova o card se a correção a tiver causado (baseline com o estado anterior); caso contrário vira achado pré-existente.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-05_…» (tela desde o login, banco e rede) e o pacote «CT-9332-05_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-05"></div>
+    </div>
+  </div>
+  <div class="group-header">B — Regressão multi-tenant: a correção retirou o CORE da lista de isenção — AXA continua dispensando; Chubb, AIG e ALLIANZ</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-06</span><span class="ct-title">AXA: o app novo continua dispensando o CNPJ Embarcador vazio (Tipo Documento Outros) — a correção só podia tirar o KEV da lista de isenção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant AXA Seguros S/A, perfil INTERNO (credencial do QA — fora deste documento). RCTR-C (ramo 54): apólice 9124220054 (filial 1, vigente até 22/10/2027, sem protocolos); série QA332; documento inédito. Indicativo de isenção do CNPJ do Tomador ligado (S) na base da AXA — consulta somente leitura. Massa do QA criada na rodada.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login (ambiente AXA Seguros S/A) e abrir Averbações → RCTR-C → Novo Protocolo; escolher a apólice 9124220054 e a filial; Tipo Documento Outros; preencher os campos obrigatórios; deixar o CNPJ Embarcador em branco.</li><li><b>Gravar</b>; ler o toast e o protocolo; consultar o banco (1 linha do documento com o CNPJ Embarcador vazio).</li><li>Excluir a massa pela tela (abrir o protocolo pela Consulta e excluir com confirmação) e conferir no banco (situação «excluído»).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A AXA grava com o CNPJ vazio (toast de sucesso, protocolo criado, HTTP 200/201; banco com 1 linha e CNPJ vazio), como o indicativo S do banco dela e o estado anterior à correção (468 protocolos da AXA com CNPJ vazio no app novo). A massa é excluída pela tela.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-06_…» (tela desde o login, banco e rede) e o pacote «CT-9332-06_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-06"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-07</span><span class="ct-title">Chubb: o app novo continua recusando o CNPJ Embarcador vazio; no mesmo formulário o CNPJ válido grava (regressão do CT-CNE-010 do #9271)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenant Chubb Seguros do Brasil S.A, perfil INTERNO (credencial do QA — fora deste documento). RCTR-C (ramo 54): Filial 34, Apólice 36326 (vigente até 31/12/2026); Tipo Documento Outros; série QA332. Indicativo de isenção ausente na base do Chubb (CNPJ do Tomador obrigatório) — consulta somente leitura. Massa do QA criada na rodada.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login (ambiente Chubb Seguros do Brasil S.A) e abrir Averbações → RCTR-C → Novo Protocolo; Filial 34, Apólice 36326, Tipo Documento Outros; preencher os campos obrigatórios com o CNPJ Embarcador em branco; <b>Gravar</b>; ler o toast e o banco (0 linhas).</li><li>No MESMO formulário preencher só um CNPJ sintético válido; <b>Gravar</b>; ler o toast, o protocolo e o banco (1 linha, 14 dígitos).</li><li>Excluir a massa pela tela e conferir no banco (situação «excluído»).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Chubb recusa o vazio (toast de recusa, HTTP 400, 0 linhas) — igual ao legado do Chubb, que exige o CNPJ (sem o indicativo de isenção) e ao estado anterior (nenhum protocolo do Chubb com CNPJ vazio no app novo desde 03/2024); com CNPJ válido grava com 14 dígitos; massa excluída pela tela.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-07_…» (tela desde o login, banco e rede) e o pacote «CT-9332-07_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-07"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9332-08</span><span class="ct-title">AIG e ALLIANZ (indicativo de isenção ligado no banco, fora da lista fixa do dev): medir o app novo com o CNPJ Embarcador vazio e classificar a divergência, se houver</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Login no CITNET Novo, tenants AIG e ALLIANZ, perfil INTERNO, com a credencial de cada tenant (se existir); RCTR-C; apólice 333 (AIG). Indicativo de isenção S nas duas bases (AIG ativado em 27/10/2026 pelo time de rollout, card #9326; ALLIANZ desde 04/09/2026) — consulta somente leitura.</li></ul>
+      <h4>Passos</h4><ol><li>Em cada tenant com credencial válida: Averbações → RCTR-C → Novo Protocolo → apólice e filial; Tipo Documento Outros; campos obrigatórios; CNPJ Embarcador em branco; <b>Gravar</b>; ler o toast, o resultado da gravação e o banco.</li><li>Se gravar, excluir a massa pela tela e conferir no banco. Se recusar, comparar com o baseline do banco: existe protocolo gravado com CNPJ vazio nesse tenant ANTES da correção (data/hora de inclusão) ou o tenant sempre recusou?</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Resultado medido e classificado por regra: (i) o tenant gravava o vazio antes da correção e agora recusa = regressão causada pela correção → o CT reprova o card; (ii) o tenant sempre recusou (ou não há como logar/baseline) = achado de paridade com o legado, pré-existente e fora do escopo — o critério (d) do card deixa AXA e ALLIANZ para decisão de Produtos — CT N/A com a causa medida e escalação ao trio; (iii) o tenant grava = aprovado por paridade com o legado (indicativo S).</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9332 com o nome «ev_CT-9332-08_…» (tela desde o login, banco e rede) e o pacote «CT-9332-08_evidencia-completa-login-ate-o-fim.zip» — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9332-08"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>(a) No KEV, com o CNPJ Embarcador vazio, o Gravar é recusado (nenhum protocolo; 0 linhas) — o texto da recusa não é critério</td><td>CT-9332-01, CT-9332-05 (CTE)</td><td>CT-9332-01: pendente, CT-9332-05: pendente</td></tr><tr><td>(b) Com CNPJ válido (com ou sem máscara) o KEV grava com 14 dígitos — sem regressão do Sintoma 1 (CT-CNE-001 a 010 do #9271)</td><td>CT-9332-02, CT-9332-03, CT-9332-04</td><td>CT-9332-02: pendente, CT-9332-03: pendente, CT-9332-04: pendente</td></tr><tr><td>(c) O Chubb continua recusando o vazio (CT-CNE-010 do #9271)</td><td>CT-9332-07</td><td>CT-9332-07: pendente</td></tr><tr><td>(d) A isenção, quando existir, vem do indicativo do banco do tenant, não de lista fixa — AXA e ALLIANZ ficam fora do critério até decisão de Produtos; a QA mede que a AXA segue dispensando e como AIG/ALLIANZ se comportam</td><td>CT-9332-06, CT-9332-08</td><td>CT-9332-06: pendente, CT-9332-08: pendente</td></tr><tr><td>Reteste = massa nova do QA (documento inédito) e a mesma navegação por clique</td><td>Todos</td><td>Cumprido por desenho: documento inédito em cada CT, série QA332, navegação por clique desde o login</td></tr><tr><td>DoD de engenharia (PR com aprovadores, testes unitários, deploy, branch ADO-9381 sincronizada com a develop)</td><td>— sem CT</td><td>Enforçado pela branch policy e pelo DoD do dev, fora da homologação</td></tr>
+  </table>
+
+  <h2>7. Métricas</h2>
+  <table>
+    <tr><th>Total de CTs</th><th>P1</th><th>P2</th><th>P3</th><th>Aprovados</th><th>Reprovados</th><th>Bloqueados</th><th>N/A</th><th>Pendentes</th><th>Cobertura dos critérios de produto</th></tr>
+    <tr><td>8</td><td>4</td><td>4</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>8</td><td>Critérios (a), (b), (c) e (d) do card mapeados a CT; itens de DoD fora do plano por serem de processo</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>A correção retirou o CORE da lista de isenção: tenants que dependiam dela (AIG, ALLIANZ) podem ter passado a recusar o vazio</td><td>Média</td><td>Alto</td><td>CT-9332-08 mede os dois e classifica pela regra do baseline (gravava antes? → regressão do card).</td></tr><tr><td>AXA deixar de dispensar por efeito colateral da mudança na lista</td><td>Baixa</td><td>Alto</td><td>CT-9332-06: Gravar com CNPJ vazio na AXA, banco com CNPJ vazio, massa excluída pela tela.</td></tr><tr><td>Limite de tentativas de login do ambiente (HTTP 429) com outras sessões de QA logando no mesmo HML</td><td>Média</td><td>Médio</td><td>Um login por tenant/perfil, espaçados; fundir os CTs de um tenant na mesma sessão; 429 é bloqueio de ambiente, não reprovação.</td></tr><tr><td>Massa do QA ficar no banco do HML</td><td>Média</td><td>Baixo</td><td>Toda massa gravada é excluída pela tela e a exclusão é provada por consulta (situação «excluído»).</td></tr><tr><td>Relato do dev (PR 18796, deploy 26419) não é oráculo: a QA não verifica release × commit</td><td>—</td><td>Médio</td><td>O veredito sai do comportamento em tela e no banco; o front/bundle servido e a hora são registrados na execução.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (29/10/2026) · Sprint 18; card em Pronto para homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
