@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9438 · Conversor: arquivo vazio não pode provocar erro interno (STG HML)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.cb{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;background:#1f2a3a;border:1px solid #2f4a6b;color:#9cc8ff;margin-left:4px}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-badge{font-size:11px}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+
+/* ── cabecalho padrao (ref. pbi-7916): painel de andamento no topo ── */
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;
+padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9438 · Sprint 18 Citweb</span>
+    <h1>Conversor › Converte Arquivo: importar arquivo vazio não pode provocar erro interno (STG HML)</h1>
+    <div class="sub">CITWEB (legado) — Conversor de Arquivos › Converte Arquivo › RCTR-C / RC-DC · Tenant STG · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (30/10/2026) — plano publicado; execução formal aguarda o card em Pronto para homologação</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/5/3</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, aguardando a validação do Gate 2 de Produtos (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (4×P1 · 5×P2 · 3×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB (legado) — módulo <b>Conversor de Arquivos</b> › <b>Converte Arquivo</b> › <b>RCTR-C / RC-DC</b> (ação Importar do Conversor, compartilhada com os demais ramos)</td></tr>
+    <tr><th>Card</th><td>BUG-9438 — [ CITWEB - STG ] Arquivo vazio provoca erro interno no Conversor · Sprint 18 Citweb · Severity <b>3 - Medium</b> · Prioridade 2 · Tags: citweb; env:stg-hml; tenant:stg · achado automatizado (caso CONVE-15) de 29/10/2026 · estado <b>New</b>, sem responsável e sem tasks de desenvolvimento no momento do plano</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 (Produtos não aprova plano de Bug — decisão de 26/10/2026). O plano é publicado e executado quando o card estiver em <b>Pronto para homologação</b> (DoD do dev); o comentário de resultado (NOR_QA_002) fica no card.</td></tr>
+    <tr><th>Precedentes</th><td>Mesma classe de defeito, já tratada no mesmo Conversor: Bugs <b>#8824</b> / <b>#9030</b> / <b>#9033</b> (arquivo vazio gerava «Ocorreu um erro inesperado!»; o ajuste devolve o alerta «O arquivo selecionado está vazio!» e retorna ao formulário). A mensagem esperada deste plano vem desse precedente.</td></tr>
+    <tr><th>Ambiente</th><td>HML do tenant <b>STG</b> (o endereço de login do ambiente está no card) · usuário de teste autorizado ao Conversor (credencial do QA, fora deste documento) · sem acesso a banco neste card (oráculo = rede + tela)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 30/10/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Ao importar um arquivo TXT de 0 bytes no <b>Conversor de Arquivos › Converte Arquivo › RCTR-C / RC-DC</b> do tenant STG, o Voidr registrou (29/10/2026) que a requisição de importação respondia 302 e a página seguinte do Conversor respondia <b>HTTP 500</b>, exibindo a página «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.» (apenas a barra com o logo e SAIR, sem o menu do Conversor), sem validação amigável e sem o formulário disponível. O comportamento esperado é rejeitar o arquivo vazio com uma mensagem de validação específica e manter o formulário utilizável para uma nova importação; a importação de arquivo válido deve continuar funcionando (critérios de aceite do card). Este plano valida, pela <b>rede</b> (método, status e endereço de cada requisição) e pela <b>tela</b> (texto exato do alerta e estado do formulário), o arquivo de 0 bytes (cenário do card) com repetibilidade e recuperação, as variantes de arquivo vazio (XLSX sem células, .xlsx de 0 bytes, limite de 2 bytes, outro ramo) e a regressão da importação válida e dos validadores vizinhos.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com contexto, passos de reprodução, resultado esperado e observado, evidência (tela da página de erro) e 2 critérios de aceite; usuário, ambiente e tenant declarados; ramo RCTR-C / RC-DC declarado. <b>Inferência documentada:</b> o critério pede «mensagem específica de validação» sem o texto; a QA adota «O arquivo selecionado está vazio!» pelo precedente dos Bugs #8824/#9033 (mesmo Conversor) — qualquer outro texto que diga que o arquivo está vazio é discutido na execução. Oráculo de cada CT = <b>rede</b> (status por requisição) e <b>tela</b> (mensagem exata e formulário) — nunca «não deu erro».</div>
+  <div class="warn-box"><b>Observação da exploração de planejamento (30/10/2026, sem veredito de CT):</b> no HML do STG, build <b>V 1.0.261029.1159</b>, o defeito <b>não reproduziu</b>: 8 importações de arquivo vazio em 7 sessões de login (TXT de 0 bytes — inclusive enviado em memória, como o Voidr faz —, XLSX sem células com Sim e Não, .xlsx de 0 bytes e Transporte Nacional) responderam 302 → 200 com o alerta «O arquivo selecionado está vazio!» e o formulário utilizável. Portanto o defeito pode ser intermitente ou ter sido corrigido por um deploy posterior ao achado; o plano mantém o cenário do card como P1 e adiciona repetibilidade (CT-9438-02). A execução formal, com evidência por CT, só vale a partir do card em Pronto para homologação.</div>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Conversor de Arquivos › Converte Arquivo › RCTR-C / RC-DC no tenant STG (HML): importação de arquivo de 0 bytes, repetibilidade, recuperação e importação válida (CT-9438-01 a 05).</li>
+    <li>Variantes de arquivo vazio e outro ramo (Transporte Nacional) no mesmo controller compartilhado, e os validadores vizinhos do Importar (CT-9438-06 a 12).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — QA não testa em produção (N/A).</li>
+    <li><b>Conversor do CITNET</b> (outro conversor, outras regras) e as etapas <b>Converter</b>/<b>Processar</b> (o card trata só do Importar).</li>
+    <li><b>Demais tenants</b> — fora do card; entram apenas como controle se o defeito reproduzir (ver riscos).</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação sempre por clique a partir do login — nunca por URL direta (exceto o endereço do login). Evidência por CT no bloco do próprio CT e anexada ao card (nunca no repositório público). Os arquivos são sintéticos — sem CNPJ, CPF ou dado de cliente.</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do tenant STG, com o Conversor de Arquivos acessível ao usuário de teste (tile «Conversor de Arquivos» na tela de módulos). Anotar a versão do rodapé em cada CT.</li>
+    <li><b>Arquivos de upload (criados pelo QA, tamanho conferido em disco):</b>
+      <ul>
+        <li><b>A1</b> <code>empty-0bytes.txt</code> — 0 bytes.</li>
+        <li><b>A2</b> <code>valido-1linha.txt</code> — 1 linha, UTF-8: <code>54;;1;1;SP;RJ;T</code>.</li>
+        <li><b>A3</b> <code>valido-2linhas.xlsx</code> — colunas A–G; linha 1: 54, (vazio), 1, 1, SP, RJ, T; linha 2: 54, (vazio), 1, 1, MG, RJ, T.</li>
+        <li><b>A4</b> <code>planilha-sem-celulas.xlsx</code> — pasta de trabalho nova salva sem nenhuma célula preenchida (≈ 4,8 KB; não é 0 bytes).</li>
+        <li><b>A5</b> <code>empty-0bytes.xlsx</code> — 0 bytes com extensão .xlsx.</li>
+        <li><b>A6</b> <code>so-quebra-de-linha.txt</code> — 2 bytes (CR LF).</li>
+        <li><b>A7</b> <code>dados.csv</code> — 1 linha <code>54;;1;1;SP;RJ;T</code> (extensão não aceita pelo Conversor).</li>
+      </ul></li>
+    <li><b>Oráculo de rede:</b> importação de TXT = requisição de importação (POST) 302 → página do Conversor (GET) 200; importação de XLSX (depois do modal) = idem. Defeito = qualquer 5xx na sequência.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Arquivo de 0 bytes (cenário do card): alerta, repetibilidade e recuperação</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-01</span><span class="ct-title">RCTR-C / RC-DC — Importar TXT de 0 bytes (cenário do card): alerta de arquivo vazio, sem HTTP 500 e formulário utilizável (CA 1)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A1 (<code>empty-0bytes.txt</code>, 0 bytes — tamanho conferido em disco). Anotar a versão do rodapé. Tenant STG, HML (o card é do tenant STG).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar o arquivo A1 (<code>empty-0bytes.txt</code>).</li><li>Clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem exibida, o status de cada requisição, o menu superior, o campo de arquivo e o botão Importar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A requisição de importação responde 302 e a página seguinte responde 200 — nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; a tela exibe o alerta «O arquivo selecionado está vazio!» (texto exato, o mesmo do Conversor nos Bugs #8824/#9033); o menu superior (Converte Arquivo · Processa Averbações · DE/PARA), o campo Caminho do Arquivo para Conversão e o botão Importar seguem visíveis e habilitados. Reprova: qualquer 5xx, a página de erro inesperado ou a ausência de mensagem dizendo que o arquivo está vazio.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-01_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-02</span><span class="ct-title">Repetibilidade — o cenário do CT-9438-01 em 3 sessões novas e 3 vezes seguidas na mesma sessão: nenhuma resposta 5xx (defeito reportado uma única vez)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Arquivo A1 (0 bytes). Três sessões de navegador novas, uma de cada vez (cada uma com login novo). Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li></ul>
+      <h4>Passos</h4><ol><li>Sessão nova 1: login → clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM); importar o arquivo A1 com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição; ler o status de cada requisição e a mensagem; encerrar a sessão (<b>SAIR</b> e fechar o navegador).</li><li>Repetir o passo 1 em mais duas sessões novas (sessões 2 e 3, cada uma com login novo).</li><li>Em uma 4ª sessão, depois do alerta da 1ª importação, sem recarregar a página e sem clicar em Novo, selecionar de novo o arquivo A1 e clicar em <b>Importar</b>; repetir mais uma vez (3 importações seguidas na mesma sessão).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas 6 importações (3 sessões novas + 3 seguidas na mesma sessão): 302 → 200, alerta «O arquivo selecionado está vazio!», zero respostas 5xx e a mesma versão do rodapé em todas. Um único 5xx reprova o CT e fica registrado com data/hora e versão (defeito intermitente).</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-02_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-03</span><span class="ct-title">Recuperação — depois do alerta de arquivo vazio, importar um TXT válido na mesma tela funciona (formulário utilizável para nova importação — CA 1)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivos A1 (0 bytes) e A2 (<code>valido-1linha.txt</code>, 1 linha <code>54;;1;1;SP;RJ;T</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A1 e clicar em <b>Importar</b>; confirmar o alerta «O arquivo selecionado está vazio!».</li><li>Sem recarregar a página e sem clicar em Novo: em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A2 e clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler as áreas «Linha selecionada para definição de lay-out» e «Conteúdo do Arquivo».</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois do alerta o campo de arquivo aceita nova seleção; a 2ª importação responde 302 → 200 (sem 5xx); a tela exibe «Linha selecionada para definição de lay-out:» e «Conteúdo do Arquivo:» com a linha <code>54;;1;1;SP;RJ;T</code>, o grupo Aceites e o combo «Nome do Arquivo de Lay-Out de Entrada»; nenhum alerta de erro.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-03_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-03"></div>
+    </div>
+  </div>
+  <div class="group-header">B — Regressão: importação de arquivo válido (TXT e XLSX)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-04</span><span class="ct-title">Regressão (CA 2) — importar TXT válido em sessão limpa, sem importação vazia antes: pré-visualização exibida e sem 5xx</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A2 (<code>valido-1linha.txt</code>). Nenhuma importação anterior na sessão.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A2 e clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a tela e o status de cada requisição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>302 → 200; a tela exibe «Linha selecionada para definição de lay-out:» e «Conteúdo do Arquivo:» com <code>54;;1;1;SP;RJ;T</code>, o grupo Aceites e o combo de layout; nenhum alerta de erro e nenhuma resposta 5xx.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-04_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-05</span><span class="ct-title">Regressão (CA 2) — importar XLSX válido (2 linhas × 7 colunas), respondendo Não ao modal: grade A–G exibida e sem 5xx</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A3 (<code>valido-2linhas.xlsx</code>: colunas A–G; linha 1 = 54, vazio, 1, 1, SP, RJ, T; linha 2 = 54, vazio, 1, 1, MG, RJ, T).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A3 e clicar em <b>Importar</b>.</li><li>No modal «O arquivo selecionado é uma planilha excel. A planilha será convertida para para formato TXT. Confirma a conversão?», clicar em <b>Não</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a grade exibida e o status de cada requisição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O modal aparece com os botões Sim e Não; depois do Não, a importação responde 302 → 200; a tela exibe a grade com colunas A–G e as 2 linhas (54 · vazio · 1 · 1 · SP · RJ · T e 54 · vazio · 1 · 1 · MG · RJ · T) e o combo «Nome do Arquivo de Lay-Out de Entrada»; nenhum alerta de erro e nenhuma resposta 5xx.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-05_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-05"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Variantes de arquivo vazio: XLSX sem células, .xlsx de 0 bytes, limite de 2 bytes e outro ramo</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-06</span><span class="ct-title">XLSX sem células (≈ 4,8 KB — não é 0 bytes), Não ao modal: alerta de arquivo vazio e sem 5xx</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A4 (<code>planilha-sem-celulas.xlsx</code>: pasta de trabalho nova, salva sem preencher nenhuma célula; ≈ 4,8 KB).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A4 e clicar em <b>Importar</b>.</li><li>No modal «O arquivo selecionado é uma planilha excel. A planilha será convertida para para formato TXT. Confirma a conversão?», clicar em <b>Não</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem, o status de cada requisição e o formulário.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O modal aparece; depois do Não: 302 → 200, alerta «O arquivo selecionado está vazio!», nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; o menu superior (Converte Arquivo · Processa Averbações · DE/PARA), o campo Caminho do Arquivo para Conversão e o botão Importar seguem visíveis e habilitados.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-06_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-06"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-07</span><span class="ct-title">XLSX sem células, Sim ao modal (conversão para TXT): alerta de arquivo vazio e sem 5xx (segundo ponto de leitura do ramo Excel)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A4 (<code>planilha-sem-celulas.xlsx</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A4 e clicar em <b>Importar</b>.</li><li>No modal «O arquivo selecionado é uma planilha excel. A planilha será convertida para para formato TXT. Confirma a conversão?», clicar em <b>Sim</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem, o status de cada requisição e o formulário.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>302 → 200, alerta «O arquivo selecionado está vazio!», nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; o menu superior (Converte Arquivo · Processa Averbações · DE/PARA), o campo Caminho do Arquivo para Conversão e o botão Importar seguem visíveis e habilitados.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-07_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-07"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-08</span><span class="ct-title">Arquivo .xlsx de 0 bytes (extensão válida, nenhum conteúdo): alerta de arquivo vazio e sem 5xx</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A5 (<code>empty-0bytes.xlsx</code>, 0 bytes).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A5 e clicar em <b>Importar</b>.</li><li>No modal «O arquivo selecionado é uma planilha excel. A planilha será convertida para para formato TXT. Confirma a conversão?», clicar em <b>Não</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem e o status de cada requisição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>302 → 200, alerta «O arquivo selecionado está vazio!», nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; o menu superior (Converte Arquivo · Processa Averbações · DE/PARA), o campo Caminho do Arquivo para Conversão e o botão Importar seguem visíveis e habilitados.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-08_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-08"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-09</span><span class="ct-title">Limite — TXT só com quebra de linha (2 bytes): sem 5xx e formulário utilizável (comportamento atual registrado)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A6 (<code>so-quebra-de-linha.txt</code>, 2 bytes: CR LF).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A6 e clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a tela e o status de cada requisição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem resposta 5xx e sem a página «Ocorreu um erro inesperado!»; o formulário segue utilizável. Observação (comportamento existente, fora do critério do card): o arquivo de 2 bytes não é tratado como vazio — a pré-visualização mostra «LIN=0001 POS=0001-9999 CONTEUDO= MSG=LINHA EM BRANCO»; registrar o que a tela exibir no build testado (mensagem de arquivo vazio, se for essa a decisão do dev, também é aceita).</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-09_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-09"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-10</span><span class="ct-title">Outro ramo do mesmo Conversor — Transporte Nacional, TXT de 0 bytes: mesmo alerta (o controller é compartilhado entre os ramos)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A1 (0 bytes).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>Transporte Nacional</b>; anotar a versão do rodapé.</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A1 e clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem, o status de cada requisição e o formulário.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>302 → 200, alerta «O arquivo selecionado está vazio!», nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; a tela do ramo Transporte Nacional segue com o formulário utilizável.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-10_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-10"></div>
+    </div>
+  </div>
+  <div class="group-header">D — Validações vizinhas do mesmo Importar (regressão)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-11</span><span class="ct-title">Importar sem escolher arquivo: alerta «Selecione o Caminho do Arquivo para Conversão.» e nenhuma requisição ao servidor</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Nenhum arquivo selecionado.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Sem selecionar arquivo, clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem e a lista de requisições.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Aparece «Selecione o Caminho do Arquivo para Conversão.»; nenhuma requisição de importação é enviada (a lista de rede fica vazia) e não há resposta 5xx.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-11_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-11"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9438-12</span><span class="ct-title">Extensão inválida (.csv): «O arquivo deve ser do tipo XLSX, TXT ou PRN!» e sem 5xx (regressão do validador vizinho)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições</h4><ul><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar. Arquivo A7 (<code>dados.csv</code>, 1 linha <code>54;;1;1;SP;RJ;T</code>).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login no CITWEB do tenant STG (HML): tela de login → usuário e senha de teste autorizados ao Conversor (credencial do QA — fora deste documento) → Entrar.</li><li>Clicar no tile <b>Conversor de Arquivos</b> (abre em nova aba) → no menu superior, <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b>; anotar a versão exibida no rodapé (formato V 1.0.AAMMDD.HHMM).</li><li>Em <b>Caminho do Arquivo para Conversão</b>, clicar em <b>Escolher arquivo</b> e selecionar A7 e clicar em <b>Importar</b> com a aba de Rede do navegador (ou um script) registrando método, status e endereço de cada requisição.</li><li>Ler a mensagem e o status de cada requisição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>302 → 200, alerta «O arquivo deve ser do tipo XLSX, TXT ou PRN!», nenhuma resposta 5xx e a página «Ocorreu um erro inesperado!» não aparece; o menu superior (Converte Arquivo · Processa Averbações · DE/PARA), o campo Caminho do Arquivo para Conversão e o botão Importar seguem visíveis e habilitados.</li></ul>
+      
+      <p class="sub">Evidência: anexos do card #9438 com o nome «ev_CT-9438-12_…» (tela e rede, da sequência de login ao fim do cenário) — a evidência vive no card, não neste documento público.</p>
+      <div class="ev-section" id="ev-CT-9438-12"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA 1 — Arquivo vazio deve produzir mensagem específica de validação, sem HTTP 500, preservando o formulário utilizável para nova importação</td><td>CT-9438-01, 02, 03, 06, 07, 08, 10 (limite: 09)</td><td>ver CTs</td></tr><tr><td>CA 2 — A importação de arquivo válido deve continuar funcionando</td><td>CT-9438-03 (2ª importação), 04, 05</td><td>ver CTs</td></tr><tr><td>Regressão dos validadores vizinhos do mesmo Importar (sem arquivo, extensão inválida)</td><td>CT-9438-11, 12</td><td>ver CTs</td></tr><tr><td>Repetibilidade (defeito reportado uma vez e não reproduzido na exploração de planejamento)</td><td>CT-9438-02</td><td>ver CT</td></tr><tr><td>Itens de DoD de engenharia (PRs, testes unitários, deploy)</td><td>— sem CT</td><td>O card não traz itens de processo nos critérios; se o dev incluir, são enforçados pela branch policy, fora da homologação</td></tr>
+  </table>
+
+  <h2>8. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Defeito intermitente ou já corrigido: reportado uma vez (29/10) e não reproduzido na exploração de planejamento (8 importações vazias em 7 sessões de login, build V 1.0.261029.1159, sem 5xx)</td><td>Média</td><td>Alto (falso aprovado)</td><td>CT-9438-02 repete 6 vezes com a versão do rodapé registrada; um único 5xx reprova. Se um 5xx ocorrer, registrar data/hora e versão e repetir no tenant em que o Bug #8824 foi validado antes de qualquer conclusão sobre a causa.</td></tr><tr><td>Build do STG HML trocar entre o plano e a execução</td><td>Média</td><td>Alto</td><td>Versão do rodapé anotada em todo CT; a execução formal só começa com o card em Pronto para homologação; se a versão mudar no meio, os CTs P1 são repetidos.</td></tr><tr><td>O alerta (toast) sumir antes da captura</td><td>Baixa</td><td>Baixo</td><td>Capturar logo após o Importar (o alerta permaneceu ≥ 9 s na exploração) e extrair o texto exato do DOM, além da imagem.</td></tr><tr><td>Ambiente HML fora do ar ou lento (login ~20 s; janela de indisponibilidade à noite)</td><td>Média</td><td>Médio</td><td>Pré-verificação do ambiente antes do 1º CT; servidor fora do ar não é reprovação (execução interrompida sem veredito).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (30/10/2026) · Sprint 18; card em New · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
