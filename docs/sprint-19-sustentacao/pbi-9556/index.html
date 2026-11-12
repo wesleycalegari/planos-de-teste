@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9556 · BUG DE SEGURANÇA (BBP AIG) - CITNET: consulta de cliente do Segurado só do próprio cadastro + arquivo do Conversor não acessível pelo navegador</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9556 · Sprint 19 Sustentação</span>
+    <h1>BUG DE SEGURANÇA (BBP AIG) - CITNET: consulta de cliente do Segurado só do próprio cadastro + arquivo do Conversor não acessível pelo navegador</h1>
+    <div class="sub">CITNET (legado) — tenant AIG · consulta de cliente do Segurado e upload do Conversor · bug de segurança (BBP) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (12/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (o card já está em Pronto para homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">16</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">16</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">10/5/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 16 executados · 16 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>16 CTs</strong> (10×P1 · 5×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 16, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 16}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Duas correções de segurança no CITNET da AIG. (1) A consulta de clientes do perfil <b>Segurado</b> deve mostrar apenas os dados do próprio segurado. (2) O arquivo que o usuário envia no <b>Conversor</b> não pode ser aberto nem listado pelo navegador depois do envio.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 16 situações de uso na AIG: o Segurado consulta clientes pela tela e só vê o próprio cadastro; tentativa de pedir dados de outro segurado (nada de terceiro pode voltar); o Conversor continua importando e convertendo arquivos de texto, ZIP e Excel; o arquivo enviado não abre pelo endereço da pasta de upload e a pasta não mostra a lista de arquivos; e o que não pode piorar: consulta do Corretor e do usuário Interno, Cadastro de Operações e a recusa de arquivos de tipo não permitido. O card já está em «Pronto para homologação»: a execução começa logo após a publicação deste plano.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. O desenvolvimento relata que as verificações passaram numa máquina local; falta comprovar no ambiente de homologação da AIG. <b>Ponto de atenção:</b> parte do resultado depende de configuração do servidor (infraestrutura, descrita no card); o teste vai separar o que é do sistema do que é do servidor.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Para quem usa o sistema no dia a dia nada muda no uso (mesmas telas e mesmos botões); a mudança é invisível para o uso normal.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Para ciência: há ações do card que ficam <b>fora do teste</b> e dependem de outras equipes (listadas no card).</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET (legado) — tenant <b>AIG</b>: (1) consulta de cliente/segurado do perfil <b>Segurado</b>; (2) <b>Conversor</b> de arquivos (upload) e fluxos que também enviam arquivo (Cadastro de Operações, envio de movimento do Faturamento).</td></tr><tr><th>Card</th><td>BUG-9556 — «BUG DE SEGURANÇA (BBP AIG) - CITNET: falha de autorização na consulta de cliente + exposição de arquivo de upload (Conversor)» · board <b>Sustentação</b> · estado <b>Pronto para homologação</b> · tags AIG; Citnet; main; vulnerabilidade · 2 achados de segurança · 4 critérios funcionais + 5 técnicos (DoD) · task filha de desenvolvimento com evidências locais.</td></tr><tr><th>Fluxo</th><td>Bug no board da Sustentação: <b>sem aprovação de Produtos</b>; o plano sai com a marcação de execução pronta e a execução começa com o card em homologação (já está) · APROVADO com revisão independente sem apontamento grave → conclusão e envio ao staging · REPROVADO → defeito filho para o desenvolvedor · achado já existente antes do card → novo item na próxima sprint, sem reprovar este card.</td></tr><tr><th>Ambiente</th><td>Homologação da AIG (CITNET legado); versão lida no rodapé no início da execução e registrada no resultado do primeiro CT.</td></tr><tr><th>Autor QA / versão</th><td>Wesley Moreira · plano versão 1.0 (12/11/2026) · evidência por CT: anexo no card (nunca neste documento, por ser um bug de segurança).</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Correções de segurança de dois achados de controle de acesso no CITNET:</p><ul><li><b>Achado 1 — consulta de cliente:</b> o perfil <b>Segurado</b> deve receber apenas o próprio cadastro; a identificação usada pelo servidor passa a vir da sessão. Os demais perfis seguem como antes.</li><li><b>Achado 2 — arquivo enviado no Conversor:</b> o arquivo enviado não deve ficar acessível pelo navegador depois do envio, nem a pasta deve permitir listagem.</li></ul><p><b>Ativação:</b> por configuração do ambiente; o estado no HML é confirmado em tela no primeiro CT de cada achado.</p><table><tr><th>Critério</th><th>Critério do card</th><th>Onde a QA lê o resultado</th></tr><tr><td>CA-F1</td><td>Segurado autenticado: a consulta de cliente retorna apenas os próprios dados</td><td>Tela do seletor/consulta · resposta do servidor · quantidade e identificação dos registros</td></tr><tr><td>CA-F2</td><td>Alterar a identificação enviada no pedido não expõe cliente de terceiros</td><td>Resposta do servidor ao pedido alterado (lista vazia ou só o próprio) · ausência de dado de terceiro</td></tr><tr><td>CA-F3</td><td>O arquivo enviado no upload não pode ser aberto nem listado pelo navegador depois do envio</td><td>Resposta do servidor ao endereço direto do arquivo e da pasta (não abre / não lista)</td></tr><tr><td>CA-F4</td><td>Corretor, assessoria, portal e usuário interno: consultas de cliente e fluxo de conversão continuam funcionando como hoje</td><td>Tela de cada perfil · resultado do Conversor</td></tr><tr><td>CA-T1 a CA-T5</td><td>Técnicos (DoD): teste RED→GREEN do desenvolvimento, Sonar nível A, PR com 2 aprovadores, testes com evidências em HML, homologação em RELEASE</td><td>Processo — branch policy e DoD do desenvolvimento; a evidência em HML é este plano; RELEASE é de Produtos</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 12/11/2026:</b> tag da seguradora (AIG) e do sistema (Citnet) ✓ · Bug com contexto, cenário atual, cenário desejado, passos para reproduzir, causa e correção proposta ✓ · 4 critérios funcionais testáveis, cada um com o ponto onde se lê o resultado (resposta do servidor, tela ou endereço direto) ✓ · ramo: não se aplica (correção transversal de segurança; o fluxo de conversão é exercitado no ramo RCV, que a AIG usa em HML). Itens de processo/DoD do card (Sonar, PR, RED→GREEN, RELEASE) <b>não viram CT</b>: são garantidos fora da homologação.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para homologação</b> com a correção publicada no HML da AIG. A execução começa logo após a publicação deste plano; no início de cada grupo a QA confirma, em tela, que o ajuste está no ar (primeiro CT de cada achado) antes de interpretar os demais.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>D1</b></td><td><b>Plano neutro (bug de segurança)</b></td><td>Sem rota, parâmetro, endereço de arquivo nem payload; a técnica de reenvio e o padrão de nome ficam só no guia restrito da task. Os CTs descrevem o comportamento esperado.</td></tr><tr><td><b>D2</b></td><td><b>Parte infraestrutura</b></td><td>O que depende de configuração do servidor é medido e classificado à parte do código (critério no guia restrito da task).</td></tr><tr><td><b>D3</b></td><td><b>Envio de movimento do Faturamento</b></td><td>Não existe no menu da AIG (medido em 09/11/2026); coberto por requisição direta com a sessão da tela (CT-SEC-016), por dividir a mesma pasta de upload.</td></tr><tr><td><b>D4</b></td><td><b>Sessão sem identificação → lista vazia</b></td><td>Não há como forçar essa condição por tela; é coberta indiretamente por CT-SEC-003/004. O teste unitário do desenvolvimento é o oráculo do ramo fail-closed.</td></tr><tr><td><b>D5</b></td><td><b>Tenants</b></td><td>Só o HML da AIG tem as chaves ligadas; outros tenants não são testados (mesmo build, comportamento por chave).</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Consulta de cliente do perfil Segurado e reenvio da consulta com identificação alterada (Achado 1).</li><li>Arquivo enviado no Conversor: texto, ZIP e Excel; acessibilidade pelo navegador do arquivo e da pasta; arquivo transitório (Achado 2).</li><li>Regressão dos perfis Corretor, Interno e Assessoria/Portal e dos fluxos que dividem a pasta de upload (Operações; envio de movimento do Faturamento por requisição direta).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li>Ações do card que são de outras equipes (auditoria, proteção de dados, varredura e novo teste externo).</li><li>Configuração e limpeza do servidor (infraestrutura, descritas no card); a QA <b>mede</b> o resultado (CT-SEC-006/010) mas não executa a infraestrutura.</li><li>Produção, staging e demais tenants; critérios de processo/DoD (Sonar, PR, RED→GREEN, RELEASE).</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 12/11/2026, antes de publicar (nada foi gravado):</b> o menu do CITNET da AIG tem Faturamento › Aprovação (Autorização de Prévia), Conversor e Operações; o envio de movimento do Faturamento <b>não existe no menu da AIG</b> (só por requisição direta, ver CT-SEC-016). <b>Limite:</b> o perfil Segurado precisa de um usuário próprio da QA no tenant — é criado ou localizado na execução (massa, não impedimento).</div>
+  <ul><li><b>Ambiente</b> — CITNET da AIG em homologação, com o card em Pronto para homologação e o ajuste ativo (confirmado pelos CT-SEC-001/002 e CT-SEC-006).</li><li><b>Perfis</b> — Segurado (usuário próprio da QA), Corretor, Interno e, se existir no tenant, Assessoria/Portal. Falta de usuário ou senha é massa: a QA cria ou ajusta e segue.</li><li><b>Dois segurados</b> — Um segurado <b>A</b> (o do usuário logado) e um segurado <b>B</b> diferente, ambos com cadastro no tenant — valores reais registrados no resultado de cada CT.</li><li><b>Arquivos</b> — Arquivos de teste sintéticos criados pela QA: texto posicional com marcador de conteúdo exclusivo da QA, o mesmo marcador dentro de um ZIP e de uma planilha Excel; um arquivo de tipo não permitido. Nenhum dado real.</li><li><b>Ferramenta</b> — Navegador por clique para o fluxo. <b>Exceção à navegação por clique, declarada:</b> nos CT-SEC-002, 003, 004, 006, 007, 008, 009, 010 e 016 o objeto do teste é o pedido/endereço direto, feito por um script de QA que reutiliza a sessão da tela aberta (técnica no guia restrito da task, fora deste documento).</li><li><b>Evidência</b> — Anexo por CT no card: captura da tela (login até o fim do cenário) e arquivo com a resposta do servidor; dados de segurado mascarados antes de anexar.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB, NC, ND e O1)</h3>
+  <ol><li><b>NA — Entrada:</b> abrir a tela de login do CITNET da AIG em homologação (única URL digitada) → informar usuário e senha do perfil do CT → <b>Acessar</b>. Daqui em diante só clique.</li><li><b>NB — Consulta de cliente (Achado 1):</b> menu <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») → seletor <b>Segurado</b>/filtro por Segurado Principal → ler a lista que a tela carrega. (Caminho validado em tela na AIG em 09/11/2026; reconferir no CT-SEC-001.)</li><li><b>NC — Conversor (Achado 2):</b> menu <b>Conversor</b> (link no topo; tela «Conversor de Layout - CitNet») → escolher <b>Filial</b> → <b>Ramo</b> (RCV) → <b>Segurado</b> (a lista leva 30 a 60 s) → <b>Escolher arquivo</b> → <b>IMPORTAR</b> → layout → converter. (Validado em tela em 09/11/2026.)</li><li><b>ND — Cadastro de Operações:</b> menu <b>Operações</b> (link no topo) com perfil Corretor → selecionar Apólice → anexar PDF → <b>GRAVAR</b>.</li><li><b>O1 — Resposta do servidor</b> (corpo, status e tamanho, em arquivo anexado) · <b>O2 — Tela</b> (texto exato da mensagem) · <b>O3 — Contagem e identificação</b> dos registros devolvidos · <b>O4 — Endereço direto</b> do arquivo/pasta no navegador (status e corpo).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Segurado A / B:</b> dois segurados distintos do tenant AIG (código e nome registrados no resultado do CT; mascarados no anexo)</li><li><b>Filial / Ramo do Conversor:</b> filial de validação do RCV da AIG, ramo RCV (medido em 09/11/2026; reconferir no dia)</li><li><b>Marcador de conteúdo:</b> texto exclusivo da QA (ex.: «QA9556» + data) dentro de cada arquivo de teste — é o que se procura no corpo da resposta do endereço direto</li><li><b>Limite de taxa:</b> pausas de pelo menos 4 s entre envios; resposta de excesso de requisições (429) invalida a rodada</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>CT-SEC-001 e CT-SEC-005 primeiro (controles positivos: o Segurado vê o próprio cadastro; o Conversor envia e importa) — sem eles, ausência de dado não prova nada.</li><li>Achado 1: CT-SEC-002, 003, 004 (reenvios alterados e sessão encerrada).</li><li>Achado 2: CT-SEC-006, 007, 008, 009, 010 (endereço direto, conversão completa, ZIP, Excel, listagem da pasta).</li><li>Regressão: CT-SEC-011 a 015; por último o envio de movimento (CT-SEC-016).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Consulta de cliente do Segurado só devolve o próprio cadastro (Achado 1)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-001</span><span class="ct-title">Segurado logado: a consulta de cliente pela tela traz só o próprio cadastro (controle positivo)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional + segurança — CA-F1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário Segurado da QA associado ao segurado A; ajuste ativo no tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da AIG (homologação), informar o usuário e a senha do perfil indicado e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b>.</li><li>Abrir o seletor de <b>Segurado</b> e deixar a tela carregar a lista (registrar a data, a versão do rodapé e a quantidade de itens).</li><li>Anotar a identificação de cada item listado.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Somente o cadastro do segurado A (o card relata 1 registro; registrar o observado). Nenhum cadastro de outro segurado na tela nem na resposta. Se o Segurado alcançar o seletor por outra tela, registrar o caminho real. Também prova que o detector enxerga dado: o próprio cadastro aparece.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-002</span><span class="ct-title">Segurado reenvia a consulta com a identificação de OUTRO segurado: nenhum dado de terceiro volta</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F2</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SEC-001 aprovado; segurado B conhecido (identificação anotada).</li></ul>
+      <h4>Passos</h4><ol><li>Logado como Segurado (sessão do CT-SEC-001), com a tela de consulta aberta.</li><li>Pelo script de QA que reutiliza a sessão (técnica no guia restrito), reenviar a mesma consulta trocando a identificação do segurado pela do segurado B.</li><li>Controle: reenviar também a consulta com a identificação do próprio segurado A e confirmar que o reenvio funciona (volta o cadastro de A).</li><li>Salvar a resposta completa (status, tamanho e corpo) em arquivo.</li><li>Procurar na resposta o nome, o documento e o código do segurado B.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta traz só o próprio segurado A ou lista vazia; <b>nenhum</b> dado do segurado B (nome, documento ou código) e nenhuma mensagem de erro que revele dado de terceiro. (Baseline sem o ajuste: evidência RED do desenvolvimento; a QA não reproduz com o ajuste ativo.)</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-003</span><span class="ct-title">Segurado reenvia a consulta com a identificação zerada ou ausente: não lista a filial inteira</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F2</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SEC-001 aprovado.</li></ul>
+      <h4>Passos</h4><ol><li>Com a sessão do Segurado, reenviar a consulta (a) com a identificação zerada e (b) sem nenhuma identificação (corpo vazio), com pausa de 4 s entre os envios.</li><li>Salvar a resposta de cada tentativa; contar os registros e conferir se há cadastro diferente de A.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em (a) e (b): só o segurado A ou lista vazia; nunca a lista de clientes da filial. Erro genérico sem dado é aceitável; lista de terceiros reprova.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-004</span><span class="ct-title">Sessão encerrada: a consulta reenviada não devolve dado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F2 (fail-closed)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SEC-001 aprovado.</li></ul>
+      <h4>Passos</h4><ol><li>Logado como Segurado, copiar do navegador o pedido da consulta pelo script de QA e reenviá-lo ainda com a sessão ativa (controle: devolve o cadastro de A).</li><li>Clicar em <b>Sair</b> (menu do usuário) e confirmar o retorno ao login.</li><li>Reenviar o mesmo pedido com a sessão encerrada; salvar a resposta.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhum dado de cliente: resposta de sessão expirada/redirecionamento ao login; corpo sem cadastro algum.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Arquivo enviado no Conversor não fica acessível pelo navegador (Achado 2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-005</span><span class="ct-title">Conversor: arquivo de texto legítimo é enviado e importado normalmente (controle positivo do Achado 2)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-F4 / controle do CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Perfil Interno ou o de uso do Conversor na AIG; arquivo de texto de teste com o marcador da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da AIG (homologação), informar o usuário e a senha do perfil indicado e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Conversor</b> (topo) → escolher Filial, Ramo (RCV) e Segurado.</li><li>Clicar em <b>Escolher arquivo</b>, selecionar o arquivo de teste e clicar em <b>IMPORTAR</b>.</li><li>Ler a prévia e o layout; anotar o nome do arquivo e a hora do envio.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Importação concluída com a prévia mostrando o conteúdo do arquivo (marcador da QA visível na prévia). O fluxo funciona como hoje; sem este resultado, os CT-SEC-006 a 009 não provam nada.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-006</span><span class="ct-title">O arquivo enviado não abre pelo endereço direto da pasta de upload</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SEC-005 aprovado (arquivo enviado há pouco; nome e hora anotados).</li></ul>
+      <h4>Passos</h4><ol><li>Com o arquivo do CT-SEC-005 já enviado, montar o endereço direto do arquivo conforme o padrão de nome (detalhe no guia restrito) e abri-lo no navegador, ainda dentro da sessão e também em janela sem sessão.</li><li>Controle de montagem: aplicar o mesmo método de montagem de endereço a um recurso público conhecido do site e confirmar status 200.</li><li>Salvar status e corpo da resposta de cada tentativa.</li><li>Procurar o marcador exclusivo da QA no corpo.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo <b>não abre</b>: não encontrado ou acesso negado, nas duas tentativas; o marcador da QA não aparece no corpo. Arquivo aberto = REPROVADO (CA-F3).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-007</span><span class="ct-title">Depois da conversão completa o arquivo continua inacessível</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F3 (arquivo transitório)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SEC-005 aprovado; layout de conversão disponível para o ramo RCV.</li></ul>
+      <h4>Passos</h4><ol><li>Continuando do CT-SEC-005: aplicar o layout, clicar em <b>converter</b>, executar o De/Para, reconverter e processar até o fim do fluxo.</li><li>Ao terminar, repetir a abertura do endereço direto do arquivo enviado (CT-SEC-006) e salvar status e corpo.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Conversão e processamento concluídos como hoje; o endereço direto continua sem abrir (não encontrado/negado), sem o marcador no corpo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-008</span><span class="ct-title">Conversor com ZIP: o conteúdo extraído também não fica acessível e o reenvio funciona</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança + funcional — CA-F3/F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>ZIP de teste com uma entrada de texto contendo o marcador da QA.</li></ul>
+      <h4>Passos</h4><ol><li>No Conversor, enviar o ZIP e importar; conferir a prévia com o conteúdo da entrada.</li><li>Tentar abrir pelo endereço direto o ZIP e o texto extraído (padrão de nome no guia restrito).</li><li>Reenviar o mesmo ZIP em uma segunda sessão (outro login) e converter; conferir que cada sessão vê o próprio conteúdo.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Prévia correta nas duas sessões; nem o ZIP nem o texto extraído abrem pelo endereço direto; nenhuma sessão enxerga conteúdo da outra.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-009</span><span class="ct-title">Conversor com planilha Excel: importa normalmente e o arquivo não fica acessível</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança + funcional — CA-F3/F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha .xlsx de teste com o marcador da QA em uma célula.</li></ul>
+      <h4>Passos</h4><ol><li>No Conversor, enviar a planilha e importar.</li><li>Conferir a prévia (marcador na célula esperada).</li><li>Tentar abrir pelo endereço direto a planilha enviada.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Prévia correta; endereço direto não abre (não encontrado/negado).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-010</span><span class="ct-title">A pasta de upload não lista arquivos pelo navegador</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F3 (listagem)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Nenhuma além do ambiente; item de infraestrutura medido pela QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir no navegador, sem sessão, o endereço da pasta de upload sem informar nome de arquivo (endereço no guia restrito).</li><li>Controle de montagem: o mesmo tipo de endereço para um recurso público do site responde normalmente (status 200).</li><li>Salvar status e corpo; procurar a relação de arquivos.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem listagem: não encontrado ou acesso negado, nunca a relação de arquivos. Se listar, registrar como pendência de configuração do servidor (infraestrutura) e reprovar o CA-F3 do ambiente, classificando a causa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-010"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão: demais perfis e fluxos que dividem a pasta de upload</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-011</span><span class="ct-title">Corretor: a consulta de clientes continua funcionando como hoje</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário Corretor da QA do tenant AIG com apólice vinculada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da AIG (homologação), informar o usuário e a senha do Corretor e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> e abrir o seletor de Segurado.</li><li>Registrar a quantidade e a identificação dos segurados listados e escolher um deles.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista carrega os segurados vinculados ao corretor, como antes do card, sem erro; a escolha de um segurado filtra a tela normalmente.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-012</span><span class="ct-title">Usuário Interno: Conversor lista os segurados da filial como antes</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário Interno da QA (QA INTERNO).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da AIG (homologação), informar o usuário e a senha do usuário Interno e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Conversor</b> → escolher Filial e Ramo (RCV).</li><li>Esperar o seletor de Segurado carregar (30 a 60 s) e anotar a quantidade de itens.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Lista completa de segurados da filial (mesma ordem de grandeza da medida de 09/11/2026: 136 itens, reconferir), sem filtro indevido pelo ajuste.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-013</span><span class="ct-title">Assessoria/Portal (se existir no tenant): consulta de clientes segue normal</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Perfil Assessoria ou Portal do tenant AIG; se não existir, criar usuário de teste pela tela (falta de usuário é massa).</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil.</li><li>Abrir <b>Faturamento</b> → <b>Aprovação</b> e o seletor de Segurado.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Lista por corretor/assessoria como antes; sem erro. Se o perfil não puder existir no tenant, registrar N/A com o motivo e a medida.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-014</span><span class="ct-title">Cadastro de Operações (mesma pasta de upload): PDF continua gravando</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário Corretor com apólice; PDF de teste sintético.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar como Corretor → clicar em <b>Operações</b>.</li><li>Selecionar Apólice, informar CNPJ embarcador sintético e a vigência, anexar o PDF e clicar em <b>GRAVAR</b>.</li><li>Confirmar a mensagem de sucesso e a linha na grade.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem «Cadastro de Operação gravado com sucesso.» e linha criada; o upload de Operações não foi quebrado pelo ajuste da pasta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-015</span><span class="ct-title">Tipo de arquivo não permitido continua barrado no Conversor</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — defesa existente</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo .jpg de teste.</li></ul>
+      <h4>Passos</h4><ol><li>No Conversor, escolher o arquivo .jpg e tentar enviar.</li><li>Ler o modal exibido.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Modal «ATENÇÃO!» com «Atenção! Formato de Arquivo Inválido!»; nada é importado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-015"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Defesa em profundidade: envio de movimento do Faturamento</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SEC-016</span><span class="ct-title">Envio de movimento do Faturamento: arquivo de tipo não permitido é rejeitado e nada fica acessível</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F3 (pasta compartilhada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>O menu da AIG não tem a tela; usar o script de QA com a sessão da tela aberta (técnica no guia restrito). Controle positivo: texto legítimo aceito.</li></ul>
+      <h4>Passos</h4><ol><li>Com a sessão aberta, enviar um texto legítimo (controle) e depois um arquivo de tipo não permitido.</li><li>Salvar a resposta de cada envio.</li><li>Tentar abrir pelo endereço direto o que foi enviado.</li><li>Anexar ao card a captura da tela (do login ao fim) e o arquivo com a resposta do servidor; mascarar dados de segurado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Texto legítimo aceito; arquivo de tipo não permitido <b>rejeitado</b> com mensagem de formato inválido; nada do que foi enviado abre pelo endereço direto.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SEC-016"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-F1 — Segurado vê só o próprio cadastro</td><td>CT-SEC-001, CT-SEC-002</td><td>Pendente</td></tr><tr><td>CA-F2 — Alterar a identificação não expõe terceiros</td><td>CT-SEC-002, CT-SEC-003, CT-SEC-004</td><td>Pendente</td></tr><tr><td>CA-F3 — Arquivo do upload não abre nem lista</td><td>CT-SEC-006, CT-SEC-007, CT-SEC-008, CT-SEC-009, CT-SEC-010, CT-SEC-016</td><td>Pendente</td></tr><tr><td>CA-F4 — Sem regressão nos demais perfis e no fluxo de conversão</td><td>CT-SEC-005, CT-SEC-011, CT-SEC-012, CT-SEC-013, CT-SEC-014, CT-SEC-015</td><td>Pendente</td></tr><tr><td>CA-T1 a CA-T3 — RED→GREEN, Sonar nível A, PR com 2 aprovadores (processo)</td><td>— (garantidos por branch policy e DoD do desenvolvimento; fora da homologação)</td><td>N/A</td></tr><tr><td>CA-T4 — Testado com evidências em HML</td><td>— (é este plano; evidência por CT no card)</td><td>N/A</td></tr><tr><td>CA-T5 — Homologado em RELEASE</td><td>— (Produtos; fora da homologação da QA)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os 4 critérios funcionais (CA-F1 a CA-F4) estão cobertos pelos 16 CTs; os 5 critérios técnicos (DoD) são de processo e não geram CT (ver matriz). Os CT-SEC-001 e 005 são controles positivos: sem eles, a ausência de dado de terceiro ou de arquivo acessível não é aprovação.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Usuário Segurado inexistente no tenant</td><td>Média</td><td>Alto</td><td>A QA cria ou ajusta o usuário (regra de massa); nenhum CT fica pendente por isso.</td></tr><tr><td>Resultado depender de configuração do servidor</td><td>Média</td><td>Médio</td><td>Separar no resultado o que é do sistema e o que é de infraestrutura; critério no guia restrito da task.</td></tr><tr><td>Endereço de teste montado errado devolver «não encontrado» e parecer aprovação</td><td>Média</td><td>Alto</td><td>Controle de montagem obrigatório nos CT-SEC-006 a 010 (o mesmo método devolve 200 para um recurso público do site).</td></tr><tr><td>Ausência de dado ser lida como aprovação</td><td>Média</td><td>Alto</td><td>Controles positivos obrigatórios (CT-SEC-001, 005 e envio legítimo do CT-SEC-016) antes de cada conclusão negativa.</td></tr><tr><td>Limite de requisições (429) no login/envio</td><td>Média</td><td>Médio</td><td>Pausas de 4 s; um login por perfil por rodada; 429 invalida a rodada.</td></tr><tr><td>Dado de segurado em captura</td><td>Média</td><td>Alto</td><td>Mascarar DOM, texto e imagem antes de anexar; nada vai ao repositório público.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (12/11/2026) · Sprint 19 Sustentação · card em Pronto para homologação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
