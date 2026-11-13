@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9126 · BERKLEY - CITWEB - Relatório SLA não mostra o valor pendente de fatura com erro de pagamento e fechamento zerado</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9126 · Sprint 19 Sustentação</span>
+    <h1>BERKLEY - CITWEB - Relatório SLA não mostra o valor pendente de fatura com erro de pagamento e fechamento zerado</h1>
+    <div class="sub">CITWEB — Gestão › Relatórios › Relatório SLA · status «Em emissão Interface» · Berkley (card) e Fairfax · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (13/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (o card já está em Pronto para homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/3/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>9 CTs</strong> (4×P1 · 3×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No relatório SLA (Gestão › Relatórios › SLA), a fatura que teve erro no pagamento e ainda não foi fechada aparecia como «MOVIMENTO NÃO RECEPCIONADO» com valores zerados (0,00), escondendo o valor que está pendente de pagamento. O card pede que o relatório passe a mostrar essa fatura como pendente, com o valor correto.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 9 situações de uso: o caso do card na Berkley (apólice de teste, filial de teste, junho de 2025) com todos os status marcados e só com «Em emissão Interface»; a mesma situação em outra seguradora (Fairfax), para confirmar que vale para todas; e a regressão — o que já funcionava (fatura em emissão, demais status, tela) continua igual.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. Já conferimos no ambiente, <b>sem gravar nada</b>, que a versão com a correção está publicada na Berkley e na Fairfax e que existem faturas de teste exatamente nessa condição (na Berkley, a do card: valor esperado de IS 156.674,09 e prêmio 131,79). <b>Ponto de atenção:</b> o desenvolvedor escolheu a opção A do card — a fatura passa a aparecer quando o status «Em emissão Interface» está marcado (para todas as seguradoras); a caixa «Pendência Pagto» <b>continua fora da tela</b>. Se «Em emissão Interface» não estiver marcado, a linha segue como «Movimento não recepcionado», como antes.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem acompanha o SLA e marca «Em emissão Interface» passa a ver a fatura com erro de pagamento como «pendência de pagamento», com IS e prêmio corretos, em vez de zerada. Na Berkley o texto é «PENDENCIA PAGTO»; nas demais seguradoras, «PENDENCIA PAGAMENTO».</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: o card deixava em aberto «reabrir a caixa Pendência Pagto» (opção B) ou «tratar no status Em emissão Interface» (opção A). O desenvolvimento entregou a <b>opção A</b>; a QA testa o que foi entregue. Se Produtos preferir a opção B, é um ajuste novo, não reprova este card.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — <b>Gestão › Relatórios › Relatório SLA</b> (tipo de relatório BASICO, exportação em Excel) · status «Em emissão Interface» · seguradora do card: <b>Berkley</b>; a correção vale para todas (opção A do desenvolvimento) — segunda seguradora do plano: <b>Fairfax</b>.</td></tr><tr><th>Card</th><td>BUG-9126 — «[CITWEB] SLA não exibe valor pendente de faturas com erro de pagamento e fechamento zerado (checkbox «Pendência Pagto» ausente desde #4495)» · board <b>Sustentação</b> · estado <b>Pronto para homologação</b> · tags BERKLEY; citweb; melhoria · origem: achado do CT-GES-004 do BUG-8864 · 2 critérios de aceite funcionais (CA1 e CA2) + 3 técnicos de engenharia (sem CT) · 6 pull requests (uma por branch) já integrados na homologação.</td></tr><tr><th>Fluxo</th><td>Bug no board da Sustentação: <b>sem aprovação de Produtos</b>; o plano sai com a marcação de execução pronta e a execução começa com o card em homologação (já está) · APROVADO com revisão independente sem apontamento grave → conclusão e envio ao staging; REPROVADO → defeito filho para o desenvolvedor · achado já existente antes do card → novo item na próxima sprint (não reprova o card).</td></tr><tr><th>Ambiente / versão</th><td>Homologação da Berkley · versão <b>V 1.0.261112.1609</b> (rodapé, lida em 13/11/2026, posterior à integração da correção na homologação). Segunda seguradora: homologação da Fairfax · <b>V 1.0.261112.1711</b>.</td></tr><tr><th>Autor QA / versão</th><td>Wesley Moreira · plano versão 1.0 (13/11/2026) · evidência por CT: anexo no card (nunca neste documento).</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No <b>Relatório SLA</b> (Gestão), quando uma fatura teve <b>erro de pagamento no retorno da interface</b> e o <b>fechamento está zerado</b> (a fatura inteira ficou em erro, o valor está só em «pendente de pagamento»), a linha saía como <b>MOVIMENTO NÃO RECEPCIONADO</b> com IS e Prêmio 0,00, mesmo marcando todos os status. Exemplo do card (Berkley, junho/2025): IS esperado 156.674,09 e Prêmio esperado 131,79.</p><p><b>O que foi entregue (leitura do PR e do código da homologação — não observação do build):</b> com o status <b>«Em emissão Interface»</b> marcado, a fatura aberta com fechamento zerado e valor pendente de pagamento maior que zero passa a sair como <b>pendência de pagamento</b>, com o valor pendente: na Berkley, com retorno 'P', o texto é <b>PENDENCIA PAGTO</b> (IS e Prêmio = fechado + pendente); nas demais seguradoras, <b>PENDENCIA PAGAMENTO</b>. A caixa «Pendência Pagto» (removida da tela no card #4495) <b>continua fora</b> da tela; nenhuma mudança de banco; a regra do BUG-8864 (fechamento maior que zero) fica como está.</p><p><b>Critérios de aceite do card:</b> CA1 — identificar no SLA as faturas com erro de pagamento e fechamento zerado, com o valor pendente exibido corretamente em vez de «MOVIMENTO NÃO RECEPCIONADO / 0,00»; CA2 — demais status do SLA sem alteração (sem regressão). Itens técnicos (teste unitário, PR com 2 aprovadores) são de engenharia, sem observável para o usuário (DI8).</p>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 13/11/2026:</b> tags BERKLEY e citweb ✓ · Bug com contexto, cenário atual, cenário desejado, usuário afetado, ambiente e evidências ✓ · 2 critérios de aceite funcionais testáveis, com o ponto onde se lê o resultado (linha do relatório Excel: status, IS e Prêmio; conferível por consulta ao banco) ✓ · área e ramos: relatório geral, ramo 22 no caso do card ✓. O card não tem tasks filhas; o único comentário é uma nota automática de ferramenta, sem conteúdo de negócio; o detalhe do que foi entregue está nos 6 pull requests (descrição, causa, solução, como testar). A dúvida deixada em aberto no card (opção A × B) foi resolvida pelo desenvolvimento (opção A) e está documentada na DI1. Nada a escalar.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para homologação</b> e a correção está publicada nas homologações da Berkley (V 1.0.261112.1609) e da Fairfax (V 1.0.261112.1711), lidas em 13/11/2026 — ambas posteriores à integração do pull request da homologação (12/11/2026).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Opção A × B do card</b></td><td>O card deixava para Produtos decidir entre reabrir a caixa «Pendência Pagto» (B) e tratar o caso sob «Em emissão Interface» (A). O desenvolvimento entregou a <b>opção A, para todas as seguradoras</b>, e a descrição do pull request diz que restringir à Berkley seria uma condição a mais. Como é Bug (sem Gate 2), a QA <b>testa o que foi entregue</b> contra o CA1 (valor pendente correto em vez de 0,00). Não bloqueia; se Produtos preferir B, é ajuste novo.</td></tr><tr><td><b>DI2</b></td><td><b>Oráculo e texto do status</b></td><td>A tela SLA só exporta Excel; o oráculo é a linha da planilha (Status, IS Total, Prêmio Total) comparada ao banco e ao valor do card. O texto «PENDENCIA PAGTO» (Berkley com retorno 'P') e «PENDENCIA PAGAMENTO» (demais) vem da <b>leitura do código</b> da homologação; a QA registra o texto exato visto. Se o texto divergir mas o valor estiver certo e o «MOVIMENTO NÃO RECEPCIONADO / 0,00» sumir, o CA1 está cumprido e a divergência de texto vai como observação.</td></tr><tr><td><b>DI3</b></td><td><b>Filtro «Por Filial» e Tipo Ramo GERAL</b></td><td>A reprodução do card usa Por Filial 0901, BASICO e MARCAR TODOS; o ramo da apólice do card é 22 e o Tipo Ramo padrão (GERAL) o inclui. A QA usa o mesmo filtro; o CT-SLA-009 testa o efeito de trocar o Tipo Ramo.</td></tr><tr><td><b>DI4</b></td><td><b>Só «Movimento não Recepcionado» marcado</b></td><td>Pela leitura do código, o novo status só atua quando «Em emissão Interface» está marcado; sem ele a fatura continua caindo no caminho antigo. O desenvolvimento descreve isso como comportamento mantido. O CT-SLA-003 só registra; <b>não reprova o card</b>.</td></tr><tr><td><b>DI5</b></td><td><b>Valores esperados</b></td><td>Vêm de consulta ao banco de homologação em 13/11/2026 (fechamento = soma do prêmio das faturas do mês sem erro de pagamento; pendente = soma das com erro; IS idem) e dos números do card (156.674,09 / 131,79). A QA repete o SELECT em cada CT; massa mudada = escolher outra e registrar.</td></tr><tr><td><b>DI6</b></td><td><b>Chubb</b></td><td>O pull request informa que a Chubb tem faturas na mesma condição, mas a planilha dela já sai em branco nessas colunas por um defeito anterior ao card. Fora do escopo; se a QA observar isso na execução, tratar como achado já existente antes do card (novo item na próxima sprint, com prova), sem reprovar o card.</td></tr><tr><td><b>DI7</b></td><td><b>nstech</b></td><td>Há uma fatura de teste do nstech na condição, mas a tela de entrada dessa homologação não abriu pelo mesmo caminho de menu na exploração de 13/11/2026 (não mapeada). O mesmo código é exercido pela Fairfax (CT-SLA-004); nstech fica registrado como não coberto.</td></tr><tr><td><b>DI8</b></td><td><b>Itens técnicos sem CT</b></td><td>Teste unitário, cobertura do diff e PR com 2 aprovadores são de engenharia (DoD do desenvolvimento), sem observável para o usuário; ficam fora do plano e garantidos por revisão do PR/branch policy.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Relatório SLA (Gestão), tipo BASICO, exportação Excel: status, IS e Prêmio da fatura inteira em erro de pagamento com fechamento zerado, na Berkley (caso do card) e em outra seguradora (Fairfax).</li><li>O texto do status por seguradora (Berkley «PENDENCIA PAGTO»; demais «PENDENCIA PAGAMENTO») e a combinação dos filtros: todos os status marcados × só «Em emissão Interface» × só «Movimento não Recepcionado».</li><li>Regressão (CA2): fechamento maior que zero (caminho do BUG-8864, com e sem retorno 'P'), demais status do mesmo relatório e a tela (sem caixa nova).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li>Reabrir a caixa «Pendência Pagto» na tela do SLA (opção B do card): não foi a opção entregue; seria demanda nova (DI1).</li><li>Relatório Análise de Produção e demais relatórios do Gestão (a mudança é só no SLA).</li><li>Chubb: o desenvolvimento informa que a planilha dela já sai em branco nessas colunas por um defeito anterior ao card, fora do escopo; <b>não</b> é testado aqui (DI6).</li><li>nstech: tem uma fatura de teste que também muda, mas a tela de entrada não foi mapeada em 13/11/2026; o mesmo caminho de código é coberto pela Fairfax (DI7).</li><li>Testes unitários, cobertura do diff e PR com 2 aprovadores: itens técnicos de engenharia, sem observável para o usuário (DI8).</li><li>Produção (a QA não testa em produção).</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 13/11/2026, antes de publicar (nada foi gravado, nenhum relatório gerado):</b> as duas homologações respondem e o rodapé traz as versões acima · a tela SLA tem o status «Em emissão Interface», o botão «MARCAR TODOS», o tipo de relatório BASICO e <b>não tem</b> a caixa «Pendência Pagto» · indicativos de retorno de pagamento ligados na Berkley e na Fairfax · faturas de teste na condição do card, por consulta somente leitura: <b>Berkley</b> apólice 4309622005, junho/2025 (fechamento 0,00 · pendente 131,79 · IS 156.674,09 · retorno 'P'); <b>Fairfax</b> apólice 2105252101, julho/2025 (fechamento 0,00 · pendente 536,90 · IS 100.000,00 · sem retorno 'P') · para a regressão: Berkley apólice 4309621005, junho/2025 (fechado 8.047,05 · IS 1.700.000,00 · retorno 'P') e apólice 4309622005 em abril e maio/2025 (fechado 355,80 e 1.029,20 · sem retorno 'P') · as colunas do Excel foram lidas do cabeçalho de uma planilha SLA já existente: <b>Status</b> (coluna I), <b>IS Total</b> (P) e <b>Prêmio Total</b> (Q), apólice em 13 dígitos com zeros à esquerda · <b>não</b> foi gerado o relatório do card (isso é o CT-SLA-001) e a tela de entrada do nstech (também tem linha que muda) não foi mapeada.</div>
+  <ul><li><b>Pré-verificação do ambiente</b> — antes do 1º CT, conferir que o login da homologação da seguradora do CT carrega; ambiente fora do ar = interromper sem veredito (não reprovar, não bloquear) e retomar quando voltar, registrando host e hora.</li><li><b>Acesso</b> — operador de suporte/QA da seguradora (credencial no cofre da QA — nunca neste documento); banco de homologação em <b>somente leitura</b> para os oráculos; nenhuma escrita: este plano não precisa criar massa (as faturas de teste já existem).</li><li><b>Massa</b> — reconferir por SELECT, na hora de cada CT, que a fatura ainda está na condição esperada (fechamento 0,00 e pendente maior que zero, ou o caso de regressão); se alguém alterou, escolher outra fatura na mesma condição (consulta por mês) e registrar a troca.</li><li><b>Relatório Excel</b> — o SLA só exporta Excel: salvar o arquivo em disco, abrir com leitor de planilha, localizar a linha pela <b>Apólice</b> (13 dígitos, ex.: 0004309622005) e ler as colunas <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>; o arquivo é a evidência do CT (anexo no card), junto do print da tela do filtro.</li><li><b>Limpeza</b> — nada a limpar: o plano só gera relatórios (leitura).</li></ul>
+  <h3>Navegação base e oráculos (NA, NB, NC, ND e O1)</h3>
+  <ol><li><b>NA — Chegar à tela SLA (por clique):</b> abrir o login do CITWEB da seguradora (homologação) → entrar com o operador de suporte/QA → clicar no bloco <b>Gestão</b> (abre em nova aba) → menu <b>Relatórios</b> → <b>Relatório SLA</b>. Ler a versão no rodapé da tela e anotar.</li><li><b>NB — Preencher o filtro:</b> Critérios para Seleção → <b>Por Filial</b> → escolher a filial do CT na lista · <b>Referência de</b> mês/ano <b>até</b> mês/ano (o mês do CT nos dois campos) · <b>Tipo Ramo</b> = GERAL (padrão) · <b>Tipo de Relatório</b> = BASICO · Tipo de Apólice: deixar como a tela abre (Demais Apólices marcado) · Status: conforme o CT (botão <b>MARCAR TODOS</b> ou só os status citados).</li><li><b>NC — Gerar e ler:</b> botão <b>Exportar Excel</b> → confirmar no aviso <b>Sim</b> → aguardar o download (anotar o tempo) → abrir a planilha: cabeçalho na linha 6; localizar a linha pela coluna <b>Apólice</b>; ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>; conferir que o mês da coluna <b>Ano/Mês Refer</b> é o do CT.</li><li><b>O1 — Oráculo de banco (somente leitura):</b> para a apólice, subgrupo e mês do CT, somar nas faturas do mês (não canceladas, sem adicional) o <b>prêmio</b> e a <b>IS</b> das faturas <b>sem</b> erro de pagamento (= fechamento) e das <b>com</b> erro de pagamento (= pendente), e ler o status de retorno da interface. A linha do relatório tem de bater com esses números (ver o CT).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Ambiente:</b> Homologação da Berkley (V 1.0.261112.1609) e da Fairfax (V 1.0.261112.1711), medidas em 13/11/2026.</li><li><b>Berkley — caso do card (CT-SLA-001 a 003):</b> Filial <b>0901</b> (NSTECH — TESTE CITWEB) · apólice <b>4309622005</b> (ramo 22), subgrupo 001 · mês <b>06/2025</b> · uma fatura em aberto com retorno 'P': fechamento <b>0,00</b> · pendente <b>131,79</b> · IS pendente <b>156.674,09</b>. Esperado: «PENDENCIA PAGTO» · IS 156.674,09 · Prêmio 131,79.</li><li><b>Fairfax — outra seguradora (CT-SLA-004):</b> Filial <b>0003</b> (NSTECH — HML CITWEB FAIRFAX) · apólice <b>2105252101</b> (ramo 21), subgrupo 001 · mês <b>07/2025</b> · uma fatura em aberto, sem retorno 'P': fechamento <b>0,00</b> · pendente <b>536,90</b> · IS pendente <b>100.000,00</b>. Esperado: «PENDENCIA PAGAMENTO» · IS 100.000,00 · Prêmio 536,90.</li><li><b>Berkley — regressão: fechamento maior que zero com retorno 'P' (CT-SLA-005):</b> Filial 0901 · apólice <b>4309621005</b> (ramo 21), subgrupo 001 · mês <b>06/2025</b> · fatura em aberto com fechamento <b>8.047,05</b> · IS <b>1.700.000,00</b> · retorno 'P' (as duas outras faturas do mês estão canceladas e não contam). Esperado: «PENDENCIA PAGTO» · IS 1.700.000,00 · Prêmio 8.047,05.</li><li><b>Berkley — regressão: fechamento maior que zero sem retorno 'P' (CT-SLA-006):</b> Filial 0901 · apólice <b>4309622005</b> · meses <b>04/2025</b> (fechado 355,80 · IS 375.522,81) e <b>05/2025</b> (fechado 1.029,20 · IS 1.055.915,33) · sem retorno 'P'. Esperado: «EM EMISSÃO - INTERFACE» com esses valores.</li><li><b>Datas:</b> os meses são de 2025 e 2026 já fechados na massa; o relatório lê o mês de referência informado, não a data de hoje.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificações: ambiente no ar, versão do rodapé, SELECTs de massa (o caso do card ainda na condição esperada).</li><li><b>CT-SLA-001</b> primeiro (é a reprodução do card, com «MARCAR TODOS») → CT-SLA-002 → CT-SLA-003.</li><li>CT-SLA-004 (Fairfax).</li><li>Regressão: CT-SLA-005 → CT-SLA-006 → CT-SLA-007 (aproveitar a planilha do CT-SLA-001) → CT-SLA-008 (tela).</li><li>CT-SLA-009 (exploratório de 15 a 30 min).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Bloco A · Caso do card na Berkley (CA1)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-001</span><span class="ct-title">Berkley, todos os status marcados: a fatura inteira em erro de pagamento sai como «PENDENCIA PAGTO» com IS 156.674,09 e Prêmio 131,79 (e não «MOVIMENTO NÃO RECEPCIONADO» 0,00)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo · relatório Excel · reprodução do card (CA1)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Homologação da Berkley; filial 0901; apólice 4309622005, mês 06/2025 (ver Massa). SELECT prévio (O1) confirma fechamento 0,00, pendente 131,79, IS pendente 156.674,09 e retorno 'P'.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA, entrar na tela SLA e anotar a versão do rodapé.</li><li>Pela navegação NA e NB: Critérios para Seleção <b>Por Filial</b> → filial <b>0901 - NSTECH - TESTE CITWEB</b> · Referência <b>06/2025</b> até <b>06/2025</b> · Tipo Ramo GERAL · Tipo de Relatório BASICO.</li><li>Clicar em <b>MARCAR TODOS</b> e conferir que todas as caixas de Status (e as duas de Tipo de Apólice) ficaram marcadas; tirar print do filtro preenchido.</li><li>Pela navegação NC: <b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha; anotar tempo, tamanho e número de linhas.</li><li>Localizar a linha da apólice 0004309622005 (subgrupo 001, mês 202506) e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>; repetir o SELECT O1 depois do relatório (nada deve ter mudado).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha da apólice 4309622005 / mês 202506: <b>Status = PENDENCIA PAGTO</b> · <b>IS Total = 156.674,09</b> · <b>Prêmio Total = 131,79</b> — exatamente os valores do banco (pendente) e do card; <b>nunca</b> «MOVIMENTO NÃO RECEPCIONADO» com 0,00. Oráculo: arquivo salvo + print do filtro + SELECT.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-002</span><span class="ct-title">Berkley, só «Em emissão Interface» marcado: a mesma fatura aparece como «PENDENCIA PAGTO» com os mesmos valores</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo · filtro mínimo · opção A (CA1)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-SLA-001. Nenhuma outra caixa de Status marcada.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA e NB, abrir o filtro com a filial <b>0901 - NSTECH - TESTE CITWEB</b> e a referência <b>06/2025</b> até <b>06/2025</b>.</li><li>Marcar <b>somente</b> a caixa <b>Em emissão Interface</b> (as demais de Status desmarcadas); tirar print mostrando as caixas.</li><li><b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha.</li><li>Localizar a linha da apólice 0004309622005 e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A linha da apólice 4309622005 está na planilha com <b>Status = PENDENCIA PAGTO</b>, <b>IS Total = 156.674,09</b> e <b>Prêmio Total = 131,79</b>. Prova que o status «Em emissão Interface» basta para identificar a fatura (opção A entregue).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-003</span><span class="ct-title">Berkley, só «Movimento não Recepcionado» marcado: a linha continua como antes (sem o novo status) — a mudança só aparece com «Em emissão Interface»</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão de filtro · comportamento mantido (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-SLA-001. Nenhuma outra caixa de Status marcada.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA e NB, abrir o filtro com a filial <b>0901 - NSTECH - TESTE CITWEB</b> e a referência <b>06/2025</b> até <b>06/2025</b>.</li><li>Marcar <b>somente</b> a caixa <b>Movimento não Recepcionado</b>; tirar print mostrando as caixas.</li><li><b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha.</li><li>Localizar a linha da apólice 0004309622005 (se existir) e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>; anotar o número de linhas do relatório.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem «Em emissão Interface» marcado, a linha da apólice 4309622005 <b>não</b> vira «PENDENCIA PAGTO»: ou fica como «MOVIMENTO NÃO RECEPCIONADO» com 0,00, ou não aparece — o mesmo que fazia antes da correção (comportamento descrito pelo desenvolvimento, DI4). O que importa para o veredito: nenhum erro, nenhum valor trocado em outras linhas. Registrar o que a tela mostrou; <b>não reprova o card</b> (decisão de produto sobre o filtro, não bug).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Bloco B · Outra seguradora, sem retorno 'P' (CA1 vale para todas)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-004</span><span class="ct-title">Fairfax, só «Em emissão Interface» marcado: a fatura inteira em erro de pagamento (sem retorno 'P') sai como «PENDENCIA PAGAMENTO» com IS 100.000,00 e Prêmio 536,90</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Positivo · relatório Excel · outra seguradora (CA1: «usuários de todas as seguradoras»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Homologação da Fairfax (V 1.0.261112.1711); filial 0003; apólice 2105252101, mês 07/2025 (ver Massa). SELECT prévio (O1) confirma fechamento 0,00, pendente 536,90, IS pendente 100.000,00 e sem retorno 'P'.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA, entrar na tela SLA da Fairfax e anotar a versão do rodapé.</li><li>Pela navegação NA e NB: Critérios para Seleção <b>Por Filial</b> → filial <b>0003 - NSTECH - HML CITWEB FAIRFAX</b> · Referência <b>07/2025</b> até <b>07/2025</b> · Tipo Ramo GERAL · Tipo de Relatório BASICO.</li><li>Marcar <b>somente</b> <b>Em emissão Interface</b>; tirar print do filtro.</li><li><b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha; localizar a linha da apólice 0002105252101 e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>.</li><li>Repetir com <b>MARCAR TODOS</b> (mesmo filtro) e anotar se a linha muda de status.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha da apólice 2105252101 / mês 202507: <b>Status = PENDENCIA PAGAMENTO</b> (texto das seguradoras sem retorno 'P' — diferente do «PENDENCIA PAGTO» da Berkley) · <b>IS Total = 100.000,00</b> · <b>Prêmio Total = 536,90</b>, iguais ao banco; nunca «MOVIMENTO NÃO RECEPCIONADO» com 0,00. Se o rótulo for outro, registrar o texto exato e conferir contra IS/Prêmio (o oráculo é o valor, não só o texto).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-004"></div>
+    </div>
+  </div>
+  <div class="group-header">Bloco C · Regressão (CA2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-005</span><span class="ct-title">Berkley, fatura com fechamento maior que zero e retorno 'P': continua «PENDENCIA PAGTO» com IS 1.700.000,00 e Prêmio 8.047,05 (a correção não altera este caminho)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão · caminho do BUG-8864 (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Homologação da Berkley; filial 0901; apólice 4309621005, mês 06/2025 (ver Massa); SELECT O1 confirma fechamento 8.047,05, IS 1.700.000,00 e retorno 'P'.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA e NB, filial <b>0901 - NSTECH - TESTE CITWEB</b>, referência <b>06/2025</b> até <b>06/2025</b>.</li><li>Marcar <b>somente</b> <b>Em emissão Interface</b>; <b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha.</li><li>Localizar a linha da apólice 0004309621005 e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha da apólice 4309621005 / mês 202506: <b>Status = PENDENCIA PAGTO</b> · <b>IS Total = 1.700.000,00</b> · <b>Prêmio Total = 8.047,05</b> (fechado + pendente, sendo o pendente 0,00), iguais ao banco — como já era no BUG-8864.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-006</span><span class="ct-title">Berkley, fatura com fechamento maior que zero e sem retorno 'P': continua «EM EMISSÃO - INTERFACE» (04/2025 e 05/2025)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão · fechamento sem erro de pagamento (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Homologação da Berkley; filial 0901; apólice 4309622005, meses 04/2025 e 05/2025 (ver Massa); SELECT O1 confirma fechado 355,80 (IS 375.522,81) e 1.029,20 (IS 1.055.915,33), sem retorno 'P'.</li></ul>
+      <h4>Passos</h4><ol><li>Pela navegação NA e NB, filial <b>0901 - NSTECH - TESTE CITWEB</b>, referência <b>04/2025</b> até <b>05/2025</b>.</li><li>Marcar <b>somente</b> <b>Em emissão Interface</b>; <b>Exportar Excel</b> → <b>Sim</b> → salvar a planilha.</li><li>Localizar as linhas da apólice 0004309622005 (meses 202504 e 202505) e ler <b>Status</b>, <b>IS Total</b> e <b>Prêmio Total</b> de cada uma.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mês 202504: <b>EM EMISSÃO - INTERFACE</b> · IS 375.522,81 · Prêmio 355,80. Mês 202505: <b>EM EMISSÃO - INTERFACE</b> · IS 1.055.915,33 · Prêmio 1.029,20 — iguais ao banco; nenhuma linha virou «PENDENCIA…».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-007</span><span class="ct-title">Berkley, planilha do CT-SLA-001 (todos os status): as demais linhas mantêm status, IS e Prêmio coerentes com o banco; só a linha do card mudou</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão · demais status do mesmo relatório (CA2: «comportamento atual para os demais status não alterado»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha do CT-SLA-001 salva (filial 0901, 06/2025, todos os status marcados).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a planilha do CT-SLA-001; anotar o total de linhas de dados e a contagem por <b>Status</b>.</li><li>Escolher <b>3 linhas</b> de apólices diferentes da apólice do card e de <b>status diferentes</b> entre si (ex.: Fatura Emitida, Movimento Averbado, Sem Emissão, Apólice Suspensa — o que houver).</li><li>Para cada uma, rodar o SELECT O1 (fechamento, pendente, IS, retorno) e conferir o status pela regra do relatório: fechamento maior que zero → «EM EMISSÃO - INTERFACE» (ou «PENDENCIA PAGTO» na Berkley com retorno 'P'); pendente maior que zero sem fechamento → o novo status; sem movimento → o status de movimento.</li><li>Registrar apólice, status lido, valores lidos e valores do banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 3 linhas amostradas têm status e valores coerentes com o banco; <b>apenas</b> a apólice do card (4309622005, 06/2025) está no novo status «PENDENCIA PAGTO» — nenhuma outra linha mudou de status por causa da correção. O desenvolvimento mediu 55 linhas no mesmo filtro com uma única linha alterada: conferir se o total de linhas bate com o medido hoje (anotar a diferença, se houver).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-008</span><span class="ct-title">Tela SLA da Berkley e da Fairfax: os mesmos controles de antes, sem caixa nova de «Pendência Pagto»</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão · tela (opção A: caixa «Pendência Pagto» não volta)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Telas SLA da Berkley e da Fairfax abertas pela navegação NA.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela SLA da Berkley, listar as caixas de Status e de Tipo de Apólice e tirar print da tela inteira (com a versão no rodapé).</li><li>Repetir na Fairfax.</li><li>Conferir que o botão <b>MARCAR TODOS</b> marca todas as caixas e que <b>Novo</b> limpa o filtro.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas duas telas: Tipo de Apólice = «Apólices Ajustáveis» e «Demais Apólices»; Status = Fat Autorizado, Fatura Emitida, Em emissão Interface, Movimento Averbado, Movimento Recebido por Arquivo, Sem Emissão de Fatura no Mês, Apólice Suspensa, Movimento não Recepcionado, Aguardando Autorização do Segurado, Fatura Especial, Movimento Recebido pelo CITNET, Em emissão Interface Especial, Em prévia, Prévia Liberada para o Corretor; <b>sem</b> «Pendência Pagto». MARCAR TODOS e Novo funcionam. (Lista medida em 13/11/2026.)</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Bloco D · Exploratório (NOR_QA_002 §11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SLA-009</span><span class="ct-title">Exploratório do SLA: período de vários meses, seleção «Tudo» × «Por Filial», Tipo Ramo, e a fatura do card junto com outras do mesmo mês</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório · 15 a 30 minutos guiados por risco (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Execução dos CTs formais concluída. Banco em somente leitura.</li></ul>
+      <h4>Passos</h4><ol><li>Gerar o relatório com <b>Tudo</b> (sem filial) e referência <b>04/2025</b> até <b>06/2025</b>, todos os status; conferir a linha do card (06/2025) e a linha das faturas de 04/2025 e 05/2025.</li><li>Trocar o Tipo Ramo (GERAL, NACIONAL, INTERNACIONAL) para o filtro da apólice do card (ramo 22) e ver em qual aparece; anotar.</li><li>Marcar só «Em emissão Interface» + «Fatura Emitida» e ver se a fatura do card continua certa.</li><li>Anotar mensagens, tempo de geração e qualquer valor estranho (negativo, em branco, repetido).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem ocorrências (registrar «Exploratório executado em [data], homologação, sem ocorrências») ou, se houver, abrir o item conforme a regra (defeito do card × achado já existente antes do card, com prova).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; o card já está em Pronto para homologação e a execução começa logo após a publicação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SLA-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — identificar no SLA as faturas com erro de pagamento e fechamento zerado, com o valor pendente correto (Berkley)</td><td>CT-SLA-001 · CT-SLA-002 · CT-SLA-003</td><td>Pendente</td></tr><tr><td>CA1 — «usuários de todas as seguradoras»</td><td>CT-SLA-004</td><td>Pendente</td></tr><tr><td>CA2 — demais status do SLA sem alteração (fechamento maior que zero, demais status, tela)</td><td>CT-SLA-005 · CT-SLA-006 · CT-SLA-007 · CT-SLA-008</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-SLA-009</td><td>Pendente</td></tr><tr><td>Técnico: teste unitário do status com retorno 'P' e fechamento zerado; PR com 2 aprovadores</td><td>— (DoD do desenvolvimento, sem observável para o usuário; fora do plano — DI8)</td><td>N/A</td></tr><tr><td>Técnico: homologado com evidência de apólice real nessa condição</td><td>CT-SLA-001 · CT-SLA-004 (são a própria evidência)</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os 2 critérios de aceite funcionais (CA1 e CA2) estão cobertos pelos CTs da matriz; o item técnico «homologado com evidência de apólice real nessa condição» é a própria execução dos CT-SLA-001 e 004. Os itens de engenharia sem observável (teste unitário, PR com 2 aprovadores) ficam fora do plano (DI8).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Fatura de teste alterada por outro teste (deixa de estar em erro de pagamento)</td><td>Média</td><td>Médio — o CT não reproduz</td><td>SELECT prévio em cada CT; se mudou, escolher outra fatura na mesma condição por consulta ao mês e registrar a troca.</td></tr><tr><td>Texto do status diferente do esperado («PENDENCIA PAGTO» × «PENDENCIA PAGAMENTO»)</td><td>Média</td><td>Baixo — o valor é o oráculo</td><td>Registrar o texto exato visto na planilha; o veredito exige o <b>valor</b> (IS e Prêmio) e o fim do «MOVIMENTO NÃO RECEPCIONADO» (DI2).</td></tr><tr><td>Marcar só «Movimento não Recepcionado» continuar mostrando a fatura zerada (CT-SLA-003)</td><td>Alta</td><td>Baixo — comportamento descrito como mantido</td><td>Registrar e não reprovar; se Produtos quiser mudar, é demanda nova (DI4).</td></tr><tr><td>Relatório lento com muitas linhas (Tudo / vários meses)</td><td>Média</td><td>Baixo</td><td>Usar filial e mês únicos nos CTs formais; o exploratório mede o tempo.</td></tr><tr><td>Outras seguradoras com o mesmo achado (Chubb, nstech) não cobertas</td><td>Baixa</td><td>Médio</td><td>Chubb fora do escopo (defeito anterior informado pelo desenvolvimento); nstech pelo mesmo caminho de código da Fairfax (DI6, DI7); registrar no resultado.</td></tr><tr><td>Descarte de dado sensível em evidência</td><td>Baixa</td><td>Médio</td><td>A planilha traz nome de segurado e CNPJ de massa de homologação: anexar somente ao card; prints do plano público sem esses campos (regra do repositório público).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (13/11/2026) · Sprint 19 Sustentação · card em Pronto para homologação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
