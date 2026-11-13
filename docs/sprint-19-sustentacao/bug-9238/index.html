@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9238 · Limite de tentativas de senha no login do CITNET (AIG)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9238 · Sprint 19 Sustentação</span>
+    <h1>Limite de tentativas de senha na tela de login do CITNET (AIG): bloqueio temporário por conta, também na troca de senha</h1>
+    <div class="sub">CITNET (login) · tenant AIG (AXA só como controle) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (13/11/2026) — Bug de segurança: o plano descreve o comportamento esperado; detalhes de exploração ficam no card</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/5/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (7×P1 · 5×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Proteger o login do CITNET contra quem tenta descobrir uma senha errando muitas vezes seguidas: depois de algumas tentativas erradas, o sistema deve parar de aceitar novas por um tempo.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Na AIG: as 5 primeiras tentativas erradas da mesma conta respondem como hoje; a 6ª dentro de 1 minuto é barrada com um aviso para aguardar; uma conta barrada não trava os outros usuários; a tela de troca de senha segue a mesma regra; passado 1 minuto tudo volta ao normal; o login correto continua funcionando; o bloqueio fica registrado em log. Na AXA conferimos que nada mudou.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos — plano publicado agora; os testes começam em seguida, pois o card já está pronto para homologação. Ressalva já conhecida: o card pedia a proteção em todas as seguradoras, mas, segundo o desenvolvedor (comentário de 13/11), a correção foi feita só para a AIG.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem errar a senha da mesma conta 6 vezes em 1 minuto vê um aviso para aguardar 1 minuto; os demais usuários da AIG não são afetados. Nas outras seguradoras nada muda.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto — Bug não passa por aprovação de Produtos. Para registro: se Produtos quiser a mesma proteção nas demais seguradoras, será necessário outro card; a recomendação da QA é validar a AIG, que é o que foi entregue.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — tela de login e tela de troca de senha · tenant AIG (controle: AXA)</td></tr>
+    <tr><th>Card</th><td>BUG-9238 — Rate Limiting / Account Lockout ausente no login nativo · board Sustentação · Tags: AIG; Citnet; vulnerabilidade · estado <b>Pronto para homologação</b></td></tr>
+    <tr><th>Tasks filhas</th><td>#9239 Análise e Desenvolvimento · #9752 [QA] Plano de teste — BUG #9238 (QA)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem aprovação de Produtos sobre o plano. Plano v1.0 publicado em 13/11/2026 → execução em HML → revisão independente → resultado (NOR_QA_002) no card.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET da AIG com a correção implantada (a confirmar por comportamento, não por relato do dev); controle no CITNET da AXA · contas de teste inexistentes exclusivas do card</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 13/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>A tela de login do CITNET aceitava tentativas sucessivas de senha sem contenção suficiente, o que expõe as contas a tentativas repetidas de descobrir a senha (CWE-307). O card pede que a tela de login passe a barrar temporariamente quem erra a senha muitas vezes, sem atrapalhar o uso legítimo, com registro em log. Segundo o desenvolvedor (comentário de 13/11/2026), a correção limita a <b>5 tentativas por minuto por conta</b> (Filial + Usuário), somando a tela de login e a de troca de senha; a 6ª recebe resposta «muitas tentativas» (429) com orientação de aguardar 1 minuto; um usuário não bloqueia os outros; vale só para a AIG. Este plano valida esse comportamento em HML por tela, código de resposta e log — o relato do dev não é oráculo.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com descrição, cenário atual e desejado, critérios de aceite e o comportamento entregue descrito pelo dev (limite, janela, código de resposta, abrangência); o oráculo de cada CT é observável na tela, no código de resposta e no log. O critério «todas as seguradoras» diverge da entrega (DEC-1) — documentado, não bloqueia o plano.</div>
+  <h3>Decisões e inferências do QA</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DEC-1</b></td><td><b>Escopo por seguradora</b></td><td>O card (CA «todas as seguradoras») e a análise de 26/10 propunham todas; o dev entregou <b>só a AIG</b> (comentário de 13/11), alinhado à tag AIG do card e ao comentário da coordenação de 20/10 sobre a AIG. A QA valida a AIG e usa a AXA como controle (sem mudança). Se o escopo «todas» for exigido, é lacuna do card a tratar fora desta homologação.</td></tr><tr><td><b>DEC-2</b></td><td><b>Mecanismo de limite</b></td><td>O card cita um atributo de limite; o dev usou o limitador já existente, corrigido e por conta. A QA mede o comportamento observável (tela, código de resposta, log), não o nome do mecanismo.</td></tr><tr><td><b>DEC-3</b></td><td><b>Valor do limite</b></td><td>5 tentativas por minuto por conta (Filial + Usuário), somando login e troca de senha, conforme o relato do dev; é o valor que os CTs usam. O card pede «equivalente aos demais», sem número.</td></tr><tr><td><b>DEC-4</b></td><td><b>Massa</b></td><td>Só contas inexistentes exclusivas do card (e uma conta real dedicada ao QA no CT-9238-07): nenhuma conta real de cliente recebe tentativa errada.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Login da AIG: 5 tentativas livres e a 6ª barrada (CT-9238-01, 02); isolamento entre contas (03); troca de senha com cota única (04, 05); fim do bloqueio e login legítimo (06, 07, 13); tentativas simultâneas, origem e página antiga (08 a 10); log (11).</li>
+    <li>Controle na AXA: sem mudança (CT-9238-12). Exploratório de contorno (CT-9238-14).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — N/A (a QA não testa em produção).</li>
+    <li><b>Demais seguradoras além de AIG e do controle AXA</b>, inclusive a que já tinha limite próprio — fora da entrega declarada.</li>
+    <li><b>Novo scan da ferramenta de segurança</b> e <b>documentação da política</b> — processo da equipe de segurança/dev (ver matriz).</li>
+    <li><b>Itens de DoD de engenharia</b> — não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação por clique a partir do login — nunca por URL direta (exceto o endereço do login). Os CTs de tentativas simultâneas, origem e página antiga usam ferramenta de requisições do QA (script) por não terem tela. Evidência por CT no bloco do CT e anexada ao card (nunca neste documento público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET da AIG com a correção (conferir com a 1ª tentativa de controle, antes do CT-9238-01) e HML do CITNET da AXA.</li>
+    <li><b>Contas:</b> contas inexistentes «TESTE9238…» (uma por CT, confirmadas por consulta somente leitura); usuário válido do QA para a AIG; uma conta real dedicada ao QA no CT-9238-07 (credenciais fora deste documento).</li>
+    <li><b>Janela de 1 minuto:</b> cada CT inicia na hora (todas as tentativas em menos de 60 s) e registra o horário de cada tentativa; CTs com espera usam 65 s.</li>
+    <li><b>Ordem sugerida:</b> 02 → 06 e 11 reaproveitam o bloqueio do CT-9238-02; 03 e 04 devem ser feitos logo depois do respectivo bloqueio; 12 pode ser feito a qualquer hora.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Limite por conta no login: 5 tentativas livres, a 6ª é barrada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-01</span><span class="ct-title">Até 5 tentativas seguidas com senha incorreta na mesma conta: todas respondem o erro normal de login, sem bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238A1.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer <b>5</b> tentativas seguidas, em menos de 60 segundos, na conta <code>TESTE9238A1</code> com senha incorreta (preencher Filial, Usuário, Senha e clicar em <b>Acessar</b>); após cada uma ler o texto da tela e o código de resposta por script e anotar o horário.</li><li>Conferir que nenhuma resposta trouxe aviso de limite e que a tela de login continuou disponível.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 5 tentativas respondem a mensagem normal de usuário/senha inválidos (a mesma de antes da correção, texto exato lido na tela), com resposta de erro de login comum — nenhuma com «muitas tentativas» e nenhum redirecionamento para tela de aviso. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (texto exato) + código de resposta por tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-02</span><span class="ct-title">6ª tentativa seguida da mesma conta, dentro de 1 minuto: é barrada com resposta «muitas tentativas», sem redirecionamento, orientando aguardar 1 minuto</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238A2 (diferente da do CT-9238-01).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer <b>5</b> tentativas seguidas, em menos de 60 segundos, na conta <code>TESTE9238A2</code> com senha incorreta (preencher Filial, Usuário, Senha e clicar em <b>Acessar</b>); após cada uma ler o texto da tela e o código de resposta por script e anotar o horário.</li><li>Fazer a <b>6ª</b> tentativa com a mesma conta, ainda dentro de 60 segundos da 1ª; ler por script o código de resposta, a cadeia de respostas (houve ou não redirecionamento), a orientação de espera e o texto exibido na tela; anotar o horário (usado no CT-9238-06 e no CT-9238-11).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A 6ª tentativa recebe resposta de «muitas tentativas» (código 429), <b>sem redirecionamento</b>, com orientação de aguardar 60 segundos, e a tela mostra o aviso de limite excedido (o relato do dev indica um texto iniciado por «Você excedeu o limite»; o texto exato é lido na execução). Nenhuma autenticação é processada nessa tentativa. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta + cadeia de respostas + orientação de espera (script) + texto da tela. Antes da correção a mesma 6ª tentativa seguia o fluxo normal (conferir no controle da AXA, CT-9238-12).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-02"></div>
+    </div>
+  </div>
+  <div class="group-header alt">B — Uma conta barrada não afeta os outros usuários</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-03</span><span class="ct-title">Conta barrada não bloqueia os outros usuários: logo depois do bloqueio, outra conta inexistente recebe o erro normal e um login válido entra, no mesmo computador</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Contas TESTE9238A3 (a bloquear) e TESTE9238A4. Usuário válido do QA para o AIG (credencial fora deste documento). Executar todo o CT em menos de 60 segundos depois do bloqueio.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer <b>6</b> tentativas seguidas, em menos de 60 segundos, na conta <code>TESTE9238A3</code> com senha incorreta (preencher Filial, Usuário, Senha e clicar em <b>Acessar</b>); após cada uma ler o texto da tela e o código de resposta por script e anotar o horário. A 6ª deve ser barrada (confirmar).</li><li>Imediatamente, no mesmo navegador: 1 tentativa com senha incorreta na conta <code>TESTE9238A4</code>; ler texto e código de resposta.</li><li>Em seguida, login com o usuário válido do QA e a senha correta (Filial do usuário); ler o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A 6ª da conta A3 é barrada; a tentativa da conta A4 responde o erro normal de login (não «muitas tentativas»); o login válido do QA entra normalmente. O bloqueio é por conta e não coletivo para a AIG. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + código de resposta de cada tentativa; tela do sistema após o login válido (menu principal).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-03"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Troca de senha segue o mesmo limite (cota única por conta)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-04</span><span class="ct-title">Troca de senha de uma conta já barrada no login: a tela de troca de senha também responde «muitas tentativas» e mostra o aviso de limite</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238A5. Executar a troca de senha em menos de 60 segundos depois do bloqueio do login.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer <b>6</b> tentativas seguidas, em menos de 60 segundos, na conta <code>TESTE9238A5</code> com senha incorreta (preencher Filial, Usuário, Senha e clicar em <b>Acessar</b>); após cada uma ler o texto da tela e o código de resposta por script e anotar o horário. A 6ª deve ser barrada (confirmar).</li><li>Na mesma tela de login, abrir a tela de troca de senha pelo link/botão que a tela oferece (registrar o caminho exato na evidência); informar a conta <code>TESTE9238A5</code>, uma senha atual incorreta e uma nova senha qualquer; enviar.</li><li>Ler o texto da tela e o código de resposta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tentativa de troca de senha da conta barrada responde «muitas tentativas» (429) e a tela mostra o aviso de limite — a troca de senha não permite continuar testando senhas da conta barrada. A resposta não revela se a senha atual estava certa. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>texto da tela + código de resposta da troca de senha.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-05</span><span class="ct-title">Cota única por conta: 3 tentativas erradas no login + 2 na troca de senha usam as 5 livres; a 6ª, em qualquer das duas telas, é barrada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238A6.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer 3 tentativas com senha incorreta no login da conta <code>TESTE9238A6</code>.</li><li>Abrir a tela de troca de senha e fazer 2 tentativas com senha atual incorreta para a mesma conta (tudo dentro de 60 segundos).</li><li>Fazer a 6ª tentativa na tela de troca de senha; depois a 7ª no login. Ler texto e código de resposta de cada uma.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 5 primeiras (3 no login + 2 na troca) respondem como erro normal; a 6ª e a 7ª respondem «muitas tentativas» (429) — a contagem soma as duas telas. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta + texto da tela de cada tentativa, em ordem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-05"></div>
+    </div>
+  </div>
+  <div class="group-header alt">D — Fim do bloqueio e login legítimo</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-06</span><span class="ct-title">Depois de 1 minuto a conta barrada volta ao normal: a tentativa seguinte responde o erro normal de login, não «muitas tentativas»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Reusar a conta TESTE9238A2 do CT-9238-02 (já barrada) — sem nenhuma tentativa nela durante a espera.</li></ul>
+      <h4>Passos</h4><ol><li>Anotar o horário do bloqueio do CT-9238-02; aguardar 65 segundos <b>sem fazer nenhuma tentativa</b> na conta.</li><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer 1 tentativa com senha incorreta na conta <code>TESTE9238A2</code>; ler texto e código de resposta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tentativa passados 65 segundos responde o erro normal de login (não «muitas tentativas»): o bloqueio é temporário e dura cerca de 1 minuto. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta + texto da tela; intervalo medido entre o bloqueio e a tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-06"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-07</span><span class="ct-title">Conta real de teste: durante o bloqueio nem a senha correta entra; passado 1 minuto, a senha correta entra normalmente</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste real exclusiva do QA nesta base (criada pela tela de Segurança › Usuário pelo QA, por ser massa de teste; credencial fora deste documento), com acesso a Operações. Pode existir bloqueio de conta próprio da AIG por tentativas erradas — usar só esta conta dedicada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Fazer 5 tentativas com senha incorreta na conta dedicada, em menos de 60 segundos.</li><li>Fazer a 6ª tentativa com a <b>senha correta</b>; ler texto e código de resposta.</li><li>Aguardar 65 segundos sem nenhuma tentativa; fazer login com a senha correta; ler o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A 6ª tentativa, mesmo com a senha correta, é barrada («muitas tentativas», sem autenticar); após 65 segundos o login com a senha correta entra normalmente no menu principal. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta + tela do menu principal após o login; ausência de sessão durante o bloqueio.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-07"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-13</span><span class="ct-title">Regressão: login válido na AIG, dentro do uso normal, entra e carrega o menu principal</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Usuário válido do QA para o AIG (credencial fora deste documento). Sem tentativas erradas prévias nessa conta.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>Preencher Filial, Usuário e Senha corretos e clicar em <b>Acessar</b>; aguardar o menu principal e abrir uma tela de Operações pelo menu.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Login entra normalmente, sem aviso de limite, e o menu principal e a tela de Operações carregam. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (menu principal e tela de Operações).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-13"></div>
+    </div>
+  </div>
+  <div class="group-header">E — Tentativas simultâneas, origem e página antiga</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-08</span><span class="ct-title">20 tentativas simultâneas da mesma conta: exatamente 5 passam como erro normal e as demais são barradas, sem erro de servidor</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238A8. Execução por ferramenta de requisições do QA (script do repositório privado), não por tela.</li></ul>
+      <h4>Passos</h4><ol><li>Disparar 20 tentativas de login em paralelo, com senha incorreta, para a conta <code>TESTE9238A8</code>.</li><li>Contar as respostas por código: erro normal de login × «muitas tentativas» × qualquer erro de servidor.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Exatamente 5 respostas de erro normal e 15 de «muitas tentativas» (429); nenhuma resposta de erro de servidor (série 5xx). A contagem não passa do limite com requisições simultâneas. Evidência no bloco do CT e anexada ao card: tabela de contagem por código de resposta e horários; uma captura da tela de aviso; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>contagem por código de resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-08"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-09</span><span class="ct-title">Reforço por origem: contas diferentes tentadas a partir da mesma origem informada pela infraestrutura — a 6ª é barrada; sem origem informada, nenhuma é barrada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Seis contas distintas (TESTE9238B1 a B6) e mais seis (TESTE9238C1 a C6). Execução por ferramenta de requisições do QA, simulando o dado de origem que a infraestrutura da AIG repassa (comportamento descrito pelo dev no comentário de 13/11 — não é critério escrito do card).</li></ul>
+      <h4>Passos</h4><ol><li>Enviar 1 tentativa incorreta para cada conta B1 a B6, todas com o mesmo dado de origem; ler o código de resposta de cada uma.</li><li>Enviar 1 tentativa incorreta para cada conta C1 a C6, sem dado de origem; ler o código de resposta de cada uma.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com origem igual informada: as 5 primeiras respondem erro normal e a 6ª «muitas tentativas»; sem origem informada: as 6 respondem erro normal (a parte por origem é ignorada, sem prejudicar ninguém). Evidência no bloco do CT e anexada ao card: tabela de códigos de resposta por conta; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta por tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-09"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-10</span><span class="ct-title">A página antiga de aviso de limite deixou de existir: um pedido a ela retorna «página não encontrada» e não repete texto recebido no pedido</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Pedido feito por ferramenta de requisições do QA (verificação negativa; não é navegação de tela). O endereço exato fica no script do repositório privado.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer o pedido à página antiga de aviso, enviando um texto de teste inofensivo como mensagem.</li><li>Ler o código de resposta e verificar se o texto enviado aparece no conteúdo devolvido.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Resposta de página não encontrada (404); o texto enviado não aparece na resposta. Evidência no bloco do CT e anexada ao card: código de resposta e trecho do conteúdo devolvido; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>código de resposta + conteúdo devolvido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-10"></div>
+    </div>
+  </div>
+  <div class="group-header alt">F — Registro em log do bloqueio</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-11</span><span class="ct-title">O bloqueio da 6ª tentativa fica registrado no log central do HML, sem a senha digitada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Após o CT-9238-02 (horário do bloqueio anotado). Acesso de leitura ao log central do HML (credencial fora deste documento; navegação por clique pelo login do sistema de logs). Se o log da AIG não estiver disponível no sistema de logs, o CT fica sem veredito por falta de oráculo (medir e registrar) e é tratado com o dev.</li></ul>
+      <h4>Passos</h4><ol><li>No sistema de logs do HML, filtrar o período do bloqueio do CT-9238-02 (± 2 minutos) e o aplicativo do CITNET da AIG.</li><li>Localizar o registro do bloqueio; ler origem, tela/operação e horário; procurar a senha digitada na mensagem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Existe um registro do bloqueio no horário da 6ª tentativa, identificando a operação (login), e <b>não contém</b> a senha digitada. Evidência no bloco do CT e anexada ao card: captura do registro no sistema de logs (dados sensíveis mascarados); horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>registro no log central (conteúdo e horário).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-11"></div>
+    </div>
+  </div>
+  <div class="group-header">G — Outras seguradoras sem mudança (controle)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-12</span><span class="ct-title">Controle AXA: 8 tentativas seguidas com senha incorreta na mesma conta respondem todas o erro normal — a correção não mudou a AXA</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Login do CITNET da AXA no HML (único endereço digitado). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Conta TESTE9238X1 (AXA). A correção é só da AIG, segundo o dev; este CT mostra o contraste e o comportamento «antes» das demais seguradoras.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AXA no HML.</li><li>Fazer <b>8</b> tentativas seguidas, em menos de 60 segundos, na conta <code>TESTE9238X1</code> com senha incorreta (preencher Filial, Usuário, Senha e clicar em <b>Acessar</b>); após cada uma ler o texto da tela e o código de resposta por script e anotar o horário.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 8 tentativas respondem o erro normal de login; nenhuma resposta «muitas tentativas» nem aviso de limite. Registrado como controle (GREEN só na AIG). A divergência com o critério «todas as seguradoras» do card fica documentada na decisão DEC-1. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + código de resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-12"></div>
+    </div>
+  </div>
+  <div class="group-header alt">H — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9238-14</span><span class="ct-title">Exploratório (15–30 min): tentar contornar o limite por variações — maiúsculas/minúsculas e espaços no usuário, Filial diferente, pausa de ~1 minuto no meio</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML. Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE9238», uma por CT, confirmada por consulta somente leitura como inexistente); nenhuma conta real recebe tentativa errada. A contagem é por Filial + Usuário: usar a mesma Filial em todas as tentativas do CT. Contas TESTE9238E1 a E4.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da AIG no HML (único endereço digitado); a tela tem Filial, Usuário, Senha e o botão <b>Acessar</b>.</li><li>5 tentativas erradas com <code>TESTE9238E1</code>; a 6ª com o mesmo nome em maiúsculas/minúsculas trocadas.</li><li>5 tentativas erradas com <code>TESTE9238E2</code>; a 6ª com um espaço antes/depois do nome.</li><li>5 tentativas erradas com <code>TESTE9238E3</code> em uma Filial; a 6ª na mesma conta em outra Filial.</li><li>5 tentativas com <code>TESTE9238E4</code>; pausar 40 segundos; 6ª e 7ª tentativas; anotar quando volta ao normal.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nada contorna o limite por simples variação do nome; as respostas seguem o padrão dos CTs A e D. Qualquer contorno encontrado é achado a classificar (do card × pré-existente, A9) — não reprova por si só um CT de produto. Sem ocorrências → comentar «Exploratório executado. Sem ocorrências.» Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e código de resposta lidos por script; horário de cada tentativa (todas as tentativas de um CT dentro de 60 segundos).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + código de resposta de cada tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug sem aprovação de Produtos; a execução começa em seguida (card em Pronto para homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9238-14"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — a tela de login passa a ter limite de tentativas equivalente ao dos demais pontos do sistema (o mecanismo usado é detalhe de implementação)</td><td>CT-9238-01, CT-9238-02</td><td>Pendente</td></tr><tr><td>CA2 — tentativas acima do limite são bloqueadas temporariamente, sem processar a autenticação</td><td>CT-9238-02, CT-9238-05, CT-9238-06, CT-9238-07, CT-9238-08</td><td>Pendente</td></tr><tr><td>CA3 — o login legítimo continua funcionando dentro do uso normal</td><td>CT-9238-03, CT-9238-07, CT-9238-13</td><td>Pendente</td></tr><tr><td>CA4 — a proteção vale independente da configuração de bloqueio por seguradora / para todas as seguradoras (a entrega declarada pelo dev cobre só a AIG — DEC-1)</td><td>CT-9238-12 (controle AXA) · AIG: CT-9238-01 a 09</td><td>Pendente</td></tr><tr><td>CA5 — tentativas bloqueadas são registradas em log</td><td>CT-9238-11</td><td>Pendente</td></tr><tr><td>Achado do dev — troca de senha sem login testava senhas sem limite: entra no escopo (cota única com o login)</td><td>CT-9238-04, CT-9238-05</td><td>Pendente</td></tr><tr><td>Ajuste do dev — o bloqueio é por conta e não depende do endereço de origem: não bloqueia os outros usuários; reforço por origem; página antiga removida</td><td>CT-9238-03, CT-9238-09, CT-9238-10</td><td>Pendente</td></tr><tr><td>Variações e contorno</td><td>CT-9238-14</td><td>Pendente</td></tr><tr><td>CA6 — finding do scanner de segurança encerrado após novo scan</td><td>— sem CT: é feito pela equipe de segurança na origem, depois da entrega (processo)</td><td>N/A</td></tr><tr><td>CA7 — política de bloqueio por seguradora definida e documentada</td><td>— sem CT: artefato de documentação do dev (processo); a QA só confere que o comportamento por seguradora condiz com ele nos CTs</td><td>N/A</td></tr><tr><td>DoD de engenharia (testes unitários e de integração, Quality Gate, 2 aprovadores no PR, homologação em RELEASE)</td><td>— sem CT: enforçado por branch policy e DoD do dev; a «evidência RED/GREEN em HML» é entregue pelas evidências dos CTs (GREEN na AIG, controle na AXA)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas ficam no <b>painel do topo</b>. Todos os critérios de produto do card e os pontos do ajuste do dev têm CT; processo/DoD não gera CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O build do HML não ter a correção (o dev validou só localmente em 13/11)</td><td>Média</td><td>Alto</td><td>Antes do CT-9238-01, medir se a 6ª tentativa de uma conta de teste é barrada; sem isso, execução interrompida sem veredito e dev avisado — não vira reprovação.</td></tr><tr><td>Contador em memória do servidor reiniciado/reciclado durante o CT</td><td>Baixa</td><td>Médio</td><td>Cada CT usa conta própria e termina em 60 s; reinício no meio → repetir o CT e registrar.</td></tr><tr><td>Vários testes simultâneos de outros usuários no mesmo servidor alterarem a leitura</td><td>Baixa</td><td>Baixo</td><td>Contas TESTE9238* exclusivas; o limite é por conta.</td></tr><tr><td>Bloqueio de conta próprio da AIG afetar a conta real do CT-9238-07</td><td>Média</td><td>Baixo</td><td>Conta dedicada do QA; se bloquear por esse mecanismo, desbloquear pela tela de Segurança e registrar.</td></tr><tr><td>Log da AIG não estar no sistema de logs do HML</td><td>Média</td><td>Baixo</td><td>CT-9238-11 fica sem veredito por falta de oráculo (não aprova nem reprova); tratar com o dev.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (13/11/2026) · Sprint 19 Sustentação · Bug — sem aprovação de Produtos; execução em seguida · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
