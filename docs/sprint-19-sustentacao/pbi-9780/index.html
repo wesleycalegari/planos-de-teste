@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9780 · Berkley — Conversor RCTR-C / RC-DC sem CNPJ/CPF do Segurado</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9780 · Sprint 19 Sustentação</span>
+    <h1>[QA] Berkley — Conversor RCTR-C / RC-DC: a gravação do lote falha com a apólice informada e o CNPJ/CPF do Segurado vazio no layout</h1>
+    <div class="sub">CITWEB Conversor — RCTR-C / RC-DC · Berkley · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (17/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em Pronto para homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/3/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (3×P1 · 3×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No Conversor da Berkley, ao importar um arquivo cujo layout deixa o CNPJ/CPF do Segurado em branco (porque a apólice já vem informada), a tela dizia que a conversão foi concluída, mas mostrava também um erro de gravação: nada ficava salvo e a tela de Processa Averbações aparecia sem nenhum layout. O card pede que a conversão grave a linha e que o Processa Averbações encontre o layout.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 8 situações na Berkley: o mesmo arquivo da falha (e o arquivo do PBI #5201, que também falhava) convertendo sem erro de gravação, a linha realmente salva (conferida por consulta, só leitura), o Processa Averbações listando e processando a conversão, a regra que barra apólice com CNPJ/CPF juntos continuando valendo, o caminho com CNPJ preenchido, outro layout e um lote com mais de uma linha. Averbação criada no teste é excluída pela tela.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. Pelo relato do card, a falha apareceu em 13 e 17/11 e o desenvolvimento diz que <b>não há mudança de código a fazer</b>: o Conversor publicado no ambiente de testes é de uma versão preparada para o CNPJ com letras, e o banco da Berkley ainda guarda só números; a correção é publicar a versão certa do Conversor e reconverter. <b>Ressalva:</b> o desenvolvimento ainda não rodou o Conversor dessa outra versão de ponta a ponta com o arquivo da QA; é isso que vamos medir.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> O usuário da Berkley deixa de ver «sucesso» junto de um erro de gravação e passa a conseguir converter e processar arquivos desse layout.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto</b> — por ser Bug, o plano não precisa de aprovação de Produtos. Por informação: a migração das colunas da Berkley para o CNPJ alfanumérico (e o tratamento do CNPJ vazio na versão com letras) ficou fora deste card; o desenvolvimento pede um item próprio. O staging da Berkley pode mostrar o mesmo erro até o Conversor ser republicado de lá.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — módulo <b>Conversor</b> (HML da Berkley) · menu <b>Conversor de Arquivos</b> → <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b> (importar o TXT, escolher o layout, <b>Converter</b>) e <b>Processa Averbações</b> (lista de layouts e conversões, <b>Processar</b>). Também o <b>layout</b> «TASK 4524 - TESTE CONVERSOR RCTRC» (campo 25 «CNPJ / CPF do Segurado» sem posição e sem conteúdo).</td></tr><tr><th>Card</th><td>BUG-9780 — «Berkley - Conversor RCTR-C/RC-DC: gravação em lote falha com «String … float» quando o CNPJ/CPF do Segurado do layout está vazio (layout TASK 4524, com apólice informada)» · board Sustentação (CITWEB\Sustentacao CITWEB) · estado <b>Pronto para homologação</b> · tags BERKLEY; citweb; achado-preexistente; main_fix · achado do CT-TXB-011 do Bug #9591 (relacionado) · 1 critério de aceite no corpo do card · comentário do desenvolvimento de 17/11 (diagnóstico sem alteração de código: o ajuste é publicar o módulo Conversor a partir da linha de correção da Berkley e reconverter).</td></tr><tr><th>Tasks de QA</th><td>#9785 [QA] Plano de teste — BUG #9780 (este plano; fecha na entrega). <b>Card do tipo Bug, do board da Sustentação: Produtos não aprova plano de teste; o plano segue com a marcação de execução pronta e a execução acontece com o card em homologação (já está).</b></td></tr><tr><th>Ambiente</th><td>HML da Berkley (endereço de login no arquivo de ambiente do time), módulo Conversor. Build que reproduziu a falha em 13 e 17/11: <b>V 1.0.261110.1543</b> (10/11/2026). Build anterior (V 1.0.261026.1716, 26/10/2026): a conversão não foi tentada nele. O build a testar é o que estiver publicado na hora da execução, registrado no rodapé da tela (ver CT-CVB-001). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 17/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Conversor da Berkley (RCTR-C / RC-DC), ao converter um TXT no layout «TASK 4524 - TESTE CONVERSOR RCTRC» <b>com a apólice informada</b> (o campo 25, CNPJ/CPF do Segurado, fica vazio por regra do Conversor quando a apólice é informada), a tela mostra «Conversão do arquivo concluído com sucesso!» e 1 conversão incluída, mas junto aparece «Erro ao salvar dados: Falha no processamento do lote 1 …» com o texto «String … cannot be converted to type float». Nada é gravado na tabela temporária da conversão e, em Processa Averbações, a lista de layouts fica vazia (relato do card, medido em 13 e 17/11/2026). Reproduzido com dois arquivos: o da QA e o do PBI #5201 (mesmo arquivo, só com data e documento trocados).</p><p><b>Diagnóstico do desenvolvimento (17/11/2026, comentário do card):</b> não há alteração de código a fazer. O HML da Berkley recebeu o módulo Conversor da linha de código que trata o CNPJ/CPF como texto (preparada para o CNPJ alfanumérico), e o banco da Berkley ainda guarda o CNPJ/CPF como número; o CNPJ/CPF vazio vai como texto vazio e a gravação em lote não converte texto vazio em número. Na linha de correção da Berkley (a que vai para a produção dela) o vazio vira zero e a gravação funciona. A correção proposta é de <b>publicação</b>: gerar o build da linha de correção, publicar o módulo Conversor no HML da Berkley e reconverter o mesmo arquivo no mesmo layout (testando também o Processa Averbações). <b>Se o mesmo erro aparecer com o build da linha de correção, a análise está errada e o card é reaberto.</b> O desenvolvimento declara que o Conversor dessa linha ainda não foi executado de ponta a ponta com o arquivo da QA e que o Processa Averbações não foi exercitado com esse arquivo em nenhuma das duas linhas — é isso que este plano executa.</p><p><b>Critério de aceite do card e como o plano o cobre:</b></p><table><tr><th>Critério de aceite do Bug #9780</th><th>CTs</th></tr><tr><td>Converter um arquivo TXT com apólice informada, no layout «TASK 4524 - TESTE CONVERSOR RCTRC» (campo 25 vazio), <b>grava a conversão sem «Erro ao salvar dados»</b></td><td>CT-CVB-001 (tela e mensagens) · CT-CVB-002 (a linha gravada, consulta somente leitura) · CT-CVB-004 (segundo arquivo da reprodução)</td></tr><tr><td>… e o <b>Processa Averbações encontra o layout</b></td><td>CT-CVB-003</td></tr><tr><td>A mensagem de sucesso não aparece junto de erro de gravação</td><td>CT-CVB-001 (texto completo da tela) · CT-CVB-007 (lote com mais de uma linha)</td></tr><tr><td>Regra do Conversor mantida (apólice + CNPJ/CPF informados juntos continuam barrados com «Não informar Número de Apólice e CNPJ/CPF simultaneamente»)</td><td>CT-CVB-005 (sem regressão)</td></tr><tr><td>Caminho numérico habitual (sem apólice, com CNPJ/CPF do Segurado numérico) e outros layouts</td><td>CT-CVB-006 · CT-CVB-008 (sem regressão)</td></tr><tr><td>Corte da Berkley para o CNPJ alfanumérico (migração das colunas e tratamento do vazio na linha alfa) — fora deste card, o desenvolvimento pede item próprio</td><td>— fora do escopo; não gera CT</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (17/11/2026).</b> Bug aberto pela QA como achado do #9591, lido por inteiro (descrição com contexto, passos, evidência, esperado × obtido, ambiente, tags e critério de aceite), com o comentário do desenvolvimento lido por inteiro (diagnóstico, limites declarados e instruções de reconversão); tarefas filhas: nenhuma. <b>Tags</b> BERKLEY e citweb; ramo RCTR-C / RC-DC (ramos 54 e 55) pela tela do Conversor. Critério de aceite com oráculo observável na tela (mensagens do Converter, lista do Processa Averbações) e no banco (somente leitura: linha da conversão na tabela temporária). Não é débito técnico: o comportamento é visível para o usuário. <b>Prova de pré-existência (A9):</b> o card declara os limites (sem baseline por build; o arquivo do PBI #5201 converteu em 11/08/2026 no mesmo tenant e layout). O diagnóstico do desenvolvimento atribui a falha ao build publicado, não ao código do #9591; a QA <b>não herda o veredito do desenvolvimento</b>: o oráculo é a execução.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — conferir o build publicado no HML:</b> O card já está em <b>Pronto para homologação</b>. A execução começa na hora, depois da pré-verificação. O CT-CVB-001 registra o build do módulo Conversor (rodapé da tela): o build V 1.0.261110.1543 é o que falhou em 13 e 17/11; se o erro de gravação persistir, é REPROVADO com o build medido — em homologação não existe bloqueado.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>O que é «corrigido» neste card, se não há alteração de código?</b></td><td>O desenvolvimento propõe publicar o módulo Conversor a partir da linha de correção e reconverter. <b>Posição do QA:</b> o critério de aceite não muda — o que se mede é o comportamento do HML na hora da execução. O CT-CVB-001 registra o build do rodapé: se ainda for o V 1.0.261110.1543 (o mesmo da falha) e o erro de gravação persistir, o CT é REPROVADO com o build medido (em homologação não existe bloqueado) e o comentário diz que a causa apontada é a publicação pendente, sem atribuir falha de código; se o build for outro e o erro persistir, a análise do desenvolvimento está errada (o card diz que é reaberto).</td></tr><tr><td><b>DC2</b></td><td><b>Staging da Berkley</b></td><td>O desenvolvimento avisa que o staging recebeu o Conversor da linha alfa e deve mostrar o mesmo erro até ser republicado. <b>Posição do QA:</b> produção e staging são N/A para a QA; só registra o aviso. A conferência em staging é de Produtos e do desenvolvimento.</td></tr><tr><td><b>DC3</b></td><td><b>Alterar o layout compartilhado «TASK 4524 - TESTE CONVERSOR RCTRC» para testar a regra de apólice + CNPJ/CPF</b></td><td>No #9591 a QA preencheu o campo 25 do layout compartilhado e o devolveu ao estado original. <b>Posição do QA:</b> neste plano o layout compartilhado <b>não é alterado</b>; os CTs que precisam do campo 25 preenchido (CT-CVB-005 e CT-CVB-006) usam um <b>layout próprio da QA</b>, criado pela tela, copiando o do card.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Módulo <b>Conversor</b> da Berkley (HML): importar o TXT, converter no layout «TASK 4524 - TESTE CONVERSOR RCTRC», mensagens da tela, contadores e o que fica gravado (consulta somente leitura à tabela temporária da conversão).</li><li><b>Processa Averbações</b>: o layout aparece na lista e o processamento da conversão (averbação criada e excluída pela tela ao final do CT).</li><li>Sem regressão: crítica de apólice + CNPJ/CPF informados juntos, caminho com CNPJ/CPF numérico, outro layout do mesmo tenant e lote com mais de uma linha.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A) e o staging é de Produtos/desenvolvimento (DC2).</li><li><b>Corte da Berkley para o CNPJ alfanumérico</b> (migração das colunas e tratamento do vazio na linha alfa) — fora do card; o desenvolvimento pede item próprio.</li><li><b>Outras seguradoras</b> e outros ramos — o achado é do tenant da Berkley e da linha de código publicada nele.</li><li>Causa técnica, código e pipeline de publicação (do desenvolvimento).</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 17/11/2026:</b> nenhum CT foi executado por este plano. As medidas citadas (falha em 13 e 17/11, build V 1.0.261110.1543) são as do relato do card. Toda conversão de teste usa arquivo de 1 linha com placa de teste, CNPJ/CPF sintético ou ausente conforme o CT; a navegação é sempre por clique a partir do login (Conversor de Arquivos → Converte Arquivo → RCTR-C / RC-DC). A QA <b>não escreve no banco</b>: a conferência é somente leitura; a criação do layout próprio, a conversão e o processamento são feitos pela tela.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da Berkley (endereço de login no arquivo de ambiente do time — único endereço digitado), módulo Conversor. Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário (arquivo de ambiente do time; senha fora deste documento)</b> — Usuário de QA da Berkley no módulo Conversor. Se a senha estiver vencida ou recusada, a QA renova pela tela ou cria um usuário próprio; nunca é impeditivo.</li><li><b>Banco HML (somente leitura)</b> — Conferência da <b>linha gravada</b> na tabela temporária da conversão: contagem por número do lote/arquivo antes e depois do Converter (consulta somente leitura, roteiro privado do QA). O QA nunca escreve dado de negócio no banco; toda gravação de teste é pela tela.</li><li><b>Ferramentas</b> — Scripts locais do time (Playwright) fazem login, navegação por clique e leitura do estado da tela; screenshot e texto lidos por script vão para disco. MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas desde o login até o fim do cenário (tela do Converter com as mensagens completas, lista do Processa Averbações), o resultado da consulta somente leitura e a máscara de CNPJ/CPF.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o endereço de login do HML da Berkley (único digitado) → informar usuário e senha do QA (arquivo de ambiente do time) → <b>Acessar</b> → entrar no módulo <b>Conversor</b>. Capturar login, campos e módulo (com o build no rodapé).</li><li><b>N2 — Converter:</b> menu <b>Conversor de Arquivos</b> → <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b> → <b>Importar</b> (escolher o TXT de teste) → escolher o layout no combo → <b>Converter</b>. Ler por script e capturar a tela inteira (mensagens, contadores de registros, incluídas e com erro).</li><li><b>N3 — Processar:</b> menu <b>Conversor de Arquivos</b> → <b>Processa Averbações</b> → ler a lista de layouts/conversões → selecionar o layout → <b>Processar</b> → ler contadores e a averbação criada.</li><li><b>N4 — Oráculo de dados:</b> contagem somente leitura dos registros da conversão (placa de teste do arquivo) antes e depois do Converter e depois do Processar.</li><li><b>N5 — Limpeza:</b> nos CTs que processam, <b>excluir pela tela</b> a averbação criada e conferir que a contagem volta ao valor inicial.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Layout «TASK 4524 - TESTE CONVERSOR RCTRC» (do card):</b> Campo 25 «CNPJ / CPF do Segurado» sem posição e sem conteúdo; usado sem alteração nos CT-CVB-001 a 004, 007 e 008.</li><li><b>Arquivo de teste da QA:</b> TXT de 1 linha no formato do Conversor RCTR-C / RC-DC, com apólice informada, placa de teste, data do dia e documento de teste (o mesmo usado no CT-TXB-011 do #9591). Registrar a apólice e a data no resultado do CT.</li><li><b>Arquivo do PBI #5201:</b> O mesmo arquivo, só com data e documento trocados (reprodução do card); converteu em 11/08/2026 no mesmo tenant e layout.</li><li><b>Layout próprio da QA:</b> Cópia do layout «TASK 4524 - TESTE CONVERSOR RCTRC» criada pela tela (o layout compartilhado não é alterado — DC3); nele o campo 25 recebe posição (CT-CVB-005 e CT-CVB-006), com CNPJ/CPF numérico sintético de 14 dígitos.</li><li><b>Dados fixos nos CTs:</b> Arquivos de 1 linha (CT-CVB-007: 3 linhas); reconfirmar apólice, vigência e contagem de registros no instante do CT (tenant compartilhado com outros testes).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e contagem inicial (somente leitura) dos registros da conversão.</li><li><b>1 login</b> → Grupo A (CT-CVB-001, 002, 003, 004) → Grupo B (005, 006, 008) → exploratório (007). O CT-CVB-003 processa e exclui a averbação criada.</li><li>Os CTs são independentes: a falha de um não bloqueia os outros; cada CT começa pela tela do Converter limpa.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: converter com a apólice informada e o CNPJ/CPF do Segurado vazio grava a conversão e o Processa Averbações encontra o layout (critério de aceite do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-001</span><span class="ct-title">Converter o arquivo de teste (apólice informada, campo 25 vazio) no layout «TASK 4524 - TESTE CONVERSOR RCTRC»: sem «Erro ao salvar dados»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo, na tela)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Módulo Conversor da Berkley no build publicado no momento; o build do rodapé é registrado (a falha de 13 e 17/11 foi no V 1.0.261110.1543). Massa: arquivo de teste de 1 linha com apólice informada; layout «TASK 4524 - TESTE CONVERSOR RCTRC» sem alteração; contagem inicial dos registros da conversão (somente leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e registrar o build do módulo Conversor lido no rodapé.</li><li><b>Conversor de Arquivos</b> → <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b> → <b>Importar</b> o arquivo de teste → escolher o layout «TASK 4524 - TESTE CONVERSOR RCTRC» → <b>Converter</b>.</li><li>Ler por script o texto completo da tela e os contadores (registros, incluídas, com erro); capturar a tela inteira com o build visível.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela mostra a mensagem de sucesso, <b>1 conversão incluída e 0 com erro</b>, e <b>nenhuma</b> mensagem «Erro ao salvar dados» (nem «Falha no processamento do lote», nem «String … float»). Registrar o build. Se a mensagem de erro de gravação aparecer: REPROVADO com o build medido (DC1) — se o build ainda for o V 1.0.261110.1543, o comentário aponta a publicação pendente. Evidência: capturas desde o login, a tela completa depois do Converter e o texto lido; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-002</span><span class="ct-title">A conversão fica gravada na tabela temporária (oráculo de dados, somente leitura)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — oráculo de banco (a tela sozinha não prova a gravação)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois do CT-CVB-001 (mesmo arquivo; a contagem inicial vem da pré-verificação). Consulta somente leitura à tabela temporária da conversão, filtrada pela placa e pela data do arquivo de teste.</li></ul>
+      <h4>Passos</h4><ol><li>Antes do Converter do CT-CVB-001, registrar a contagem dos registros da conversão do arquivo de teste (esperada 0).</li><li>Depois do Converter, repetir a consulta e ler a linha: apólice, placa, data, documento e <b>CNPJ/CPF do Segurado vazio/zero</b> (sem texto).</li><li>Conferir os valores contra o arquivo de teste (linha a linha) e anexar o resultado da consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A contagem sobe de 0 para <b>1</b> e a linha gravada confere com o arquivo (apólice, placa, data, documento); o CNPJ/CPF do Segurado fica vazio ou zero, sem erro. Contagem inalterada com a tela mostrando sucesso = REPROVADO (a mensagem de sucesso não prova a gravação). Evidência: resultado da consulta antes/depois e o arquivo de origem; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-003</span><span class="ct-title">Processa Averbações lista o layout e processa a conversão do CT-CVB-001</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (segunda parte do critério de aceite)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois do CT-CVB-001 e do CT-CVB-002 aprovados. O desenvolvimento declara que o Processa Averbações não foi exercitado com este arquivo em nenhuma das duas linhas de código; o CT mede.</li></ul>
+      <h4>Passos</h4><ol><li><b>Conversor de Arquivos</b> → <b>Processa Averbações</b> e ler a lista (capturar a lista inteira).</li><li>Selecionar o layout «TASK 4524 - TESTE CONVERSOR RCTRC» e a conversão do arquivo de teste → <b>Processar</b>.</li><li>Ler contadores e a averbação criada (número, apólice, placa); conferir contagem de averbações da placa antes/depois (somente leitura); <b>excluir pela tela</b> a averbação e conferir a contagem de volta ao valor inicial.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout aparece na lista (antes, a lista ficava vazia) e o processamento cria a averbação da linha convertida, com os dados do arquivo; a contagem sobe em 1 e volta ao valor inicial depois da exclusão pela tela. Lista vazia ou erro ao processar = REPROVADO. Evidência: capturas desde o login, a lista, o processamento, a averbação criada e a exclusão; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-004</span><span class="ct-title">Mesmo layout com o arquivo do PBI #5201 (data e documento trocados): converte e grava</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — reprodução do card com o segundo arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo do PBI #5201 (mesmo conteúdo, só data e documento trocados) e o layout «TASK 4524 - TESTE CONVERSOR RCTRC» sem alteração. O arquivo converteu em 11/08/2026 no mesmo tenant e layout (Conversor V 1.0.260803.1850) e falhou em 13 e 17/11.</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e registrar o build.</li><li>Converter o arquivo no layout (N2) e ler mensagens e contadores.</li><li>Conferir a linha gravada (consulta somente leitura) e a lista do Processa Averbações (N3, só a lista; sem Processar).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem «Erro ao salvar dados»; 1 incluída e 0 com erro; a linha aparece na tabela temporária e o layout na lista do Processa Averbações. Mesmo resultado do CT-CVB-001 com outro arquivo: prova que não é efeito de um arquivo só. Evidência: capturas desde o login e a consulta somente leitura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Sem regressão: a regra de negócio e os demais caminhos do Conversor continuam como antes</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-005</span><span class="ct-title">Regra do Conversor mantida: apólice + CNPJ/CPF do Segurado informados juntos continuam barrados com «Não informar Número de Apólice e CNPJ/CPF simultaneamente»</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — regra de negócio (negativo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout próprio da QA (cópia do «TASK 4524 - TESTE CONVERSOR RCTRC» com o campo 25 com posição — DC3) e arquivo de teste com a mesma apólice e CNPJ/CPF sintético de 14 dígitos numéricos na posição do campo 25.</li></ul>
+      <h4>Passos</h4><ol><li>Criar pela tela o layout próprio da QA copiando o do card e dando posição ao campo 25; salvar.</li><li>Converter (N2) o arquivo com apólice + CNPJ/CPF no layout próprio.</li><li>Ler a mensagem exata e os contadores; conferir que a linha não foi gravada (consulta somente leitura).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A linha é barrada com a crítica «Não informar Número de Apólice e CNPJ/CPF simultaneamente» (0 incluídas, 1 com erro), <b>sem</b> «Erro ao salvar dados»; nada gravado na tabela temporária. A regra de negócio do Conversor não é afetada pelo ajuste de publicação. Evidência: capturas desde o login, o layout próprio, a crítica exata e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-006</span><span class="ct-title">Caminho numérico habitual: sem apólice e com CNPJ/CPF do Segurado numérico — converte e grava</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — caminho que já funcionava (positivo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout próprio da QA do CT-CVB-005 e arquivo de teste de 1 linha sem apólice e com CNPJ/CPF sintético de 14 dígitos numéricos no campo 25.</li></ul>
+      <h4>Passos</h4><ol><li>Converter (N2) o arquivo no layout próprio; ler mensagens e contadores.</li><li>Conferir a linha gravada (consulta somente leitura): CNPJ/CPF numérico gravado igual ao do arquivo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem «Erro ao salvar dados»; 1 incluída e 0 com erro; a linha gravada tem o CNPJ/CPF igual ao do arquivo (numérico). Mostra que o ajuste não quebrou o caminho com CNPJ/CPF preenchido. Se a crítica de negócio barrar por motivo de massa (apólice ou CNPJ de teste inválidos), corrigir a massa pela tela e repetir. Evidência: capturas desde o login e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-008</span><span class="ct-title">Outro layout do mesmo tenant: arquivo com apólice informada e CNPJ/CPF vazio converte e grava</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — o ajuste vale para o Conversor, não só para o layout do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Um segundo layout já existente do Conversor RCTR-C / RC-DC da Berkley com o campo CNPJ/CPF do Segurado sem posição (localizar na lista de layouts; se não houver, usar o layout próprio da QA com o campo 25 sem posição) e arquivo de 1 linha no formato dele.</li></ul>
+      <h4>Passos</h4><ol><li>Converter (N2) o arquivo no segundo layout; ler mensagens e contadores.</li><li>Conferir a linha gravada (consulta somente leitura).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem «Erro ao salvar dados»; 1 incluída e 0 com erro; a linha aparece na tabela temporária. Mesmo resultado do CT-CVB-001 em outro layout. Evidência: capturas desde o login e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CVB-007</span><span class="ct-title">Exploratório — lote de 3 linhas no layout do card: duas válidas com CNPJ/CPF vazio e uma com erro de negócio proposital</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 seção 11) — lote com mais de uma linha</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de teste de 3 linhas: duas linhas válidas com apólice informada (campo 25 vazio) e uma terceira com a placa em branco (erro de negócio proposital); layout «TASK 4524 - TESTE CONVERSOR RCTRC» sem alteração.</li></ul>
+      <h4>Passos</h4><ol><li>Converter (N2) o arquivo de 3 linhas; ler mensagens e contadores.</li><li>Conferir as linhas gravadas (consulta somente leitura) e a lista do Processa Averbações (N3, só a lista).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Contadores coerentes (2 incluídas e 1 com erro), a crítica da linha com erro aparece para essa linha só, <b>sem</b> «Erro ao salvar dados» e sem «sucesso» junto de falha de gravação; as 2 linhas válidas gravadas. Registrar qualquer comportamento inesperado (mensagem, contagem, lista) e, se houver defeito, classificar (do card × pré-existente, A9). Evidência: capturas desde o login e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CVB-007"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério de aceite 1 — converter o arquivo no layout «TASK 4524 - TESTE CONVERSOR RCTRC» (campo 25 vazio, apólice informada) grava a conversão sem «Erro ao salvar dados»</td><td>CT-CVB-001 · CT-CVB-002 · CT-CVB-004</td><td>Pendente</td></tr><tr><td>Critério de aceite 2 — o Processa Averbações encontra o layout</td><td>CT-CVB-003 · CT-CVB-004</td><td>Pendente</td></tr><tr><td>Critério de aceite 3 — a mensagem de sucesso não aparece junto de erro de gravação</td><td>CT-CVB-001 · CT-CVB-007</td><td>Pendente</td></tr><tr><td>Regra do Conversor (apólice + CNPJ/CPF informados juntos continuam barrados)</td><td>CT-CVB-005</td><td>Pendente</td></tr><tr><td>Caminho numérico habitual e outros layouts (sem regressão)</td><td>CT-CVB-006 · CT-CVB-008</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CVB-007</td><td>Pendente</td></tr><tr><td>Corte da Berkley para o CNPJ alfanumérico e checagem em staging</td><td>— fora do escopo (item próprio do desenvolvimento; staging é de Produtos)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o critério de aceite do card mapeado a CTs (100%), com oráculo de tela e de banco, mais a regra de negócio do Conversor e os caminhos vizinhos (numérico habitual, outro layout, lote de mais de uma linha). O corte da Berkley para o CNPJ alfanumérico e o staging ficam fora, por decisão do desenvolvimento e de Produtos.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Build do Conversor no HML ainda ser o da falha (publicação pendente)</td><td>Alta</td><td>Alta</td><td>CT-CVB-001 registra o build do rodapé; erro persistente no mesmo build = REPROVADO com o build medido e causa apontada como publicação pendente (DC1).</td></tr><tr><td>Mensagem de sucesso aparecer sem gravação</td><td>Média</td><td>Alta</td><td>Oráculo de dados (CT-CVB-002, somente leitura) — a tela sozinha não aprova.</td></tr><tr><td>Layout compartilhado alterado por outro teste</td><td>Média</td><td>Média</td><td>Reler o layout (campo 25) antes do CT-CVB-001; usar layout próprio da QA para o que precisa do campo 25 preenchido (DC3).</td></tr><tr><td>Averbação de teste ficar criada (CT-CVB-003)</td><td>Baixa</td><td>Média</td><td>Contagem antes/depois; exclusão pela tela e conferência da contagem de volta ao valor inicial.</td></tr><tr><td>Sessão do Conversor degradada ou login recusado</td><td>Baixa</td><td>Baixa</td><td>Novo login pela tela, no máximo 2 tentativas; senha vencida ou recusada é massa (renovar ou criar usuário de QA).</td></tr><tr><td>Ambiente HML fora do ar</td><td>Baixa</td><td>Média</td><td>Pré-verificação antes do 1º CT; servidor fora ≠ CT reprovado; retomar quando voltar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (17/11/2026) · Sprint 19 Sustentação · card em Pronto para homologação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
