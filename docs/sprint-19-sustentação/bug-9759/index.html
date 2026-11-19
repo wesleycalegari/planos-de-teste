@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9759 · Divergência nas prévias RCV entre CITWEB e CITNET</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9759 · Sprint 19 Sustentação</span>
+    <h1>Divergência nas prévias RCV entre CITWEB e CITNET: grid de Autorização de Prévia zerado</h1>
+    <div class="sub">CITWEB e CITNET · ramo RCV (59) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (19/11/2026) — Bug: sem aprovação de Produtos sobre o plano</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">9</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">0</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" id="exec-na" style="color:#8b949e">2</div><div class="lbl">N/A</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">10/1/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:100%;background:#d29922"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>11 de 11 concluídos · 9 aprovados · 0 reprovados · 2 N/A (sem oráculo, escalado) · 0 pendentes</strong> — execução de 19/11/2026 em HML.</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 9, "reprovados": 0, "bloqueados": 0, "pendentes": 0, "na": 2}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Que a prévia do ramo RCV apareça no CITNET com a quantidade de averbações e o prêmio corretos, iguais ao resumo da fatura; que seja cobrada como prêmio mínimo só quando o mês não tem averbações; que a liberação manual continue certa; e que as prévias já liberadas de forma errada possam ser identificadas e corrigidas.</p>
+    <p style="margin:6px 0"><b>Testamos:</b> Na tela de Aprovação de Prévia do CITNET, com a mesma massa: comparamos o que a tela mostra com o banco e com o resumo da fatura; liberamos uma prévia nova pelo CITWEB e conferimos no CITNET; conferimos que outros ramos não mudaram; e tentamos corrigir uma prévia que já havia sido liberada com valor zerado.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Funciona para as prévias novas: aparecem no CITNET com quantidade, valor segurado e prêmio corretos, iguais ao resumo da fatura e ao banco — as de apólices sem liberação pelo menu (validamos a leitura da tela; a rotina automática do servidor não foi observada) e as liberadas pelo menu — e os outros ramos não mudaram. Em aberto: as prévias antigas liberadas com valor zerado. Achamos uma (liberada em abril com valor zerado, quando já havia uma averbação de R$ 100,00) que a tela ainda mostra zerada enquanto o resumo mostra R$ 100,00 de uma averbação incluída depois; ela já foi faturada, o sistema não deixa liberar de novo e o card não diz como identificar e reprocessar — por isso essa parte ficou sem veredito e foi perguntada ao desenvolvedor. Observação: nesta base o grid do RCV não escreve «Cobrança Prêmio Mínimo» (recurso opcional desligado); a cobrança do mínimo aparece no resumo. 9 de 11 situações aprovadas, 2 sem veredito.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem acompanha a prévia no CITNET passa a ver o valor certo das prévias novas; as prévias antigas liberadas zeradas continuam como estão até o desenvolvedor definir o procedimento de correção.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Prévias antigas liberadas zeradas: qual é o resultado esperado e como identificar/reprocessar? Opção A: o desenvolvedor entrega a consulta que identifica e o procedimento de reprocesso, e a QA valida; opção B: essas prévias antigas ficam como estão. Recomendação da QA: A. Resposta no card #9759.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — Faturamento › Aprovação (Autorização de Prévia para Faturamento) · CITWEB — Nacional › Fechamento Mensal › Liberação de prévia para o corretor</td></tr>
+    <tr><th>Card</th><td>BUG-9759 — divergência das prévias RCV entre CITWEB e CITNET · board Sustentação · incidente externo (EXT) · prioridade 1</td></tr>
+    <tr><th>Tasks filhas</th><td>#9798 Análise e Desenvolvimento · #9812 [QA] Plano de teste · #9814 [QA] Teste</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem aprovação de Produtos sobre o plano (execução assim que o card estiver em homologação). Plano e execução em 19/11/2026 → revisão independente → resultado (NOR_QA_002) no card.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET e do CITWEB (build do CITWEB V 1.0.261118.1747). Ajuste confirmado <b>por comportamento</b> (CT-9759-001/004) e pelo código publicado nas linhas de homologação; relato do desenvolvedor não é oráculo.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 19/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>As prévias do ramo RCV liberadas pelo CITWEB chegavam ao CITNET com quantidade de averbações e prêmio zerados e classificadas como cobrança de prêmio mínimo, enquanto o resumo da fatura mostrava os valores corretos. O card traz cinco critérios de aceite (valores da prévia automática, grid igual ao resumo, prêmio mínimo só sem averbação, liberação manual preservada, prévias antigas identificáveis e reprocessáveis).</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug sem descrição textual, mas com critérios de aceite testáveis, causa raiz e entrega do desenvolvedor descritas nas tasks filhas; ramo e ambiente identificados. O oráculo de cada CT é observável na tela, no resumo da fatura e no banco do ambiente.</div>
+  <h3>Decisões e inferências do QA</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DEC-1</b></td><td><b>Massa do plano do dev</b></td><td>A apólice citada no plano do desenvolvedor não existe na base deste ambiente; a QA usa massa própria já existente (apólices de teste com averbações) e cria a necessária pelo menu do CITWEB.</td></tr><tr><td><b>DEC-2</b></td><td><b>Liberação automática (FLAG 1)</b></td><td>A rotina agendada do servidor foi executada em 18/11/2026 (task #9814) e não deixou registro de liberação (a base não tem nenhuma liberação de origem automática); a QA não dispara a rotina do servidor. O CT-9759-002 valida o caminho de leitura do grid para uma apólice com FLAG 1 sem liberação pelo menu — onde o ajuste foi feito — e não afirma ter provado a rotina.</td></tr><tr><td><b>DEC-3</b></td><td><b>Rótulo «Cobrança Prêmio Mínimo» no ramo RCV</b></td><td>Depende de um indicativo opcional (outro card) que não existe na base do ambiente, então o grid do RCV nunca exibe o rótulo aqui; a classificação do critério 3 é julgada pelo resumo da fatura (prêmio mínimo e líquido). O resumo já tinha esse comportamento antes da correção — o CT-9759-005 confirma a regra, mas não exercita o ajuste.</td></tr><tr><td><b>DEC-4</b></td><td><b>Prévias antigas liberadas zeradas (critério 5)</b></td><td>O critério pede que sejam «identificáveis e reprocessáveis», mas o card não define o procedimento nem o resultado esperado (foto da liberação × valor vivo). Os CT-9759-008 e 011 ficam <b>N/A — sem oráculo</b> e a dúvida foi escalada ao desenvolvedor, a Produtos e à coordenação; se o procedimento for consulta/script fora do produto, o desenvolvedor o anexa ao card para a QA validar.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Grid de Autorização de Prévia (CITNET) para o ramo RCV: consulta por apólice e por Segurado Principal (CT-9759-001, 002, 004, 007); grid × resumo × banco (003, 005, 008, 010); liberação manual no CITWEB (009); prévias antigas zeradas (008, 011).</li>
+    <li>Regressão dos ramos 54 e 21 (CT-9759-006).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — N/A (a QA não testa em produção).</li>
+    <li><b>Aprovar a prévia</b> — o botão não é clicado (altera o estado de negócio da prévia); só o Resumo (leitura).</li>
+    <li><b>Itens de DoD de engenharia</b> — não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação por clique a partir do login — nunca por URL direta (exceto o endereço do login). Evidência por CT no bloco do CT e anexada ao card (nunca neste documento público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET e do CITWEB com o ajuste (confirmado por comportamento antes dos demais CTs).</li>
+    <li><b>Massa:</b> apólices de teste do ramo 59 já existentes com averbações abertas (333; 1788991369550; 1788984099414; 24042026) e uma sem liberação anterior (1788991158870), todas conferidas por consulta somente leitura ao banco do ambiente. Usuários de teste da QA (credenciais fora deste documento).</li>
+    <li><b>Ordem:</b> CT-9759-009 antes do 010; 008 antes do 011.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Prévia RCV com averbações na competência: valores corretos na tela (liberação automática e consulta por apólice)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-001</span><span class="ct-title">Consulta por Ramo/Apólice/Subgrupo de uma apólice RCV com averbações abertas na competência: quantidade, valor segurado e prêmio comercial reais (não zero) e situação «Aguardando Aprovação»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (confirmada por comportamento e pelo código publicado). Apólice <b>333</b>, subgrupo 1, ramo 59 (RCV), competência <b>09/2026</b>: 20 averbações abertas, prêmio comercial R$ 30.000,00, valor segurado R$ 20.000,00 (consulta somente leitura ao banco antes do teste).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>333</b>, subgrupo <b>1</b>, competência <b>09/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha da apólice no grid (Qtde Averbação, Valor Segurado, Prêmio Comercial, Situação) e comparar com a consulta ao banco.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha da apólice 333 com <b>Qtde 20</b>, <b>Valor Segurado R$ 20.000,00</b>, <b>Prêmio Comercial R$ 30.000,00</b> e situação «Aguardando Aprovação» — iguais ao banco; sem «Cobrança Prêmio Mínimo».</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (valores do grid) × consulta ao banco (contagem e soma da competência).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Grid: Qtde 20, Valor Segurado R$ 20.000,00, Prêmio Comercial R$ 30.000,00, «Aguardando Aprovação» — idêntico ao banco (20 averbações; R$ 30.000,00; R$ 20.000,00). Evidência: anexos «ev_CT-9759-001_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-002</span><span class="ct-title">Apólice com FLAG 1 sem liberação pelo menu (caso da liberação automática): o CITNET mostra quantidade e prêmio da competência a partir do movimento aberto</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Massa do dia 18/11/2026 (rotina do embarque na FLAG 1 executada, sem liberação pelo menu — task #9814): apólice <b>1788991369550</b>, subgrupo 1, ramo 59. Competência <b>10/2026</b> com 1 averbação aberta (prêmio R$ 59,99, valor segurado R$ 2.000.000,00); competência <b>11/2026</b> já fechada. Para ela não existe registro de liberação e a base não tem nenhuma liberação de origem automática; a rotina agendada do servidor não é disparada pela QA. O CT valida o caminho de leitura do grid (onde o ajuste foi feito), não a rotina do servidor.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>1788991369550</b>, subgrupo <b>1</b>, competência <b>10/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha da apólice e comparar com o banco; trocar a competência para <b>11/2026</b>, consultar e conferir que a competência já fechada não gera linha.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Competência 10/2026: <b>Qtde 1</b>, <b>Valor Segurado R$ 2.000.000,00</b>, <b>Prêmio Comercial R$ 59,99</b>, «Aguardando Aprovação», iguais ao banco. Competência 11/2026 (fechada): nenhuma linha.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela × banco (averbações abertas da competência).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Competência 10/2026: Qtde 1, Valor Segurado R$ 2.000.000,00, Prêmio R$ 59,99 — idêntico ao banco, sem registro de liberação para a apólice (caminho de leitura do grid); competência 11/2026 (já fechada) sem linha. Evidência: anexos «ev_CT-9759-002_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-002"></div>
+    </div>
+  </div>
+  <div class="group-header alt">B — Tela × resumo da fatura × banco; consulta por Segurado Principal</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-003</span><span class="ct-title">Grid e resumo da fatura apresentam os mesmos valores (apólice com averbações)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-9759-001 (apólice 333, subgrupo 1, 09/2026). O botão de resumo gera um relatório de leitura (registra o acesso para o controle de prazo da prévia); <b>Aprovar não é clicado</b>.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>333</b>, subgrupo <b>1</b>, competência <b>09/2026</b> e clicar em <b>Consultar</b>.</li><li>Registrar os valores do grid; clicar no ícone <b>Resumo</b> da linha e ler o relatório gerado (quantidade, prêmio comercial, prêmio mínimo, prêmio líquido).</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O resumo mostra <b>quantidade 20</b>, <b>prêmio comercial R$ 30.000,00</b> e <b>prêmio líquido R$ 30.000,00</b> (sem cobrança de mínimo) — os mesmos valores do grid.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (grid) × relatório de resumo (PDF lido).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Resumo: quantidade 20, prêmio comercial R$ 30.000,00, prêmio líquido R$ 30.000,00 (mínimo R$ 9,67 não cobrado) — iguais ao grid. Evidência: anexos «ev_CT-9759-003_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-004</span><span class="ct-title">Consulta por Segurado Principal: todas as linhas RCV do mês batem com o banco e nenhuma apólice com movimento fica de fora</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Segurado de teste que reúne as apólices da massa; competência <b>09/2026</b> (55 apólices/subgrupos RCV com averbações abertas, segundo o banco). A grade lista todos os ramos do segurado; o CT avalia as linhas do ramo 59.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Segurado Principal</b>, escolher o segurado de teste, competência <b>09/2026</b> e clicar em <b>Consultar</b>; exibir todas as linhas da grade.</li><li>Para cada linha do ramo 59 comparar Qtde, Valor Segurado e Prêmio Comercial com a consulta ao banco; conferir que cada apólice com movimento no banco aparece.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As linhas RCV da grade (64) trazem, para as 55 com averbação, <b>exatamente</b> a quantidade, o valor segurado e o prêmio do banco; as demais (sem averbação) trazem quantidade 0 e prêmio 0,00; nenhuma apólice com movimento fica ausente.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (grade completa) × consulta ao banco por apólice/subgrupo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. 64 linhas RCV na grade; as 55 com averbação idênticas ao banco (quantidade, valor segurado e prêmio); as 9 sem averbação com quantidade 0 e prêmio 0,00; nenhuma apólice com movimento ausente. Evidência: anexos «ev_CT-9759-004_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-004"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Classificação de prêmio mínimo e regressão de outros ramos</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-005</span><span class="ct-title">Prêmio mínimo só quando a competência não tem averbações: competência sem averbação cobra o mínimo no resumo; com averbação não cobra</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Apólice <b>333</b>, subgrupo 1, competência <b>10/2026</b> (nenhuma averbação, segundo o banco). Na base do ambiente o indicativo que rotula «Cobrança Prêmio Mínimo» no grid do ramo RCV não existe (recurso opcional de outro card); por isso o oráculo da classificação é o resumo da fatura.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>333</b>, subgrupo <b>1</b>, competência <b>10/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha (Qtde, Prêmio Comercial) e abrir o <b>Resumo</b>; ler o prêmio comercial, o prêmio mínimo e o prêmio líquido.</li><li>Conferir o contraste com o CT-9759-003 (competência com averbações: líquido = comercial, sem cobrança de mínimo).</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Competência sem averbação: <b>Qtde 0</b>, prêmio comercial 0,00 e, no resumo, <b>prêmio líquido = prêmio mínimo (R$ 10,00)</b> — cobrança de mínimo. Competência com averbação (CT-9759-003): prêmio líquido = prêmio comercial, sem mínimo.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>relatório de resumo (PDF lido) + consulta ao banco (zero averbações).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Competência 10/2026 sem averbação: Qtde 0, prêmio comercial 0,00; resumo com prêmio líquido R$ 10,00 = prêmio mínimo (cobrança de mínimo). Com averbação (CT-9759-003) o mínimo não é cobrado. Evidência: anexos «ev_CT-9759-005_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-006</span><span class="ct-title">Regressão: ramos 54 (RCTR-C) e 21 (Transporte Nacional) seguem iguais ao banco</span><span class="badge prio importante">P2</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Competência <b>09/2026</b>; ramos 54 e 21 com averbações abertas (a competência desses ramos vem do mês de referência ou, quando zerado, da data de saída).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar <b>Ramo/Apólice/Subgrupo</b>, escolher o ramo <b>54 - RCTR-C</b>, deixar a apólice em «Todos», competência <b>09/2026</b>, <b>Consultar</b>; repetir para o ramo <b>21</b>.</li><li>Comparar a quantidade de cada apólice/subgrupo com a consulta ao banco.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Só linhas do ramo escolhido; todas as apólices com movimento listadas; quantidade de cada linha igual ao banco (ramo 54: 19 linhas; ramo 21: 10 linhas).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela × consulta ao banco por ramo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Ramo 54: 19 linhas e ramo 21: 10 linhas, só do ramo escolhido, todas as apólices com movimento listadas e quantidades idênticas ao banco. Evidência: anexos «ev_CT-9759-006_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">D — Liberação manual pelo CITWEB e conferência no CITNET</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-007</span><span class="ct-title">Prévia já liberada pelo menu com valores corretos mantém os valores liberados (liberação manual preservada)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Apólice <b>1788984099414</b>, subgrupo 1, ramo 59, competência <b>09/2026</b>, liberada manualmente em 09/2026 (1 averbação, prêmio R$ 100,00, valor segurado R$ 2.000.000,00).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>1788984099414</b>, subgrupo <b>1</b>, competência <b>09/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha, abrir o <b>Resumo</b> e comparar com o registro de liberação e com o movimento no banco.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Qtde 1</b>, <b>Valor Segurado R$ 2.000.000,00</b>, <b>Prêmio R$ 100,00</b> no grid e no resumo, iguais ao registro de liberação.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela × resumo (PDF) × registro de liberação e movimento no banco.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Grid Qtde 1, Valor Segurado R$ 2.000.000,00, Prêmio R$ 100,00; resumo R$ 100,00 / 1 — iguais ao registro de liberação e ao movimento. Evidência: anexos «ev_CT-9759-007_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-009</span><span class="ct-title">Liberação manual de uma prévia nova no CITWEB registra quantidade e prêmio corretos</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Apólice <b>1788991158870</b>, subgrupo 1, ramo 59, competência <b>09/2026</b>, com 1 averbação aberta (prêmio R$ 50,00, valor segurado R$ 2.000.000,00) e sem liberação anterior (consulta ao banco).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITWEB no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Acessar</b>; no menu inicial clicar em <b>Nacional</b> (abre em nova aba).</li><li>No menu superior clicar em <b>Fechamento Mensal</b> → <b>Liberação de prévia para o corretor</b>.</li><li>Marcar o tipo de seleção <b>Apólice</b>, filial <b>0001 MATRIZ</b>, ramo <b>RC-V</b>, apólice <b>1788991158870</b>, referência <b>09/2026</b> e clicar em <b>Selecionar</b>.</li><li>Marcar a linha, conferir os valores do modal «Liberação de Prévia para o Corretor», clicar em <b>Confirmar</b>, depois em <b>Processar</b> e em <b>Sim</b>.</li><li>Ler a mensagem de conclusão e consultar o registro de liberação gravado no banco.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem «Processamento encerrado. Verifique os resultados.»; registro de liberação gravado com <b>quantidade 1</b> e <b>prêmio R$ 50,00</b>, origem «menu» e o usuário da QA.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (modal e mensagem) × registro de liberação no banco antes/depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Mensagem «Processamento encerrado. Verifique os resultados.»; registro de liberação gravado: quantidade 1, prêmio R$ 50,00, origem menu, usuário da QA (antes: nenhum registro). Evidência: anexos «ev_CT-9759-009_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-010</span><span class="ct-title">A prévia liberada manualmente no CT-9759-009 aparece no CITNET com os mesmos valores (grid × registro × resumo)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-ok">APROVADO</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Resultado do CT-9759-009 (apólice 1788991158870, 09/2026).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>1788991158870</b>, subgrupo <b>1</b>, competência <b>09/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha, abrir o <b>Resumo</b> e comparar com o registro de liberação e com o modal do CITWEB.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Qtde 1</b>, <b>Valor Segurado R$ 2.000.000,00</b>, <b>Prêmio R$ 50,00</b> no grid e no resumo — iguais ao CITWEB e ao registro.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela × resumo (PDF) × registro de liberação no banco.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>APROVADO</b> — executado em 19/11/2026 no HML, desde o login. Grid Qtde 1, Valor Segurado R$ 2.000.000,00, Prêmio R$ 50,00; resumo R$ 50,00 / 1 — iguais ao modal do CITWEB e ao registro gravado. Evidência: anexos «ev_CT-9759-010_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-010"></div>
+    </div>
+  </div>
+  <div class="group-header">E — Prévias já liberadas de forma incorreta: identificar e reprocessar</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-008</span><span class="ct-title">Prévia liberada anteriormente com valor zerado, havendo averbação aberta: grid e resumo devem apresentar os mesmos valores</span><span class="badge prio bloqueante">P1</span><span class="badge badge-na">N/A</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Apólice <b>24042026</b>, subgrupo 1, ramo 59, competência <b>04/2026</b>: prévia liberada pelo menu em 27/04/2026 com quantidade 0 e prêmio 0,00, e 1 averbação aberta de R$ 100,00 na competência (consulta ao banco).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Entrar</b>; conferir o menu superior.</li><li>Clicar em <b>Faturamento</b> → <b>Aprovação</b> (tela «Autorização de Prévia para Faturamento») e escolher a filial <b>MATRIZ - 1</b>.</li><li>Marcar o filtro <b>Ramo/Apólice/Subgrupo</b>, escolher ramo <b>59 - RCV</b>, apólice <b>24042026</b>, subgrupo <b>1</b>, competência <b>04/2026</b> e clicar em <b>Consultar</b>.</li><li>Ler a linha do grid e abrir o <b>Resumo</b>; comparar quantidade e prêmio.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Critério de aceite: «o grid apresenta os mesmos valores do resumo da fatura» e «prévias já liberadas de forma incorreta identificáveis e reprocessáveis». Resultado esperado exato (foto da liberação × valor vivo) e procedimento de correção: não definidos no card — escalado.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (grid) × relatório de resumo (PDF) × banco.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>N/A</b> — executado em 19/11/2026 no HML, desde o login. N/A (sem oráculo). Observado: grid com Qtde 0 e prêmio 0,00 (valores do registro de liberação de 27/04/2026) e resumo com quantidade 1 e prêmio R$ 100,00. Atenção: o R$ 100,00 do resumo vem de uma averbação aberta incluída depois (em julho), já com a competência faturada em 29/04; na liberação de 27/04 existia outra averbação de R$ 100,00 (de 24/04, faturada em 29/04), e o registro gravou zero — indício de liberação incorreta, mas a evidência não separa as duas coisas. O card não define o resultado esperado nem o procedimento de identificação/reprocesso; escalado ao desenvolvedor, a Produtos e à coordenação. Evidência: anexos «ev_CT-9759-008_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9759-011</span><span class="ct-title">Reprocessar a prévia liberada com valor zerado pelo CITWEB (seleção com e sem «Reenviar Prévias»)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-na">N/A</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Apólice <b>24042026</b>, subgrupo 1, ramo 59, referência <b>04/2026</b> (a mesma do CT-9759-008); registro de liberação com quantidade 0 e prêmio 0,00.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITWEB no HML (único endereço digitado), informar usuário e senha de teste da QA e clicar em <b>Acessar</b>; no menu inicial clicar em <b>Nacional</b> (abre em nova aba).</li><li>No menu superior clicar em <b>Fechamento Mensal</b> → <b>Liberação de prévia para o corretor</b>.</li><li>Selecionar a apólice, ramo <b>RC-V</b>, referência <b>04/2026</b> sem marcar «Reenviar Prévias» e clicar em <b>Selecionar</b>; repetir marcando <b>Reenviar Prévias</b>.</li><li>Se a apólice for listada: marcar, <b>Confirmar</b>, <b>Processar</b>, <b>Sim</b> e consultar o registro de liberação; se não for listada, registrar a mensagem da tela.</li><li>Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), dos filtros e do resultado; resumo (PDF) e consulta somente leitura ao banco do ambiente, quando o CT pede.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Se a apólice for listada, o processamento regrava quantidade e prêmio e grid e resumo passam a coincidir; se o sistema recusar, registrar a mensagem exata da tela e a regra que a motiva.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (listagem/mensagem) × registro de liberação no banco antes/depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>N/A</b> — executado em 19/11/2026 no HML, desde o login. N/A (sem oráculo). A seleção responde «Já existe Fechamento para a Apólice … Subgrupo 001 no período selecionado.» (com e sem «Reenviar Prévias»): a competência já foi faturada em 29/04/2026 e o CITWEB não reabre; não há massa de prévia liberada com zero ainda sem fatura e o card não entrega procedimento de reprocesso. Registro de liberação inalterado (quantidade 0, prêmio 0,00). Evidência: anexos «ev_CT-9759-011_…» no card #9759 (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9759-011"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — A prévia liberada automaticamente apresenta a quantidade de averbação e o prêmio comercial da competência (caminho de leitura validado; rotina automática do servidor não observada)</td><td>CT-9759-001, 002, 009, 010</td><td>Aprovado</td></tr><tr><td>CA2 — O grid de Autorização de Prévia apresenta os mesmos valores do resumo da fatura</td><td>CT-9759-003, 004, 007, 008, 010</td><td>Parcial (aprovados; N/A sem oráculo)</td></tr><tr><td>CA3 — Cobrança de prêmio mínimo apenas quando a competência não possui averbações</td><td>CT-9759-005</td><td>Aprovado</td></tr><tr><td>CA4 — A prévia liberada manualmente continua apresentando os valores corretos</td><td>CT-9759-007, 009, 010</td><td>Aprovado</td></tr><tr><td>CA5 — Prévias já liberadas de forma incorreta identificáveis e reprocessáveis (sem oráculo: escalado)</td><td>CT-9759-008, 011</td><td>N/A (sem oráculo)</td></tr><tr><td>Regressão — outros ramos sem alteração</td><td>CT-9759-006</td><td>Aprovado</td></tr><tr><td>Itens de processo/DoD (PR aprovado, build, testes unitários do dev)</td><td>— (garantidos por branch policy; não geram CT)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas ficam no <b>painel do topo</b>. Todos os critérios de produto do card têm CT; processo/DoD não gera CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Prévia já liberada com valor zerado continua zerada no CITNET (e o CITWEB não reabre uma competência já faturada)</td><td>Alta</td><td>Alto</td><td>CT-9759-008 e 011 (N/A, escalado); o desenvolvedor define o procedimento de identificação e reprocesso.</td></tr><tr><td>Base sem o indicativo de prêmio mínimo do RCV: o grid não rotula a cobrança de mínimo</td><td>Baixa</td><td>Médio</td><td>DEC-3 — classificação julgada pelo resumo.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (19/11/2026) · Sprint 19 Sustentação · Bug — sem aprovação de Produtos · execução em 19/11/2026 · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
