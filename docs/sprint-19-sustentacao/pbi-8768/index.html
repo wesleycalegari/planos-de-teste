@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8768 · KEv — CITNET Transporte Nacional: caracteres especiais em Observações</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8768 · Sustentação</span>
+    <h1>[QA] KEv — CITNET, Averbações › Transporte Nacional: o campo Observações não deve manter os caracteres «&lt;», «&gt;» e «&amp;» depois de gravar e reabrir o protocolo</h1>
+    <div class="sub">CITNET (legado) — Averbações › Transporte Nacional · KEv · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (19/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (4×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela de Transporte Nacional do CITNET da KEv, o campo Observações aceitava e guardava os símbolos «&lt;», «&gt;» e «&amp;», quando a regra do sistema é não guardá-los (a mesma regra já aplicada na Zurich, card #7581). O desenvolvedor aplicou a mesma correção no ambiente de testes da KEv.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos gravar averbações de teste na tela com textos que misturam esses símbolos (inclusive o texto exato do card, «@#$%&lt;&gt;&amp;&quot;/teste»), reabrir cada uma pelo número do protocolo e conferir que os três símbolos sumiram e o resto do texto ficou igual. Também vamos conferir que texto normal com acentos, o campo vazio, a edição de uma averbação e o limite de 100 caracteres continuam funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. Um ponto já conhecido pela regra: o símbolo «&amp;» também some de textos normais, por exemplo «A&amp;B» passa a ser gravado como «AB». O processamento em lote (Conversor) não aplica essa limpeza; isso não faz parte deste card.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem digita Observações na tela de Transporte Nacional da KEv passa a ter «&lt;», «&gt;» e «&amp;» retirados ao gravar, como já ocorre na Zurich; o restante do texto não muda.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto</b> — por ser Bug, o plano não precisa de aprovação de Produtos. Fica só o registro: se Produtos preferir outra regra para a KEv (por exemplo, guardar o texto como foi digitado) ou quiser a mesma limpeza no Conversor, avise e ajustamos os testes ou abrimos card próprio. Recomendação da QA: manter a regra igual à da Zurich.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET (legado) da KEv (HML) — menu <b>Averbações</b> › <b>Transporte Nacional</b>: Filial, Apólice/Subgrupo, Documento, Data Saída, Veículo, Meio de Transporte, Cobertura Básica, Origem, Destino, Mercadoria, Embalagem, <b>Observações</b> (contador «Caracteres digitados: N de 100»), Protocolo e botões <b>Novo</b>, <b>Gravar</b>, <b>Imprimir</b>, <b>Excluir</b>.</td></tr><tr><th>Card</th><td>BUG-8768 — «[ CITNET - KEv ] Transporte Nacional: Observações aceita caracteres especiais (TRANS-08 / CIT-127)» (aberto em 15/09/2026 a partir de uma execução automática de testes) · board Sustentação · estado <b>Pronto para homologação</b> · critérios de aceite do card: (1) política de caracteres de Observações confirmada para a KEv, com a regra do #7581 (remover «&lt;», «&gt;» e «&amp;») se mantida a restrição do CIT-127; (2) depois de gravar a amostra do card e reabrir pelo protocolo, o valor corresponde à regra e «&lt;», «&gt;» e «&amp;» não permanecem; (3) texto comum, com acentos, espaços e números, continua sendo gravado, consultado e editado sem perda, respeitando o limite de 100 caracteres; (4) criação e edição de Transporte Nacional continuam funcionando. Os demais itens do card (reteste do TRANS-08 e anexo de protocolo e data) são evidência do próprio teste.</td></tr><tr><th>Tasks de QA</th><td>#9842 [QA] Plano de teste (esta). O card não tinha tarefas filhas. <b>Card do tipo Bug, do board da Sustentação: Produtos não aprova plano de teste; o plano segue com a marcação de execução pronta e a execução começa na hora, com o card em homologação.</b></td></tr><tr><th>Ambiente</th><td>HML da KEv — CITNET legado (endereço de login no arquivo de ambiente do time), usuário de QA de perfil INTERNO. Produção N/A (a QA não testa em produção). O desenvolvedor registrou a correção publicada no HML da KEv em 19/11/2026; a QA faz a validação independente, sem herdar o veredito dele.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 19/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O card relata que, na Averbação de Transporte Nacional do CITNET da KEv, o campo <b>Observações</b> aceitava os caracteres «&lt;», «&gt;» e «&amp;» e o caso de teste TRANS-08 (CIT-127) registrava o mesmo texto depois de gravar e reabrir o protocolo. A expectativa do CIT-127 é rejeitar ou tratar esses caracteres. O mesmo tratamento já existe para a Zurich (card #7581, Done: remoção de «&lt;», «&gt;» e «&amp;», texto comum preservado); o card #8656 (Mitsui) descreve sintoma semelhante.</p><p><b>Diagnóstico e correção (comentário do desenvolvedor, 19/11/2026):</b> a correção do #7581 existia só nas linhas de publicação principal, de homologação e de staging; o HML da KEv é publicado de outra linha, que não a tinha. O patch foi aplicado nessa linha: ao gravar a averbação nacional (inclusão e alteração, os seis ramos nacionais), o servidor remove «&lt;», «&gt;» e «&amp;» do campo Observações antes de salvar. Os demais caracteres da amostra («@», «#», «$», «%», aspas e barra) não são alterados. O desenvolvedor registrou ainda que o processamento em lote (Conversor) não aplica a limpeza, como na linha principal — decisão de governança do Produto, fora deste card.</p><p><b>Oráculo:</b> o valor que a tela mostra no campo Observações <b>ao reabrir o protocolo</b> (consulta pelo protocolo), mais a mensagem de sucesso da gravação. Como antes da correção o texto voltava literal, o próprio valor reaberto (sem «&lt;», «&gt;» e «&amp;») prova que o código novo executou; o valor lido na tela é registrado junto com a versão do sistema.</p><p><b>Critério do card e como o plano o cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td>Política da regra do #7581 aplicada: «&lt;», «&gt;» e «&amp;» não permanecem no valor reaberto (amostra do card e cada caractere)</td><td>CT-OBS-001 · CT-OBS-002 · CT-OBS-003 · CT-OBS-004</td></tr><tr><td>Texto comum, acentos, espaços e números preservados; limite de 100 caracteres respeitado</td><td>CT-OBS-004 · CT-OBS-005 · CT-OBS-006</td></tr><tr><td>Criação e edição de Transporte Nacional continuam funcionando; Observações vazia grava</td><td>CT-OBS-003 · CT-OBS-005 · CT-OBS-006 · CT-OBS-007</td></tr><tr><td>Confirmação da política pelo Produto (aplicabilidade à KEv) e tratamento alternativo</td><td>— sem CT: decisão de Produto; a QA testa a regra do #7581 (ver DC1)</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (19/11/2026).</b> Bug lido por inteiro (descrição, pré-condições, passos, resultado observado e esperado, ambiente e rastreabilidade), com os <b>3 comentários</b> do card (análise automática e o relato do desenvolvedor com a correção e o reteste dele), os <b>2 cards relacionados</b> (#7581 Zurich, Done, e #8656 Mitsui) e as imagens do mapeamento da tela feito pela QA em 19/11/2026. <b>Tags</b>: sistema CITNET, seguradora/tenant KEv; ramo Transporte Nacional (21). Critérios de aceite com oráculo observável (valor mostrado ao reabrir o protocolo × mensagem de gravação). O critério 1 (política «confirmada pelo produto») não tinha a resposta escrita no card; há precedente fechado (#7581) e a correção do desenvolvedor aplica exatamente essa regra, então a QA <b>infere e documenta</b> (DC1) em vez de escalar. Não é débito técnico: o usuário grava e consulta Observações. <b>Prova de pré-existência (A9):</b> não se aplica — o comportamento é do próprio card.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — a correção precisa estar no HML da KEv:</b> O desenvolvedor registrou a publicação da correção no HML da KEv em 19/11/2026 (branch de homologação do KEv, deploy concluído). A QA registra a versão do sistema (rodapé da tela) e roda primeiro o CT-OBS-001: valor reaberto <b>com</b> «&lt;», «&gt;» ou «&amp;» = correção não está no ar (REPROVADO, sem tratar como falha de massa). Sem a correção no ar, a execução não prossegue.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Política de caracteres de Observações na KEv (critério 1 do card)</b></td><td>O card pede que a política seja confirmada por Produtos para a KEv. Há precedente fechado (#7581 Zurich: «&lt;», «&gt;» e «&amp;» removidos, texto comum preservado) e o mesmo patch foi aplicado na KEv. <b>Posição do QA:</b> o plano testa a regra do #7581 (remoção dos três caracteres, preservação do resto). Se Produtos decidir por preservação literal ou por outra regra, os CTs 001 a 004 são ajustados e reexecutados; não trava a execução.</td></tr><tr><td><b>DC2</b></td><td><b>Efeito colateral da regra: «&amp;» também some de textos legítimos</b></td><td>Um texto como «A&amp;B» passa a ser gravado como «AB» (o desenvolvedor registrou o ponto). <b>Posição do QA:</b> é o resultado esperado da regra do #7581; a QA registra o valor reaberto de cada caso, sem tratar a perda do «&amp;» como defeito do card. Decisão de produto sobre manter ou refinar a regra é de Produtos.</td></tr><tr><td><b>DC3</b></td><td><b>Processamento em lote (Conversor) não aplica a limpeza</b></td><td>O desenvolvedor registrou que o Conversor não aplica a limpeza, como na linha principal. O card trata da <b>tela</b> de Transporte Nacional. <b>Posição do QA:</b> fora do escopo deste plano; se Produtos quiser a mesma regra no Conversor, abre-se card próprio.</td></tr><tr><td><b>DC4</b></td><td><b>Texto com «&lt;» colado a letra é barrado pela plataforma antes da regra</b></td><td>Um texto como «&lt;b&gt;negrito&lt;/b&gt;» é recusado pelo próprio framework do site («Erro ao tentar enviar os dados»), antes de chegar à regra do card (comportamento anterior ao card, segundo o desenvolvedor). <b>Posição do QA:</b> os CTs de «&lt;» usam espaços ao redor do caractere (como o desenvolvedor); o caso colado a letra é medido no CT exploratório e, se já existia, não reprova o card (A9, com prova).</td></tr><tr><td><b>DC5</b></td><td><b>Produtos e o desenvolvedor já testaram; a QA valida de forma independente</b></td><td>O reteste do desenvolvedor (6 casos) é insumo, não veredito. Este plano <b>não herda</b> o resultado dele: a QA grava os próprios protocolos na massa própria e confere o valor reaberto na tela. O estado do card é de quem o movimenta; a QA só registra o resultado.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Gravar (inclusão) e alterar (edição) averbações de <b>Transporte Nacional</b> no CITNET da KEv com caracteres especiais em Observações, e conferir o valor <b>ao reabrir o protocolo</b> pela consulta: amostra do card, cada um dos três caracteres, limite de 100 caracteres.</li><li>Sem regressão: texto comum com letras acentuadas, espaços e números, Observações vazia, edição de texto comum, contador de caracteres e a mensagem de sucesso da gravação.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção</b> e <b>staging</b> da KEv — a QA não testa em produção (N/A).</li><li>Os outros ramos nacionais (RCTR-C, RCA-C, RCTA-C, RCTF-C, RCV) — o card é de Transporte Nacional; a regra de um ramo não vale automaticamente para todos (se Produtos pedir, vira card ou plano próprio).</li><li><b>Conversor</b> (processamento em lote) e o <b>CITNET Novo</b> da KEv — outros fluxos; ver DC3.</li><li>Confirmação da política pelo Produto e criptografia/gravação interna do campo — decisão de Produto e código; a QA mede o que a tela devolve.</li><li>Código, build e pipeline de publicação (do desenvolvimento), testes unitários e política de PR.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 19/11/2026:</b> nenhum CT foi executado por este plano. Medida de reconhecimento (somente leitura): login e mapeamento da tela Averbações › Transporte Nacional da KEv (campos, botões e limite de 100 caracteres de Observações), sem gravar nada. A navegação é sempre por clique a partir do login. A QA grava dado de negócio só pela tela e só na massa de teste própria (protocolos novos, série e documento inéditos); cada protocolo criado é excluído pela tela no fim do CT (botão Excluir).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da KEv — CITNET legado (endereço de login no arquivo de ambiente do time — único endereço digitado). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário</b> — Usuário de QA de perfil INTERNO da KEv no CITNET legado. Se a senha estiver vencida ou recusada, a QA renova pela tela ou cria usuário próprio — nunca é impeditivo; credencial nunca neste documento.</li><li><b>Massa de dados</b> — Filial 1, apólice 333, subgrupo 1 (a mesma do reteste do desenvolvedor, conferida na lista da tela no instante do CT) e protocolos novos criados pela QA a cada CT (série e documento inéditos, data de saída = dia da execução, demais campos obrigatórios com valores válidos do cadastro); protocolo anotado e excluído pela tela no fim do CT.</li><li><b>Ferramentas</b> — Scripts locais do time (Playwright): login, navegação por clique, preenchimento, captura da tela, consulta pelo protocolo e leitura do valor do campo Observações; o que é lido vai para disco. MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas desde o login (formulário preenchido com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado), mais o valor digitado e o valor recuperado lado a lado.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o endereço de login do HML da KEv (único digitado) → informar usuário e senha de QA → <b>Entrar</b> → tela inicial com o menu (Averbações, Relatórios, Conversor, Operações, Faturamento). Capturar login, campos preenchidos e a tela inicial.</li><li><b>N2 — Tela:</b> menu <b>Averbações</b> › <b>Transporte Nacional</b> («Cadastro de Averbações Transporte Nacional») → Filial 1 → Apólice 333 → Subgrupo 1 (aguardar o carregamento). Capturar a tela.</li><li><b>N3 — Gravar:</b> preencher os campos obrigatórios (documento série/número inéditos, data de saída, veículo, meio de transporte, cobertura, origem, destino, mercadoria) e digitar o texto em <b>Observações</b> (o contador «Caracteres digitados: N de 100» acompanha) → capturar o formulário preenchido → <b>Gravar</b> → capturar a mensagem exata e anotar o <b>protocolo</b> retornado.</li><li><b>N4 — Reabrir pelo protocolo (oráculo):</b> botão <b>Novo</b> (limpa a tela) → no campo <b>Protocolo</b>, informar o número anotado e acionar a lupa (consulta) → aguardar os campos carregarem → capturar a tela e ler o valor de <b>Observações</b>; comparar com o digitado.</li><li><b>N5 — Editar e excluir:</b> com o protocolo carregado, alterar o texto de Observações → <b>Gravar</b> (mensagem de alteração) → <b>Novo</b> → consultar de novo o protocolo e ler o valor; ao fim do CT, consultar o protocolo e acionar <b>Excluir</b> (confirmar) para limpar a massa.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólice de teste (todos os CTs):</b> Filial 1, apólice 333, subgrupo 1, ramo Transporte Nacional — conferir no combo da tela, no instante do CT, que a apólice e o subgrupo carregam e estão vigentes.</li><li><b>Textos de teste (digitado → esperado ao reabrir):</b> CT-OBS-001: «@#$%&lt;&gt;&amp;&quot;/teste» → «@#$%&quot;/teste». CT-OBS-002: «A &lt; B», «A &gt; B» e «A &amp; B» → «A  B» (cada um sem o caractere). CT-OBS-003 (edição): «Edição A &lt; B &amp; C &gt; D» → «Edição A  B  C  D». CT-OBS-004: 100 caracteres com «&amp;», «&lt;» e «&gt;» misturados → só os caracteres que não são «&lt;», «&gt;» e «&amp;» (o total é o tamanho digitado menos a quantidade removida, registrado). CT-OBS-005: «Observação teste 123 - ÁÉÍÓÚ çã» → idêntico. Os valores exatos reabertos são lidos na tela e registrados no resultado de cada CT.</li><li><b>Dados fixos nos CTs:</b> Reconfirmar apólice, subgrupo e a ausência de protocolo com o mesmo documento antes de gravar (tenant compartilhado com outros testes e o desenvolvedor — protocolos de teste dele ficam fora da massa da QA).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e registro da versão do sistema (rodapé); <b>1 login</b>.</li><li>CT-OBS-001 primeiro (prova de que a correção está no ar) → demais CTs do Grupo A (002 a 004) → Grupo B (005 a 008).</li><li>Os CTs são independentes: cada um grava o próprio protocolo (série e documento inéditos), começa pela tela limpa (botão Novo) e exclui o protocolo ao final; a falha de um não bloqueia os outros.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: «&lt;», «&gt;» e «&amp;» não permanecem em Observações; os demais caracteres e o limite de 100 são preservados</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-001</span><span class="ct-title">Amostra do card (TRANS-08): gravar «@#$%&lt;&gt;&amp;&quot;/teste» em Observações e reabrir pelo protocolo — «&lt;», «&gt;» e «&amp;» não permanecem</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo; discriminador da correção no ar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1), Averbações › Transporte Nacional, Filial 1 / Apólice 333 / Subgrupo 1 (N2); capturar.</li><li>Preencher os campos obrigatórios e digitar em Observações exatamente «@#$%&lt;&gt;&amp;&quot;/teste» (N3); capturar o formulário com o texto visível e o contador; <b>Gravar</b>; capturar a mensagem exata e anotar o protocolo.</li><li><b>Novo</b> → consultar o protocolo anotado (N4); capturar a tela e ler o valor de Observações; comparar com o digitado; excluir o protocolo (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação é aceita com mensagem de sucesso do sistema (texto exato registrado) e o protocolo é retornado. O valor de Observações ao reabrir é «@#$%&quot;/teste»: «&lt;», «&gt;» e «&amp;» foram removidos e «@», «#», «$», «%», aspas e barra foram preservados. Valor reaberto com «&lt;», «&gt;» ou «&amp;» = REPROVADO (correção não está no ar); mensagem de rejeição sem gravar também é registrada e julgada contra o critério. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-002</span><span class="ct-title">Cada caractere isolado — «&lt;», «&gt;» e «&amp;» entre palavras e espaços — é removido e o resto do texto permanece</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo, um protocolo por caractere)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Para cada valor — «A &lt; B», «A &gt; B» e «A &amp; B» — repetir: tela limpa (Novo), preencher os obrigatórios com documento inédito (N3) e digitar o valor em Observações; capturar; <b>Gravar</b> e anotar o protocolo.</li><li><b>Novo</b> → consultar cada protocolo (N4); capturar e ler o valor de Observações de cada um.</li><li>Comparar cada valor reaberto com o digitado e excluir os protocolos (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os três protocolos são gravados e, ao reabrir, cada valor perdeu apenas o caractere digitado («&lt;», «&gt;» e «&amp;» respectivamente), mantendo as letras «A» e «B» e os espaços do texto. O valor reaberto de cada protocolo é registrado como medido. Algum dos três caracteres permanecendo = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-003</span><span class="ct-title">Edição de protocolo existente: alterar Observações para «Edição A &lt; B &amp; C &gt; D», gravar e reabrir — os caracteres não permanecem</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo, alteração; critério 4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada. Protocolo criado antes com texto comum limpo, para ser editado.</li></ul>
+      <h4>Passos</h4><ol><li>Gravar um protocolo novo com Observações «texto inicial» (N3) e anotar o protocolo.</li><li><b>Novo</b> → consultar o protocolo (N4); alterar Observações para «Edição A &lt; B &amp; C &gt; D»; capturar; <b>Gravar</b> e capturar a mensagem exata da alteração.</li><li><b>Novo</b> → consultar o protocolo de novo e ler Observações; excluir o protocolo (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A alteração é aceita com a mensagem de alteração do sistema (texto exato registrado) e o valor reaberto é «Edição A  B  C  D» (os três caracteres removidos, o restante do texto igual). Qualquer um dos três caracteres no valor reaberto, ou edição que não grava, = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-004</span><span class="ct-title">Limite de 100 caracteres: texto de 100 caracteres com «&amp;», «&lt;» e «&gt;» misturados é gravado sem eles e sem truncamento indevido</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — limite do campo (critério 3) com a regra aplicada</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada. Texto de teste montado pela QA com exatamente 100 caracteres, contendo «&amp;», «&lt;» (sempre com espaço depois) e «&gt;», e letras/números.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela (N2), digitar o texto de 100 caracteres em Observações; capturar o contador («100 de 100») e o formulário preenchido.</li><li>Preencher os obrigatórios (N3) e <b>Gravar</b>; anotar o protocolo.</li><li><b>Novo</b> → consultar o protocolo (N4); ler Observações, contar os caracteres e comparar com o digitado; excluir (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O contador mostra 100 de 100 e a gravação é aceita. O valor reaberto tem o texto digitado <b>sem</b> «&lt;», «&gt;» e «&amp;» (tamanho = 100 menos a quantidade removida, registrado) e sem nenhuma outra perda: letras, números e espaços intactos. Caractere removido além dos três, texto cortado antes do fim ou os três caracteres presentes = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Sem regressão: texto comum com acentos, Observações vazia, edição e comportamento da plataforma</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-005</span><span class="ct-title">Regressão: texto comum com letras acentuadas, espaços e números («Observação teste 123 - ÁÉÍÓÚ çã») é gravado e reaberto idêntico</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — critério 3 (texto comum) e criação de Transporte Nacional (critério 4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela (N2), preencher os obrigatórios (N3) e digitar «Observação teste 123 - ÁÉÍÓÚ çã» em Observações; capturar; <b>Gravar</b>; anotar o protocolo e a mensagem.</li><li><b>Novo</b> → consultar o protocolo (N4); capturar e ler Observações; comparar byte a byte com o digitado.</li><li>Excluir o protocolo (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O protocolo é gravado com mensagem de sucesso e o valor reaberto é idêntico ao digitado (acentos, cedilha, hífen, espaços e números preservados). Qualquer perda ou corrupção (caractere trocado ou removido) = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-006</span><span class="ct-title">Regressão: edição de texto comum — alterar Observações de um protocolo existente para outro texto com acentos e reabrir</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — edição de Transporte Nacional (critério 4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada. Protocolo criado antes com texto comum.</li></ul>
+      <h4>Passos</h4><ol><li>Gravar um protocolo novo com «texto original 1» (N3) e anotar o protocolo.</li><li><b>Novo</b> → consultar o protocolo (N4); alterar Observações para «texto alterado 2 - ação» ; <b>Gravar</b>; capturar a mensagem exata.</li><li><b>Novo</b> → consultar de novo e ler Observações; excluir o protocolo (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A alteração é aceita com a mensagem de alteração do sistema e o valor reaberto é «texto alterado 2 - ação», sem perda. Edição recusada sem motivo, ou valor diferente = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-007</span><span class="ct-title">Regressão: Observações vazia é gravada normalmente e reabre vazia</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — campo opcional vazio</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela (N2), preencher os obrigatórios (N3) deixando Observações em branco; capturar (contador «0 de 100»); <b>Gravar</b>; anotar o protocolo e a mensagem.</li><li><b>Novo</b> → consultar o protocolo (N4); capturar e ler Observações; excluir (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação é aceita com mensagem de sucesso e o campo Observações reabre vazio. Recusa por campo vazio, ou texto inesperado no campo = REPROVADO. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-OBS-008</span><span class="ct-title">Exploratório: «&lt;» colado a uma letra («&lt;b&gt;negrito&lt;/b&gt;») e impressão da averbação com Observações</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 seção 11) — comportamento da plataforma (DC4) e outra saída que pode exibir Observações</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa (N2): filial 1, apólice 333, subgrupo 1; protocolo novo criado pela QA (série e documento inéditos, data de saída = hoje) e excluído ao final do CT; versão do sistema registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Na tela (N2), preencher os obrigatórios (N3) e digitar «&lt;b&gt;negrito&lt;/b&gt;» em Observações; capturar; <b>Gravar</b>; capturar a mensagem exata (ou a ausência dela) e anotar se um protocolo foi criado.</li><li>Gravar um protocolo com Observações «Obs impressão 123 &amp; teste»; consultar o protocolo e acionar <b>Imprimir</b>; capturar e registrar se a impressão exibe Observações e com qual texto.</li><li>Excluir os protocolos criados (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Registrar o comportamento medido de cada caso (mensagem exata, protocolo criado ou não, texto exibido na impressão). Se o texto colado a letra for recusado com «Erro ao tentar enviar os dados», é o comportamento da plataforma já descrito (DC4) e não reprova o card. Se a impressão exibir Observações, o texto deve ser o valor reaberto (sem «&lt;», «&gt;» e «&amp;»). Achado diferente é investigado: com prova de que já existia antes do card, vira Bug próprio (achado pré-existente) e o CT fica N/A. Evidência: capturas desde o login (formulário com o texto digitado visível, mensagem de gravação, protocolo, tela reaberta com o valor recuperado) e o valor digitado × recuperado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-OBS-008"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério 1/2 — Regra do #7581: «&lt;», «&gt;» e «&amp;» não permanecem no valor reaberto (amostra do card, cada caractere, edição, 100 caracteres)</td><td>CT-OBS-001 · CT-OBS-002 · CT-OBS-003 · CT-OBS-004</td><td>Pendente</td></tr><tr><td>Critério 3 — Texto comum, acentos, espaços e números preservados; limite de 100</td><td>CT-OBS-004 · CT-OBS-005 · CT-OBS-006</td><td>Pendente</td></tr><tr><td>Critério 4 — Criação e edição de Transporte Nacional continuam funcionando; Observações vazia</td><td>CT-OBS-003 · CT-OBS-005 · CT-OBS-006 · CT-OBS-007</td><td>Pendente</td></tr><tr><td>Comportamento da plataforma e impressão (exploratório)</td><td>CT-OBS-008</td><td>Pendente</td></tr><tr><td>Critério 1 (parte) — Política confirmada pelo Produto / tratamento alternativo / aplicabilidade à KEv</td><td>— sem CT (DC1): decisão de Produto; a QA testa a regra do #7581</td><td>N/A</td></tr><tr><td>Itens do card de evidência do reteste do desenvolvedor, produção/staging, Conversor e outros ramos</td><td>— fora do escopo (DC3, DC5 e Escopo)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 4 critérios funcionais do card mapeados a CTs (100%): regra do #7581 aplicada na amostra do card, em cada caractere, na edição e no limite de 100; texto comum e acentos; vazio; criação e edição sem regressão; mais um exploratório. A política confirmada pelo Produto, Conversor, outros ramos, produção e staging ficam fora (DC1, DC3 e Escopo).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Passar «por acaso»: o valor reabrir sem os caracteres por outro motivo que não a correção (ex.: máscara de tela)</td><td>Baixa</td><td>Alta</td><td>Oráculo = valor recuperado pela consulta do protocolo (servidor), com o texto digitado visível no formulário antes de gravar; CT-OBS-005 prova que o texto comum não é alterado.</td></tr><tr><td>Correção ainda não publicada no HML da KEv (o card ficou parado em outra linha antes)</td><td>Média</td><td>Alta</td><td>CT-OBS-001 primeiro; valor com os caracteres = REPROVADO, sem confundir com falha de massa; versão do sistema registrada.</td></tr><tr><td>Perda do «&amp;» em textos legítimos (regra herdada do #7581) tratada como defeito</td><td>Média</td><td>Baixa</td><td>DC2: resultado esperado da regra; a QA registra o valor e deixa a decisão com Produtos.</td></tr><tr><td>Massa alterada por outro teste no tenant compartilhado (apólice 333 usada também pelo desenvolvedor)</td><td>Média</td><td>Média</td><td>Protocolos novos com série e documento inéditos; nunca reaproveitar protocolo de outro teste; excluir o criado ao final.</td></tr><tr><td>Login recusado, senha vencida ou 429 de excesso de tentativas</td><td>Baixa</td><td>Baixa</td><td>Renovar pela tela ou criar usuário próprio; no máximo 2 tentativas por conta; 1 login por execução.</td></tr><tr><td>Ambiente HML fora do ar</td><td>Baixa</td><td>Média</td><td>Pré-verificação antes do 1º CT; servidor fora ≠ CT reprovado; retomar quando voltar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (19/11/2026) · Sustentação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
