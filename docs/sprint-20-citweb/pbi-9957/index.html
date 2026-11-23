@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9957 · Mitsui — Conversor de Importação (XLSX): Converter retorna HTTP 500</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9957 · Sprint 20</span>
+    <h1>Mitsui — Conversor de Arquivos, Importação (XLSX): o Converter retorna HTTP 500 depois de salvar o layout</h1>
+    <div class="sub">CITWEB Conversor — Importação (XLSX) · Mitsui · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em Pronto para homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/2/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (4×P1 · 2×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No Conversor da Mitsui, ao converter uma planilha de importação, o usuário consegue salvar o layout, mas ao clicar em «Converter» aparece a tela «Ocorreu um erro inesperado!» e a conversão não acontece. O card pede que a conversão funcione com um arquivo válido e, quando houver dado recusado, que o sistema diga qual campo e qual linha estão com problema e o motivo.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 8 situações na Mitsui: o mesmo caminho do card (planilha de 2 linhas, layout novo salvo, converter), a conferência linha a linha do que foi convertido (tela e banco, só leitura), uma linha com dado recusado, campos opcionais em branco, um campo obrigatório em branco, um lote com uma linha boa e uma ruim, o uso de um layout já salvo e valores-limite. Também conferimos que outro tipo de conversão continua funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste do plano. Na exploração de hoje (23/11/2026), a QA repetiu o caminho do card pela tela e <b>o erro apareceu</b>: o layout salvou e o «Converter» deu erro. A causa não aparece na tela; ela é do desenvolvimento.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje o usuário da Mitsui não consegue concluir a conversão de planilhas de importação; depois da correção, deve conseguir converter ou receber a lista dos campos e linhas com problema.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto</b> — por ser Bug, o plano não precisa de aprovação de Produtos. Regra padrão adotada pela QA: dado recusado gera aviso com campo, linha e motivo, como nos outros tipos de conversão.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — módulo <b>Conversor</b> (HML da Mitsui) · menu <b>Conversor de Arquivos</b> → <b>Converte Arquivo</b> → <b>Importação</b> (importar o XLSX, <b>Novo Layout de Entrada</b>, mapear as colunas, <b>Salvar</b>, <b>Converter</b>); depois <b>Processa Averbações</b> → <b>Importação</b>.</td></tr><tr><th>Card</th><td>BUG-9957 — «[ CITWEB - Mitsui ] Conversão XLSX de importação retorna HTTP 500 após salvar o layout» · board CITWEB Team (CITWEB) · Sprint 20 · estado <b>New</b> · tags citweb; env:hml-mitsui; source:voidr-import; tenant:mitsui · Bug aberto a partir de uma execução automatizada de 23/11/2026 (caso relacionado CONVE-79) · sem tarefas filhas · sem comentários · 2 anexos (layout salvo; página de erro após Converter) · 3 critérios de aceite.</td></tr><tr><th>Tasks de QA</th><td>#9963 [QA] Plano de teste — BUG #9957 (este plano; fecha na entrega). <b>Card do tipo Bug: Produtos não aprova plano de teste; o plano segue com a marcação de execução pronta e a execução acontece com o card em homologação.</b></td></tr><tr><th>Ambiente</th><td>HML da Mitsui (endereço de login no arquivo de ambiente do time), módulo Conversor. Build medido pela QA em 23/11/2026: <b>V 1.0.261119.1733</b> (rodapé da tela). O build a testar é o que estiver publicado na hora da execução, registrado no CT-CIX-001. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Conversor da Mitsui, em <b>Converte Arquivo → Importação</b>, o usuário importa um XLSX (sem cabeçalho, 2 linhas), mantém o formato de planilha na pergunta de conversão para TXT, escolhe <b>Novo Layout de Entrada</b>, dá um nome, mapeia as colunas pelos rótulos da tela (inclusive <b>Código do Navio Chegada</b>) e salva. O salvamento funciona (a tela confirma que o layout foi gravado). Ao clicar em <b>Converter</b>, o servidor devolve <b>HTTP 500</b> e a tela mostra «Ocorreu um erro inesperado!». A mensagem não traz a causa. Relato do card: 23/11/2026, no ambiente e na reexecução da plataforma de automação.</p><p><b>Observação exploratória de planejamento (QA, 23/11/2026, build V 1.0.261119.1733) — não conta como execução de CT:</b> o mesmo caminho, feito pela tela com arquivo e layout próprios da QA, reproduziu o card: o salvamento do layout respondeu normalmente e o Converter respondeu <b>HTTP 500</b> com «Ocorreu um erro inesperado!». Também ficou mapeado que o layout de importação tem 44 campos, 27 deles obrigatórios, e que <b>Veículo Transportador Chegada</b> e <b>Código do Navio Chegada</b> são ambos obrigatórios e podem apontar para a mesma coluna da planilha (detalhe técnico e ids no arquivo privado do time).</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério de aceite do Bug #9957</th><th>CTs</th></tr><tr><td>1. Repetir a conversão com arquivo equivalente e layout salvo contendo os campos obrigatórios, inclusive o navio</td><td>CT-CIX-001 (caminho do card) · CT-CIX-006 (layout salvo escolhido de novo, em nova importação)</td></tr><tr><td>2. Não retornar HTTP 500; para entradas recusadas, exibir campo/linha e motivo funcional</td><td>CT-CIX-001 · CT-CIX-003 (dado recusado) · CT-CIX-004 (campo sem dado) · CT-CIX-005 (lote misto) · CT-CIX-008 (valores-limite)</td></tr><tr><td>3. Para entradas válidas, conferir contadores e conteúdo convertido (HTTP 200 isoladamente não comprova sucesso)</td><td>CT-CIX-002 (contadores, conteúdo e consulta somente leitura) · CT-CIX-005</td></tr><tr><td>Sem regressão em outro ramo do Conversor</td><td>CT-CIX-007</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Bug lido por inteiro: ambiente e origem, pré-condições com valores, passos numerados, resultado esperado × obtido, impacto, evidência de rede, causa não demonstrada (declarada), casos relacionados e 3 critérios de aceite; tarefas filhas e comentários: nenhum; anexos: 2 imagens do ambiente. <b>Tags</b> citweb e mitsui; ramo de <b>Importação</b> (ramo 22, produto 25) pela tela do Conversor. Critérios com oráculo observável na tela (retorno do Converter, contadores, crítica por campo/linha) e no banco (somente leitura). Não é débito técnico: o comportamento é visível para o usuário. Não é Bug com a tag de achado em casa (DEFEITO): segue o fluxo de Bug com plano e sem Gate 2. Duplicidade: o card declara que #9254 (averbação definitiva, concluído) e #9780 (gravação em lote RCTR-C/RC-DC, outro ramo) não representam este sintoma.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — conferir o build publicado no HML:</b> O card está em <b>New</b>. A execução começa na hora em que o card estiver em <b>Pronto para homologação</b> ou <b>Em homologação</b>, depois da pré-verificação. O CT-CIX-001 registra o build do rodapé: o V 1.0.261119.1733 é o que reproduziu o HTTP 500 em 23/11/2026; se o erro persistir, é REPROVADO com o build medido — em homologação não existe bloqueado.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Qual versão do Conversor está no ar?</b></td><td>A QA testa o que estiver publicado no HML na hora da execução e registra o build do rodapé (CT-CIX-001). Passou = aprovado; falhou = REPROVADO com o build medido e defeito para o desenvolvimento. A QA não pergunta versão, branch ou deploy ao desenvolvimento.</td></tr><tr><td><b>DC2</b></td><td><b>Causa técnica do HTTP 500</b></td><td>O card declara que a causa não aparece no retorno e que não é a mesma exceção de gravação em lote registrada em outro tenant. <b>Posição do QA:</b> o plano mede o comportamento (retorno, tela, contadores); a causa é do desenvolvimento. Se o log do servidor registrar a exceção, ela vai para o defeito (restrito), nunca para este plano público.</td></tr><tr><td><b>DC3</b></td><td><b>O que é «dado aceito» e «dado recusado»</b></td><td>Pela regra do próprio Conversor: campos obrigatórios do layout de importação e tradução De/Para (país, estado, mercadoria, embalagem, navio). <b>Regra padrão até haver resposta de Produtos:</b> entrada recusada gera crítica funcional com o nome do campo, a linha e o motivo, como nos demais ramos do Conversor; qualquer HTTP 500 é defeito.</td></tr><tr><td><b>DC4</b></td><td><b>Massa e layouts de outras execuções</b></td><td>O combo de layouts já traz layouts de execuções anteriores da plataforma de automação. <b>Posição do QA:</b> esses layouts não são alterados; cada CT usa um <b>layout próprio da QA</b>, com nome único, criado pela tela, e arquivo sintético de 2 linhas.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li><b>Conversor → Importação</b> (HML da Mitsui): importar o XLSX, criar e salvar o layout, <b>Converter</b>, mensagens, contadores e conteúdo convertido; consulta somente leitura ao que ficou gravado pela conversão.</li><li><b>Entradas recusadas</b> e <b>campos sem dado</b> no arquivo: crítica funcional por campo/linha/motivo, sem HTTP 500.</li><li><b>Processa Averbações → Importação</b>: a conversão feita aparece na lista (só a lista; nenhuma averbação é criada).</li><li>Sem regressão: outro ramo do Conversor com XLSX.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Causa técnica</b> do HTTP 500, código e pipeline de publicação (do desenvolvimento).</li><li><b>Outros tenants</b> — o card é do HML da Mitsui; outras seguradoras só se o desenvolvimento pedir.</li><li><b>Averbação definitiva</b> (#9254) e <b>gravação em lote de RCTR-C/RC-DC</b> (#9780) — cards próprios.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano; a observação de 23/11/2026 (build V 1.0.261119.1733) foi exploratória, para mapear a tela e confirmar o ponto de falha. Toda conversão de teste usa arquivo sintético de 2 linhas (sem CNPJ/CPF); a navegação é sempre por clique a partir do login (Conversor de Arquivos → Converte Arquivo → Importação). A QA <b>não escreve dado de negócio no banco</b>: layout e conversão são feitos pela tela; a conferência no banco é somente leitura.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da Mitsui (endereço de login no arquivo de ambiente do time — único endereço digitado), módulo Conversor. Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário (arquivo de ambiente do time; senha fora deste documento)</b> — Usuário de QA da Mitsui com acesso ao módulo Conversor. Se a senha estiver vencida ou recusada, a QA renova pela tela ou cria um usuário próprio; nunca é impeditivo.</li><li><b>Banco HML (somente leitura)</b> — Conferência do que a conversão gravou: contagem e conteúdo da tabela temporária da conversão, por nome do layout e data do arquivo, antes e depois do Converter (roteiro privado do QA). O QA nunca escreve dado de negócio no banco.</li><li><b>Ferramentas</b> — Scripts locais do time (Playwright) fazem login, navegação por clique, mapeamento do layout e leitura do estado da tela; screenshot e texto lidos por script vão para disco. MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas desde o login até o fim do cenário (layout mapeado, mensagem de layout salvo, tela depois do Converter com contadores e críticas), o texto lido da tela e o resultado da consulta somente leitura.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o endereço de login do HML da Mitsui (único digitado) → informar usuário e senha do QA → <b>Acessar</b> → tile <b>Conversor de Arquivos</b> (abre em nova aba). Registrar o build lido no rodapé.</li><li><b>N2 — Importar:</b> menu <b>Converte Arquivo</b> → <b>Importação</b> → escolher o XLSX de teste → <b>Importar</b> → no aviso «A planilha será convertida para para formato TXT. Confirma a conversão?» clicar <b>Não</b> (mantém o formato de planilha, como no card). A grade mostra as colunas A, B, C… e as 2 linhas do arquivo.</li><li><b>N3 — Layout:</b> combo de layout → <b>Novo Layout de Entrada</b> → nome único «QA9957 &lt;sufixo&gt;» → preencher a letra da coluna de cada campo pelo rótulo da tela (os 27 obrigatórios: 20 por coluna da planilha; <b>Veículo Transportador Chegada</b> e <b>Código do Navio Chegada</b> na mesma coluna do navio; os 7 campos sim/não com conteúdo sugerido «N») → <b>Salvar</b>. Esperado: «Arquivo de lay-out de entrada atualizado com sucesso.» e o layout no combo. Se a tela acusar «Campo de <nome do campo> deve ter conteúdo obrigatório», mapear o campo citado e salvar de novo (no máximo 2 tentativas por campo; conferir que a letra ficou gravada no campo).</li><li><b>N4 — Converter:</b> com o layout salvo selecionado, <b>Converter</b>. Ler por script o texto completo da tela, os contadores e as críticas; capturar a tela inteira. Em paralelo, registrar o retorno HTTP do Converter (oráculo de rede, só leitura).</li><li><b>N5 — Oráculo de dados:</b> contagem e conteúdo da conversão no banco (somente leitura) e, na tela, <b>Processa Averbações → Importação</b> (só a lista).</li><li><b>N6 — Limpeza:</b> <b>Excluir</b> pela tela a conversão do CT e conferir a contagem de volta ao valor inicial; os layouts próprios da QA ficam (nome único; não alteram layout de ninguém).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Arquivo A (válido):</b> XLSX de 2 linhas, sem cabeçalho, uma coluna por campo obrigatório: apólice 333 · subgrupo 1 · país ESTADOS UNIDOS · complemento do país A INFORMAR · estado SP · complemento do estado GUARULHOS/SP · saída e movimento no mês corrente de 2026 · tipo de transporte válido do tenant · mercadoria «CITNET BASE MERCADORIA» · peso bruto 100 · embalagem «CITNET BASE EMBALAGEM» · navio «NAVIO1» · moeda 220 · valor FOB 100 e 200 · filial 1. Reconfirmar apólice, vigência e De/Para na tela no instante do CT e registrar os valores usados.</li><li><b>Arquivo B (um dado recusado):</b> Cópia do arquivo A com a 2ª linha trocando o país por um texto sem De/Para (por exemplo «PAIS SEM CADASTRO QA»).</li><li><b>Arquivo C (campos sem dado):</b> Cópia do arquivo A com as colunas opcionais vazias (nº de averbação provisória/definitiva, marca da embalagem, frete, despesa, lucros, impostos, observações) e, em separado, uma versão com o <b>valor FOB vazio</b> na 2ª linha (campo obrigatório).</li><li><b>Arquivo D (valores-limite):</b> Cópia do arquivo A com data inexistente (31/02), valor FOB com decimais e separador, e texto de 41 caracteres na mercadoria (limite do campo: 40).</li><li><b>Layouts:</b> Um layout próprio da QA por rodada, nome «QA9957 &lt;sufixo único&gt;», criado pela tela conforme N3. Os layouts de execuções anteriores do combo não são usados nem alterados.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e contagem inicial (somente leitura) da tabela da conversão.</li><li><b>1 login</b> → Grupo A (CT-CIX-001, 002, 006) → Grupo B (003, 004, 005) → Grupo C (007 e, por último, o exploratório 008).</li><li>Os CTs são independentes: a falha de um não bloqueia os outros; cada CT começa pela tela de Importação limpa e termina com a limpeza (N6).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: converter o XLSX de importação com o layout salvo conclui, sem HTTP 500 (critérios de aceite 1 e 3 do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-001</span><span class="ct-title">Caminho do card: XLSX de 2 linhas, layout novo salvo com o navio mapeado, Converter sem HTTP 500</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo, na tela e na rede)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Módulo Conversor da Mitsui no build publicado no momento (o V 1.0.261119.1733 reproduziu o erro em 23/11/2026). Massa: arquivo A (2 linhas válidas) e um layout próprio da QA, criado neste CT.</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e registrar o build do rodapé.</li><li>Importar o arquivo A e responder <b>Não</b> à conversão para TXT (N2).</li><li>Criar o layout «QA9957 &lt;sufixo&gt;» com os 27 campos obrigatórios preenchidos, inclusive <b>Código do Navio Chegada</b>, e <b>Salvar</b> (N3); conferir «Arquivo de lay-out de entrada atualizado com sucesso.».</li><li>Clicar em <b>Converter</b> (N4); ler o texto da tela, os contadores e o retorno HTTP do Converter; capturar a tela inteira.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout é salvo (mensagem exata acima) e o <b>Converter não retorna HTTP 500</b>: a tela <b>não</b> mostra «Ocorreu um erro inesperado!», mostra a mensagem de conversão concluída e os contadores do arquivo (2 lidas). Registrar o build. Se o Converter ainda responder HTTP 500 ou mostrar a página de erro: REPROVADO com o build medido (DC1). Evidência: capturas desde o login, layout mapeado, mensagem de layout salvo, tela depois do Converter e o retorno HTTP; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-002</span><span class="ct-title">Contadores e conteúdo convertido conferidos linha a linha (HTTP 200 sozinho não aprova)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — oráculo de dados (critério de aceite 3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois do CT-CIX-001 (mesma conversão, antes da limpeza). Consulta somente leitura à tabela temporária da conversão, filtrada pelo nome do layout e pela data do arquivo.</li></ul>
+      <h4>Passos</h4><ol><li>Antes do Converter do CT-CIX-001, registrar a contagem de registros da conversão do layout (esperada 0).</li><li>Depois do Converter, ler os contadores da tela: total de registros, incluídos e rejeitados.</li><li>Repetir a consulta no banco (somente leitura) e comparar cada linha convertida com o arquivo A: apólice, país, estado, mercadoria, embalagem, navio, moeda e valor FOB (100 e 200).</li><li>Em <b>Processa Averbações → Importação</b> (N5), conferir que a conversão aparece na lista (só a lista).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Contadores coerentes com o arquivo (<b>2 incluídos e 0 rejeitados</b>); a contagem do banco sobe de 0 para <b>2</b> e cada linha confere com o arquivo (valores FOB 100 e 200, país e navio traduzidos pelo De/Para); a conversão aparece em Processa Averbações. Tela com «sucesso» e banco sem as linhas = REPROVADO (a mensagem sozinha não prova a conversão). Evidência: contadores na tela, resultado da consulta antes/depois e o arquivo de origem; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-006</span><span class="ct-title">Layout salvo escolhido de novo, em uma nova importação, converte sem HTTP 500</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — reuso do layout (fluxo recorrente do usuário)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout próprio da QA já salvo no CT-CIX-001 (aparece no combo de layouts) e arquivo A.</li></ul>
+      <h4>Passos</h4><ol><li>Em uma nova visita à tela de Importação (N2), importar o arquivo A e <b>Não</b> à conversão para TXT.</li><li>No combo de layout, escolher o layout salvo (não «Novo Layout de Entrada»); conferir que o mapeamento das colunas aparece preenchido.</li><li><b>Converter</b> (N4); ler tela, contadores e retorno HTTP.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout salvo carrega com as colunas mapeadas e o <b>Converter conclui sem HTTP 500</b>, com os mesmos contadores do CT-CIX-001 (2 lidas, 2 incluídas, 0 rejeitadas). Mostra que o erro não depende de o layout ser o recém-criado. Evidência: capturas desde o login e a tela depois do Converter; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Entradas recusadas e campos sem dado: crítica funcional com campo, linha e motivo, nunca HTTP 500 (critério de aceite 2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-003</span><span class="ct-title">Linha com dado recusado (país sem De/Para): crítica funcional com campo, linha e motivo — sem HTTP 500</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critério de aceite 2 (negativo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo B (2ª linha com país sem cadastro no De/Para) e layout próprio da QA já salvo (N3). Regra padrão (DC3): entrada recusada gera crítica funcional, como nos demais ramos do Conversor.</li></ul>
+      <h4>Passos</h4><ol><li>Importar o arquivo B (N2), escolher o layout próprio salvo e <b>Converter</b> (N4).</li><li>Ler o texto exato da tela, os contadores e a lista de rejeitados (campo, linha, motivo); registrar o retorno HTTP do Converter.</li><li>Conferir no banco (somente leitura) que a linha recusada não ficou gravada e a linha válida sim.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem HTTP 500 e sem «Ocorreu um erro inesperado!». A tela mostra a crítica da <b>linha 2</b> com o <b>campo País</b> e o <b>motivo</b> (sem tradução cadastrada), contadores <b>1 incluída e 1 rejeitada</b>; a linha 1 fica convertida. Registrar o texto exato da crítica. Retorno HTTP 500 ou crítica genérica sem campo/linha = REPROVADO. Evidência: capturas desde o login, a crítica exata e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-004</span><span class="ct-title">Campos opcionais sem dado não causam exceção; campo obrigatório vazio gera crítica funcional</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critério de aceite 2 e pré-condição do card (opcional ausente ≠ exceção interna)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo C (colunas opcionais vazias) e a versão com valor FOB vazio na 2ª linha; layout próprio da QA já salvo (N3), com as colunas opcionais mapeadas ou sem coluna.</li></ul>
+      <h4>Passos</h4><ol><li>Converter o arquivo C com as colunas opcionais vazias (N4); ler tela, contadores e retorno HTTP.</li><li>Converter a versão com o <b>valor FOB vazio</b> na 2ª linha; ler a crítica, os contadores e o retorno HTTP.</li><li>Conferir no banco (somente leitura) o que ficou gravado em cada caso.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Colunas opcionais vazias: sem HTTP 500, <b>2 incluídas e 0 rejeitadas</b>. Valor FOB vazio (obrigatório): sem HTTP 500; a linha 2 é rejeitada com crítica funcional citando o <b>campo Valor do Custo FOB</b> e o motivo (conteúdo obrigatório); contadores 1 incluída e 1 rejeitada. Qualquer «Ocorreu um erro inesperado!» = REPROVADO (é a exceção interna que o card pede para não ocorrer). Evidência: capturas desde o login e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-005</span><span class="ct-title">Lote misto (1 linha válida e 1 recusada): converte a válida, rejeita a outra, contadores coerentes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — contadores com aceitas e rejeitadas (critérios de aceite 2 e 3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo B e o layout próprio da QA; conversão anterior do mesmo layout excluída pela tela (N6) para a contagem partir de 0.</li></ul>
+      <h4>Passos</h4><ol><li>Converter o arquivo B (N4) e ler os contadores (lidos, incluídos, rejeitados).</li><li>Abrir <b>Processa Averbações → Importação</b> (N5) e conferir quantas linhas a conversão tem na lista.</li><li>Conferir no banco (somente leitura) que existe 1 linha da conversão e qual é.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Contadores <b>2 lidas · 1 incluída · 1 rejeitada</b>; a lista do Processa Averbações mostra a 1 linha válida; a rejeitada tem campo/linha/motivo. A soma dos contadores fecha com o arquivo. Evidência: contadores, lista e consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Sem regressão e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-007</span><span class="ct-title">Sem regressão: outro ramo do Conversor (Transporte Nacional) converte um XLSX com layout salvo</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — a correção não afeta os demais ramos</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout já existente do Conversor de Transporte Nacional da Mitsui (localizar no combo; se não houver, criar um layout próprio da QA pelo mesmo procedimento) e XLSX de 1 linha no formato dele.</li></ul>
+      <h4>Passos</h4><ol><li>Menu <b>Converte Arquivo → Transporte Nacional</b>, importar o XLSX (<b>Não</b> à conversão para TXT) e escolher o layout.</li><li><b>Converter</b>; ler tela, contadores e retorno HTTP.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem HTTP 500; mensagem de conversão concluída e contadores coerentes com o arquivo (ou críticas funcionais por campo/linha). Comportamento igual ao anterior ao card. Evidência: capturas desde o login e a tela depois do Converter; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CIX-008</span><span class="ct-title">Exploratório — valores-limite no XLSX: data inexistente, valor com decimais e texto maior que o campo</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 seção 11) — entradas hostis ao conversor</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo D (31/02 no dia/mês de saída, valor FOB com casas decimais e separador, mercadoria com 41 caracteres) e o layout próprio da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Converter o arquivo D (N4); ler tela, contadores, críticas e retorno HTTP.</li><li>Repetir isolando cada valor-limite em uma linha (3 conversões curtas) para saber qual causa cada crítica.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhum HTTP 500 nem «Ocorreu um erro inesperado!»: cada valor-limite gera crítica funcional (campo, linha e motivo) ou é aceito de forma coerente (valor com decimais). Registrar qualquer comportamento inesperado (mensagem, contagem, lista) e, se houver defeito, classificar (do card × pré-existente, A9). Evidência: capturas desde o login e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CIX-008"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério de aceite 1 — converter com arquivo equivalente e layout salvo com os campos obrigatórios, inclusive o navio</td><td>CT-CIX-001 · CT-CIX-006</td><td>Pendente</td></tr><tr><td>Critério de aceite 2 — não retornar HTTP 500; entradas recusadas mostram campo/linha e motivo funcional</td><td>CT-CIX-001 · CT-CIX-003 · CT-CIX-004 · CT-CIX-005 · CT-CIX-008</td><td>Pendente</td></tr><tr><td>Critério de aceite 3 — entradas válidas: conferir contadores e conteúdo convertido (HTTP 200 não comprova)</td><td>CT-CIX-002 · CT-CIX-005</td><td>Pendente</td></tr><tr><td>Pré-condição do card — campo opcional sem dado não pode causar exceção interna</td><td>CT-CIX-004</td><td>Pendente</td></tr><tr><td>Sem regressão em outro ramo do Conversor</td><td>CT-CIX-007</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CIX-008</td><td>Pendente</td></tr><tr><td>Causa técnica do HTTP 500, produção e staging</td><td>— fora do escopo (desenvolvimento; produção e staging são N/A para a QA)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 3 critérios de aceite do card mapeados a CTs (100%), com oráculo de tela, de rede e de banco, mais a pré-condição de campos opcionais, as entradas recusadas, o reuso do layout, a regressão em outro ramo e valores-limite. A causa técnica do HTTP 500 e os ambientes de produção e staging ficam fora.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Build do Conversor no HML ainda ser o do erro (correção não publicada)</td><td>Alta</td><td>Alta</td><td>CT-CIX-001 registra o build do rodapé; erro persistente = REPROVADO com o build medido (DC1).</td></tr><tr><td>Mensagem de sucesso sem conversão gravada</td><td>Média</td><td>Alta</td><td>Oráculo de dados (CT-CIX-002, somente leitura) — a tela sozinha não aprova.</td></tr><tr><td>Mapeamento do layout perder a letra da coluna (navio e veículo de chegada)</td><td>Média</td><td>Média</td><td>Conferir o valor de cada coluna antes de Salvar; refazer o preenchimento do campo que voltar vazio (no máximo 2 tentativas por campo).</td></tr><tr><td>Layouts de execuções anteriores no combo interferirem</td><td>Média</td><td>Baixa</td><td>Usar só o layout próprio da QA, com nome único (DC4).</td></tr><tr><td>Sessão do Conversor degradada ou login recusado</td><td>Baixa</td><td>Baixa</td><td>Novo login pela tela, no máximo 2 tentativas; senha vencida ou recusada é massa (renovar ou criar usuário de QA).</td></tr><tr><td>Ambiente HML fora do ar</td><td>Baixa</td><td>Média</td><td>Pré-verificação antes do 1º CT; servidor fora ≠ CT reprovado; retomar quando voltar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · card em Pronto para homologação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
