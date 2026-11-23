@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9956 · [CITWEB · Mitsui] Cadastros de Segurado e Assessoria com CNPJ alfanumérico — sem erro 500</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9956 · Sprint 20</span>
+    <h1>[CITWEB · Mitsui] Cadastros de Segurado e Assessoria com CNPJ alfanumérico não podem devolver erro 500 (Nacional e Internacional)</h1>
+    <div class="sub">CITWEB · Nacional e Internacional › Cadastros › Segurado e Assessoria · Mitsui · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">8/6/0</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (8×P1 · 6×P2 · 0×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Ao salvar um cadastro de Segurado ou de Assessoria com o novo CNPJ com letras, o sistema do Mitsui mostra «Ocorreu um erro inesperado!» e não salva. Isso acontece no Nacional e no Internacional. O card pede que o sistema ou salve o cadastro, ou avise com uma mensagem clara que o formato não é aceito — nunca mais o erro genérico.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 14 situações: nas quatro telas (Segurado e Assessoria, Nacional e Internacional) cadastramos primeiro com CNPJ só de números (para provar que a tela salva) e depois com CNPJ com letras; conferimos se aparece o erro, se o cadastro foi salvo igual ao digitado quando salva, ou se a mensagem de recusa é clara e nada fica salvo. Ainda: CNPJ com letras digitado com pontos e letras minúsculas, e CNPJ com letras e dígito final errado.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está «New» e a execução começa quando ele for liberado para homologação. <b>Ressalva:</b> o Mitsui ainda não foi preparado para guardar letras no documento; por isso o mais provável é o sistema passar a recusar o CNPJ com letras com uma mensagem clara, em vez de salvar. Para o card, as duas saídas valem.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem cadastra Segurado ou Assessoria com o novo formato deixa de cair numa página de erro e passa a saber se o cadastro foi salvo ou o que precisa corrigir.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Adotamos como regra o que o próprio card diz: salvar ou recusar com mensagem clara está certo; erro genérico, ou «salvou» sem ter salvo, reprova.</li><li>Se houver decisão de negócio de que o Mitsui deve <b>salvar</b> o CNPJ com letras (e não apenas avisar), ela entra no card e a QA ajusta os testes.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b>, seguradora <b>Mitsui</b> — Nacional › Cadastros › <b>Segurado</b> e <b>Assessoria</b>, e Internacional › Cadastros › <b>Segurado</b> e <b>Assessoria</b> (quatro telas). Cadastros não dependem de ramo: o ramo não se aplica.</td></tr><tr><th>Card</th><td>BUG-9956 — «[ CITWEB - Mitsui ] Cadastros de Segurado e Assessoria com CNPJ alfanumérico retornam HTTP 500» · board CITWEB Team · Sprint 20 · estado <b>New</b> (ainda não liberado para homologação) · sem responsável · sem tarefas filhas · importado do Voidr (DEF-119) · 4 imagens de evidência anexas ao card.</td></tr><tr><th>Tasks de QA</th><td>#9962 [QA] Plano de teste — BUG #9956 (este plano; fecha na entrega). <b>Card do tipo Bug: Produtos não aprova o plano</b>; a execução começa assim que o card estiver em homologação.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB, seguradora Mitsui, filial 1 (MATRIZ) — endereços e usuário da QA no arquivo de ambiente do time. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Ao salvar um cadastro de <b>Segurado</b> ou de <b>Assessoria</b> informando um <b>CNPJ alfanumérico</b> (o novo formato com letras), o servidor responde com erro (HTTP 500) e o usuário cai na página «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.». Isso foi visto no Nacional e no Internacional, nas duas telas. O cadastro de <b>Corretor</b> tem card próprio (#9828) e fica fora deste plano.</p><p><b>Esperado pelo card:</b> salvar e permitir consultar o cadastro quando o formato for suportado; se alguma regra impedir, mostrar uma <b>crítica funcional explícita</b>, preservando a tela e os dados para correção. <b>Nunca</b> devolver erro 500.</p><p><b>Critérios de aceite do card:</b> (AC-1) repetir o cadastro e a consulta com CNPJ numérico e alfanumérico em Segurado e Assessoria, Nacional e Internacional; (AC-2) nenhum Salvar devolve erro 500 e formato não aceito gera mensagem de negócio clara; (AC-3) para documentos aceitos, conferir a persistência e a identidade do cadastro depois de nova consulta.</p><p><b>Oráculo do plano (fechado, nenhuma decisão de produto pendente — DC1):</b> na tela, depois do Salvar. Saída <b>A</b>: o sistema grava e a nova consulta pelo mesmo código devolve o mesmo nome, tipo e documento. Saída <b>B</b>: o sistema recusa com mensagem clara em português sobre o documento, a tela e os dados continuam preenchidos e nada fica gravado. Qualquer das duas atende o card; erro 500, página de erro genérica ou «gravou» sem persistir = REPROVADO + defeito.</p>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro (contexto, pré-condições, passos para reproduzir, resultado esperado e obtido, impacto, critérios de aceite, rastreabilidade) e o único comentário (aviso automático do Voidr, sem informação nova). Sem tarefas filhas; 4 anexos de evidência. <b>Tags:</b> citweb (sistema), tenant Mitsui e ambiente HML Mitsui. <b>Ramo:</b> não se aplica (cadastros de pessoa). <b>Oráculo observável:</b> página de erro × mensagem de negócio × cadastro reconsultado. Não é débito técnico: muda o comportamento de duas telas de negócio. <b>Sem decisão de produto pendente:</b> o card já aceita as duas saídas (gravar ou recusar com mensagem clara); massa, usuário e ambiente a QA resolve.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — correção em HML:</b> O card está em «New»: a execução só começa com ele em «Pronto para homologação»/«Em homologação» e a correção publicada em HML Mitsui. A QA registra a versão do rodapé; o que falhar com o card liberado = REPROVADO + defeito. A QA não pergunta versão nem branch ao dev.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Oráculo com duas saídas aceitas (A ou B)</b></td><td>O card aceita gravar <b>ou</b> recusar com crítica clara, desde que nunca devolva erro 500. O CT aprova se ocorrer a saída <b>A</b> (grava e a nova consulta devolve o mesmo cadastro) ou a saída <b>B</b> (mensagem em português que fale do documento/formato, tela e dados preservados, nada gravado — conferido pela nova consulta do mesmo código). <b>Reprova:</b> erro 500 no Salvar (lido pela resposta de rede do script), página «Ocorreu um erro inesperado!», mensagem sem relação com o documento, tela esvaziada ou «gravou» sem persistir. «Não deu erro» nunca aprova.</td></tr><tr><td><b>DC2</b></td><td><b>Controle numérico antes do alfanumérico</b></td><td>Em cada tela, o CNPJ <b>numérico</b> roda primeiro: prova que o Salvar funciona na massa e na tela. Se o numérico também devolver erro 500, o CT numérico é REPROVADO (regressão do próprio fluxo, AC-1) e o alfanumérico segue sendo executado.</td></tr><tr><td><b>DC3</b></td><td><b>Massa sintética gerada pela QA</b></td><td>A QA gera, na execução, CNPJs alfanuméricos <b>sintéticos com dígitos verificadores válidos</b> (e numéricos válidos), com código de segurado/assessoria ainda não usado (a lupa confirma). Os valores do card não são reaproveitados para não colidir com os dados do Voidr; ficam no guia privado e no resultado de cada CT (nunca neste documento). O CT-CAD-001 repete o passo a passo do card com a mesma estrutura de dados.</td></tr><tr><td><b>DC4</b></td><td><b>Hipótese do banco do Mitsui (medida, não decide o veredito)</b></td><td>Em leitura de esquema (23/11/2026) o armazenamento do documento dos cadastros de pessoa no Mitsui ainda <b>não foi migrado para texto</b> (só comporta números). Por isso a saída <b>B</b> é a esperada se o dev só tratar o erro; a saída <b>A</b> se migrar a coluna. Em ambos os casos o oráculo é o da DC1; a medida só orienta a leitura do resultado.</td></tr><tr><td><b>DC5</b></td><td><b>Persistência por nova consulta + limpeza da massa própria</b></td><td>Persistência = clicar em Novo (limpa a tela), digitar de novo o mesmo código e usar a lupa; comparar nome, tipo e documento. Cadastro criado pela QA é removido com Excluir ao fim do CT; <b>nunca</b> se exclui cadastro que já existia.</td></tr><tr><td><b>DC6</b></td><td><b>Assessoria: obrigatórios descobertos na tela</b></td><td>Os campos obrigatórios da Assessoria (inclusive o Corretor e o botão Incluir na Lista) são descobertos na tela no CT-CAD-008 (controle numérico) e reaproveitados nos demais. Não é decisão de Produtos.</td></tr><tr><td><b>DC7</b></td><td><b>Fora de escopo: Corretor e máscara do CNPJ Pagador</b></td><td>Corretor está no card #9828; a máscara do CNPJ Pagador é outro assunto. O plano só toca nelas se aparecerem no caminho, e então só registra.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Nacional › Cadastros › <b>Segurado</b> — Salvar com CNPJ alfanumérico e numérico; nova consulta (AC-1, AC-2, AC-3).</li><li>Internacional › Cadastros › <b>Segurado</b> — idem.</li><li>Nacional › Cadastros › <b>Assessoria</b> — idem (Corretor da assessoria conforme a tela exigir).</li><li>Internacional › Cadastros › <b>Assessoria</b> — idem.</li><li>Variações do documento no Segurado Nacional: digitação com pontuação e minúsculas; CNPJ alfanumérico com dígito verificador inválido (mensagem de negócio, sem erro 500).</li><li>Exploratório (valores extremos, duplo clique em Salvar, código já existente) ao final.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Corretor</b> (Nacional e Internacional) — card próprio #9828, preservado sem edição.</li><li><b>Fluxos depois do cadastro</b> (apólice, averbação, caixa postal, relatório) — o card não demonstra defeito neles; só entram se o cadastro aceitar o alfanumérico e algum CT precisar da massa.</li><li><b>Máscara do CNPJ Pagador</b> e demais campos de documento de outras telas.</li><li><b>Outras seguradoras</b> — o card é do Mitsui; o comportamento de outra seguradora com coluna de texto não é validado aqui.</li><li><b>Dados de cliente reais, senha e usuário de teste</b> — nada disso entra no plano ou na evidência pública.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. A QA só <b>mapeou as quatro telas</b> (sem salvar nada): código do segurado/assessoria com a lupa habilita os campos; o documento aceita até 18 posições no Segurado (com máscara) e até 14 na Assessoria; o botão Novo só limpa a tela. Resultado do card (Voidr) é insumo, não veredito: a QA reexecuta cada CT. O card está em <b>New</b>: a execução começa quando ele estiver em homologação.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, seguradora Mitsui, filial 1 (MATRIZ), módulos Nacional e Internacional (endereço e usuário da QA no arquivo de ambiente do time; a conta do Voidr citada no card não é usada). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário de teste</b> — Usuário próprio da QA no tenant Mitsui com acesso a Nacional e Internacional › Cadastros (existente no arquivo de ambiente). Se faltar acesso, a QA cria ou ajusta o usuário (regra do time), sem senha em texto.</li><li><b>Massa</b> — CNPJ alfanumérico e numérico sintéticos válidos gerados pela QA (DC3) e códigos de segurado/assessoria ainda não usados (a lupa confirma). Valores concretos ficam no guia privado e no resultado de cada CT.</li><li><b>Navegação</b> — Sempre por clique a partir do login (sem endereço direto); tile Nacional/Internacional abre em nova aba.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Acessar:</b> abrir o login do HML Mitsui, entrar com o usuário da QA e clicar no tile <b>Nacional</b> (ou <b>Internacional</b>, nova aba). Anotar a versão do rodapé.</li><li><b>N2 — Abrir o cadastro:</b> menu <b>Cadastros</b> › <b>Segurado</b> (ou <b>Assessoria</b>); escolher a Filial 1 (MATRIZ); digitar um código ainda não usado e clicar na <b>lupa</b> — os campos são habilitados. O botão Novo só limpa a tela.</li><li><b>N3 — Preencher:</b> Segurado: Nome, tipo Jurídica, documento, Endereço, Bairro, Cidade, UF, CEP, telefone, e-mail do responsável, Enviar e-mail = Não. Assessoria: Nome, tipo, documento e, se a tela exigir, Corretor + Incluir na Lista. Capturar a tela preenchida antes de salvar (documento visível, sem máscara de captura que o esconda; evidência segue a regra de máscara do time).</li><li><b>N4 — Salvar:</b> clicar em <b>Salvar</b>; ler a mensagem ou a página que aparece (texto exato) e registrar o status da resposta do Salvar medido pelo script.</li><li><b>N5 — Nova consulta:</b> clicar em Novo, digitar o mesmo código e usar a lupa; comparar nome, tipo e documento com o digitado (saída A) ou confirmar que o código continua livre — campos vazios e habilitados (saída B).</li><li><b>N6 — Registro e limpeza:</b> anotar data/hora, tenant, versão do rodapé, texto exato, saída A ou B; excluir (Excluir › confirmar) o cadastro de teste criado pela QA e conferir que sumiu.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Segurado Nacional / Internacional:</b> CT-CAD-001 a CT-CAD-006, CT-CAD-013 e CT-CAD-014: código novo + documento sintético (alfanumérico ou numérico, conforme o CT).</li><li><b>Assessoria Nacional / Internacional:</b> CT-CAD-007 a CT-CAD-012: código novo + documento sintético; Corretor existente do tenant se a tela exigir.</li><li><b>Documentos:</b> Alfanuméricos de 14 posições com dígitos verificadores válidos; um alfanumérico com dígito verificador inválido (CT-CAD-014); numéricos válidos. Gerados na hora.</li><li><b>Dados fixos nos CTs:</b> Valores concretos e o roteiro de scripts ficam no guia privado e são reconfirmados no instante do CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e versão do rodapé. Card em homologação: executar.</li><li>Dentro de cada tela, o controle numérico antes do alfanumérico (DC2): Grupo A (002 → 001 → 003) → B (005 → 004 → 006) → C (008 → 007 → 009) → D (011 → 010 → 012) → E (013, 014). Cada CT parte de sessão nova.</li><li>Erro 500 ou página de erro genérica no Salvar = REPROVADO + defeito para o desenvolvedor do card; o card fica onde está (não se volta o estado).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Segurado Nacional: CNPJ alfanumérico, controle numérico e persistência (AC-1, AC-2, AC-3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-001</span><span class="ct-title">Segurado Nacional: salvar com CNPJ alfanumérico — sem erro 500 (grava ou recusa com mensagem clara)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1/AC-2 (reprodução do card; oráculo de duas saídas A/B)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código de segurado ainda não usado (lupa confirma); CNPJ alfanumérico sintético válido.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Nacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios da tela com um <b>CNPJ alfanumérico sintético válido</b> no documento (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar e ler a página/mensagem, registrando o status da resposta (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saída <b>A</b> (mensagem de sucesso de gravação e cadastro gravado) ou saída <b>B</b> (crítica clara sobre o documento, tela e dados preservados, nada gravado), conforme a DC1; <b>nunca</b> erro 500. Erro 500, página «Ocorreu um erro inesperado!», mensagem sem relação com o documento, tela esvaziada ou «gravou» sem persistir = REPROVADO + defeito. Evidência: tela preenchida antes do Salvar, tela depois (texto exato), nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-002</span><span class="ct-title">Segurado Nacional: salvar com CNPJ numérico — grava e mostra a mensagem de sucesso (controle)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1 (controle positivo; discriminador do alfanumérico)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ numérico sintético válido.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Nacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios com um <b>CNPJ numérico sintético válido</b> (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar, ler a mensagem exata de sucesso e registrar o status da resposta (N4); anotar o código para a nova consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>grava</b> e mostra a mensagem de sucesso de gravação do cadastro de Segurado (texto exato registrado na execução); status da resposta sem erro 500. Erro 500 ou página de erro = REPROVADO + defeito (regressão do fluxo, DC2). Evidência: tela preenchida, mensagem de sucesso; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-003</span><span class="ct-title">Segurado Nacional: nova consulta mostra o mesmo cadastro (numérico e, se aceito, alfanumérico) ou confirma que nada foi gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-3 (persistência e identidade)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT independente: cria o próprio pré-requisito (documento numérico e alfanumérico sintéticos, código novo para cada um); não depende do resultado de outro CT.</li></ul>
+      <h4>Passos</h4><ol><li>CT independente: cadastrar dentro do próprio CT, na tela de Segurado (Nacional), um registro com CNPJ numérico e outro com CNPJ alfanumérico (login e N2 a N4, como nos CT-CAD-002 e CT-CAD-001), anotando os códigos.</li><li>Clicar em Novo; digitar o mesmo código; lupa (N5). Comparar nome, tipo e documento com o que foi digitado.</li><li>Para o numérico: documento igual ao digitado (zeros à esquerda completados até 14 posições, como a tela sempre mostra). Para o alfanumérico: saída A = documento igual; saída B = código continua livre. Excluir o cadastro de teste (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Numérico:</b> a nova consulta devolve o mesmo nome, tipo e documento. <b>Alfanumérico:</b> saída A — mesmo nome, tipo e documento (identidade preservada, sem troca de letras por números nem perda de caracteres); saída B — nada foi gravado (código livre, campos vazios e habilitados). Documento diferente do digitado, cadastro gravado pela metade ou código ocupado sem a saída A = REPROVADO + defeito. Evidência: telas da nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Segurado Internacional: CNPJ alfanumérico, controle numérico e persistência (AC-1, AC-2, AC-3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-004</span><span class="ct-title">Segurado Internacional: salvar com CNPJ alfanumérico — sem erro 500 (grava ou recusa com mensagem clara)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1/AC-2 (oráculo de duas saídas A/B)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código de segurado ainda não usado no Internacional; CNPJ alfanumérico sintético válido.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Internacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios da tela com um <b>CNPJ alfanumérico sintético válido</b> no documento (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar e ler a página/mensagem, registrando o status da resposta (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saída <b>A</b> (mensagem de sucesso de gravação e cadastro gravado) ou saída <b>B</b> (crítica clara sobre o documento, tela e dados preservados, nada gravado), conforme a DC1; <b>nunca</b> erro 500. Erro 500, página «Ocorreu um erro inesperado!», mensagem sem relação com o documento, tela esvaziada ou «gravou» sem persistir = REPROVADO + defeito. Evidência: tela preenchida antes do Salvar, tela depois (texto exato), nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-005</span><span class="ct-title">Segurado Internacional: salvar com CNPJ numérico — grava e mostra a mensagem de sucesso (controle)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1 (controle positivo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ numérico sintético válido.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Internacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios com um <b>CNPJ numérico sintético válido</b> (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar, ler a mensagem exata de sucesso e registrar o status da resposta (N4); anotar o código para a nova consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>grava</b> e mostra a mensagem de sucesso de gravação do cadastro de Segurado (texto exato registrado na execução); status da resposta sem erro 500. Erro 500 ou página de erro = REPROVADO + defeito (regressão do fluxo, DC2). Evidência: tela preenchida, mensagem de sucesso; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-006</span><span class="ct-title">Segurado Internacional: nova consulta mostra o mesmo cadastro ou confirma que nada foi gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-3 (persistência e identidade)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT independente: cria o próprio pré-requisito (documento numérico e alfanumérico sintéticos, código novo para cada um); não depende do resultado de outro CT.</li></ul>
+      <h4>Passos</h4><ol><li>CT independente: cadastrar dentro do próprio CT, na tela de Segurado (Internacional), um registro com CNPJ numérico e outro com CNPJ alfanumérico (login e N2 a N4, como nos CT-CAD-005 e CT-CAD-004), anotando os códigos.</li><li>Clicar em Novo; digitar o mesmo código; lupa (N5). Comparar nome, tipo e documento com o que foi digitado.</li><li>Para o numérico: documento igual ao digitado (zeros à esquerda completados até 14 posições, como a tela sempre mostra). Para o alfanumérico: saída A = documento igual; saída B = código continua livre. Excluir o cadastro de teste (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Numérico:</b> a nova consulta devolve o mesmo nome, tipo e documento. <b>Alfanumérico:</b> saída A — mesmo nome, tipo e documento (identidade preservada, sem troca de letras por números nem perda de caracteres); saída B — nada foi gravado (código livre, campos vazios e habilitados). Documento diferente do digitado, cadastro gravado pela metade ou código ocupado sem a saída A = REPROVADO + defeito. Evidência: telas da nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-006"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Assessoria Nacional: CNPJ alfanumérico, controle numérico e persistência (AC-1, AC-2, AC-3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-007</span><span class="ct-title">Assessoria Nacional: salvar com CNPJ alfanumérico — sem erro 500 (grava ou recusa com mensagem clara)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1/AC-2 (oráculo de duas saídas A/B)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código de assessoria ainda não usado; CNPJ alfanumérico sintético válido (até 14 posições, sem pontuação); Corretor existente do tenant se a tela exigir (DC6).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Nacional (N1); Cadastros › Assessoria, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios da tela com um <b>CNPJ alfanumérico sintético válido</b> no documento (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar e ler a página/mensagem, registrando o status da resposta (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saída <b>A</b> (mensagem de sucesso de gravação e cadastro gravado) ou saída <b>B</b> (crítica clara sobre o documento, tela e dados preservados, nada gravado), conforme a DC1; <b>nunca</b> erro 500. Erro 500, página «Ocorreu um erro inesperado!», mensagem sem relação com o documento, tela esvaziada ou «gravou» sem persistir = REPROVADO + defeito. Evidência: tela preenchida antes do Salvar, tela depois (texto exato), nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-008</span><span class="ct-title">Assessoria Nacional: salvar com CNPJ numérico — grava e mostra a mensagem de sucesso (controle; descobre os obrigatórios)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1 (controle positivo; obrigatórios da tela — DC6)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ numérico sintético válido; Corretor existente do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Nacional (N1); Cadastros › Assessoria, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios com um <b>CNPJ numérico sintético válido</b> (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar, ler a mensagem exata de sucesso e registrar o status da resposta (N4); anotar o código para a nova consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>grava</b> e mostra a mensagem de sucesso de gravação do cadastro de Assessoria (texto exato registrado na execução); status da resposta sem erro 500. Erro 500 ou página de erro = REPROVADO + defeito (regressão do fluxo, DC2). Evidência: tela preenchida, mensagem de sucesso; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-009</span><span class="ct-title">Assessoria Nacional: nova consulta mostra o mesmo cadastro ou confirma que nada foi gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-3 (persistência e identidade)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT independente: cria o próprio pré-requisito (documento numérico e alfanumérico sintéticos, código novo para cada um); não depende do resultado de outro CT.</li></ul>
+      <h4>Passos</h4><ol><li>CT independente: cadastrar dentro do próprio CT, na tela de Assessoria (Nacional), um registro com CNPJ numérico e outro com CNPJ alfanumérico (login e N2 a N4, como nos CT-CAD-008 e CT-CAD-007), anotando os códigos.</li><li>Clicar em Novo; digitar o mesmo código; lupa (N5). Comparar nome, tipo e documento com o que foi digitado.</li><li>Para o numérico: documento igual ao digitado (zeros à esquerda completados até 14 posições, como a tela sempre mostra). Para o alfanumérico: saída A = documento igual; saída B = código continua livre. Excluir o cadastro de teste (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Numérico:</b> a nova consulta devolve o mesmo nome, tipo e documento. <b>Alfanumérico:</b> saída A — mesmo nome, tipo e documento (identidade preservada, sem troca de letras por números nem perda de caracteres); saída B — nada foi gravado (código livre, campos vazios e habilitados). Documento diferente do digitado, cadastro gravado pela metade ou código ocupado sem a saída A = REPROVADO + defeito. Evidência: telas da nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-009"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Assessoria Internacional: CNPJ alfanumérico, controle numérico e persistência (AC-1, AC-2, AC-3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-010</span><span class="ct-title">Assessoria Internacional: salvar com CNPJ alfanumérico — sem erro 500 (grava ou recusa com mensagem clara)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1/AC-2 (oráculo de duas saídas A/B)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código de assessoria ainda não usado no Internacional; CNPJ alfanumérico sintético válido; Corretor conforme a tela (DC6).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Internacional (N1); Cadastros › Assessoria, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios da tela com um <b>CNPJ alfanumérico sintético válido</b> no documento (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar e ler a página/mensagem, registrando o status da resposta (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saída <b>A</b> (mensagem de sucesso de gravação e cadastro gravado) ou saída <b>B</b> (crítica clara sobre o documento, tela e dados preservados, nada gravado), conforme a DC1; <b>nunca</b> erro 500. Erro 500, página «Ocorreu um erro inesperado!», mensagem sem relação com o documento, tela esvaziada ou «gravou» sem persistir = REPROVADO + defeito. Evidência: tela preenchida antes do Salvar, tela depois (texto exato), nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-011</span><span class="ct-title">Assessoria Internacional: salvar com CNPJ numérico — grava e mostra a mensagem de sucesso (controle)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-1 (controle positivo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ numérico sintético válido; Corretor existente do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, tile Internacional (N1); Cadastros › Assessoria, filial 1 e código novo + lupa (N2).</li><li>Preencher os campos obrigatórios com um <b>CNPJ numérico sintético válido</b> (N3) e capturar a tela preenchida.</li><li>Clicar em Salvar, ler a mensagem exata de sucesso e registrar o status da resposta (N4); anotar o código para a nova consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>grava</b> e mostra a mensagem de sucesso de gravação do cadastro de Assessoria (texto exato registrado na execução); status da resposta sem erro 500. Erro 500 ou página de erro = REPROVADO + defeito (regressão do fluxo, DC2). Evidência: tela preenchida, mensagem de sucesso; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-012</span><span class="ct-title">Assessoria Internacional: nova consulta mostra o mesmo cadastro ou confirma que nada foi gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — AC-3 (persistência e identidade)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT independente: cria o próprio pré-requisito (documento numérico e alfanumérico sintéticos, código novo para cada um); não depende do resultado de outro CT.</li></ul>
+      <h4>Passos</h4><ol><li>CT independente: cadastrar dentro do próprio CT, na tela de Assessoria (Internacional), um registro com CNPJ numérico e outro com CNPJ alfanumérico (login e N2 a N4, como nos CT-CAD-011 e CT-CAD-010), anotando os códigos.</li><li>Clicar em Novo; digitar o mesmo código; lupa (N5). Comparar nome, tipo e documento com o que foi digitado.</li><li>Para o numérico: documento igual ao digitado (zeros à esquerda completados até 14 posições, como a tela sempre mostra). Para o alfanumérico: saída A = documento igual; saída B = código continua livre. Excluir o cadastro de teste (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Numérico:</b> a nova consulta devolve o mesmo nome, tipo e documento. <b>Alfanumérico:</b> saída A — mesmo nome, tipo e documento (identidade preservada, sem troca de letras por números nem perda de caracteres); saída B — nada foi gravado (código livre, campos vazios e habilitados). Documento diferente do digitado, cadastro gravado pela metade ou código ocupado sem a saída A = REPROVADO + defeito. Evidência: telas da nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-012"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo E — Variações do documento e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-013</span><span class="ct-title">Segurado Nacional: CNPJ alfanumérico digitado com pontuação e letras minúsculas — o campo não corrompe o valor e o Salvar não devolve erro 500</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório dirigido — AC-2 (máscara do campo de documento do Segurado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ alfanumérico sintético válido, digitado com pontos, barra e hífen e em minúsculas.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação; login por clique, tile Nacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Digitar o CNPJ alfanumérico com pontuação e em minúsculas; ler o valor que o campo mostra <b>antes</b> de salvar e comparar com o digitado (N3).</li><li>Clicar em Salvar e ler a página/mensagem, registrando o status da resposta (N4); nova consulta do código se gravou (N5); limpeza (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo mostra o documento exatamente como digitado (a máscara não troca nem perde caracteres) e o Salvar segue a DC1 (saída A ou B, nunca erro 500). Valor do campo alterado pela máscara = REPROVADO + defeito (achado do tipo já visto em outro campo de documento). Evidência: campo antes do Salvar, resultado do Salvar; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CAD-014</span><span class="ct-title">Segurado Nacional: CNPJ alfanumérico com dígito verificador inválido — crítica de documento inválido, sem erro 500 e sem gravar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo — AC-2 (formato/documento inválido gera mensagem de negócio clara)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML Mitsui (versão do rodapé anotada). Código novo; CNPJ alfanumérico sintético de 14 posições com o último dígito verificador alterado (inválido).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação; login por clique, tile Nacional (N1); Cadastros › Segurado, filial 1 e código novo + lupa (N2).</li><li>Preencher os obrigatórios com o CNPJ alfanumérico de dígito verificador inválido (N3) e capturar a tela.</li><li>Clicar em Salvar e ler a mensagem exata, registrando o status da resposta (N4); nova consulta do código para confirmar que nada foi gravado (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>recusa</b> com mensagem clara em português sobre o documento inválido (texto exato registrado), a tela e os dados continuam preenchidos e o código continua livre na nova consulta. Erro 500, página de erro genérica, gravar o cadastro inválido ou mensagem sem relação com o documento = REPROVADO + defeito. Evidência: mensagem, tela depois, nova consulta; anexos do CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CAD-014"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>AC-1 — repetir o cadastro e a consulta com CNPJ numérico e alfanumérico em Segurado e Assessoria, Nacional e Internacional</td><td>CT-CAD-001 · CT-CAD-002 · CT-CAD-004 · CT-CAD-005 · CT-CAD-007 · CT-CAD-008 · CT-CAD-010 · CT-CAD-011</td><td>Pendente</td></tr><tr><td>AC-2 — nenhum Salvar devolve erro 500; formato não aceito gera mensagem de negócio clara</td><td>CT-CAD-001 · CT-CAD-004 · CT-CAD-007 · CT-CAD-010 · CT-CAD-013 · CT-CAD-014</td><td>Pendente</td></tr><tr><td>AC-3 — para documentos aceitos, persistência e identidade do cadastro depois de nova consulta</td><td>CT-CAD-003 · CT-CAD-006 · CT-CAD-009 · CT-CAD-012</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11) — variações do documento</td><td>CT-CAD-013 · CT-CAD-014</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 3 critérios de aceite do card mapeados a CTs (100%): as quatro telas (Segurado e Assessoria, Nacional e Internacional) com CNPJ alfanumérico (sem erro 500; grava ou recusa com mensagem clara), o controle numérico em cada tela e a persistência por nova consulta; mais duas variações do documento no Segurado Nacional (digitação com pontuação/minúsculas e dígito verificador inválido). Oráculo na tela (mensagem exata, nova consulta) com o status da resposta do Salvar medido por script; Corretor (#9828) e CNPJ Pagador ficam fora.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Armazenamento do documento do Mitsui ainda não migrado para texto: o dev pode recusar o alfanumérico em vez de gravar</td><td>Alta</td><td>Baixa</td><td>Oráculo de duas saídas (DC1): recusar com mensagem clara também atende o card; o controle numérico (DC2) garante que o fluxo continua gravando.</td></tr><tr><td>«Mensagem clara» ser subjetiva</td><td>Média</td><td>Média</td><td>Critério fechado na DC1: mensagem em português que fale do documento/formato; mensagem genérica ou sem relação = REPROVADO.</td></tr><tr><td>Dados de teste ficarem no HML</td><td>Média</td><td>Baixa</td><td>Código novo por CT e exclusão do cadastro criado pela QA ao fim do CT (DC5); nunca excluir cadastro existente.</td></tr><tr><td>Campos obrigatórios da Assessoria (Corretor) não documentados</td><td>Média</td><td>Baixa</td><td>Descoberta na tela no CT-CAD-008 e registro em features/ (DC6); não é decisão de Produtos.</td></tr><tr><td>Sessão do HML degradar no meio do CT</td><td>Baixa</td><td>Baixa</td><td>Login novo por CT; servidor fora do ar ≠ reprovado (pré-verificação medida).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · card em New · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
