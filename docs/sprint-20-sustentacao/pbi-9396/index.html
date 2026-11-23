@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9396 · [Segurança] Cancelar fatura emitida — regra de perfil também no servidor (CITWEB Nacional)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9396 · Sprint 20 Sustentação</span>
+    <h1>[Segurança] Cancelar fatura emitida: a regra de perfil também vale no servidor (CITWEB Nacional · Cancelamento de Fechamento Mensal)</h1>
+    <div class="sub">CITWEB · Nacional › Fechamento Mensal › Cancelamento de Fechamento Mensal · AIG · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">10</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">10</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 10 executados · 10 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>10 CTs</strong> (6×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 10, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 10}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela de cancelamento de fatura emitida, só alguns perfis podem cancelar (na AIG, só o gestor). Essa conferência só acontecia quando o usuário marcava a linha na tela; quem tinha acesso à tela, mas não o perfil, conseguia cancelar uma fatura emitida sem passar por essa marcação. O card corrige para a regra valer também na hora de cancelar.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 10 situações: um usuário sem permissão tenta marcar a linha e tenta contornar a marcação — nada pode ser marcado nem cancelado, e a fatura continua emitida; o gestor continua marcando e cancelando uma fatura de teste da QA; fechamento sem fatura emitida continua sem bloqueio; a regra da HDI (que também libera o perfil Produto) e uma exploração livre.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos: o plano acabou de ser publicado e a execução começa agora, com o card já em homologação. O desenvolvimento informa testes próprios aprovados, mas o perfil sem permissão não foi exercido em HML; a QA refaz tudo.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje, um usuário sem o perfil correto poderia cancelar uma fatura já emitida. Depois da correção, só os perfis permitidos de cada seguradora cancelam.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto: a regra de cada seguradora está escrita no card e não há dúvida de negócio.</li><li>Este card (Bug da Sustentação) não precisa de aprovação do plano de Produtos.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — Nacional › Fechamento Mensal › <b>Cancelamento de Fechamento Mensal</b> (cancelar uma fatura mensal já emitida). Seguradora de homologação do card: <b>AIG</b> (regra: só o perfil GESTOR cancela fatura emitida). Ramo de massa: 54 (RCTR-C).</td></tr><tr><th>Card</th><td>BUG-9396 — «[Segurança] Cancelamento de fatura emitida sem checagem de perfil no servidor — achado ADO-8517» · board Sustentação · Sprint 20 Sustentação (card na iteração 15 da Sustentação, carregado de sprint antiga, não alterada) · estado <b>Pronto para homologação</b> · severidade 2 - High · tags bypass-autorizacao, citweb, nacional e seguranca · achado pré-existente de revisão de código, não incidente de cliente · sem tarefas filhas · correção publicada em HML (nota do desenvolvimento: build V 1.0.261123.1623).</td></tr><tr><th>Tasks de QA</th><td>#9954 [QA] Plano de teste — BUG #9396 (este plano; fecha na entrega). <b>Card do tipo Bug na Sustentação: Produtos não aprova o plano</b>; a execução começa na hora, com o card já em homologação.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB, seguradora AIG (endereços e perfis no arquivo de ambiente do time). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na tela de cancelamento de fatura emitida, a regra de <b>quais perfis podem cancelar</b> era conferida só na hora de marcar a linha. As etapas seguintes (guardar o motivo e efetivar o cancelamento) não conferiam o perfil: um usuário logado, com acesso à tela mas sem o perfil exigido, conseguia cancelar uma fatura já emitida sem passar pela marcação da linha. O card corrige para que a regra valha <b>também no servidor</b>, no momento do cancelamento.</p><p><b>Regra por seguradora (fonte: descrição do card):</b> AIG e demais seguradoras — só GESTOR; HDI — GESTOR, PRODUTO ou EMISSÃO; SWISSRE — GESTOR ou EMISSÃO; LIBERTY — qualquer perfil. A regra só existe com o indicativo de motivo de cancelamento ligado no tenant; com ele desligado, o comportamento anterior é mantido (sem regra de perfil).</p><p><b>Oráculo do plano (fechado no card, nenhuma decisão de produto pendente):</b> na tela, o aviso «Cancelamento de Fatura somente é permitido para usuário de perfil 'GESTOR'.» para o perfil sem permissão, a linha que <b>não</b> fica marcada, e a fatura que <b>continua emitida</b> (a grade do fechamento segue com a fatura); para o GESTOR, a linha marcada com o motivo e, no cancelamento real, fechamento e fatura cancelados.</p><p><b>Critério de aceite do card e como o plano o cobre</b> (o card não traz lista numerada; o «Esperado» dele é o critério):</p><table><tr><th>Critério (Esperado do card)</th><th>CTs</th></tr><tr><td><b>CA-1</b> — a regra de perfil é validada no servidor no momento do cancelamento: perfil sem permissão não marca a linha nem cancela, mesmo tentando contornar a seleção da tela</td><td>CT-CFP-001 · CT-CFP-002 · CT-CFP-003 · CT-CFP-004</td></tr><tr><td><b>CA-2</b> — o perfil autorizado continua selecionando e cancelando (sem regressão)</td><td>CT-CFP-005 · CT-CFP-006</td></tr><tr><td><b>CA-3</b> — uma única regra reaproveitada em todas as etapas: vale para a regra de outra seguradora e não bloqueia o que a regra permite (fechamento sem fatura emitida)</td><td>CT-CFP-007 · CT-CFP-008 · CT-CFP-009</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CFP-010</td></tr><tr><td>Testes unitários, cobertura do diff, revisão de segurança do diff, PR e build (informados pelo desenvolvimento)</td><td>— não geram CT: processo/engenharia, garantidos por política de branch e DoD do desenvolvimento</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro (descrição, passos para reproduzir, esperado), comentários do desenvolvimento (Gates 1, 2 e 3 do dev) e os 2 anexos de evidência do dev (inclusive o roteiro de homologação). Sem tarefas filhas. <b>Tags:</b> citweb e nacional (sistema e módulo); a seguradora de homologação (AIG) e o ramo de massa (54) vêm do roteiro do desenvolvimento. <b>Oráculo observável:</b> aviso exato na tela, linha marcada ou não, fatura que permanece na grade. Não é débito técnico: muda o comportamento de uma tela de negócio. <b>Sem decisão de produto pendente:</b> a regra por seguradora está escrita no card; massa, perfil de teste e ambiente a QA resolve. <b>Bug de segurança:</b> este documento é público e descreve só o comportamento esperado; o roteiro do contorno fica no card e no guia privado (regra 11).</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — correção em HML:</b> O card está em «Pronto para homologação» e o desenvolvimento informa a correção publicada em HML AIG. A QA registra a versão do rodapé (DC5). Comportamento persistindo = REPROVADO + defeito.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Oráculo: tela, e conferir que nada foi cancelado</b></td><td>Cada CT de bloqueio prova duas coisas: o <b>aviso exato</b> na tela e que a <b>fatura continua emitida</b> (a grade do fechamento segue com a fatura e o fechamento não aparece cancelado). «Não deu erro» nunca aprova. A mensagem é lida do texto da tela, não parafraseada.</td></tr><tr><td><b>DC2</b></td><td><b>Perfil sem permissão: a QA cria o usuário de teste</b></td><td>O desenvolvimento só conhece um usuário sem perfil GESTOR com acesso à tela e não tem a credencial. Pela regra do time (login e senha de HML não são impedimento), a QA <b>cria um usuário próprio</b> pela tela de Segurança do tenant AIG, com perfil que acessa a tela de cancelamento e não é GESTOR, e anota só o que foi criado, sem a senha.</td></tr><tr><td><b>DC3</b></td><td><b>O contorno da seleção: roteiro privado, evidência pelo resultado</b></td><td>Tentar efetivar o cancelamento sem passar pela marcação da linha é feito por script local com a sessão do próprio usuário de teste, conforme o roteiro do card e o guia privado. O plano público registra só o resultado esperado (bloqueado, nada cancelado); nenhum passo de reprodução da falha entra aqui.</td></tr><tr><td><b>DC4</b></td><td><b>Massa: fatura emitida da própria QA para o cancelamento real</b></td><td>O cancelamento real destrói a fatura. Para o CT-CFP-006 e para o CT-CFP-007, a QA emite pela tela (fechamento e emissão) uma fatura mensal própria e a cancela; a fatura citada no roteiro do desenvolvimento é massa compartilhada e <b>não</b> é cancelada pela QA. Os CTs de bloqueio (001 a 004) usam a fatura emitida e não a cancelam: se a correção falhar, o CT é REPROVADO com defeito; massa que sobrar é emitida de novo.</td></tr><tr><td><b>DC5</b></td><td><b>Execução na hora; versão conferida no rodapé</b></td><td>O card está em «Pronto para homologação» com a correção no HML AIG: a execução começa na hora, depois da pré-verificação do ambiente. A QA testa o que está no HML; o que falhar é REPROVADO com defeito, sem condicionar o teste a versão ou branch. A versão do rodapé é só registrada na evidência.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITWEB (AIG), Nacional › Fechamento Mensal › Cancelamento de Fechamento Mensal: marcar a linha, guardar o motivo e efetivar o cancelamento, com perfil GESTOR e com perfil sem permissão; tentativa de contornar a seleção da tela.</li><li>Fechamento <b>sem</b> fatura emitida (não é bloqueado pela regra) e a regra de outra seguradora (HDI) como confirmação de que a regra única respeita a lista de perfis de cada uma.</li><li>Exploratório guiado por risco sobre a tela e o perfil.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Tela equivalente do Internacional</b> — o desenvolvimento informa que tem a mesma falha e não foi alterada; vai para card próprio (registrado no card).</li><li><b>Filtro de autorização geral do sistema</b> (ao negar, só marca o status da resposta e não interrompe a ação) — observação do desenvolvimento a confirmar em card próprio; a QA só registra se aparecer no exploratório (A9).</li><li><b>Tenant sem o indicativo de motivo de cancelamento</b> — comportamento mantido pelo card; sem tenant HML nessa condição o CT seria N/A.</li><li><b>Dados de cliente reais, senha e usuário de teste</b> — nada disso entra no plano ou na evidência pública.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. O desenvolvimento informa ter validado localmente (banco de HML) e na tela com o perfil GESTOR; o perfil sem permissão não foi exercido em HML por falta de credencial e o cancelamento real ficou com a QA. Resultado do desenvolvimento é insumo, não veredito: a QA reexecuta cada CT. O cancelamento real (CT-CFP-006) é destrutivo: roda <b>só em fatura emitida pela própria QA</b>, nunca em massa compartilhada.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, tenant AIG (endereços e perfis no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. A tela exige acesso ao módulo Nacional › Fechamento Mensal.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Perfil GESTOR do tenant AIG (já existente). Perfil sem permissão: usuário próprio da QA, criado pela tela de Segurança (DC2). Perfil PRODUTO e outro perfil fora da lista para o tenant HDI: a QA localiza ou cria. Nunca a conta compartilhada.</li><li><b>Massa</b> — Fechamento com fatura mensal emitida e fechamento sem fatura emitida em apólice do ramo 54 do tenant AIG; fatura emitida pela própria QA para os CTs destrutivos (DC4). Valores concretos (apólice, filial, subgrupo, competência, motivo) ficam no guia privado e são reconfirmados na hora.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina): login por clique, navegação Fechamento Mensal › Cancelamento de Fechamento Mensal, marcação da linha, confirmação, motivo, Salvar e Processar; a tentativa de contorno usa a sessão do usuário de teste (guia privado). Estado, mensagem e captura vão para o disco; o script imprime só veredito e caminho.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura do aviso/linha marcada, da grade (fatura segue emitida ou cancelada) e versão do rodapé. Nomes e documentos em tarja.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Acessar a tela:</b> login do HML AIG → menu Nacional › Fechamento Mensal › <b>Cancelamento de Fechamento Mensal</b> (sempre por clique, sem endereço direto). Anotar a versão do rodapé.</li><li><b>N2 — Carregar a apólice:</b> escolher filial, ramo, apólice e subgrupo da massa e consultar; a grade lista os fechamentos por competência, com indicação de fatura emitida.</li><li><b>N3 — Marcar a linha:</b> marcar a linha do fechamento; com fatura emitida o sistema confirma («Sim»), pede o motivo e Salvar; conferir aviso ou linha marcada. <b>N4 — Cancelar:</b> botão Processar; ler a mensagem e a grade depois.</li><li><b>N5 — Registro:</b> data/hora, tenant, perfil usado (sem senha), versão do rodapé, texto exato do aviso e se a fatura segue emitida na grade.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Fechamento com fatura emitida:</b> CT-CFP-001 a CT-CFP-005 e CT-CFP-008 (não cancelado) e a fatura própria do CT-CFP-006.</li><li><b>Fechamento sem fatura emitida:</b> CT-CFP-007.</li><li><b>Fatura própria da QA:</b> CT-CFP-006 (cancelamento real) — emitida pela tela antes do CT.</li><li><b>Usuários de teste:</b> Sem permissão (AIG): CT-CFP-001 a 004 e 007 · GESTOR (AIG): CT-CFP-005 e 006 · HDI PRODUTO e HDI fora da lista: CT-CFP-008 e 009.</li><li><b>Dados fixos nos CTs:</b> Valores concretos e o roteiro de scripts ficam no guia privado e são reconfirmados no instante do CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e da versão do rodapé (DC5). Card em homologação: executar.</li><li>Grupo A (001 a 004, não destrutivos) → Grupo B (005 e depois 006, destrutivo, com fatura própria) → Grupo C (007 a 009) → Grupo D (010). Cada CT parte de seleção limpa (sessão nova).</li><li>Qualquer CT de bloqueio que cancele ou marque a linha = REPROVADO + defeito para o desenvolvedor do card; o card fica onde está.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Perfil sem permissão não consegue cancelar fatura emitida: pela tela e tentando contornar a seleção (CA)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-001</span><span class="ct-title">Perfil sem permissão marca a linha de um fechamento com fatura emitida pela tela: aviso de perfil e linha desmarcada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — controle de acesso (negativo; comportamento já existente, controle do plano)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Usuário próprio da QA sem perfil GESTOR, com acesso à tela (DC2); fechamento com fatura mensal emitida (massa AIG).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Marcar a linha do fechamento com fatura emitida (N3); ler o aviso.</li><li>Conferir a grade: a linha não está marcada e a fatura segue emitida (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>recusa</b> com o aviso exato «Cancelamento de Fatura somente é permitido para usuário de perfil 'GESTOR'.»; a linha <b>não</b> fica marcada e a fatura <b>continua emitida</b> na grade (DC1). Marcou a linha ou cancelou = REPROVADO + defeito. Evidência: captura do aviso e da grade depois, versão do rodapé.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-002</span><span class="ct-title">Perfil sem permissão tenta contornar a seleção da tela para guardar o motivo no fechamento com fatura: o sistema recusa e a linha não é marcada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — correção do card (negativo; contorno por requisição direta com a sessão do usuário de teste, roteiro privado, DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Mesmo perfil e massa do CT-CFP-001; sessão nova, sem linha marcada; roteiro privado do card.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Sem marcar a linha pela tela, tentar guardar o motivo para o fechamento com fatura por requisição direta, com a sessão logada do usuário sem permissão (roteiro privado).</li><li>Voltar à tela e conferir a grade: a linha não está marcada (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>recusa</b> com o aviso exato «Cancelamento de Fatura somente é permitido para usuário de perfil 'GESTOR'.»; a linha <b>não</b> fica marcada e a fatura <b>continua emitida</b> na grade (DC1). Marcou a linha ou cancelou = REPROVADO + defeito. Evidência: captura do aviso e da grade depois, versão do rodapé. A resposta à tentativa traz o mesmo aviso de perfil (antes da correção, a linha ficava marcada).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-003</span><span class="ct-title">Perfil sem permissão tenta efetivar o cancelamento sem seleção válida: nada é cancelado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — correção do card (negativo; DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Mesmo perfil e massa; sessão nova, sem linha marcada.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Sem marcar linha alguma, tentar efetivar o cancelamento por requisição direta, com a sessão do usuário sem permissão (roteiro privado).</li><li>Conferir a mensagem e a grade: nada foi cancelado e a fatura segue emitida (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nada é cancelado: a tela/resposta mostra «Selecione os Fechamento(s) a ser(em) Cancelado(s).» (ou o aviso de perfil) e a <b>fatura continua emitida</b> na grade (DC1). Cancelou = REPROVADO + defeito. Evidência: captura da mensagem e da grade depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-004</span><span class="ct-title">Sequência completa do cenário do card com perfil sem permissão (guardar o motivo e depois efetivar): a fatura emitida não é cancelada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-1 (negativo ponta a ponta; reprodução do cenário do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Mesmo perfil e massa; sessão nova, sem linha marcada.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Repetir, nesta ordem e na mesma sessão, a tentativa de guardar o motivo (CT-CFP-002) e a de efetivar o cancelamento (CT-CFP-003), conforme o roteiro privado.</li><li>Voltar à tela, atualizar a consulta e conferir o fechamento e a fatura (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O fechamento <b>não</b> é cancelado e a <b>fatura permanece emitida</b> depois da sequência completa; o aviso de perfil aparece na 1ª etapa. Fechamento ou fatura cancelados = REPROVADO + defeito (é a falha do card). Evidência: capturas da resposta e da grade antes × depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Perfil autorizado continua cancelando (CA: sem regressão)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-005</span><span class="ct-title">GESTOR marca a linha com fatura emitida → confirma → informa o motivo → Salvar: linha marcada, sem aviso de perfil</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-2 (positivo, sem regressão)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Usuário GESTOR do tenant AIG; fechamento com fatura mensal emitida; sessão nova.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Marcar a linha do fechamento com fatura emitida; responder <b>Sim</b> na confirmação; escolher o motivo e <b>Salvar</b> (N3).</li><li>Conferir a linha marcada e a ausência de aviso de perfil; <b>não</b> clicar em Processar neste CT; limpar a seleção (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha <b>marcada</b> com o motivo, <b>sem</b> aviso de perfil; fatura segue emitida (este CT não cancela). Aviso de perfil para o GESTOR ou linha não marcada = REPROVADO (regressão da correção). Evidência: capturas da confirmação, do motivo e da linha marcada.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-006</span><span class="ct-title">GESTOR efetiva o cancelamento da fatura emitida (Processar): fechamento e fatura são cancelados</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-2 (positivo; destrutivo, fatura própria da QA, DC4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Usuário GESTOR; fatura mensal emitida <b>pela própria QA</b> (nunca massa compartilhada, DC4); sessão nova.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Marcar a linha da fatura própria, confirmar, informar o motivo e Salvar (N3); clicar em <b>Processar</b> (N4).</li><li>Ler a mensagem final; consultar de novo e conferir que o fechamento e a fatura saíram da lista de emitidos / constam cancelados (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Cancelamento concluído</b>: mensagem de sucesso da tela e fechamento e fatura cancelados na consulta posterior. Recusa indevida ao GESTOR ou cancelamento não concluído = REPROVADO + defeito. Evidência: capturas da mensagem e da consulta antes × depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-006"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Fechamento sem fatura emitida e regra de outra seguradora</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-007</span><span class="ct-title">Perfil sem permissão marca a linha de um fechamento <b>sem</b> fatura emitida: a regra não bloqueia</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — a regra só vale para fatura emitida</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Usuário sem permissão (DC2); fechamento <b>sem</b> fatura emitida (massa AIG).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique e abrir a tela de cancelamento (N1); consultar a apólice da massa (N2).</li><li>Marcar a linha do fechamento sem fatura emitida (N3).</li><li>Conferir que a linha ficou marcada e que não houve aviso de perfil; limpar a seleção, sem Processar (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A linha <b>marca normalmente</b>, sem aviso de perfil (a regra de perfil é só para fatura emitida). Aviso de perfil neste caso = REPROVADO (bloqueio indevido). Evidência: captura da linha marcada.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-008</span><span class="ct-title">HDI: usuário com perfil PRODUTO (permitido na HDI) marca a linha de fechamento com fatura emitida e guarda o motivo</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-3 (a regra única respeita a lista de perfis da seguradora)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Tenant HDI com fechamento com fatura emitida (massa que a QA localiza ou cria); usuário com perfil PRODUTO (a QA localiza ou cria, DC2).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação; login por clique no HML da HDI e abrir a tela de cancelamento (N1); consultar o fechamento com fatura (N2).</li><li>Marcar a linha, confirmar, informar o motivo e Salvar (N3); não clicar em Processar.</li><li>Conferir a linha marcada, sem aviso de perfil; limpar a seleção (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha <b>marcada</b> e sem aviso de perfil (perfil PRODUTO é permitido na HDI, pela descrição do card). Aviso para PRODUTO = REPROVADO + defeito. Se o tenant HDI não tiver massa nem a tela, o resultado é registrado com a causa medida.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-009</span><span class="ct-title">HDI: usuário com perfil fora da lista (não é GESTOR, PRODUTO nem EMISSÃO) não marca a linha com fatura emitida</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-3 (negativo; contraprova do CT-CFP-008)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Mesmo tenant e massa do CT-CFP-008; usuário com perfil fora da lista (a QA localiza ou cria).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação; login por clique no HML da HDI e abrir a tela (N1, N2).</li><li>Marcar a linha do fechamento com fatura emitida (N3); ler o aviso.</li><li>Conferir a grade: linha não marcada e fatura emitida (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Aviso de perfil e linha <b>não</b> marcada; a fatura segue emitida (texto exato do aviso da HDI é registrado). Marcou a linha = REPROVADO + defeito.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-009"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CFP-010</span><span class="ct-title">Exploratório (15 a 30 minutos, guiado por risco): perfil, seleção e cancelamento em variações de caminho</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção em HML (DC5). Usuários próprios de teste (GESTOR e sem permissão); massa de fatura da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Explorar: trocar de usuário na mesma máquina e repetir a seleção; marcar várias linhas misturando com e sem fatura; atualizar a página no meio do fluxo; motivo em branco; sessão expirada durante o fluxo.</li><li>A cada variação, conferir o aviso e a grade (a fatura segue emitida para o perfil sem permissão).</li><li>Qualquer achado novo: classificar (do card × pré-existente, A9) e abrir work item conforme a classificação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma variação permite ao perfil sem permissão marcar ou cancelar fatura emitida; mensagens de validação seguem as conhecidas. Sem ocorrências: registrar «Exploratório executado [DD/MM HML]. Sem ocorrências.»; achado: work item conforme a classificação (A9).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CFP-010"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-1 — regra de perfil validada no servidor: perfil sem permissão não marca nem cancela, mesmo contornando a seleção</td><td>CT-CFP-001 · CT-CFP-002 · CT-CFP-003 · CT-CFP-004</td><td>Pendente</td></tr><tr><td>CA-2 — perfil autorizado continua selecionando e cancelando</td><td>CT-CFP-005 · CT-CFP-006</td><td>Pendente</td></tr><tr><td>CA-3 — regra única respeita a lista de cada seguradora e não bloqueia o que é permitido</td><td>CT-CFP-007 · CT-CFP-008 · CT-CFP-009</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CFP-010</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o «Esperado» do card mapeado a CTs (100%): perfil sem permissão bloqueado pela tela e nas tentativas de contornar a seleção (guardar o motivo, efetivar, sequência completa), perfil autorizado sem regressão (selecionar e cancelar de fato), fechamento sem fatura emitida não bloqueado e a regra de outra seguradora (HDI, permitido e fora da lista), mais exploratório. Oráculo na tela (aviso exato, linha marcada, fatura na grade antes × depois); roteiro do contorno só no card/guia privado.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Cancelamento real destruir massa compartilhada</td><td>Média</td><td>Alta</td><td>CT destrutivo só em fatura emitida pela própria QA (DC4); CTs de bloqueio não cancelam; a fatura do roteiro do desenvolvimento não é tocada.</td></tr><tr><td>Falha da correção cancelar uma fatura de massa nos CTs de bloqueio</td><td>Baixa</td><td>Média</td><td>Se ocorrer, o CT é REPROVADO com defeito (é a falha do card); nova fatura emitida pela tela repõe a massa.</td></tr><tr><td>Perfil sem permissão dependia de credencial desconhecida</td><td>Alta</td><td>Média</td><td>A QA cria um usuário próprio pela tela de Segurança (DC2), sem a senha em texto.</td></tr><tr><td>Tenant HDI sem massa de fatura emitida ou sem a tela habilitada</td><td>Média</td><td>Baixa</td><td>A QA monta a massa pela tela (fechamento e emissão); se o tenant não tiver a tela, CT-CFP-008 e 009 registram a causa medida (sem veredito de produto).</td></tr><tr><td>Detalhe de exploração em documento público</td><td>Baixa</td><td>Alta</td><td>Plano público só com comportamento esperado; roteiro do contorno só no card/anexo e no guia privado; evidência só no card.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
