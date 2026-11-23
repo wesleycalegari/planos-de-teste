@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9958 · Mitsui — Conversor RCTR-C / RC-DC: carga convertida não aparece para processamento</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9958 · Sprint 20</span>
+    <h1>[QA] Mitsui — Conversor RCTR-C / RC-DC: a carga convertida com sucesso não aparece para processamento</h1>
+    <div class="sub">CITWEB Conversor — RCTR-C / RC-DC · Mitsui · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação; nenhum CT executado</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado; Bug — sem aprovação de Produtos: a execução começa assim que o card estiver em Pronto para homologação ou Em homologação, logo depois da pré-verificação do ambiente. Falta testar: <strong>9 CTs</strong> (4×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9, "na": 0}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No Conversor da Mitsui (RCTR-C / RC-DC), depois de importar a planilha e converter, a tela diz que deu certo, mas na etapa de processar a carga recém-convertida não aparece na lista de escolha (nem pelo botão, nem pelo menu Processa Averbações). Sem ela, o usuário não consegue gerar as averbações. O card pede que a carga convertida apareça e possa ser processada.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 9 situações na Mitsui: converter uma planilha própria de 3 linhas e conferir que ela aparece na lista (pelo botão e pelo menu), que o total e as linhas batem com a planilha, que dá para processar até o fim e que as averbações foram criadas; repetir com outra planilha, em sequência e em uma nova entrada no sistema; e conferir o que já funcionava (apólice inexistente e carga com muitas linhas).</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executado: o card está no início do fluxo e o teste começa quando ele estiver em homologação. O que for visto na tela decide: carga aparece e processa = aprovado; carga não aparece = reprovado e volta para o desenvolvimento.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje o usuário converte, vê a mensagem de sucesso e fica sem conseguir seguir para o processamento; depois da correção, a carga convertida aparece na hora e pode ser processada.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto. Bug segue sem aprovação de Produtos; as regras usadas são as do próprio card.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITWEB — módulo <b>Conversor de Arquivos</b> (HML da Mitsui) · <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b> (importar a planilha, mapear o layout, <b>Salvar</b>, <b>Converter</b>) e <b>Processa Averbações</b> → <b>RCTR-C / RC-DC</b> (e o botão <b>Processar</b> que sai da própria conversão): lista de layouts convertidos e processamento da carga.</td></tr><tr><th>Card</th><td>BUG-9958 — «[ CITWEB - Mitsui ] Carga convertida com sucesso não aparece para processamento» · board CITWEB Team · Sprint 20 · tipo <b>Bug</b> (origem: relato do Voidr, ticket DEF-122, coletado em 23/11/2026) · estado atual <b>New</b>, sem responsável, sem tarefas filhas e sem comentários.</td></tr><tr><th>Ramo / produto</th><td>RCTR-C / RC-DC (ramo 54, com o 55 sincronizado) · filial 1 (matriz) · apólice RCTR-C 333, subgrupo 1 · massa própria da Mitsui.</td></tr><tr><th>Versão do plano</th><td>1.0 — 23/11/2026 · Autor QA: Wesley Moreira · Bug: sem aprovação de Produtos; execução assim que o card estiver em homologação.</td></tr><tr><th>Relacionados (fora do escopo)</th><td>#9780 (falha de gravação do lote com texto → número, em outro tenant) e #5841 (duplicação ao reprocessar registros já aceitos). O card informa que a reprodução da Mitsui <b>não</b> mostra o erro de gravação do #9780 e que a causa comum com esses cards não foi comprovada.</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Conversor da Mitsui (RCTR-C / RC-DC), a QA importa uma planilha, cria um layout de nome único, mapeia as colunas, salva e aciona <b>Converter</b>. A tela confirma a conversão (na reprodução isolada do card: <b>3 de 3 linhas incluídas e nenhuma rejeitada</b>), mas a etapa seguinte, <b>Processar</b>, mostra <b>zero registros</b> e a lista de layouts <b>não traz o layout recém-convertido</b> — somente os três layouts de execuções anteriores e o item vazio da lista. O mesmo acontece pelo menu <b>Processa Averbações → RCTR-C / RC-DC</b>; esperar 30 segundos não resolve; um segundo layout, mapeado com foco correto e sem erro de tela, converteu 2 de 2 e também não apareceu. Seis casos de teste do Voidr ficaram interrompidos antes de processar a carga própria (fluxo positivo, validações de apólice/subgrupo e paginação).</p><p><b>Esperado pelo card:</b> o layout da própria carga aparece para seleção e permite processar os registros no mesmo ramo e usuário, sem depender de layout de outra execução. <b>Critérios de aceite do card (4):</b> (1) salvar e converter um novo layout o torna selecionável na etapa de processamento, pelo botão e pelo menu; (2) o total e o conteúdo da carga selecionada correspondem ao arquivo recém-convertido; (3) com massa válida, concluir o processamento e conferir as averbações criadas; (4) repetir isoladamente, comprovando que a disponibilização não depende de outra conversão ou sessão. O card declara que a causa interna <b>não</b> foi investigada: o sintoma é funcional e é o que o plano mede.</p>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro: descrição de Bug com contexto, passos numerados, contraprova, esperado × obtido, impacto, ambiente (tenant, filial, navegador, data) e massa; quatro critérios de aceite com oráculo observável na tela (lista de layouts do Processar, total e conteúdo da carga, averbações criadas); três anexos (planilha da reprodução e duas capturas) conferidos; comentários: nenhum; tarefas filhas: nenhuma. <b>Tags</b> citweb, tenant Mitsui, ambiente HML; ramo RCTR-C / RC-DC (54/55) declarado. Não é débito técnico: o comportamento é visível ao usuário. Não é achado em casa (origem: importação do Voidr, sem a marcação de defeito da QA): segue o fluxo de Bug com plano, sem Gate 2. Sem dúvida de produto: o oráculo de cada CT vem dos critérios de aceite e do que o próprio Conversor faz no fluxo normal (os mesmos passos da reprodução).</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação:</b> O card está em <b>New</b> e sem responsável: a execução só começa quando ele estiver em <b>Pronto para homologação</b> ou <b>Em homologação</b>. Estando, executa-se na hora, depois da pré-verificação do ambiente. Estado de desenvolvimento = espera legítima, não erro.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Em que estado o card pode ser executado e o que conta como falha?</b></td><td>O card está em <b>New</b>. Pelo fluxo da QA, a execução só começa em <b>Pronto para homologação</b>/<b>Em homologação</b>. Quando começar, a QA testa o que estiver no HML: o layout apareceu e processou = aprovado; não apareceu = <b>REPROVADO + defeito</b> para o desenvolvimento (em homologação não existe bloqueado). A QA não pergunta versão nem branch ao desenvolvimento.</td></tr><tr><td><b>DC2</b></td><td><b>Massa histórica pode substituir a carga própria?</b></td><td><b>Não.</b> O card é explícito: não selecionar nem processar cargas históricas para substituir a carga própria. Os três layouts antigos da lista servem só de referência de que a tela carrega a lista; o CT só aprova com o layout criado pela própria QA naquela execução.</td></tr><tr><td><b>DC3</b></td><td><b>Qual a massa e quem a monta?</b></td><td>A QA gera a planilha própria (sem cabeçalho, ramo 54, estados AC → SP, municípios 13 → 34401, transporte T, placa de teste, valor segurado 100 no RCTR-C e 100 no RC-DC) com documentos e datas cobertos pela apólice 333, subgrupo 1, filial 1. O usuário e a senha de teste vêm do arquivo de ambiente do time; se algo faltar no tenant, a QA resolve (cria/edita usuário e massa) sem parar o plano. Averbações criadas no CT-CMP-004 são excluídas pela tela ao final.</td></tr><tr><td><b>DC4</b></td><td><b>Como o plano trata a causa técnica?</b></td><td>O card não afirma causa interna. O plano mede só o comportamento visível (lista, total, conteúdo, averbações) e, como oráculo de apoio, uma <b>consulta somente leitura</b> à tabela temporária da conversão (a QA não escreve no banco de negócio). Se a carga aparecer só depois de um evento específico (outra sessão, tempo, F5), o CT registra qual foi — mas o critério 4 do card exige que apareça sem depender disso.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Conversor da Mitsui (HML), RCTR-C / RC-DC: importar planilha, criar e mapear layout de nome único, <b>Salvar</b>, <b>Converter</b>, confirmação e contadores da tela.</li><li>Etapa <b>Processar</b> pelos dois caminhos (botão que sai da conversão e menu <b>Processa Averbações → RCTR-C / RC-DC</b>): presença do layout na lista, total e conteúdo da carga, conclusão do processamento e averbações criadas.</li><li>Sem regressão: validações de apólice e subgrupo no processamento, paginação da carga e cargas anteriores continuando listadas.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A); o staging é de Produtos e do desenvolvimento.</li><li><b>Causa interna</b> (persistência, armazenamento, filtro da listagem) e <b>código</b> — do desenvolvimento; o card não os afirma.</li><li><b>Erro de gravação do lote com texto → número (#9780)</b> e <b>duplicação ao reprocessar (#5841)</b> — cards próprios; a QA só registra se algum deles aparecer na execução.</li><li><b>Outros tenants, outros ramos e os demais conversores</b> (Transporte Nacional, Exportação, Importação) — o achado é do RCTR-C / RC-DC da Mitsui.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. As medidas citadas (3/3 e 2/2 linhas incluídas, lista com três layouts antigos, espera de 30 segundos sem efeito) são as do relato do card. Toda conversão de teste usa planilha própria, layout de nome único e navegação sempre por clique a partir do login (Conversor de Arquivos → Converte Arquivo → RCTR-C / RC-DC; Processa Averbações → RCTR-C / RC-DC). A QA <b>não escreve no banco</b> de negócio: a conferência é somente leitura; layout, conversão, processamento e exclusão da averbação de teste são feitos pela tela.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da Mitsui (endereço de login no arquivo de ambiente do time — único endereço digitado), módulo Conversor de Arquivos. Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário (arquivo de ambiente do time; senha fora deste documento)</b> — Usuário de QA da Mitsui com acesso ao Conversor de Arquivos e à filial 1. Senha e usuário nunca neste documento nem em evidência; faltando acesso, a QA cria/edita usuário do tenant e segue.</li><li><b>Apólice e filial</b> — Filial 1 (matriz), apólice RCTR-C 333, subgrupo 1 — vigência cobrindo as datas das linhas; confirmar na tela antes do 1º CT.</li><li><b>Massa própria</b> — Segurado e mercadoria de teste da própria filial (consultados na tela), nunca massa histórica de outro teste (DC2).</li><li><b>Evidência</b> — Capturas por CT desde o login, ilegíveis a documento (máscara), anexadas ao CT no card; nada de evidência neste repositório público.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o endereço de login do HML da Mitsui (único digitado) → usuário e senha do QA (arquivo de ambiente do time) → <b>Acessar</b> → módulo <b>Conversor de Arquivos</b>. Capturar login e módulo (com o build no rodapé).</li><li><b>N2 — Converter:</b> menu <b>Conversor de Arquivos</b> → <b>Converte Arquivo</b> → <b>RCTR-C / RC-DC</b> → importar a planilha → criar o layout de nome único e mapear as colunas (dando foco na linha antes de selecionar) → <b>Salvar</b> → <b>Converter</b>. Ler por script o texto da tela e os contadores (registros, incluídas, com erro); capturar a tela inteira.</li><li><b>N3 — Processar pelo botão:</b> logo após o Converter, acionar <b>Processar</b> → abrir a seleção de layout e procurar o nome recém-convertido; ler o total e o conteúdo.</li><li><b>N4 — Processar pelo menu:</b> menu <b>Processa Averbações</b> → <b>RCTR-C / RC-DC</b> → abrir a seleção de layout e procurar o mesmo nome. Atenção: «Converte Arquivo» e «Processa Averbações» têm itens de mesmo nome — clicar sempre no item visível do menu aberto.</li><li><b>N5 — Processar a carga:</b> selecionar o layout próprio <b>antes</b> de <b>Processar</b> (sem selecionar, o sistema só mostra os totais sem processar) e esperar os <b>totais mudarem</b> (até cerca de 4 minutos); ler incluídas, registros com erro e mensagens.</li><li>A tela do Conversor usa atualização em tempo real: esperar por conteúdo/elemento, nunca por «rede ociosa».</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Planilha própria da QA (sem cabeçalho):</b> Três linhas — ramo 54; estados AC → SP; municípios 13 → 34401; transporte T; placa de teste; valor segurado 100 (RCTR-C) e 100 (RC-DC); documentos próprios e datas cobertas pela apólice. É o formato da planilha anexada ao card. Registrar apólice, data e nome do layout no resultado do CT.</li><li><b>Planilha de duas linhas:</b> Mesmo formato, 2 linhas, para a contraprova do card (CT-CMP-005).</li><li><b>Planilha de paginação:</b> Mesmo formato, com linhas suficientes para passar de uma página da grade (tamanho da página lido da tela no CT-CMP-008).</li><li><b>Layouts de nome único:</b> Um por CT que converte (prefixo da QA + data/hora), para que a presença na lista seja do próprio CT e nunca de outra execução (critério 4).</li><li><b>Layouts históricos da lista:</b> Três layouts antigos do Voidr: só referência de que a lista carrega; nunca selecionados nem processados (DC2).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e contagem inicial (somente leitura) dos registros da conversão.</li><li><b>1 login</b> → Grupo A (CT-CMP-001 a 006) → Grupo B (007, 008) → exploratório (009). O CT-CMP-004 processa e exclui as averbações criadas.</li><li>Os CTs são independentes: a falha de um não bloqueia os outros; cada CT converte o seu próprio layout de nome único e começa pela tela do Converter limpa.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: o layout recém-convertido aparece na etapa Processar (botão e menu) com o total e o conteúdo do arquivo, e permite concluir o processamento (critérios de aceite do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-001</span><span class="ct-title">Converter a planilha própria (3 linhas) com layout de nome único: a conversão confirma e o layout aparece na etapa Processar pelo botão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (positivo, na tela; reprodução isolada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha própria de 3 linhas e layout de nome único (DC3); apólice 333, subgrupo 1, filial 1. Só esta conversão ativa nesta sessão (contagem inicial somente leitura registrada).</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e registrar o build do Conversor lido no rodapé.</li><li><b>Conversor de Arquivos → Converte Arquivo → RCTR-C / RC-DC</b>: importar a planilha, criar o layout de nome único, mapear as colunas, <b>Salvar</b> e <b>Converter</b> (N2). Ler os contadores e capturar a tela inteira.</li><li>Acionar <b>Processar</b> (N3), abrir a seleção de layout e procurar o nome recém-convertido; capturar a lista aberta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conversão mostra <b>3 linhas incluídas e 0 com erro</b> e o <b>layout recém-convertido consta na lista</b> da etapa Processar, ao lado dos layouts antigos (que podem continuar listados). Nome ausente na lista = <b>REPROVADO</b> (é o defeito do card), com a lista lida em texto como prova; não se aprova por «não deu erro». Evidência: capturas desde o login, contadores e lista aberta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-002</span><span class="ct-title">O mesmo layout aparece pelo menu Processa Averbações → RCTR-C / RC-DC</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (segundo caminho de acesso)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout convertido no CT-CMP-001 (mesma sessão) ou nova conversão de layout de nome único, 3 linhas, nas mesmas condições.</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) se for nova sessão.</li><li>Menu <b>Processa Averbações → RCTR-C / RC-DC</b> (N4); abrir a seleção de layout e procurar o nome convertido.</li><li>Conferir que o conteúdo do combo é o mesmo visto pelo botão; capturar a lista aberta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O nome do layout convertido consta na lista aberta pelo menu, igual à lista pelo botão do CT-CMP-001. Ausente pelo menu e presente pelo botão (ou o contrário) = REPROVADO apontando o caminho que falhou. Evidência: lista aberta pelo menu; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-003</span><span class="ct-title">Ao selecionar o layout, o total e o conteúdo da carga correspondem à planilha convertida</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critério de aceite 2 do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout do CT-CMP-001 ou CT-CMP-002 presente na lista; planilha de 3 linhas conhecida (valores de cada coluna anotados).</li></ul>
+      <h4>Passos</h4><ol><li>Na etapa Processar, selecionar o layout próprio (N5) — sem acionar Processar ainda.</li><li>Ler o total de registros e o conteúdo da carga mostrado na tela (linha a linha) e comparar com a planilha: total 3; ramo 54; AC → SP; transporte T; placa de teste; valores 100 e 100.</li><li>Capturar a tela com o total e as 3 linhas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Total de registros <b>3</b> e o conteúdo (3 linhas) idêntico à planilha, sem linhas de outra carga e sem linhas faltando. Total zero (como no card) ou conteúdo de outra carga = REPROVADO. Evidência: tela com o total e as linhas ao lado da planilha; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-004</span><span class="ct-title">Com massa válida, processar a carga própria até o fim e conferir as averbações criadas</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critério de aceite 3 do card (ponta a ponta)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout próprio selecionável (CT-CMP-003) com documentos novos e datas dentro da vigência da apólice; contagem inicial de averbações da apólice anotada; massa própria (a exclusão ao final só atinge as averbações criadas por este CT).</li></ul>
+      <h4>Passos</h4><ol><li>Selecionar o layout próprio e acionar <b>Processar</b> (N5); esperar os totais mudarem.</li><li>Ler incluídas, registros com erro e mensagens; capturar a tela final.</li><li>Conferir as averbações criadas pela tela do CITWEB (consulta de averbações da apólice) e, somente leitura, a contagem de registros da conversão; ao final, excluir pela tela só as averbações criadas por este CT e conferir.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Total = incluídas + erros; <b>3 incluídas e 0 com erro</b> com massa válida; as 3 averbações existem na consulta, com os dados da planilha (apólice, valores, datas). Nada incluído, ou averbações divergentes da planilha = REPROVADO. Sem mensagem técnica de gravação. Evidência: tela final, consulta das averbações e a contagem somente leitura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-005</span><span class="ct-title">Contraprova do card: layout com o mapeamento feito com foco correto (2 linhas) também aparece e processa</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — reprodução do card com a contraprova do mapeamento</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha de 2 linhas e layout de nome único; mapeamento das colunas com foco na linha antes de selecionar os S/N, sem erro de script na tela (conferir o console do navegador).</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e importar a planilha de 2 linhas (N2); mapear com foco correto e <b>Salvar</b>; <b>Converter</b>.</li><li>Ler contadores (esperado 2 incluídas) e o console do navegador (sem erro de mapeamento).</li><li>Procurar o layout na etapa Processar pelo botão e pelo menu (N3, N4); selecionar e conferir total 2.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Conversão com <b>2 incluídas e 0 com erro</b>, sem erro de script; o layout aparece pelos dois caminhos e o total da carga é <b>2</b>. Ausente = REPROVADO (é a contraprova do card: o defeito não depende do erro de mapeamento). Evidência: contadores, console, listas e total; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-006</span><span class="ct-title">Repetição isolada: duas conversões seguidas e uma nova sessão — cada layout aparece sem depender de outra conversão</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critério de aceite 4 do card (isolamento)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Dois layouts de nome único (A e B) com planilhas de 3 e 2 linhas; nenhuma carga histórica usada (DC2).</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1); converter o layout A e, na sequência, o layout B (N2), anotando os contadores de cada um.</li><li>Na etapa Processar, procurar A e B pelo botão e pelo menu (N3, N4).</li><li>Sair, entrar de novo (nova sessão) e abrir de novo a lista pelo menu; procurar A e B; esperar 30 segundos e reler a lista.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B aparecem na lista logo após a conversão e continuam aparecendo após a nova sessão, cada um com o seu total (3 e 2), sem que um dependa do outro e sem precisar esperar. Qualquer um ausente, ou que só aparece depois de outro evento, = REPROVADO descrevendo o evento (critério 4). Evidência: listas antes e depois da nova sessão; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Sem regressão: validações de apólice/subgrupo e paginação, os seis casos que o card diz terem sido interrompidos</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-007</span><span class="ct-title">Validação de apólice e subgrupo no processamento: carga com apólice inexistente vai para registros com erro, sem sumir do Processar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — validações de apólice/subgrupo (caso interrompido do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout de nome único com planilha de 2 linhas: uma com apólice/subgrupo válidos (333 / 1) e uma com apólice inexistente na filial; as demais colunas válidas.</li></ul>
+      <h4>Passos</h4><ol><li>Converter a planilha (N2) e localizar o layout na etapa Processar (N3).</li><li>Selecionar o layout, <b>Processar</b> (N5) e esperar os totais mudarem.</li><li>Ler a lista de registros com erro e o texto exato da mensagem de negócio; capturar a tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout aparece na lista; a linha válida é incluída (1 incluída) e a linha com apólice inexistente aparece em <b>registros com erro</b> com mensagem de negócio (texto exato lido da tela e registrado no CT), sem alerta técnico de gravação e com total = incluídas + erros. A mensagem de negócio é a que o Conversor já mostra para apólice inexistente (mesma do legado do Conversor); mensagem diferente é registrada e avaliada contra o fluxo de outro conversor do tenant. Evidência: totais e mensagem; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-008</span><span class="ct-title">Paginação: carga maior que uma página lista todos os registros</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — paginação (caso interrompido do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha com linhas suficientes para mais de uma página da grade (tamanho da página lido da tela) e layout de nome único; mesma apólice e filial.</li></ul>
+      <h4>Passos</h4><ol><li>Converter a planilha (N2); anotar o total informado pela tela.</li><li>Na etapa Processar, selecionar o layout (N5) e percorrer todas as páginas da carga, contando as linhas.</li><li>Comparar a soma das linhas das páginas com o total e com a planilha; capturar a primeira e a última página.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout aparece; o total é igual ao número de linhas da planilha e a soma das linhas das páginas é igual ao total, sem linha repetida entre páginas e sem linha faltando. Diferença = REPROVADO com os números. Evidência: primeira e última página com o total; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CMP-009</span><span class="ct-title">Exploratório: cargas anteriores continuam listadas, recarregar a página e carga convertida por outra sessão da mesma filial</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 seção 11) — 15 a 30 minutos, guiado por risco</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layouts criados nos CTs anteriores; segunda sessão do mesmo tenant (outro usuário de QA) quando existir, sem alterar as cargas dela.</li></ul>
+      <h4>Passos</h4><ol><li>Reabrir a etapa Processar (botão e menu) e conferir que os layouts antigos continuam listados e que o novo não duplica nem apaga nenhum.</li><li>Atualizar a página (F5) na etapa Processar e reler a lista; trocar de ramo e voltar.</li><li>Com um segundo usuário de QA na mesma filial, converter um layout de nome único e conferir se ele aparece para o primeiro usuário e vice-versa; registrar o que for visto.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem perda nem duplicação de layouts; a lista é estável depois de F5 e de trocar de ramo; o comportamento entre dois usuários da mesma filial é registrado (aparece/não aparece) — qualquer achado fora do card segue a regra de achado pré-existente (baseline) antes de virar defeito. Sem ocorrências: comentar «Exploratório executado, sem ocorrências». Evidência: listas antes e depois; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CMP-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério de aceite 1 — salvar e converter um novo layout o torna selecionável na etapa de processamento, pelo botão e pelo menu</td><td>CT-CMP-001 · CT-CMP-002 · CT-CMP-005 · CT-CMP-006</td><td>Pendente</td></tr><tr><td>Critério de aceite 2 — total e conteúdo da carga selecionada correspondem ao arquivo recém-convertido</td><td>CT-CMP-003 · CT-CMP-008</td><td>Pendente</td></tr><tr><td>Critério de aceite 3 — com massa válida, concluir o processamento e conferir as averbações criadas</td><td>CT-CMP-004 · CT-CMP-007</td><td>Pendente</td></tr><tr><td>Critério de aceite 4 — repetir isoladamente: a disponibilização não depende de outra conversão ou sessão</td><td>CT-CMP-006 · CT-CMP-005</td><td>Pendente</td></tr><tr><td>Casos interrompidos do card — validações de apólice/subgrupo e paginação</td><td>CT-CMP-007 · CT-CMP-008</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CMP-009</td><td>Pendente</td></tr><tr><td>Causa interna, erro de gravação do #9780 e duplicação do #5841 (fora do escopo)</td><td>—</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 4 critérios de aceite do card mapeados a CTs (100%), com oráculo de tela (lista de layouts, total e conteúdo da carga, averbações criadas) e consulta somente leitura de apoio, mais os dois casos interrompidos citados no card (validação de apólice/subgrupo e paginação). A causa interna, o staging e os cards relacionados ficam fora.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Carga aparecer só por efeito de outra conversão/sessão e mascarar o defeito</td><td>Média</td><td>Alta</td><td>Layout de nome único por CT; uma só conversão ativa no CT-CMP-001; o CT-CMP-006 testa dois layouts em sequência e uma nova sessão (critério 4).</td></tr><tr><td>Aprovar pela confirmação de «incluídas» sem o layout estar na lista</td><td>Média</td><td>Alta</td><td>A confirmação do Converter não é oráculo: o veredito exige o nome na lista da etapa Processar lido em texto e o total/conteúdo da carga (CT-CMP-001 e 003).</td></tr><tr><td>Cair em massa histórica por engano</td><td>Média</td><td>Média</td><td>Nome único e conferência do nome exato; layouts antigos nunca selecionados (DC2).</td></tr><tr><td>Averbação de teste ficar criada (CT-CMP-004)</td><td>Baixa</td><td>Média</td><td>Contagem antes/depois; exclusão pela tela só das averbações do CT e conferência da exclusão.</td></tr><tr><td>Sessão do tenant degradar ou atingir limite de logins durante o plano</td><td>Média</td><td>Baixa</td><td>1 login por bloco; em caso de recusa por excesso de tentativas, reaproveitar a sessão salva; relogin resolve sessão degradada.</td></tr><tr><td>Card ainda em New quando a rotina chegar</td><td>Alta</td><td>Baixa</td><td>Espera legítima (DC1): executa quando o card estiver em homologação; plano já publicado.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · card em New · Bug sem aprovação de Produtos · execução assim que o card estiver em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
