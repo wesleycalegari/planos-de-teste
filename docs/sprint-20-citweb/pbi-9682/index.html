@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-9682 · CITNET Novo (AXA) — busca da caixa de apólices: uma chamada por tecla e limite de chamadas</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-9682 · Sprint 20</span>
+    <h1>CITNET Novo (AXA): a busca da caixa de apólices deve esperar uma pausa na digitação e, no limite de chamadas, avisar o motivo</h1>
+    <div class="sub">CITNET Novo · AXA · Nova Averbação (RCA-C) · caixa de apólices · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — plano publicado sem aprovação de Produtos (tag sem-gate2-po); nenhum CT executado (a execução começa com o card em Pronto para homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, sem Gate 2 (achado em casa / Sustentação); execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (7×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITNET Novo da AXA, ao digitar no campo de busca da lista de apólices (na tela de Nova Averbação), o sistema faz uma consulta a cada letra digitada. Quem digita rápido por alguns segundos passa do limite de consultas, a busca para de funcionar e a tela mostra «Não foi possível listar apólices. Tente novamente.», sem explicar o motivo (no perfil Segurado a mensagem ficava mesmo depois de apagar o texto). O card pede que a busca espere uma pequena pausa na digitação, que o uso normal não chegue ao limite e que, se chegar, a tela diga o motivo e volte ao normal sozinha.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 14 situações: digitar rápido e conferir que o sistema não consulta a cada letra, digitar devagar e conferir que a busca continua funcionando, colar um texto grande, digitar sem parar por mais de 30 segundos nos perfis Segurado e Interno sem chegar ao limite, chegar ao limite de propósito e ver se a mensagem explica o motivo e se a busca volta sozinha, conferir se outras telas têm a mesma caixa, e que escolher a apólice continua funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o desenvolvimento ainda está trabalhando no card («In Progress») e a correção não está no ambiente de testes. <b>Ressalva:</b> o valor exato do limite de consultas não está definido no card e quem aplica o limite (aplicação ou borda de rede) não está esclarecido; o teste mede o efeito que o usuário vê, com o valor que estiver em vigor, e registra qual era.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem busca apólices deixa de ver a busca travar por digitar rápido; se o limite for mesmo atingido, passa a ver o motivo e a caixa volta ao normal sozinha, sem recarregar a tela.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto.</b> O card tem a marca de que o plano não precisa de aprovação de Produtos; a execução começa quando o card estiver em «Pronto para homologação».</li><li>Por informação: o card #9795 (limite de consultas do KEV) trata de assunto parecido; se a correção do AXA vier por ele, testamos no AXA do mesmo jeito.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET Novo</b> (tela React), tenant <b>AXA</b>, HML — Averbações › RCA-C › Novo Protocolo › caixa do seletor APÓLICE, campo «Buscar por número ou segurado…». Perfis Segurado e Interno.</td></tr><tr><th>Card</th><td>PBI-9682 — «[ CITNET-Novo - AXA ] Campo de busca da caixa de apólices dispara uma chamada por tecla e, ao digitar rápido, o serviço devolve HTTP 429 e a tela mostra «Não foi possível listar apólices. Tente novamente.»» · board CITWEB Team · Sprint 20 · estado <b>In Progress</b> · tags AXA, citnet-novo, achado-preexistente, sem-gate2-po · aberto como achado da homologação do #9462 (fora do escopo dele).</td></tr><tr><th>Tasks</th><td>#9900 [QA] Plano de teste — PBI #9682 (este plano; fecha na entrega) · #9839 Análise e Desenvolvimento (desenvolvimento, em andamento).</td></tr><tr><th>Relacionados</th><td>#9462 (origem do achado: exploratório da homologação) · #9557 (consulta lenta da lista de apólices do Segurado) · #9795 (limite de requisições por usuário no tenant KEV, com a busca de apólices só depois de uma pausa — <b>pode entregar a mesma correção em código compartilhado</b>; este plano mede o tenant AXA, e a execução registra se a correção chegou ao AXA).</td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, tenant AXA (endereços e perfis no arquivo de ambiente do time). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na homologação do #9462 (exploratório, 11/11/2026), medido por script local: no campo de busca da caixa de apólices da Nova Averbação (RCA-C) o sistema chama o servidor <b>uma vez por tecla digitada</b>, sem espera entre as teclas. Em digitação contínua o serviço passou a responder <b>limite de chamadas (HTTP 429)</b> a partir da 60ª chamada (cerca de 8 a 9 segundos de digitação seguida) e a caixa mostrou a mensagem genérica «Não foi possível listar apólices. Tente novamente.», sem dizer que era limite. No perfil Segurado a mensagem permaneceu na tela mesmo depois de limpar o campo; no Interno a caixa se recuperou. Colar o texto de uma vez faz 1 chamada e funciona. O card pede: a busca aguardar uma pequena pausa na digitação (uma chamada por pausa, não por tecla), de modo que o uso normal não atinja o limite; se o limite for atingido, a tela informa o motivo em vez da mensagem genérica e a caixa volta ao normal sozinha quando o limite liberar. O achado foi medido só na Nova Averbação RCA-C, com Segurado e Interno; em outros módulos e na Consulta de Averbações não foi medido. Não é defeito do #9462 (nenhum critério dele trata do campo de busca e ele não tem código); por isso virou card à parte.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — Digitar rapidamente no campo de busca da caixa de apólices <b>não gera uma chamada ao servidor por tecla</b> (a busca aguarda uma pequena pausa na digitação)</td><td>CT-BCA-001 · CT-BCA-002 · CT-BCA-003 · CT-BCA-004 · CT-BCA-005</td></tr><tr><td><b>CA2</b> — O uso normal <b>não atinge o limite de chamadas</b> do serviço</td><td>CT-BCA-006 · CT-BCA-007 · CT-BCA-008</td></tr><tr><td><b>CA3</b> — Se o limite for atingido, a tela <b>informa o motivo</b> (e não a mensagem genérica de falha da busca)</td><td>CT-BCA-009</td></tr><tr><td><b>CA4</b> — A caixa <b>volta ao normal sozinha</b> quando o limite liberar</td><td>CT-BCA-010 · CT-BCA-011</td></tr><tr><td>Alcance (a mesma caixa em outros módulos, não medido no card) · regressão da seleção da apólice</td><td>CT-BCA-012 · CT-BCA-013</td></tr><tr><td>Exploratório</td><td>CT-BCA-014</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Descrição (6 seções), critério de aceite, 7 anexos (capturas da caixa e registros de rede das três medições de 11/11), a task filha e os vínculos lidos por inteiro; o card não tem comentários. <b>Tags:</b> sistema (citnet-novo) e seguradora (AXA) identificados. Contexto Quem/Por que/Onde presente (perfis Segurado e Interno, Nova Averbação RCA-C, caixa APÓLICE). Ramo: RCA-C (ramo 56) — é onde o achado foi medido. O critério de aceite tem oráculo observável: <b>número de chamadas de busca enviadas</b> (registro de rede da página, contado pelo script local), <b>respostas de limite</b> (contagem) e a <b>mensagem na tela</b> da caixa. <b>Não é débito técnico:</b> há comportamento que o usuário vê (mensagem de falha, caixa que não volta). <b>Achado pré-existente (tag do card):</b> o card não é retrabalho do #9462; o plano mede a correção pedida aqui. <b>Sem decisão pendente para Produtos:</b> o texto exato da mensagem e o valor da pausa não estão no card e são tratados como inferência do QA (DC1 e DC2), sem travar a execução; o card tem a tag sem-gate2-po (ninguém aprova o plano).</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação e correção publicada:</b> O card está em <b>In Progress</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação) <b>e</b> a correção publicada em HML: o CT-BCA-001 registra a data/hora e o comportamento observado; se a busca ainda sai uma vez por tecla, o CT fica REPROVADO (o card está em homologação), e antes disso a execução fica fora do ciclo (espera legítima, sem veredito).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Texto da mensagem quando o limite é atingido (CA3)</b></td><td>O card dá um exemplo («Muitas buscas seguidas; aguarde alguns segundos») mas não fixa o texto. <b>Posição do QA:</b> o oráculo é: mensagem em português que diga o <b>motivo</b> (muitas buscas seguidas/limite) e peça para aguardar, <b>sem</b> ser a frase genérica «Não foi possível listar apólices. Tente novamente.» e sem texto técnico. O texto exato é registrado como observado.</td></tr><tr><td><b>DC2</b></td><td><b>Valor da pausa da digitação (CA1)</b></td><td>O card cita «por exemplo ~300 ms». <b>Posição do QA:</b> o oráculo é de comportamento — o número de buscas enviadas fica <b>muito abaixo</b> do número de teclas (uma por pausa) e a busca de quem digita devagar continua respondendo. O valor observado da pausa é registrado; pausa acima de 1 segundo é registrada como observação de usabilidade, não reprova sozinha.</td></tr><tr><td><b>DC3</b></td><td><b>Onde está o limite (API ou borda) e qual é o número</b></td><td>O card deixa o limite para quem tem acesso à configuração. <b>Posição do QA:</b> a QA mede o efeito (quantas respostas de sucesso antes do limite, mensagem, recuperação) e <b>não define nem altera</b> o limite. Se a correção do desenvolvimento mudar o limite, o CT-BCA-009 usa o valor em vigor em HML na execução e registra qual era.</td></tr><tr><td><b>DC4</b></td><td><b>Alcance: outros módulos com a mesma caixa (CT-BCA-012)</b></td><td>O card mediu só a Nova Averbação RCA-C. <b>Posição do QA:</b> a RCA-C é obrigatória nos CTs 001 a 011; no CT-BCA-012 a QA confere onde a mesma caixa aparece e aplica o mesmo critério (uma busca por pausa). Divergência numa tela que usa a caixa é registrada como defeito do card se a correção era esperada ali, ou como achado separado se for outro componente.</td></tr><tr><td><b>DC5</b></td><td><b>Correção entregue por outro card (#9795)</b></td><td>O #9795 (KEV) prevê a busca de apólices só depois de uma pausa e um limite próprio da busca. <b>Posição do QA:</b> se a correção do AXA vier por esse card, o comportamento é medido igual no AXA — este card só fecha com a evidência no AXA, não com a do KEV.</td></tr><tr><td><b>DC6</b></td><td><b>Identidades e massa</b></td><td>Perfis Segurado e Interno do tenant AXA (um contador por usuário). <b>Posição do QA:</b> uso dos usuários de teste do time; se faltar identidade, a QA cria usuário pela tela do sistema (nunca no provedor de identidade) e registra o que fez, sem a senha. O campo de busca só lê dados: nenhuma averbação é gravada por este plano.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Nova Averbação RCA-C no CITNET Novo AXA: campo de busca da caixa de apólices — número de buscas enviadas durante a digitação, busca de quem digita devagar, colar texto, limpar o campo, resposta antiga não sobrescrever a nova.</li><li>Uso intenso (digitação contínua longa) nos perfis Segurado e Interno sem chegar ao limite de chamadas.</li><li>Limite atingido: mensagem com o motivo (e não a frase genérica), mensagem que some ao limpar o campo, caixa que volta sozinha depois da janela.</li><li>Outros pontos do CITNET Novo com a mesma caixa de apólices (conferência de alcance) e a seleção da apólice depois da busca.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Valor definitivo do limite e a camada que o aplica</b> (aplicação ou borda): decisão do desenvolvimento; o plano mede o efeito observável (DC3).</li><li><b>Limite de requisições nas consultas de relatórios e no tenant KEV</b> — #9795.</li><li><b>Lentidão da lista de apólices do Segurado</b> — #9557 (já corrigido).</li><li><b>Forma de burlar ou escapar do controle</b> (troca de endereço, de usuário etc.) — não entra no plano público.</li><li>Código e testes unitários do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. O card está em <b>In Progress</b> (a tarefa de desenvolvimento ainda está aberta) e a correção ainda não foi publicada em HML. O comportamento esperado vem do critério de aceite e das medições de 11/11/2026 registradas no card; <b>o que a tela e o registro de rede mostram de fato</b> (número de buscas, texto da mensagem, tempo de recuperação) é registrado na execução como observado. A QA não escreve no banco e o campo de busca só lê dados. A digitação tecla a tecla é feita por script local (Playwright) sobre o login feito por clique, gravando em disco a contagem de chamadas e o código de resposta de cada uma.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo, tenant AXA (endereços e perfis no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. O login do Novo também tem limite de tentativas: espaçar logins.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Um usuário do perfil <b>Segurado</b> e um do perfil <b>Interno</b> do tenant AXA, ambos com apólices de RCA-C visíveis. Cada usuário tem o próprio contador; esperar a janela do limite entre CTs do mesmo usuário.</li><li><b>Massa</b> — Apólices de RCA-C (ramo 56) listadas na caixa para cada perfil, conferidas na tela no instante do CT; textos de busca: um número de apólice que exista na lista, um número parcial, um texto sem correspondência. Nenhum dado é gravado.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina) logam por clique, abrem o módulo pelo menu, digitam tecla a tecla no campo e registram em disco: quantidade de chamadas de busca, código de resposta de cada uma e estado da caixa (lista, mensagem de falha). Reuso: scripts do #9462 (CT-APS-010) em testes-automatizados.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura da caixa (lista ou mensagem), registro da digitação (teclas, chamadas, respostas de sucesso e de limite, tempos) e o perfil usado (sem credencial).</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir a tela de login do CITNET Novo HML, «Ou entre com usuário e senha», ambiente AXA e entrar com o perfil do CT (clique); registrar só o perfil.</li><li><b>N2 — Caixa de apólices:</b> menu Averbações › RCA-C › Novo Protocolo; clicar no campo APÓLICE para abrir a caixa; clicar em «Buscar por número ou segurado…».</li><li><b>N3 — Digitação:</b> digitar tecla a tecla (ritmo do CT: ~90 ms entre teclas para «rápido», 1 s ou mais para «lento»), contando as chamadas de busca no registro de rede da página.</li><li><b>N4 — Limite:</b> para chegar ao limite, repetir buscas além do volume por minuto (guia privado), por script sobre a sessão; depois conferir pela tela o que a caixa mostra.</li><li><b>N5 — Registro:</b> data/hora, perfil, ritmo, nº de teclas, nº de chamadas, respostas de sucesso e de limite, texto exato da mensagem, tempo até a caixa voltar — tudo no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólices na caixa:</b> RCA-C (ramo 56), as que aparecerem na caixa do perfil; escolher um número que exista e anotar (valor lido na tela no instante do CT).</li><li><b>Texto sem correspondência:</b> Sequência numérica longa sem apólice correspondente (esperado: «Nenhuma apólice corresponde à busca.»).</li><li><b>Perfis:</b> Segurado e Interno do tenant AXA.</li><li><b>Dados fixos nos CTs:</b> Valores concretos e o roteiro de chamadas ficam no guia privado e são reconfirmados no instante do CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; CT-BCA-001 confirma que a correção está no ar e registra o comportamento da digitação.</li><li>Grupo A (001 a 005, sem chegar ao limite) → Grupo B (006 a 008, digitação longa) → Grupo C (009 a 011, atinge o limite de propósito) → Grupo D (012 a 014). Esperar a janela do limite terminar entre CTs do mesmo usuário.</li><li>Segurado e Interno: cada CT usa o usuário indicado; CT sem identidade: ver DC6.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — A busca espera uma pausa na digitação (não há uma chamada por tecla) e continua funcionando</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-001</span><span class="ct-title">Digitação rápida contínua no campo de busca (perfil Segurado): o número de buscas enviadas fica muito abaixo do número de teclas</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (também confirma que a correção está publicada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada em HML (DoD). Perfil Segurado do tenant AXA logado por clique; Nova Averbação RCA-C aberta; caixa de apólices aberta.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora e o perfil; iniciar o registro das chamadas de rede da página.</li><li>Clicar no campo «Buscar por número ou segurado…» e digitar 40 caracteres seguidos, um por tecla, com cerca de 90 ms entre as teclas, sem pausa.</li><li>Parar de digitar e esperar a lista atualizar; registrar quantas buscas foram enviadas durante a digitação e depois da pausa.</li><li>Conferir o estado da caixa no fim (lista ou «Nenhuma apólice corresponde à busca.»).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As buscas enviadas são <b>muito menos que as 40 teclas</b> (uma por pausa na digitação; não uma por caractere); nenhuma resposta de limite; a caixa termina com o resultado do último texto digitado e sem mensagem de falha. Uma busca por tecla (≈40 chamadas) = REPROVADO. Evidência: captura da caixa no fim e o registro da digitação (teclas × chamadas × respostas).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-002</span><span class="ct-title">Digitação rápida contínua no campo de busca (perfil Interno): o número de buscas enviadas fica muito abaixo do número de teclas</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (perfil Interno)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada em HML. Perfil Interno do tenant AXA logado por clique; Nova Averbação RCA-C; caixa de apólices aberta.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora e o perfil; iniciar o registro das chamadas de rede.</li><li>Digitar 40 caracteres seguidos, ~90 ms entre as teclas, sem pausa.</li><li>Parar e esperar a lista atualizar; registrar o número de buscas enviadas.</li><li>Conferir o estado da caixa no fim.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo resultado do CT-BCA-001 no perfil Interno: buscas <b>muito menos que as teclas</b>, nenhuma resposta de limite, caixa com o resultado do último texto e sem mensagem de falha. Uma busca por tecla = REPROVADO. Evidência: captura e registro da digitação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-003</span><span class="ct-title">Digitação devagar: a busca continua respondendo depois da pausa e filtra a lista pelo texto digitado (contraprova de que a busca não foi apenas desligada)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (contraprova positiva: a busca executa)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado logado por clique; caixa de apólices aberta; um número de apólice que existe na lista, lido na tela.</li></ul>
+      <h4>Passos</h4><ol><li>Digitar os primeiros dígitos do número de uma apólice que existe na lista, com 1 segundo ou mais entre as teclas, e parar.</li><li>Anotar quantas buscas saíram e em quanto tempo a lista mudou depois da última tecla.</li><li>Conferir que a lista mostra a apólice digitada e só as que combinam com o texto.</li><li>Apagar o texto e conferir que a lista completa volta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A busca é enviada <b>depois da pausa</b> e a lista mostra a apólice procurada (filtrada) em tempo razoável (registrar a espera observada; mais de 1 segundo depois da última tecla é anotado como observação, DC2). Busca que nunca é enviada ou lista que não filtra = REPROVADO. Evidência: capturas da lista filtrada e da lista completa e o registro das buscas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-004</span><span class="ct-title">Colar o texto de uma vez continua fazendo uma só busca e funcionando (linha de base do card)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA1 (colar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado logado; caixa de apólices aberta.</li></ul>
+      <h4>Passos</h4><ol><li>Colar de uma vez, no campo de busca, uma sequência numérica de 300 dígitos sem apólice correspondente.</li><li>Registrar o número de buscas enviadas e a mensagem da caixa.</li><li>Limpar o campo e conferir que a lista completa volta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Uma</b> busca enviada; a caixa mostra «Nenhuma apólice corresponde à busca.»; sem mensagem de falha; ao limpar volta a lista completa. Mais de uma busca ou mensagem de falha = REPROVADO. Evidência: captura da mensagem e o registro das buscas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-005</span><span class="ct-title">Mudar o texto e limpar o campo durante a digitação: a caixa mostra sempre o resultado do último texto, nunca o de um texto antigo</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (ordem das respostas: cuidado de quem espera a pausa)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Interno logado; caixa de apólices aberta; um número de apólice que existe.</li></ul>
+      <h4>Passos</h4><ol><li>Digitar o número de uma apólice que existe e, antes de a lista atualizar, apagar tudo e digitar um texto sem correspondência.</li><li>Esperar a lista atualizar e anotar o que a caixa mostra.</li><li>Repetir ao contrário: texto sem correspondência e logo depois o número da apólice que existe.</li><li>Limpar o campo e conferir a lista completa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois de cada pausa a caixa mostra o resultado do <b>último</b> texto digitado (primeira rodada: «Nenhuma apólice corresponde à busca.»; segunda: a apólice); nunca fica o resultado de um texto antigo e nunca fica uma mensagem de falha. Resultado antigo sobrescrevendo o novo = REPROVADO. Evidência: capturas depois de cada rodada e o registro das buscas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-005"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo B — Uso intenso de digitação não atinge o limite de chamadas (Segurado e Interno)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-006</span><span class="ct-title">Digitação contínua longa (300 caracteres, ~39 s) no perfil Segurado: nenhuma resposta de limite e a caixa sem mensagem de falha</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (reprodução do Teste A do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado logado por clique; Nova Averbação RCA-C; caixa de apólices aberta; contador do usuário livre (esperar a janela).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora; iniciar o registro das chamadas.</li><li>Digitar 300 caracteres seguidos (o dígito 9, ~90 ms por tecla, cerca de 39 segundos), sem pausa.</li><li>Esperar 3 segundos e registrar: nº de buscas, nº de respostas de sucesso, nº de respostas de limite e o estado da caixa.</li><li>Limpar o campo, esperar 4 segundos e registrar o estado da caixa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Zero respostas de limite</b>; poucas buscas (uma por pausa, não 300); a caixa não mostra mensagem de falha durante nem depois; ao limpar volta a lista completa. Qualquer resposta de limite ou a mensagem de falha na tela = REPROVADO (no card: 241 limites em 300 chamadas). Evidência: captura da caixa no fim, captura depois de limpar e o registro completo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-007</span><span class="ct-title">Digitação contínua (100 caracteres, ~15 s) no perfil Interno: nenhuma resposta de limite e a caixa sem mensagem de falha</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (reprodução do Teste B do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Interno logado por clique; Nova Averbação RCA-C; caixa de apólices aberta; contador do usuário livre.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora; iniciar o registro das chamadas.</li><li>Digitar 100 caracteres seguidos (~90 ms por tecla, cerca de 15 segundos), sem pausa.</li><li>Esperar 3 segundos; registrar nº de buscas, respostas de sucesso, respostas de limite e o estado da caixa.</li><li>Limpar o campo e registrar o estado depois de 4 segundos.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Zero respostas de limite</b>; poucas buscas; sem mensagem de falha na caixa; ao limpar volta a lista completa. Resposta de limite ou mensagem de falha = REPROVADO (no card: 41 limites em 100 chamadas). Evidência: capturas e registro completo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-008</span><span class="ct-title">Uso realista por mais de um minuto: digitar, esperar, apagar e digitar outra busca várias vezes, sem bloqueio</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (uso normal prolongado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado logado por clique; caixa de apólices aberta; contador livre.</li></ul>
+      <h4>Passos</h4><ol><li>Durante pelo menos 70 segundos, fazer em sequência: digitar um número de apólice em ritmo normal, esperar a lista, apagar, digitar outro texto, esperar, repetir (pelo menos 15 buscas completas).</li><li>Registrar nº de buscas enviadas, respostas de sucesso e de limite e o estado final da caixa.</li><li>Escolher uma apólice da lista no fim e conferir que o subgrupo carrega.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as buscas respondem com sucesso, <b>nenhuma resposta de limite</b>, sem mensagem de falha em momento algum, e a escolha final funciona. Resposta de limite em uso normal = REPROVADO. Evidência: registro da sessão e capturas da caixa e do subgrupo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Limite atingido: a tela informa o motivo e a caixa volta ao normal sozinha</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-009</span><span class="ct-title">Limite atingido de propósito: a tela informa o motivo e não mostra a mensagem genérica «Não foi possível listar apólices. Tente novamente.»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Interno logado por clique; caixa de apólices aberta. Para atingir o limite a QA repete buscas além do volume por minuto por script sobre a sessão (roteiro no guia privado) e depois usa a caixa pela tela. Registrar o valor em vigor em HML (DC3).</li></ul>
+      <h4>Passos</h4><ol><li>Atingir o limite de chamadas do usuário (confirmado por uma resposta de limite no registro).</li><li>Com o limite ativo, digitar um texto no campo de busca e esperar a pausa.</li><li>Ler e copiar o texto exato da mensagem da caixa e a lista que aparece.</li><li>Conferir se a mensagem diz o motivo (muitas buscas seguidas / aguardar) e se NÃO é a frase genérica de falha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A caixa mostra uma mensagem em português que <b>informa o motivo</b> e pede para aguardar (DC1), sem texto técnico e <b>diferente da frase genérica</b> «Não foi possível listar apólices. Tente novamente.»; a lista anterior não é apresentada como resultado da busca atual. A frase genérica com o limite ativo = REPROVADO. Evidência: captura da caixa com a mensagem, o texto exato registrado e a prova de que o limite estava ativo (resposta de limite no registro).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-010</span><span class="ct-title">Depois da janela do limite a caixa volta ao normal sozinha, sem recarregar a página, e a busca funciona (contraprova positiva)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Continuação do CT-BCA-009, com o limite ainda ativo e a mensagem na tela. Sem recarregar a página.</li></ul>
+      <h4>Passos</h4><ol><li>Esperar o tempo que a própria mensagem indicar (ou, se não indicar, esperar 70 segundos), sem recarregar nem trocar de tela; registrar o tempo esperado.</li><li>Digitar novamente um número de apólice que existe na lista e esperar a pausa.</li><li>Conferir que a mensagem sumiu e a lista mostra a apólice.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem some e a busca volta a listar a apólice <b>sem recarregar a página</b> e sem nova ação do usuário além de digitar. Caixa que continua com a mensagem de limite depois da janela, ou que exige recarregar a página = REPROVADO. Evidência: capturas antes e depois e o tempo medido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-011</span><span class="ct-title">Com a mensagem de limite na tela (perfil Segurado), limpar o campo remove a mensagem e a lista completa volta (no card a falha permaneceu depois de limpar)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 (comportamento medido no Teste A do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado logado; caixa de apólices aberta; limite atingido como no CT-BCA-009 (aguardar a janela de CT anterior do mesmo usuário).</li></ul>
+      <h4>Passos</h4><ol><li>Com o limite ativo e a mensagem na tela, limpar o campo de busca.</li><li>Esperar 4 segundos e registrar o estado da caixa (mensagem e lista).</li><li>Se a mensagem continuar, esperar a janela do limite e registrar quando ela sai.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ao limpar o campo a mensagem de limite sai (ou, no máximo, enquanto o limite estiver realmente ativo ela traz o motivo e volta sozinha ao fim da janela) e a lista completa reaparece; a mensagem não permanece indefinidamente depois de a janela passar. Mensagem de falha permanecendo depois de limpar e depois da janela = REPROVADO. Evidência: capturas 4 segundos depois de limpar e depois da janela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-011"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo D — Alcance, regressão e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-012</span><span class="ct-title">Alcance: onde mais a mesma caixa de apólices aparece no CITNET Novo, o mesmo critério vale (uma busca por pausa)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — alcance (DC4; o card mediu só a RCA-C)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Interno logado por clique. Conferir pelo menu quais telas têm o seletor APÓLICE com o campo «Buscar por número ou segurado…» (Nova Averbação de outros ramos e a Consulta de Averbações).</li></ul>
+      <h4>Passos</h4><ol><li>Pelo menu, listar as telas com a caixa de apólices e registrar o nome de cada uma.</li><li>Em cada tela encontrada, digitar 30 caracteres seguidos (~90 ms por tecla) e registrar buscas enviadas × teclas e se houve limite.</li><li>Registrar o resultado por tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada tela com a caixa, as buscas enviadas ficam muito abaixo das teclas e não há resposta de limite. Divergência é classificada conforme DC4: defeito do card se a correção era esperada ali; achado separado se for outro componente. Evidência: lista das telas conferidas e o registro por tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-013</span><span class="ct-title">Regressão: depois de buscar, escolher a apólice na lista continua funcionando (subgrupo e demais campos do protocolo carregam)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — seleção da apólice após a busca</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Perfil Segurado e depois Interno logados; Nova Averbação RCA-C; caixa de apólices aberta.</li></ul>
+      <h4>Passos</h4><ol><li>Digitar parte do número de uma apólice que existe e esperar a pausa.</li><li>Clicar na apólice filtrada na lista.</li><li>Conferir que a apólice fica selecionada e que o subgrupo e os campos seguintes carregam.</li><li>Reabrir a caixa, limpar o campo e escolher outra apólice sem digitar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A apólice escolhida fica selecionada e os campos seguintes carregam, tanto escolhendo depois de buscar quanto sem buscar. Apólice que não seleciona ou campos que não carregam = REPROVADO. Nenhuma averbação é gravada. Evidência: capturas da apólice selecionada e do subgrupo carregado nos dois perfis.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-BCA-014</span><span class="ct-title">Exploratório: F5 durante a digitação, trocar de filial com texto no campo, colar e apagar com atalhos, acentos, abrir e fechar a caixa</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11 (15 a 30 minutos, guiado por risco)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Perfis Segurado e Interno logados; CTs formais concluídos.</li></ul>
+      <h4>Passos</h4><ol><li>Digitar e atualizar a página (F5) no meio; conferir a caixa depois de abrir de novo.</li><li>Trocar de filial ou de ramo com texto no campo e conferir a lista.</li><li>Colar, apagar com Ctrl+Backspace, digitar com acentos e espaços; abrir e fechar a caixa várias vezes.</li><li>Registrar qualquer comportamento inesperado (busca que não sai, mensagem técnica, lista antiga, caixa travada).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma busca fica pendente exibindo resultado antigo, nenhuma mensagem técnica, nenhuma caixa travada. Se houver defeito, classificar (do card × pré-existente, A9) e abrir o item correspondente. Sem ocorrências: comentar no card «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (sem aprovação de Produtos: card com a tag sem-gate2-po). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-BCA-014"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Digitar rápido não gera uma chamada por tecla (a busca aguarda uma pausa)</td><td>CT-BCA-001 · CT-BCA-002 · CT-BCA-003 · CT-BCA-004 · CT-BCA-005</td><td>Pendente</td></tr><tr><td>CA2 — O uso normal não atinge o limite de chamadas</td><td>CT-BCA-006 · CT-BCA-007 · CT-BCA-008</td><td>Pendente</td></tr><tr><td>CA3 — Limite atingido: a tela informa o motivo (não a mensagem genérica)</td><td>CT-BCA-009</td><td>Pendente</td></tr><tr><td>CA4 — A caixa volta ao normal sozinha quando o limite liberar</td><td>CT-BCA-010 · CT-BCA-011</td><td>Pendente</td></tr><tr><td>Alcance (mesma caixa em outros módulos) e regressão da seleção da apólice</td><td>CT-BCA-012 · CT-BCA-013</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-BCA-014</td><td>Pendente</td></tr><tr><td>Valor e camada do limite (aplicação ou borda); relatórios e KEV (#9795); lista lenta do Segurado (#9557)</td><td>— fora do escopo (desenvolvimento / outros cards)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 4 critérios de aceite do card (CA1 a CA4) mapeados a CTs (100% dos critérios observáveis), mais alcance em outros módulos, regressão da seleção da apólice e exploratório. As três medições do card (Segurado 300 teclas, Interno 100 teclas e a linha de base de colar) viram CTs de reprodução (CT-BCA-006, 007 e 004).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não publicada em HML ou entregue por outro card (#9795) só para o KEV</td><td>Alta</td><td>Média</td><td>Execução só com o card em homologação e a correção no ar; o CT-BCA-001 prova no AXA; se a busca ainda sai por tecla, REPROVADO (DC5).</td></tr><tr><td>A digitação de teste atingir o limite e travar outras execuções do mesmo usuário</td><td>Média</td><td>Média</td><td>Esperar a janela entre CTs do mesmo usuário; registrar horário e o valor em vigor (DC3).</td></tr><tr><td>Pausa longa demais deixar a busca lenta mesmo sem erro</td><td>Média</td><td>Baixa</td><td>Registrar a espera observada no CT-BCA-003; acima de 1 s é observação de usabilidade (DC2).</td></tr><tr><td>Resposta antiga sobrescrever a nova quando a busca espera a pausa</td><td>Média</td><td>Alta</td><td>CT-BCA-005 confere o resultado do último texto digitado.</td></tr><tr><td>Aprovar por «sem erro na tela» sem contar as buscas</td><td>Média</td><td>Alta</td><td>Todo CT de digitação grava a contagem de buscas e de respostas de limite (oráculo do card).</td></tr><tr><td>Login do Novo barrar a execução por limite de tentativas</td><td>Média</td><td>Baixa</td><td>Espaçar logins; reaproveitar a sessão já logada; limite de login não é reprovação do card.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · card em In Progress · plano sem aprovação de Produtos (sem-gate2-po) · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
