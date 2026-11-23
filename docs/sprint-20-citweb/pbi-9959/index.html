@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9959 · Mitsui — Conversor de Arquivos: conversão em uma sessão bloqueia outra sessão ociosa do mesmo usuário</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9959 · Sprint 20</span>
+    <h1>Mitsui — Conversor de Arquivos: a conversão em uma sessão bloqueia outra sessão ociosa do mesmo usuário</h1>
+    <div class="sub">CITWEB Nacional — Conversor de Arquivos · Mitsui · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">11</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">8/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 11 executados · 11 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>11 CTs</strong> (8×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 11}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Quando a mesma pessoa usa o Conversor de Arquivos em duas janelas ao mesmo tempo, o que acontece numa janela (contagem das linhas convertidas, a mensagem «Gravando no banco de dados» e o bloqueio dos botões) aparece também na outra janela, mesmo ela estando parada. O card pede que cada janela mostre e bloqueie só o que é dela.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 11 situações com duas janelas abertas pelo mesmo usuário na Mitsui: uma converte e a outra fica parada (sem arquivo e com arquivo já escolhido); as duas convertem ao mesmo tempo, com quantidades de linhas diferentes para ver se os números se misturam; janelas em dois tipos de averbação ao mesmo tempo (RCTR-C / RC-DC e Transporte Nacional); uma janela aberta no meio da conversão da outra; outro usuário; e que a janela que converte continua vendo o seu próprio andamento.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está «New» e a execução começa quando ele for liberado para homologação. Por ser um Bug, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem trabalha com duas janelas não vai mais ter a tela travada ou com números de outra conversão sem ter feito nada, e cada conversão continua mostrando o seu próprio andamento.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Onde o card não diz o resultado exato, a QA adotou como regra: a janela parada deve ficar exatamente como estava; a janela que converte continua vendo o seu andamento e o bloqueio; para «dois ramos» usamos RCTR-C / RC-DC e Transporte Nacional. Produtos pode pedir outro par de ramos ao ler o plano.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b>, tenant <b>Mitsui</b> — módulo <b>Conversor de Arquivos</b> › Converte Arquivo › <b>RCTR-C / RC-DC</b> (ramos 54 e 55). O defeito aparece quando o <b>mesmo usuário</b> está com <b>duas sessões abertas</b>: ao converter na sessão A, a sessão B — parada, sem arquivo e sem ter acionado nada — passa a mostrar os contadores e a mensagem de progresso de A e fica com os botões bloqueados.</td></tr><tr><th>Card</th><td>BUG-9959 — «[ CITWEB - Mitsui ] Conversão em uma sessão bloqueia outra sessão ociosa do mesmo usuário» · board CITWEB Team (CITWEB) · Sprint 20 · estado <b>New</b> · tags citweb, tenant Mitsui e ambiente HML Mitsui · sem tarefas filhas · sem comentários · 3 imagens anexadas · achado do Voidr (DEF-123), aberto pelo Wesley Moreira · 4 critérios de aceite testáveis.</td></tr><tr><th>Tasks de QA</th><td>#9961 [QA] Plano de teste — BUG #9959 (este plano; fecha na entrega). <b>Bug: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em «Pronto para homologação» (ou Em homologação).</td></tr><tr><th>Ambiente</th><td>HML do CITWEB Nacional, tenant Mitsui (endereços no arquivo de ambiente do time). Produção e staging não entram: N/A. A versão (build) exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O Conversor de Arquivos mostra o progresso da conversão (contadores de linhas incluídas, mensagem «Gravando no banco de dados. Aguarde» e uma camada que bloqueia a tela) por um canal de notificações em tempo real que agrupa as sessões <b>pelo usuário</b> e aplica cada atualização à tela <b>sem verificar de qual operação ela veio</b>. Com duas sessões do mesmo usuário, a conversão de A atualiza também a tela de B. O que o card relata (medido pelo Voidr em 23/11/2026): B não enviou nenhuma ação, mas recebeu nove atualizações de A, os contadores passaram de 0 para 2 incluídas, apareceu «Gravando no banco de dados. Aguarde» em 90%, surgiu a camada de bloqueio e Importar e Novo ficaram desabilitados, embora B continuasse sem arquivo selecionado. O oráculo deste plano é a <b>tela da sessão B</b> (contadores, mensagem, camada de bloqueio, botões e arquivo) lida continuamente enquanto A converte, mais a <b>tela de A</b> (que deve concluir normalmente):</p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — Repetir com duas sessões independentes do mesmo usuário; converter em A e manter B ociosa</td><td>CT-ISO-001 · CT-ISO-002</td></tr><tr><td><b>CA2</b> — B deve preservar arquivo, contadores, progresso e estado dos controles, sem receber bloqueio da operação de A</td><td>CT-ISO-001 · CT-ISO-003 · CT-ISO-004</td></tr><tr><td><b>CA3</b> — Correlacionar eventos à operação correta; concluir a carga de A normalmente</td><td>CT-ISO-002 · CT-ISO-005 · CT-ISO-008</td></tr><tr><td><b>CA4</b> — Conferir operações simultâneas em dois ramos, sem cruzamento dos contadores ou bloqueios</td><td>CT-ISO-006 · CT-ISO-007</td></tr><tr><td>Regressão e controles (a sessão que converte continua vendo o seu progresso; outro usuário; sessão que entra no meio; exploratório)</td><td>CT-ISO-008 · CT-ISO-009 · CT-ISO-010 · CT-ISO-011</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Descrição (campo de reprodução do Bug), 4 critérios de aceite, 3 anexos e o campo de informações do sistema lidos por inteiro; card sem tarefas filhas e sem comentários; o card cita #9196 (queda da aplicação em acessos subsequentes) e #5933 (login concorrente, removido) e os afasta como duplicados; o vínculo com um commit de correção existe, mas o plano julga <b>o comportamento na tela</b>, nunca a presença do commit. <b>Tags:</b> citweb, tenant Mitsui e ambiente HML Mitsui (sistema e seguradora identificados). Bug com contexto, passos, resultado esperado × obtido, usuário, ambiente e evidências. <b>Ramo declarado:</b> RCTR-C / RC-DC (54 e 55); para o CA4 o plano usa também Transporte Nacional (DC2). Os critérios de aceite têm oráculo observável na tela das duas sessões. <b>Não é débito técnico:</b> há comportamento observável pelo usuário (tela bloqueada sem ele ter feito nada). <b>Bug sem a tag DEFEITO:</b> segue o fluxo de Bug, com plano e sem aprovação de Produtos.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em Pronto para homologação:</b> O card está em <b>New</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug: sem aprovação de Produtos</b> — nada mais a aguardar além do estado do card e da pré-verificação do ambiente.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>O que conta como «não receber nada» na sessão B</b></td><td>O card pede que B preserve «arquivo, contadores, progresso e estado dos controles». <b>Posição do QA:</b> o esperado é que a tela de B fique <b>idêntica</b> antes, durante e depois da conversão de A — contadores no valor que tinham, nenhuma mensagem de progresso, nenhuma camada de bloqueio, Importar e Novo no estado em que estavam, arquivo e layout (se houver) intactos. O oráculo é a leitura da tela de B a cada meio segundo, do início de A até 10 s depois do fim, mais capturas antes/durante/depois. O plano não prescreve a solução técnica (por operação, por sessão ou por conexão); julga só o comportamento.</td></tr><tr><td><b>DC2</b></td><td><b>Segundo ramo do CA4</b></td><td>O card diz «dois ramos» sem dizer quais. <b>Posição do QA:</b> RCTR-C / RC-DC (54 e 55) na sessão A e <b>Transporte Nacional</b> na sessão B, os dois itens do menu Converte Arquivo. Ramo diferente do escolhido pode ser pedido por Produtos ao ler o plano; não trava a execução.</td></tr><tr><td><b>DC3</b></td><td><b>O bloqueio na própria sessão que converte continua obrigatório</b></td><td>A nota do card diz para <b>não remover a camada de bloqueio nem desligar o canal em tempo real</b> para mascarar o sintoma. <b>Posição do QA:</b> a sessão A deve continuar vendo contadores, a mensagem «Gravando no banco de dados. Aguarde» e a camada de bloqueio durante a sua conversão (CT-ISO-008); correção que apaga o progresso de todas as sessões, inclusive a de quem converte, reprova.</td></tr><tr><td><b>DC4</b></td><td><b>Intermitência e tempo</b></td><td>O Voidr reproduziu de forma controlada, mas o defeito depende de a atualização chegar enquanto B está aberta. <b>Posição do QA:</b> o CT principal (CT-ISO-001) roda <b>duas rodadas</b>, a segunda com B aberta há mais de 1 minuto, e a leitura de B começa <b>antes</b> do clique em Converter em A; o CT só é aprovado se as duas rodadas terminarem com B idêntica ao estado inicial.</td></tr><tr><td><b>DC5</b></td><td><b>Versão em teste e massa (a QA resolve; nenhuma pergunta ao dev)</b></td><td>A QA testa o que está na homologação: passou = aprovado; falhou = REPROVADO com defeito. A versão da tela é só registrada. Usuário de teste, segundo usuário (CT-ISO-009), planilhas sintéticas de 2 e de 3 linhas e o layout próprio por ramo são massa da QA, criados pela tela quando faltarem; a QA não escreve dado de negócio no banco.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Duas sessões independentes (contextos de navegador separados, login separado) do <b>mesmo usuário</b> do tenant Mitsui no Conversor de Arquivos: sessão ociosa, sessão com arquivo importado e sessão que também converte.</li><li>Isolamento do progresso: contadores, mensagem de gravação, camada de bloqueio, botões Importar e Novo, arquivo e layout da sessão que <b>não</b> converte.</li><li>Conclusão normal da conversão na sessão que converte (2 de 2 linhas incluídas, sem erros) e o progresso próprio visível nela.</li><li>Conversões simultâneas no mesmo ramo e em dois ramos (RCTR-C / RC-DC e Transporte Nacional); outro usuário; sessão aberta durante a conversão; exploratório.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Código do canal de notificações no servidor</b> e a causa raiz — o card informa que o lado do servidor não foi auditado; o plano julga o comportamento, não a implementação.</li><li><b>#9196</b> (queda da aplicação em acessos subsequentes) e <b>#5933</b> (login concorrente, removido): cards distintos, afastados como duplicados pelo próprio card.</li><li><b>Processar as averbações</b> depois da conversão e a regra de negócio do conteúdo convertido — fora do que o card relata; nenhuma averbação é processada por este plano.</li><li>Outras seguradoras e demais ramos do Conversor; desempenho de carga.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano e o card está em <b>New</b>. Os passos seguem o fluxo reproduzido pelo Voidr no próprio card (3 imagens anexadas) e o fluxo do Conversor já mapeado em tela no projeto (menu Converte Arquivo › RCTR-C / RC-DC, Importar, modal da planilha, layout de entrada, Salvar, Converter). O que a tela mostra de fato no tenant Mitsui (rótulos, ordem, mensagens, versão) é registrado na execução como observado. A QA não escreve dado de negócio no banco; a massa concreta vai para o guia privado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB Nacional, tenant Mitsui (endereços no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Duas sessões independentes</b> — Dois contextos de navegador separados (sem cookie em comum), cada um com login próprio do mesmo usuário de teste da QA, ambos por clique desde a tela de login. O script de execução mantém os dois abertos ao mesmo tempo e lê a tela de B enquanto A converte.</li><li><b>Massa da QA</b> — Planilha XLSX sintética de <b>2 linhas</b> e outra de <b>3 linhas</b> (sem CNPJ/CPF) no layout válido do ramo; layout de entrada <b>próprio da QA</b> criado na execução, um por ramo; um segundo usuário do tenant (CT-ISO-009). Valores no guia privado, reconfirmados no instante do CT.</li><li><b>Ferramentas</b> — Script local (Playwright) com dois contextos; grava captura por CT nos três momentos (antes, durante, depois) e imprime só o veredito e o caminho dos arquivos. Credencial nunca é impressa. Sessão do sistema pode degradar após cerca de 1 h: refazer o login.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura das <b>duas</b> sessões desde o login, antes, durante e depois; o registro da leitura de B (contadores, mensagem, camada, botões) com horário; a tela de A ao concluir. Documento e nome de segurado mascarados.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login das duas sessões:</b> abrir o CITWEB do tenant Mitsui em dois contextos separados e entrar com o mesmo usuário de teste, por clique desde a tela de login (sessão B primeiro, depois a sessão A).</li><li><b>N2 — Módulo:</b> em cada sessão, clicar no módulo <b>Conversor de Arquivos</b> (abre em nova aba), depois no menu <b>Converte Arquivo</b> e no item do ramo (<b>RCTR-C / RC-DC</b> ou <b>Transporte Nacional</b>). Atenção: «Converte Arquivo» e «Processa Averbações» têm itens homônimos — abrir o menu certo primeiro.</li><li><b>N3 — Estado inicial de B:</b> sem arquivo, contadores zerados, sem camada de bloqueio, Importar e Novo habilitados; registrar captura e leitura.</li><li><b>N4 — Conversão em A:</b> Importar a planilha de 2 linhas (modal da planilha: «Não»), escolher/criar o layout de entrada próprio, mapear os campos, Salvar e clicar em Converter.</li><li><b>N5 — Leitura de B durante A:</b> do instante antes do clique em Converter até 10 s depois do fim da conversão de A, ler a tela de B a cada 0,5 s (contadores, texto de progresso, camada de bloqueio, estado de Importar e Novo, nome do arquivo) e capturar antes, durante e depois.</li><li><b>N6 — Registro:</b> data/hora, versão exibida na tela, texto exato das mensagens, valores dos contadores e o estado dos botões de cada sessão, nos três momentos, no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário de teste da QA (Mitsui):</b> O mesmo usuário nas duas sessões (A e B); dados no guia privado.</li><li><b>Segundo usuário do tenant:</b> Outro usuário com acesso ao Conversor, para o CT-ISO-009; a QA cria ou edita pela tela se faltar.</li><li><b>Planilha de 2 linhas:</b> XLSX sintético, layout válido do ramo; a sessão A converte «2 incluídas, sem erros».</li><li><b>Planilha de 3 linhas:</b> XLSX sintético, layout válido do ramo; usado na sessão B quando B importa ou converte (contadores diferentes dos de A para detectar cruzamento).</li><li><b>Layout de entrada próprio da QA:</b> Um para RCTR-C / RC-DC e um para Transporte Nacional, criados na execução (um layout por usuário e ramo).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e das duas sessões; registrar versão e estado inicial de B.</li><li>Grupo A (CT-ISO-001 a 005) → Grupo B (006 e 007) → Grupo C (008 a 011).</li><li>Cada CT usa sessões novas e a sua própria planilha; nenhum CT depende do resultado de outro; nenhuma averbação é processada.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Duas sessões do mesmo usuário, mesmo ramo: a sessão ociosa não recebe nada (CA1, CA2 e CA3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-001</span><span class="ct-title">RCTR-C / RC-DC: A converte e B (mesmo usuário, parada, sem arquivo) não recebe contadores, mensagem nem bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA2 (reprodução do card; leitura contínua da tela de B)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Duas sessões do mesmo usuário (N1 e N2) no ramo RCTR-C / RC-DC; planilha de 2 linhas; layout próprio da QA (massa no guia privado). B aberta há pouco tempo na rodada 1 e há mais de 1 minuto na rodada 2 (DC4).</li></ul>
+      <h4>Passos</h4><ol><li>Sessão B: entrar, abrir RCTR-C / RC-DC e registrar o estado inicial com captura (N3). Não importar arquivo e não clicar em nada.</li><li>Sessão A: entrar de forma independente, abrir o mesmo ramo, importar a planilha de 2 linhas, criar e salvar o layout e clicar em Converter (N4).</li><li>Durante toda a conversão de A, ler a tela de B a cada 0,5 s e capturar antes, durante e depois (N5); repetir a rodada com B aberta há mais de 1 minuto (DC4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela de B permanece <b>idêntica ao <b>estado inicial de B</b> (sem arquivo, contadores zerados, sem camada de bloqueio, Importar e Novo habilitados)</b> do início ao fim, nas duas rodadas: contadores em zero (nunca «2 incluídas»), <b>nenhuma</b> mensagem «Gravando no banco de dados. Aguarde», <b>nenhuma</b> camada de bloqueio e Importar e Novo <b>habilitados</b>; B continua sem arquivo. Qualquer mudança na tela de B causada por A = REPROVADO. Evidência: capturas de B e de A nos três momentos e o registro da leitura de B; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-002</span><span class="ct-title">RCTR-C / RC-DC: a conversão de A conclui normalmente (2 de 2 incluídas, sem erros) com progresso próprio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA3 (a operação de A não pode ser prejudicada pela correção nem pela outra sessão)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesmas sessões e massa do CT-ISO-001, B ociosa durante a conversão de A.</li></ul>
+      <h4>Passos</h4><ol><li>Na sessão A, acompanhar a conversão iniciada no CT-ISO-001 até o fim (leitura a cada 0,5 s).</li><li>Registrar os contadores finais, a mensagem de progresso e o estado de Importar, Novo e Converter ao término.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conclui com <b>2 de 2 linhas incluídas e sem erros</b>; durante a conversão A mostra os <b>seus</b> contadores subindo e o progresso, e ao final os botões voltam ao estado normal de uma conversão concluída. Contador diferente de 2 incluídas, erro ou tela travada em A = REPROVADO. Evidência: tela de A durante e depois; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-003</span><span class="ct-title">RCTR-C / RC-DC: B com arquivo importado e layout escolhido preserva arquivo, grade, layout e botões quando A converte</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (B ativa, mas sem converter; discriminador: arquivo de 3 linhas em B × 2 em A)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Duas sessões do mesmo usuário; B com a planilha de 3 linhas importada e o layout escolhido, sem clicar em Converter; A com a planilha de 2 linhas.</li></ul>
+      <h4>Passos</h4><ol><li>Em B: importar a planilha de 3 linhas, escolher o layout e registrar com captura o nome do arquivo, as linhas da grade, o layout e o estado dos botões.</li><li>Em A: importar a planilha de 2 linhas, salvar o layout e clicar em Converter; ler B a cada 0,5 s (N5).</li><li>Ao fim de A, comparar a tela de B com o registro do passo 1.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>B <b>preserva</b> o nome do arquivo, as 3 linhas da grade, o layout escolhido e o estado dos botões que tinha antes, <b>sem</b> contadores de A, <b>sem</b> mensagem de gravação e <b>sem</b> camada de bloqueio; o botão Converter de B continua disponível como antes. Arquivo ou grade apagados, contador «2» em B, bloqueio ou botão mudado = REPROVADO. Evidência: B antes e depois e o registro da leitura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-004</span><span class="ct-title">RCTR-C / RC-DC: depois da conversão de A, B continua utilizável e converte com os seus próprios contadores (3 de 3), sem herdar os de A</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (contraprova positiva: B funciona e não carrega estado de A)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Estado do CT-ISO-003 após A concluir (B com a planilha de 3 linhas e layout escolhido).</li></ul>
+      <h4>Passos</h4><ol><li>Em B, sem recarregar a tela, clicar em Converter e acompanhar até o fim (leitura a cada 0,5 s).</li><li>Registrar os contadores e as mensagens de B e confirmar que A (já concluída) não mudou.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>B converte <b>3 de 3 linhas incluídas e sem erros</b>, com contadores que começam em zero e sobem só pela operação de B (nunca partindo de «2» de A), e termina com os botões normais; a tela de A, já concluída, não é alterada pela conversão de B. Contador herdado de A, bloqueio que não sai ou erro em B = REPROVADO. Evidência: B durante e depois e A depois; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-005</span><span class="ct-title">RCTR-C / RC-DC: A e B convertem ao mesmo tempo (2 e 3 linhas) — cada sessão mostra só os seus contadores, sem cruzamento nem bloqueio cruzado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA3 (correlação das atualizações à operação correta; discriminador: 2 × 3 linhas)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Duas sessões do mesmo usuário no mesmo ramo, A com a planilha de 2 linhas e B com a de 3 linhas, ambas prontas para Converter.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em Converter em A e, em até 1 segundo, clicar em Converter em B.</li><li>Ler as duas telas a cada 0,5 s até as duas concluírem; registrar os contadores finais e as mensagens de cada uma.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A termina com <b>2 de 2</b> e B com <b>3 de 3</b>, <b>sem</b> soma, troca ou mistura de valores entre as telas (nunca «5» nem «2» em B, nem «3» em A); cada sessão mostra o progresso e a camada de bloqueio <b>só durante a própria conversão</b> e as duas concluem sem erro. Contador cruzado, bloqueio da sessão que não está convertendo ou uma conversão que não termina = REPROVADO. Evidência: as duas telas durante e depois e o registro das leituras; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Duas sessões do mesmo usuário em ramos diferentes e conversões simultâneas (CA4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-006</span><span class="ct-title">Dois ramos: A converte em RCTR-C / RC-DC e B, ociosa em Transporte Nacional, não recebe contadores, mensagem nem bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 (operações em ramos diferentes; regra por ramo: não generalizar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Duas sessões do mesmo usuário: B aberta em Converte Arquivo › Transporte Nacional, sem arquivo; A em RCTR-C / RC-DC com a planilha de 2 linhas e o layout próprio (DC2).</li></ul>
+      <h4>Passos</h4><ol><li>Sessão B: abrir Transporte Nacional e registrar o estado inicial com captura.</li><li>Sessão A: importar, salvar o layout e clicar em Converter no RCTR-C / RC-DC.</li><li>Ler a tela de B a cada 0,5 s durante toda a conversão de A (N5) e capturar antes, durante e depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela de B (Transporte Nacional) permanece <b>idêntica ao estado inicial</b>: contadores em zero, sem mensagem de gravação, sem camada de bloqueio, Importar e Novo habilitados; A conclui 2 de 2. Qualquer mudança na tela de B = REPROVADO. Evidência: B e A nos três momentos e o registro da leitura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-007</span><span class="ct-title">Dois ramos: A (RCTR-C / RC-DC, 2 linhas) e B (Transporte Nacional, 3 linhas) convertem ao mesmo tempo sem cruzar contadores nem bloqueios</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 (simultâneas em dois ramos; discriminador: 2 × 3 linhas)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Duas sessões do mesmo usuário, cada uma no seu ramo, com planilha e layout próprios prontos para Converter (A: 2 linhas; B: 3 linhas).</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em Converter em A e, em até 1 segundo, em B.</li><li>Ler as duas telas a cada 0,5 s até as duas concluírem e registrar os contadores finais e as mensagens.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A termina com <b>2 de 2</b> e B com <b>3 de 3</b>, sem valores cruzados e com a camada de bloqueio de cada sessão só durante a sua conversão; as duas concluem sem erro. Contador cruzado, bloqueio indevido ou conversão que não termina = REPROVADO. Evidência: as duas telas durante e depois e o registro das leituras; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão do progresso na própria sessão, controles e exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-008</span><span class="ct-title">Regressão: numa sessão só, o progresso da conversão continua aparecendo (contadores, mensagem de gravação e camada de bloqueio) e libera ao final</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — DC3 (a correção não pode apagar o progresso de quem converte)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma única sessão do usuário no RCTR-C / RC-DC com a planilha de 2 linhas e o layout próprio.</li></ul>
+      <h4>Passos</h4><ol><li>Importar, salvar o layout e clicar em Converter, lendo a tela a cada 0,5 s.</li><li>Registrar quando aparecem os contadores, a mensagem «Gravando no banco de dados. Aguarde» e a camada de bloqueio, e quando os botões voltam ao normal.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Durante a conversão a própria sessão mostra <b>os contadores subindo até 2 incluídas</b>, a <b>mensagem de gravação</b> e a <b>camada de bloqueio</b> (os botões ficam desabilitados) e, ao concluir, a camada some e os botões voltam ao estado normal. Progresso ausente, tela sem bloqueio durante a gravação ou bloqueio que não sai = REPROVADO. Evidência: capturas durante e depois e o registro da leitura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-009</span><span class="ct-title">Controle: B com outro usuário do mesmo tenant não recebe nada da conversão de A (isolamento entre usuários continua valendo)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — controle (contraprova: o comportamento esperado entre usuários distintos já deve ser o isolado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Duas sessões de usuários diferentes do tenant Mitsui, ambas no RCTR-C / RC-DC, B ociosa (segundo usuário criado pela tela se faltar, DC5).</li></ul>
+      <h4>Passos</h4><ol><li>Sessão B (outro usuário): abrir o ramo e registrar o estado inicial.</li><li>Sessão A: converter a planilha de 2 linhas; ler B a cada 0,5 s e capturar antes, durante e depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela de B permanece <b>idêntica ao estado inicial</b> durante e depois da conversão de A; A conclui 2 de 2. Qualquer contador, mensagem ou bloqueio em B = REPROVADO (e seria uma falha mais ampla do que a do card). Evidência: B e A nos três momentos; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-010</span><span class="ct-title">Sessão B aberta no meio da conversão de A: não herda contadores, mensagem nem bloqueio</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (sessão que entra tarde)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Sessão A pronta para Converter com a planilha de 2 linhas; sessão B ainda não aberta (mesmo usuário).</li></ul>
+      <h4>Passos</h4><ol><li>Em A, clicar em Converter; assim que o progresso aparecer, abrir a sessão B (login, Conversor de Arquivos, Converte Arquivo, RCTR-C / RC-DC) e capturar.</li><li>Ler a tela de B a cada 0,5 s até A concluir e por mais 10 s.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>B abre no <b>estado inicial</b> (sem arquivo, contadores zerados, sem camada de bloqueio, Importar e Novo habilitados) e assim permanece, sem receber o progresso em andamento de A nem o final; A conclui 2 de 2. Qualquer contador, mensagem ou bloqueio em B = REPROVADO. Evidência: B ao abrir e depois e A ao concluir; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-ISO-011</span><span class="ct-title">Exploratório (NOR_QA_002 seção 11): 15 a 30 min guiados por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Massa dos CTs anteriores.</li></ul>
+      <h4>Passos</h4><ol><li>Três sessões do mesmo usuário (duas ociosas) enquanto uma converte; conferir as duas ociosas.</li><li>Conversão com uma linha inválida em A (erro de conversão) e conferir se a contagem de erros aparece só em A.</li><li>Em B, trocar de ramo e usar Novo durante a conversão de A; recarregar B no meio e conferir o estado.</li><li>Cancelar a conversão ou fechar A no meio e conferir se B fica livre.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma sessão ociosa recebe contadores, mensagens ou bloqueio de outra; erros contados só na sessão que os gerou; B utilizável após fechar ou recarregar A. O que divergir é registrado como observado. Sem ocorrências: comentar no card «Exploratório executado [data HML]. Sem ocorrências.» Evidência: capturas das ocorrências; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-ISO-011"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Repetir com duas sessões independentes do mesmo usuário; converter em A e manter B ociosa</td><td>CT-ISO-001 · CT-ISO-002</td><td>Pendente</td></tr><tr><td>CA2 — B preserva arquivo, contadores, progresso e estado dos controles, sem receber bloqueio da operação de A</td><td>CT-ISO-001 · CT-ISO-003 · CT-ISO-004 · CT-ISO-010</td><td>Pendente</td></tr><tr><td>CA3 — Correlacionar eventos à operação correta; concluir a carga de A normalmente</td><td>CT-ISO-002 · CT-ISO-005 · CT-ISO-008</td><td>Pendente</td></tr><tr><td>CA4 — Operações simultâneas em dois ramos, sem cruzamento de contadores ou bloqueios</td><td>CT-ISO-006 · CT-ISO-007</td><td>Pendente</td></tr><tr><td>Controle entre usuários distintos, regressão do progresso na própria sessão e exploratório (NOR_QA_002 seção 11)</td><td>CT-ISO-008 · CT-ISO-009 · CT-ISO-011</td><td>Pendente</td></tr><tr><td>Causa raiz e implementação do canal em tempo real no servidor (não auditado no card)</td><td>— não gera CT: o plano julga o comportamento na tela, não o código</td><td>N/A</td></tr><tr><td>#9196 (queda em acessos subsequentes) e #5933 (login concorrente, removido)</td><td>— não geram CT: cards distintos, afastados como duplicados pelo card</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 4 critérios de aceite do card mapeados a CTs (100%), com oráculo na <b>tela das duas sessões</b> (contadores, mensagem, camada de bloqueio, botões e arquivo) lida continuamente, contraprova positiva (a sessão que converte continua vendo o seu progresso e conclui; a sessão antes ociosa também converte), controle entre usuários distintos, regressão e exploratório. Causa raiz no servidor e os cards #9196 e #5933 ficam fora, por decisão do plano (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O defeito é de tempo: uma rodada sem sintoma pode dar falsa aprovação</td><td>Média</td><td>Alta</td><td>Leitura de B a cada 0,5 s desde antes do clique em Converter, duas rodadas e B aberta há mais de 1 minuto na segunda (DC4); CT-ISO-005 e CT-ISO-007 com contadores 2 × 3 para expor qualquer cruzamento.</td></tr><tr><td>Correção que «resolve» apagando o progresso de todas as sessões, inclusive a de quem converte</td><td>Média</td><td>Alta</td><td>CT-ISO-008 e CT-ISO-002 exigem contadores, mensagem e camada de bloqueio na sessão que converte (DC3).</td></tr><tr><td>Duas sessões do mesmo usuário compartilham cookie e viram uma só sessão</td><td>Média</td><td>Alta</td><td>Dois contextos de navegador separados, cada um com login próprio por clique; registrar na captura que são sessões distintas.</td></tr><tr><td>Sessão do sistema degrada após cerca de 1 h e limite de logins (429)</td><td>Média</td><td>Baixa</td><td>Refazer o login por CT; reaproveitar o estado de sessão; registrar a ocorrência.</td></tr><tr><td>Falta de layout, planilha ou segundo usuário no tenant Mitsui</td><td>Média</td><td>Média</td><td>A QA cria o layout próprio e as planilhas sintéticas pela tela e cria ou edita o segundo usuário pela tela (DC5); não se pergunta ao dev.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
