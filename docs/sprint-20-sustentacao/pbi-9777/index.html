@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9777 · [Zurich] Nacional › Impressão de averbação: fatura com averbações no histórico dá «Ocorreu um erro inesperado!» ao Selecionar (movimento Fechado)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9777 · Sprint 20 Sustentação</span>
+    <h1>[Zurich] Nacional › Impressão de averbação: fatura com averbações no histórico dá «Ocorreu um erro inesperado!» ao Selecionar (movimento Fechado)</h1>
+    <div class="sub">CITWEB — Nacional › Fechamento Mensal › Impressão de averbação (fatura com averbações no histórico, movimento Fechado) · Zurich (e conferência na TOKIO) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">10</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">10</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/3/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 10 executados · 10 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>10 CTs</strong> (5×P1 · 3×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 10, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 10}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na Zurich, na tela <b>Nacional › Fechamento Mensal › Impressão de averbação</b>, quando o usuário escolhe «Fechado», digita o número de uma fatura antiga (já enviada para o histórico de fechamentos) e clica em <b>Selecionar</b>, o sistema mostra a página de erro «Ocorreu um erro inesperado!» em vez de listar as averbações dessa fatura. O defeito já existia antes do card anterior (#9397) e foi encontrado por ele. O desenvolvimento preparou a correção: o sistema deixa de procurar uma informação que não existe no histórico e, por isso, a lista pode ser montada.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 10 situações na Zurich (e uma conferência na TOKIO): a fatura que dava erro (1 averbação no histórico), a mesma consulta sem digitar o número da fatura, uma fatura antiga com muitas averbações (conferindo a quantidade com o cadastro), uma fatura do histórico sem averbações (não pode dar erro), a impressão da averbação listada, e o que não pode mudar: fatura do mês corrente, número de fatura que não existe, movimento aberto e a TOKIO.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. Já conferimos, <b>sem gravar nada</b>, que a falha vem de uma informação que realmente não existe no histórico da Zurich e que há massa para cada situação. A execução começa assim que o card estiver em Pronto para homologação e a correção estiver no ambiente. <b>Ponto de atenção:</b> o card cita Chubb e Ace; no ambiente de testes essas bases não têm nenhuma fatura no histórico, então a correção é provada na Zurich (mesmo código) e Chubb/Ace ficam como «sem massa».</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Para quem usa a Zurich: faturas antigas passam a listar as averbações para impressão, sem a tela de erro. Nada muda para faturas do mês corrente nem para quem digita um número de fatura que não existe.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: Chubb e Ace não têm fatura no histórico no ambiente de testes (DI2) — se Produtos quiser prova nelas, é preciso que a seguradora tenha uma fatura antiga para consulta.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — bloco <b>Nacional</b> › <b>Fechamento Mensal</b> › <b>Impressão de averbação</b> (filtro Filial, Ramo, Apólice, Subgrupo, Fatura, movimento Aberto/Fechado, botão <b>Selecionar</b>, botão de impressão/exportação da lista), HML da <b>Zurich</b>; conferência de não regressão na <b>TOKIO</b>.</td></tr><tr><th>Card</th><td>BUG-9777 — «[Zurich] Nacional › Impressão de averbação: fatura com averbações no histórico dá «Ocorreu um erro inesperado!» ao Selecionar (movimento Fechado)» · board Sustentação · <b>Sprint 20 Sustentação</b> · estado <b>New</b> · tags citweb, nacional, ZURICH, achado-preexistente · criado pela QA em 17/11/2026 como achado do #9397 (CT-IAF-010), sem responsável até a triagem da Sustentação.</td></tr><tr><th>Tasks</th><td>#9923 [QA] Plano de teste — BUG #9777 (este plano; fecha na entrega). O card não tem tarefas de desenvolvimento; o desenvolvimento registrou, em 17/11/2026, dois pedidos de integração (um para a branch de homologação e outro para a de correção de homologação) «para validação do QA».</td></tr><tr><th>Relacionados</th><td>#9397 (Impressão de averbação: filtro por fatura) — origem do achado; a validação da fatura foi corrigida lá e <b>não faz parte</b> deste card.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB (Zurich; TOKIO só na conferência de não regressão). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na Zurich, em <b>Nacional › Fechamento Mensal › Impressão de averbação</b>, com movimento <b>Fechado</b> e o número de uma fatura cujas averbações estão no <b>histórico de fechamentos</b>, o botão <b>Selecionar</b> leva à página «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.». A fatura é reconhecida (o aviso «Não existe Fatura…» não aparece), mas a lista de averbações do histórico não é montada. O erro é determinístico por conteúdo: acontece sempre que a fatura tem <b>ao menos uma</b> linha no histórico; faturas sem linhas no histórico não disparam. A causa, segundo o desenvolvimento e confirmada pela QA em consulta somente leitura, é a leitura de uma informação (campo de DI, conceito do fluxo internacional) que não existe nas tabelas de histórico do fluxo nacional; a correção deixa de ler esse campo. O defeito já existia antes do #9397 (achado pré-existente — regra A9), por isso o card não é «retrabalho» de ninguém.</p><p><b>Critério de aceite do card (seção 7) e como o plano o cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — Dado movimento Fechado e uma fatura com averbações apenas no histórico (Zurich, Chubb e Ace), ao clicar em Selecionar a grade lista as averbações do histórico, sem «Ocorreu um erro inesperado!»</td><td>CT-IAH-001 (a fatura do relato) · CT-IAH-002 (mesma consulta sem número de fatura) · CT-IAH-003 (fatura com muitas averbações, quantidade conferida) · CT-IAH-004 (fatura do histórico sem averbações) · CT-IAH-005 (impressão da averbação listada). Chubb e Ace: sem massa (DI2).</td></tr><tr><td><b>Comportamento esperado do card</b> — a tela lista a(s) averbação(ões) do histórico da fatura (no relato: 1 linha), como já faz para faturas do mês corrente (ex.: 14 averbações)</td><td>CT-IAH-001 · CT-IAH-010 (o caso de referência do mês corrente continua com 14) · CT-IAH-011 a CT-IAH-013 (nada mais mudou)</td></tr><tr><td>Exploratório</td><td>CT-IAH-020</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 23/11/2026:</b> sistema e seguradora pelas tags (citweb, nacional, ZURICH) ✓ · descrição com contexto, cenário atual, cenário esperado, usuário, ambiente e evidências (cards de Bug usam o campo de passos de reprodução) ✓ · critério de aceite com oráculo observável na <b>tela</b> (a grade lista; a página de erro não aparece) ✓ · ramo declarado: RCTR-C (54), com o mesmo código para os demais ramos nacionais ✓ · descrição, o único comentário do card (entrega do desenvolvimento) e a ausência de tarefas filhas lidos por inteiro; anexo de prova de causa referenciado no relato. <b>Não é débito técnico:</b> o usuário vê o erro e a correção muda o que ele vê. <b>Bug de achado em casa com a tag achado-preexistente</b> (não DEFEITO e sem «[QA]» no título): segue o fluxo de Bug com plano — sem Gate 2, ninguém aprova o plano.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>New</b> e os dois pedidos de integração do desenvolvimento (branch de homologação e de correção de homologação) ainda estão abertos, sem integração. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação) <b>e</b> a correção estiver no ar: a versão no rodapé da tela deve ser posterior a <b>V 1.0.261116.1853</b> (a do achado) e o <b>CT-IAH-001</b> é a prova — se a falha do relato ainda ocorrer, é REPROVADO com a evidência; se o rodapé continuar na versão do achado, a QA registra «correção ainda não publicada» e <b>não executa nem reprova</b> (espera legítima, sem veredito).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico e o achado é pré-existente</b></td><td>O usuário vê a página de erro e a correção muda o que ele vê: é funcionalidade. O defeito já existia antes do #9397 (prova no próprio card); não é retrabalho do desenvolvimento nem motivo para abrir defeito filho em outro card.</td></tr><tr><td><b>DI2</b></td><td><b>Chubb e Ace (citadas no critério de aceite)</b></td><td>Consulta somente leitura de 23/11/2026: o histórico de fechamentos da Chubb está <b>vazio</b> e não há base própria da Ace localizada no ambiente de testes. A QA <b>não cria</b> histórico (ele é gerado pelo fechamento mensal, dado de negócio que a QA não escreve no banco). <b>Posição do QA:</b> provar a correção na Zurich (mesma rotina de código nas três) e registrar «sem massa na Chubb/Ace»; se uma delas passar a ter fatura no histórico, o reteste sai por ordem.</td></tr><tr><td><b>DI3</b></td><td><b>Massa escolhida</b></td><td>Fatura do relato (1 linha), fatura antiga com 108 linhas e fatura do histórico sem linhas — todas confirmadas em 23/11/2026 por consulta somente leitura e reconfirmadas antes de cada CT (O1).</td></tr><tr><td><b>DI4</b></td><td><b>Impressão da averbação (CT-IAH-005)</b></td><td>O card pede a lista; a impressão é o uso natural da tela e passa pelo mesmo caminho. Como o card não descreve o documento impresso, o oráculo é «arquivo gerado, não vazio, com a averbação selecionada»; falha de impressão sem relação com o histórico segue a regra A9 (prova de pré-existência).</td></tr><tr><td><b>DI5</b></td><td><b>Uma única verificação de «Qt. Averb.»</b></td><td>A tela mostra o total em «Qt. Averb.» e a grade pagina de 10 em 10; o total lido é comparado com a consulta somente leitura (O1) — evidência mais forte do que «a lista apareceu».</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Impressão de averbação, movimento Fechado, Zurich: fatura com averbações no histórico (1 linha e muitas linhas), a mesma consulta sem número de fatura e fatura do histórico sem averbações.</li><li>Impressão/exportação da averbação listada a partir de uma fatura do histórico.</li><li>Não regressão: fatura do mês corrente, fatura inexistente, movimento aberto (Zurich) e a TOKIO.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Validação do número da fatura</b> (aviso «Não existe Fatura…», fatura cancelada) — entregue e testada no #9397.</li><li><b>Chubb e Ace</b> — sem massa de histórico em HML (DI2); mesma rotina de código da Zurich.</li><li><b>Fluxo internacional</b> — o campo lido por engano é do fluxo internacional e continua nele; o card não altera esse fluxo.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 23/11/2026, antes de publicar (consulta somente leitura; nada foi gravado):</b> nas tabelas de histórico do fluxo nacional da Zurich <b>não existe</b> o campo que o sistema lia (existe só nas tabelas do fluxo internacional) — a mesma ausência nas bases da TOKIO e da Chubb; a fatura do relato continua no histórico, com 1 averbação; há massa para os demais cenários (DI3). Nenhum CT foi executado por este plano. A QA não escreve no banco: a conferência de quantidades é por consulta somente leitura e pela própria tela («Qt. Averb.»).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB da Zurich (endereço e operador de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação e sem a versão do rodapé posterior à do achado, a execução fica fora do ciclo (sem veredito).</li><li><b>Massa</b> — Fatura, apólice e subgrupo conforme a seção de massa; a QA <b>não escreve</b> no banco — tudo o que o CT usa já existe no HML e é reconfirmado por consulta somente leitura no instante do CT (O1). Se a massa tiver mudado, escolher equivalente e registrar.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, preenche a tela, clica em Selecionar e grava em disco a captura, o texto de alertas/erro e a contagem da grade e de «Qt. Averb.»; o script imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (menu, tela vazia, tela preenchida, resultado do Selecionar), o texto lido da tela e a contagem; a versão do rodapé em cada execução.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB da Zurich (HML), entrar com o operador de QA e, no menu inicial, clicar no bloco <b>Nacional</b> (abre em nova aba). Registrar a versão do rodapé.</li><li><b>NB — Tela:</b> menu <b>Fechamento Mensal</b> › <b>Impressão de averbação</b> (texto exato; o menu tem também «Impressão» e «Impressão de CTEs Cancelados»). Escolher Filial, Ramo, digitar Apólice (Tab), Subgrupo (Tab), Fatura (quando o CT pedir), marcar o movimento do CT e clicar em <b>Selecionar</b>.</li><li><b>O1 — Oráculo da massa (somente leitura):</b> antes de cada CT, conferir por consulta que a fatura continua no histórico e quantas averbações ela tem; o número lido é o esperado de «Qt. Averb.» e da grade (a grade pagina de 10 em 10).</li><li><b>O2 — Oráculo do resultado:</b> o texto de qualquer alerta e o texto do corpo da página são lidos por script; «Ocorreu um erro inesperado!» = falha; a grade (linhas e «Qt. Averb.») = sucesso quando igual ao O1.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Zurich, fatura do relato (CT-IAH-001, 002, 005):</b> filial 1 · ramo RCTR-C (54) · apólice 9186882 · subgrupo 1 · fatura 166699 · Fechado — 1 averbação no histórico (consulta de 23/11/2026).</li><li><b>Zurich, fatura antiga com muitas averbações (CT-IAH-003):</b> ramo Transporte Nacional (21) · apólice 9186882 · subgrupo 1 · fatura 166044 · Fechado — 108 averbações no histórico (consulta de 23/11/2026); a filial é escolhida pela tela (começar pela 1; a mensagem «Apólice não cadastrada para a Filial selecionada.» indica filial errada).</li><li><b>Zurich, fatura do histórico sem averbações (CT-IAH-004):</b> ramo Transporte Nacional (21) · apólice 9188005 · subgrupo 1 · fatura 170653 · Fechado — 0 averbações no histórico (consulta de 23/11/2026); filial pela tela.</li><li><b>Zurich, fatura do mês corrente (CT-IAH-010):</b> filial 100 · RCTR-C · apólice 28042026 · subgrupo 1 · fatura 1 · Fechado — 14 averbações (medido em 17/11/2026 no #9397).</li><li><b>Zurich, fatura inexistente e movimento aberto (CT-IAH-011, 012):</b> fatura 987654 na apólice do relato (inexistente); movimento Aberto na apólice do relato.</li><li><b>TOKIO, fatura do mês corrente (CT-IAH-013):</b> filial 1 · RCV (59) · apólice 100659002 · subgrupo 1 · fatura 2 · Fechado — 24 averbações (medido em 17/11/2026 no #9397).</li><li><b>Chubb e Ace:</b> histórico de fechamentos <b>vazio</b> no HML da Chubb (consulta de 23/11/2026) e sem base própria localizada para a Ace: sem massa — ver DI2.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (correção no ar).</li><li>Grupo A (CT-IAH-001 primeiro: é a prova da correção) → Grupo B → Grupo C (exploratório por último, 15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início; se uma execução cair no erro, repetir uma vez (reproduzir) antes de concluir.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: fatura com averbações no histórico lista a grade, sem «Ocorreu um erro inesperado!» (critério de aceite do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-001</span><span class="ct-title">Zurich — fatura com 1 averbação no histórico lista a grade, sem «Ocorreu um erro inesperado!»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (reprodução exata do relato; prova de que a correção está no ar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar (DoD). Massa do relato: filial 1, RCTR-C (54), apólice 9186882, subgrupo 1, fatura 166699, Fechado — reconfirmar por consulta somente leitura que a fatura tem 1 averbação no histórico (O1).</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 1 e Ramo RCTR-C; digitar a apólice 9186882 (Tab) e o subgrupo 1 (Tab); digitar a fatura 166699; marcar <b>Fechado</b>.</li><li>Capturar a tela preenchida e clicar em <b>Selecionar</b>; aguardar o carregamento.</li><li>Ler por script os alertas e o texto da página; contar as linhas da grade e ler «Qt. Averb.».</li><li>Repetir o Selecionar uma segunda vez (o defeito era reproduzido duas vezes).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade lista <b>1 averbação</b> (a do histórico) e «Qt. Averb.» = 1, igual ao O1; <b>não</b> aparece «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.» nem «Não existe Fatura para os critérios informados.» nas duas repetições. A página de erro = REPROVADO. Evidência: capturas desde o login, tela preenchida, resultado (grade) e texto lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-002</span><span class="ct-title">Zurich — mesma apólice, sem informar a fatura (Fechado): a lista que inclui o histórico carrega sem erro</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (baseline do mesmo mecanismo: o erro também ocorria sem número de fatura)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Mesma apólice do CT-IAH-001 (filial 1, RCTR-C, apólice 9186882, subgrupo 1), campo fatura <b>vazio</b>, Fechado.</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 1 e Ramo RCTR-C; digitar a apólice 9186882 (Tab) e o subgrupo 1 (Tab); <b>deixar a fatura em branco</b>; marcar Fechado.</li><li>Clicar em Selecionar; aguardar o carregamento.</li><li>Ler alertas, corpo da página, «Qt. Averb.» e as linhas da grade; procurar na grade a averbação da fatura 166699 (a mesma linha do CT-IAH-001).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade carrega, <b>sem</b> «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.»; «Qt. Averb.» ≥ 1 e a grade contém a averbação do histórico vista no CT-IAH-001 (mesmo número de averbação). Página de erro ou lista sem a averbação do histórico = REPROVADO. Evidência: capturas desde o login, resultado e texto lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-003</span><span class="ct-title">Zurich — fatura antiga com muitas averbações (108) no histórico lista a grade e a quantidade bate com o cadastro</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (volume; conferência de quantidade, não só ausência de erro)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Massa: ramo Transporte Nacional (21), apólice 9186882, subgrupo 1, fatura 166044, Fechado — a consulta somente leitura de 23/11/2026 mostra 108 averbações no histórico dessa fatura; reconfirmar (O1). Filial escolhida pela tela (começar pela 1).</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher a filial e o Ramo Transporte Nacional; digitar a apólice 9186882 (Tab) e o subgrupo 1 (Tab); digitar a fatura 166044; marcar Fechado.</li><li>Clicar em Selecionar; aguardar o carregamento.</li><li>Ler «Qt. Averb.», contar as linhas da primeira página (10 por página) e o total de páginas; avançar até a última página e conferir que não há linha repetida.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade lista as averbações do histórico: «Qt. Averb.» = <b>108</b> (ou o número lido no O1 no instante do CT), com páginas de 10 linhas e sem linha repetida; <b>sem</b> «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.». Quantidade diferente do O1 sem explicação ou erro = REPROVADO. Evidência: capturas desde o login, primeira e última página, «Qt. Averb.» e o O1.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-004</span><span class="ct-title">Zurich — fatura do histórico <b>sem</b> averbações não dá erro (o defeito só ocorria com ao menos 1 linha)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — controle negativo do CA1 (confirma o gatilho do defeito e que a correção não mudou esse caso)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Massa: ramo Transporte Nacional (21), apólice 9188005, subgrupo 1, fatura 170653, Fechado — 0 averbações no histórico (O1, consulta de 23/11/2026). Filial pela tela.</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher a filial e o Ramo Transporte Nacional; digitar a apólice 9188005 (Tab) e o subgrupo 1 (Tab); digitar a fatura 170653; marcar Fechado.</li><li>Clicar em Selecionar; aguardar o carregamento; ler alertas, corpo da página e a grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Sem</b> «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.»; a tela responde com a grade vazia e/ou o aviso «Não existem dados para os critérios informados.» (a QA registra o texto exato que aparecer). A página de erro = REPROVADO. Evidência: capturas desde o login, resultado e texto lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-005</span><span class="ct-title">Zurich — a averbação listada do histórico pode ser impressa/exportada pelo botão da tela</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — fluxo completo da tela (a lista existe para imprimir)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Lista do CT-IAH-001 carregada (fatura 166699, 1 averbação).</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o CT-IAH-001 até a grade com 1 averbação.</li><li>Marcar a averbação da grade (caixa de seleção da linha).</li><li>Clicar no botão de impressão/exportação da tela (nome exato registrado na execução); aguardar o download ou a nova aba.</li><li>Salvar o arquivo em disco; conferir que não está vazio, que o formato é válido (PDF/planilha) e que traz o número da averbação selecionada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O documento é gerado: arquivo salvo e <b>não vazio</b>, formato válido, com o número da averbação selecionada; sem página de erro. Se a lista funcionar mas a impressão falhar por causa que <b>não</b> seja a leitura do histórico, a QA prova a pré-existência (A9) e abre Bug novo na Sustentação — o CT fica N/A (fora do escopo); sem essa prova, é REPROVADO. Evidência: o próprio arquivo (nome, tamanho, o dado conferido) e as capturas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Sem regressão: o que não passa pelo histórico continua igual</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-010</span><span class="ct-title">Zurich — fatura do mês corrente continua listando 14 averbações, sem duplicar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — comparação com o caso de referência do card (fatura da conta mensal)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Massa: filial 100, RCTR-C (54), apólice 28042026, subgrupo 1, fatura 1, Fechado — 14 averbações (17/11/2026; reconfirmar, O1).</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 100 e Ramo RCTR-C; digitar a apólice 28042026 (Tab) e o subgrupo 1 (Tab); digitar a fatura 1; marcar Fechado.</li><li>Clicar em Selecionar; ler alertas, «Qt. Averb.» e contar as linhas (10 por página).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem alerta de erro; «Qt. Averb.» = <b>14</b> (igual ao O1), sem linha duplicada. Qualquer diferença em relação a 17/11/2026 sem explicação = REPROVADO. Evidência: capturas desde o login, resultado e O1.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-011</span><span class="ct-title">Zurich — número de fatura que não existe continua com «Não existe Fatura…»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — validação da fatura (entregue no #9397) preservada</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice do relato (filial 1, RCTR-C, apólice 9186882, subgrupo 1), fatura 987654 (não existe), Fechado.</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 1 e Ramo RCTR-C; digitar a apólice 9186882 (Tab) e o subgrupo 1 (Tab); digitar a fatura 987654; marcar Fechado.</li><li>Clicar em Selecionar; ler os alertas e o corpo da página.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Aparece «Não existe Fatura para os critérios informados.» e a grade fica vazia; <b>não</b> aparece «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.». Evidência: capturas desde o login, texto lido e grade vazia.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-012</span><span class="ct-title">Zurich — movimento Aberto na mesma apólice responde sem a página de erro</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — caminho que não passa pelo histórico</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Filial 1, RCTR-C, apólice 9186882, subgrupo 1, fatura em branco, movimento <b>Aberto</b>.</li></ul>
+      <h4>Passos</h4><ol><li>Login na Zurich pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 1 e Ramo RCTR-C; digitar a apólice 9186882 (Tab) e o subgrupo 1 (Tab); deixar a fatura em branco; marcar <b>Aberto</b>.</li><li>Clicar em Selecionar; ler alertas e corpo da página.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela responde com a grade ou com «Não existem dados para os critérios informados.» (registrar qual), <b>sem</b> «Ocorreu um erro inesperado! Por favor contacte o administrador do sistema.». Evidência: capturas desde o login e texto lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-013</span><span class="ct-title">TOKIO — fatura do mês corrente continua listando 24 averbações (outro tenant, mesmo código)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — outro tenant com o mesmo código de impressão de averbação</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Versão da TOKIO conferida no rodapé: se ainda não tiver a correção publicada, o CT mede o estado atual e registra a versão (a correção não altera a TOKIO). Massa: filial 1, RCV (59), apólice 100659002, subgrupo 1, fatura 2, Fechado — 24 averbações (17/11/2026; O1).</li></ul>
+      <h4>Passos</h4><ol><li>Login na TOKIO pelo operador de QA; clicar no bloco Nacional; registrar a versão do rodapé.</li><li>Menu Fechamento Mensal › Impressão de averbação.</li><li>Escolher Filial 1 e Ramo RCV; digitar a apólice 100659002 (Tab) e o subgrupo 1 (Tab); digitar a fatura 2; marcar Fechado.</li><li>Clicar em Selecionar; ler alertas e «Qt. Averb.».</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem alerta de erro; «Qt. Averb.» = <b>24</b> (igual ao O1). Evidência: capturas desde o login, versão do rodapé e resultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-013"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IAH-020</span><span class="ct-title">Exploratório — datas, subgrupo e outras faturas do histórico na Zurich</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 seção 11, 15 a 30 minutos, guiado por risco)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar; CTs formais concluídos. Massa dos CTs anteriores.</li></ul>
+      <h4>Passos</h4><ol><li>Com a fatura 166699 (Fechado), preencher «De/Até» com um período que não cobre o fechamento e outro que cobre; ler o resultado.</li><li>Trocar o subgrupo por um inexistente e por vazio; ler as mensagens.</li><li>Consultar outras faturas do histórico do mesmo ramo (166700, 166698, 166697, na apólice de cada uma) e comparar com o O1.</li><li>Duplo clique em Selecionar e troca de ramo com a fatura preenchida; registrar qualquer comportamento inesperado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem «Ocorreu um erro inesperado!» em nenhum caminho que passe pelo histórico; mensagens existentes da tela (apólice não cadastrada, subgrupo, datas) preservadas. Achado: abrir defeito do card se for causado pela correção; se pré-existente (A9), Bug novo na Sustentação com a prova. Sem ocorrências: registrar «Exploratório executado [data] HML. Sem ocorrências.»</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IAH-020"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — fatura com averbações no histórico lista a grade, sem erro (Zurich)</td><td>CT-IAH-001 · CT-IAH-002 · CT-IAH-003 · CT-IAH-004 · CT-IAH-005</td><td>Pendente</td></tr><tr><td>Comportamento esperado — lista do histórico + referência do mês corrente (14 averbações)</td><td>CT-IAH-001 · CT-IAH-010</td><td>Pendente</td></tr><tr><td>Não regressão — validação da fatura, movimento aberto, outro tenant</td><td>CT-IAH-011 · CT-IAH-012 · CT-IAH-013</td><td>Pendente</td></tr><tr><td>Chubb e Ace citadas no critério de aceite</td><td>— (sem massa de histórico em HML; mesma rotina de código — DI2)</td><td>N/A</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-IAH-020</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O critério de aceite do card (CA1) está coberto pelos CTs da matriz, com prova na Zurich; Chubb e Ace ficam fora por falta de massa em HML (DI2). A seção «Comportamento esperado» do card é conferida pelo contraste com a fatura do mês corrente (14 averbações).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não integrada nem publicada no HML quando a execução começar (pedidos de integração do desenvolvimento estavam abertos)</td><td>Média</td><td>Médio — o CT-IAH-001 repetiria o erro do achado</td><td>Ler a versão do rodapé e comparar com a do achado; sem a correção no ar a QA registra «não publicada» e não executa (sem veredito).</td></tr><tr><td>Massa muda (alguém gera ou cancela fatura no tenant compartilhado)</td><td>Baixa</td><td>Baixo</td><td>Consulta O1 antes de cada CT; escolher fatura equivalente e registrar.</td></tr><tr><td>A grade do histórico pode trazer linhas de outro mês da mesma apólice (a consulta junta por fechamento, não por fatura)</td><td>Baixa</td><td>Médio — quantidade diferente do esperado</td><td>Comparar com o O1 (mesma consulta somente leitura); divergência é registrada e levada ao trio, não reprovada sem oráculo.</td></tr><tr><td>Chubb e Ace sem massa de histórico</td><td>Alta</td><td>Baixo — mesma rotina de código</td><td>Provar na Zurich; registrar a limitação (DI2).</td></tr><tr><td>Impressão da averbação falha por outro motivo (CT-IAH-005)</td><td>Baixa</td><td>Baixo</td><td>A9: provar a pré-existência (baseline) antes de decidir; sem prova, defeito do card.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
