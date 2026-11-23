@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9725 · CITWEB Nacional — Exclusão Em bloco: mensagem cita a faixa inteira</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9725 · Sprint 20 Sustentação</span>
+    <h1>CITWEB Nacional - Exclusão Em bloco (RCV e RCTR-C): a mensagem de sucesso cita a faixa inteira, inclusive averbações fechadas que não foram excluídas (achado pré-existente, origem #9483)</h1>
+    <div class="sub">CITWEB Nacional · Averbação RCV e RCTR-C · Exclusão em Bloco · KEV · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado e nenhum CT executado (a execução começa com o card em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">11</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 11 executados · 11 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>11 CTs</strong> (7×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 11}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela de Exclusão de Averbação (RCV e RCTR-C), ao excluir «Em bloco» uma faixa de números que mistura averbações fechadas (já usadas num fechamento) e abertas, o sistema exclui só as abertas e mantém as fechadas, o que está certo. O problema é a mensagem: ela diz que a faixa inteira foi excluída, como se as fechadas também tivessem saído. O card pede que a mensagem diga o que foi excluído e o que foi mantido por estar fechado.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 11 situações: a faixa que começa numa fechada, a que termina numa fechada e a que tem fechadas no meio; o mesmo no RCTR-C; a faixa mínima e uma faixa longa; a faixa só de fechadas e a só de abertas (que não podem mudar); o Em bloco por mês e ano e a exclusão por Seleção (sem regressão); e uma sessão exploratória. Cada teste confere a mensagem com o que de fato ficou no banco.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos nada neste card: ele está «New», sem responsável e sem correção publicada. O comportamento atual foi medido pela QA em 13/11 (anexos do card): as abertas saem, as fechadas ficam, mas a mensagem cita a faixa inteira. O erro já existia antes do ajuste do card #9483.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje, quem exclui uma faixa mista acredita que as averbações fechadas também saíram, mas elas continuam no faturamento.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto.</b> Este card (Sustentação, tipo Bug) não precisa de aprovação do plano, e o esperado está no critério de aceite: a mensagem informa o que foi excluído e o que foi mantido. Se Produtos preferir que a faixa mista seja <b>bloqueada</b> (como acontece na exclusão por Seleção) em vez de excluir só as abertas, basta escrever isso no card; sem essa decisão, vale o critério de aceite.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b> (seguradora KEV, HML) — <b>Averbação › RCV</b> e <b>Averbação › RCTR-C</b> › botão «Exclusão em Bloco» (janela «Exclusão Averbação – RCV»), tipo de exclusão <b>Em bloco</b> com Averbação Inicial e Final.</td></tr><tr><th>Card</th><td>BUG-9725 — «[CITWEB - KEV] Exclusão Em bloco: a mensagem de sucesso cita a faixa inteira, inclusive averbações fechadas que não foram excluídas (achado pré-existente, origem #9483)» · board Sustentação · Sprint 20 Sustentação · estado <b>New</b>, sem responsável · tags achado-preexistente, citweb e KEV · 4 anexos (captura da mensagem, banco antes e depois, prova de pré-existência) · critério de aceite no card · sem tarefas filhas e sem comentários.</td></tr><tr><th>Relacionados</th><td>#9483 (Exclusão por Seleção, RCV) — origem do achado, medido em 13/11/2026 no reteste (CT-RCV-016 e CT-RCV-017 daquele card). Este Bug <b>não reprova nem reabre o #9483</b>: o #9483 o tem como N/A (pré-existente, provado por leitura do código anterior ao card).</td></tr><tr><th>Tasks de QA</th><td>#9918 [QA] Plano de teste — BUG #9725 (este plano; fecha na entrega). <b>Card do board da Sustentação, tipo Bug: Produtos não aprova o plano</b>; ele sai com a marcação de execução pronta. A execução começa com o card em homologação e a correção publicada em HML (DC4).</td></tr><tr><th>Ambiente</th><td>HML da KEV, CITWEB Nacional, perfil Nacional da QA (a versão do build, visível no rodapé da tela, é anotada na pré-verificação; última medida: V 1.0.261112.1711). Banco HML consultado <b>somente para leitura</b>, antes e depois dos CTs destrutivos. Endereços e perfis no arquivo de ambiente do time. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na janela «Exclusão Averbação – RCV» (e na do RCTR-C), no tipo <b>Em bloco</b> com Averbação Inicial e Final, quando a faixa <b>mistura averbações fechadas e abertas</b>, o sistema <b>exclui as abertas e preserva as fechadas</b> (correto para a integridade do faturamento), mas a mensagem final diz «Exclusão efetuada com sucesso. Inicial : &lt;inicial&gt; Final: &lt;final&gt;», citando a faixa digitada inteira, como se a fechada também tivesse saído. Não há aviso de que parte da faixa foi preservada. Medido em 13/11/2026 (HML KEV, build V 1.0.261112.1711): faixa de 10 números com 2 fechadas e 6 abertas; aviso «Exclusão efetuada com sucesso!», campo «Averbações Excluídas» com a faixa inteira, e o banco com as 6 abertas fora e as 2 fechadas ainda lá. O card é <b>achado pré-existente</b> do #9483: o código da mensagem e da lista (só abertas) é anterior ao ajuste daquele card.</p><p><b>Critério de aceite do card e como o plano o cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA, 1ª frase</b> — a mensagem do Em bloco com faixa mista <b>informa o excluído e o preservado</b></td><td>CT-EBL-001 (RCV: inicial fechada, final aberta) · CT-EBL-002 (RCV: inicial aberta, final fechada) · CT-EBL-003 (RCV: fechadas no meio da faixa) · CT-EBL-004 (RCTR-C) · CT-EBL-005 (uma fechada e uma aberta)</td></tr><tr><td><b>CA, 2ª frase</b> — <b>fechada nunca é excluída</b></td><td>CT-EBL-006 (faixa só de fechadas) · CT-EBL-007 (faixa longa) · e o banco antes/depois de cada CT do Grupo A</td></tr><tr><td><b>CA, 3ª frase</b> — sem regressão da <b>Seleção</b> e da <b>faixa sem fechadas</b></td><td>CT-EBL-008 (faixa só de abertas) · CT-EBL-009 (Em bloco com Mês/Ano) · CT-EBL-010 (Seleção)</td></tr><tr><td>Exploratório</td><td>CT-EBL-011</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro (descrição com as 7 seções, critério de aceite, prova de pré-existência, 4 anexos); sem tarefas filhas e sem comentários. <b>Tags:</b> citweb (sistema) e KEV (seguradora). Ramos: RCV (59) e RCTR-C (54), declarados no card. Não é débito técnico: o texto que o usuário lê muda. O critério tem <b>oráculo observável</b>: o texto do aviso e do campo «Averbações Excluídas» contra o que o banco mostra depois (SELECT antes e depois). <b>Sem decisão de produto pendente para o plano:</b> o critério de aceite define o esperado (informar o que saiu e o que ficou, sem nunca excluir fechada); o texto do card cita a alternativa «bloquear a faixa com fechadas, conforme decisão de Produtos», que só vale se Produtos escrever essa decisão no card (DC2). O card pertence ao board da Sustentação e é do tipo Bug: <b>sem Gate 2 e sem aprovação de Produtos</b>.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação:</b> O card está em <b>New</b>, sem responsável e sem correção publicada. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação). A pré-verificação anota o build (DC4). Mensagem ainda citando a faixa inteira em faixa mista com o card em homologação = REPROVADO.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Oráculo: a mensagem × o banco depois da exclusão</b></td><td>Em cada CT destrutivo a QA registra, <b>antes</b>, por SELECT somente leitura, as averbações da faixa (número, aberta ou fechada, fechamento) e, <b>depois</b>, a mensagem lida no instante em que aparece (aviso e campo «Averbações Excluídas») e o banco de novo. O CT aprova quando: (a) no banco as fechadas da faixa continuam e as abertas saíram; (b) a mensagem <b>cita o que foi excluído</b> (os números das abertas, ou a quantidade exata, nunca a faixa digitada como se tudo tivesse saído); (c) a mensagem <b>cita o que foi preservado por estar fechado</b>; (d) nenhuma frase afirma a exclusão de averbação fechada. O card não fixa o texto: a QA avalia pelo conteúdo e registra o texto literal. «Exclusão efetuada com sucesso» mais o campo com a faixa inteira (cenário de hoje) = REPROVADO.</td></tr><tr><td><b>DC2</b></td><td><b>Comportamento desejado: o critério de aceite prevalece; bloquear só com decisão escrita de Produtos</b></td><td>O critério de aceite diz que a mensagem informa o excluído e o preservado e que a fechada nunca sai; o plano segue esse critério. A descrição do card lembra a alternativa de <b>bloquear</b> a faixa com fechadas (como a Seleção). Se a correção publicada bloquear em vez de excluir as abertas e <b>Produtos tiver escrito essa decisão no card</b>, os CTs 001 a 005 e 007 passam a esperar: nada sai do banco, a mensagem diz que há averbação fechada na faixa e cita o número e o fechamento; o resultado registra a variante. Sem decisão escrita, vale o critério. Nenhuma pergunta a Produtos trava a execução.</td></tr><tr><td><b>DC3</b></td><td><b>Massa própria e consumível; massa de desenvolvimento e de Produtos só em leitura</b></td><td>A apólice 777, subgrupo 1, é a massa consumível da QA na KEV. <b>RCV (ramo 59):</b> hoje tem só a averbação fechada 2026000001 (fechamento 188, 03/2026) e nenhuma aberta; a QA cria as abertas <b>pela tela</b> (datas em mês aberto, como 09/2026; nunca em 03/2026, que está fechado) e, para a fechada de numeração maior (CT-EBL-002 e 003), cria duas averbações num mês só delas e fecha esse mês pela Emissão da tela. <b>RCTR-C (ramo 54):</b> a 777, subgrupo 1, tem a fechada 202600000002 (fechamento 87, 01/2026) e as abertas 202600000003 a 202600000051 (49), consumíveis. As apólices 100759, 70459 e 120759 (desenvolvimento e Produtos) servem só para leitura. Se um CT consumir massa que não é da QA, a QA a recria pela tela e avisa o dono no resultado. Valores reconfirmados por SELECT na hora de cada CT; o número real criado é registrado no resultado.</td></tr><tr><td><b>DC4</b></td><td><b>Execução depende do card em homologação</b></td><td>O card está em <b>New</b>, sem responsável e sem correção. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação) e a versão corrigida no HML; antes disso é espera legítima, sem veredito. A pré-verificação anota o build do rodapé (servidor fora do ar ≠ CT reprovado). Com o card em homologação e a mensagem ainda citando a faixa inteira em faixa mista, o CT é <b>REPROVADO</b> (critério de aceite não entregue), não espera.</td></tr><tr><td><b>DC5</b></td><td><b>Aviso transitório: capturar no instante</b></td><td>O aviso de sucesso e de bloqueio some em poucos segundos. O script remove o aviso antigo antes de cada ação e captura o texto e a tela no instante em que aparece; o campo «Averbações Excluídas» fica visível e é lido separadamente. Aviso que não apareceu em 2 tentativas = o CT para e reporta (nunca aprova por «não vi erro»).</td></tr><tr><td><b>DC6</b></td><td><b>Fora do plano: efeitos colaterais não pedidos pelo critério</b></td><td>O card cita como candidato a achado separado que a exclusão regrava o usuário de alteração de linhas já excluídas. Não faz parte do critério de aceite: só é observado no exploratório, sem veredito, e vira Bug próprio (achado pré-existente) se confirmado.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITWEB Nacional (KEV), Averbação › RCV e RCTR-C › «Exclusão em Bloco» › tipo Em bloco com Averbação Inicial e Final: faixas com fechadas e abertas, só fechadas e só abertas.</li><li>A mensagem final (aviso e campo «Averbações Excluídas») e o resultado no banco, somente leitura, antes e depois.</li><li>Regressão: Em bloco com Mês/Ano (mês fechado bloqueia, mês aberto lista) e tipo Seleção com e sem Mês/Ano.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>A regra de Seleção do #9483</b> (sem Mês/Ano, mês misto) — outro card; aqui só regressão (CT-EBL-010).</li><li><b>Outros ramos nacionais</b> (21, 38, 56 e 58) e outros tenants — regra de um ramo não vale para todos; entram só no exploratório, como observação.</li><li><b>Saneamento de dados de fechamento</b> em outros ambientes e o efeito colateral do usuário de alteração (DC6).</li><li><b>Código-fonte e testes unitários</b> — do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. O comportamento de hoje foi medido pela QA em 13/11/2026 (anexos do card). O card está em <b>New</b>, sem responsável e sem correção publicada. <b>Os CTs do Grupo A, B (007) e C (008 e 010) são destrutivos</b> (clicam em «Sim» na exclusão): rodam só em massa própria da QA (DC3); a massa de desenvolvimento e de Produtos é só leitura.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da KEV no ar (pré-verificação antes do 1º CT; servidor fora do ar ≠ CT reprovado). Login por clique no módulo Nacional (tile «Nacional», abre em nova aba) com o usuário da QA do perfil Nacional; Ctrl+F5 antes de cada CT, para não usar o JavaScript antigo da tela, e conferir a versão no rodapé.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Usuário Nacional da QA da KEV. Faltando usuário ou senha válida, a QA cria ou ajusta o usuário pela tela do tenant e registra só o que mudou, sem a senha.</li><li><b>Massa</b> — DC3: apólice 777, subgrupo 1, RCV e RCTR-C; criação das abertas e do fechamento pela tela; SELECT somente leitura antes e depois de cada CT destrutivo.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina), reaproveitando os do #9483 (testes-automatizados/sprint-19-sustentacao/bug-9483: sessão e login, modal de Exclusão em Bloco, criação de averbação pela tela, SELECT do esperado). O texto do aviso, as capturas e o resultado do SELECT vão para o disco e o script imprime só veredito e caminho. O Playwright MCP só para explorar uma tela nova.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público), desde o login: captura do formulário preenchido, da confirmação, do aviso no instante em que aparece, do campo «Averbações Excluídas», e o arquivo de texto do SELECT antes e depois.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Entrar:</b> abrir o endereço de login do CITWEB da KEV no HML (única navegação por endereço) e entrar com o usuário da QA; na tela inicial clicar no tile <b>Nacional</b> (abre em nova aba); menu <b>Averbação</b> → <b>RCV</b> (ou <b>RCTR-C</b>). Ctrl+F5 e conferir a versão no rodapé.</li><li><b>N2 — Abrir a exclusão:</b> botão <b>Exclusão em Bloco</b> (janela «Exclusão Averbação – RCV»): Filial 1, Apólice, Subgrupo, Tipo de Exclusão <b>Em bloco</b> (ou Seleção), campos Averbação Inicial e Final e, opcionais, Mês/Ano.</li><li><b>N3 — Excluir:</b> botão <b>Excluir</b> → confirmação «Confirma a exclusão?» → <b>Sim</b>; capturar o aviso no instante em que aparece (DC5) e ler o campo «Averbações Excluídas».</li><li><b>N4 — Oráculos:</b> (O1) SELECT somente leitura da faixa antes e depois (número, aberta ou fechada, fechamento); (O2) texto do aviso e do campo, literal; (O3) a QA compara a mensagem com o SELECT depois (DC1).</li><li><b>N5 — Criar massa pela tela:</b> botão novo da Averbação → Filial, Apólice, Subgrupo, «+» para habilitar o Gravar, data de saída em mês aberto, placa, UF e cidade de origem e destino, documento → Gravar; anotar o número gerado.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>RCV, apólice 777, subgrupo 1 — hoje:</b> Fechada 2026000001 (fechamento 188, 03/2026); nenhuma aberta (SELECT de 23/11/2026). CT-EBL-001 a 003, 006, 008, 009 e 010.</li><li><b>RCV, abertas a criar (pela tela):</b> Mês aberto (09/2026): 3 abertas (A1 a A3), depois 2 averbações em 08/2026 que a QA fecha pela Emissão (B1 e B2, fechadas, numeração maior que A1 a A3), depois 3 abertas (C1 a C3, numeração maior que B). Para CT-EBL-001: faixa 2026000001 até a última aberta criada; CT-EBL-002: de A3 até B1; CT-EBL-003: de A1 até C3 (fechadas no meio); CT-EBL-008: quatro abertas novas (D1 a D4).</li><li><b>RCTR-C, apólice 777, subgrupo 1 — hoje:</b> Fechada 202600000002 (fechamento 87, 01/2026) e 49 abertas, 202600000003 a 202600000051 (SELECT de 23/11/2026). CT-EBL-004 (faixa 002 a 008: 1 fechada e 6 abertas), CT-EBL-005 (faixa 002 a 009 depois do 004: 1 fechada e 1 aberta) e CT-EBL-007 (faixa 002 a 051: 1 fechada e as abertas restantes).</li><li><b>Leitura apenas (massa de desenvolvimento e de Produtos):</b> Apólice 100759 subgrupo 2 (fechadas 202600000003 e 202600000006 e 6 abertas — repetição do cenário do card, só para consultar a grade) e apólice 70459 subgrupo 1 (desenho de Produtos). Nunca clicar em «Sim» nelas.</li><li><b>Dados fixos nos CTs:</b> Os números de averbação e de fechamento acima são os lidos em 23/11/2026; a QA lê de novo por SELECT na hora e registra o valor lido e o número real criado.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e do build (DC4). Card em homologação: executar; card New ou em estado de desenvolvimento: espera legítima, sem veredito.</li><li>Primeiro as leituras (CT-EBL-009 e a parte de leitura do CT-EBL-010) e a montagem da massa pela tela; depois os destrutivos na ordem 006, 001, 003, 002, 008 e 010 (RCV) e 004, 005 e 007 (RCTR-C, na ordem, porque cada um consome abertas do seguinte); o exploratório por último.</li><li>Após cada CT destrutivo, o SELECT depois e o registro do que foi consumido; se a massa acabar, a QA recria pela tela e anota a nova numeração.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Em bloco com faixa que mistura fechadas e abertas: a mensagem informa o que foi excluído e o que foi preservado (CA, 1ª frase)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-001</span><span class="ct-title">RCV, Em bloco com faixa que começa numa fechada e termina numa aberta (cenário do card): a mensagem informa o excluído e o preservado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (negativo hoje; reprodução do cenário do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1: fechada 2026000001 e 6 abertas criadas pela tela em mês aberto (DC3). Faixa: de 2026000001 até a 6ª aberta criada.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-002</span><span class="ct-title">RCV, Em bloco com faixa que começa numa aberta e termina numa fechada: a mensagem informa o excluído e o preservado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (variação da posição da fechada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1, massa de DC3 (A1 a A3 abertas, B1 e B2 fechadas pela Emissão da tela). Faixa: de A3 até B1.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2). Faixa esperada excluída: só A3.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-003</span><span class="ct-title">RCV, Em bloco com fechadas no meio da faixa (abertas dos dois lados): a mensagem informa o excluído e o preservado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (fechada no meio)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1, massa de DC3 (A1 e A2 ainda abertas, B1 e B2 fechadas, C1 a C3 abertas). Faixa: de A1 até C3.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2). Preservadas: B1 e B2 (numeração e fechamento); excluídas: as abertas da faixa que sobraram.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-004</span><span class="ct-title">RCTR-C (ramo 54), Em bloco com faixa mista: a mensagem informa o excluído e o preservado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (o card cita RCV e RCTR-C)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCTR-C, apólice 777, subgrupo 1 (menu Averbação › RCTR-C): fechada 202600000002 e abertas 202600000003 em diante (DC3). Faixa: 202600000002 a 202600000008 (1 fechada e 6 abertas).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2). Preservada: 202600000002 (fechamento 87).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-005</span><span class="ct-title">Faixa mínima: uma fechada e uma aberta: a mensagem informa a aberta excluída e a fechada preservada (singular)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (borda: quantidades 1 e 1)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCTR-C, apólice 777, subgrupo 1, depois do CT-EBL-004: faixa 202600000002 a 202600000009 (a fechada e a aberta 202600000009).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2). Excluída: 202600000009; preservada: 202600000002.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Averbação fechada nunca é excluída (CA, 2ª frase)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-006</span><span class="ct-title">Em bloco com faixa só de fechadas: nada sai do banco e a mensagem não afirma a exclusão da fechada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Negativo — CA, 2ª frase (fechada nunca é excluída)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1: faixa de 2026000001 a 2026000001 (só a fechada, fechamento 188). Medido em 13/11/2026 (#9483): aviso «Não existe averbação para o critério informado.» e banco intacto.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>No banco a fechada continua e o total da faixa é o mesmo antes e depois. A mensagem <b>não diz «Exclusão efetuada com sucesso»</b> nem cita a fechada como excluída; informar que não há averbação aberta na faixa e/ou que a fechada foi preservada é aceito. Qualquer saída da fechada do banco = REPROVADO (sem regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-007</span><span class="ct-title">RCTR-C, faixa longa (1 fechada e dezenas de abertas): a mensagem continua legível e a quantidade informada bate com o banco</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª e 2ª frases (volume)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCTR-C, apólice 777, subgrupo 1, depois dos CT-EBL-004 e 005: faixa 202600000002 a 202600000051 (a fechada e as abertas restantes, cerca de 42).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li><li>Conferir que o texto não vem cortado nem sobrepõe a tela, e que a quantidade de excluídas informada é a do SELECT (todas as abertas da faixa).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem (aviso e campo «Averbações Excluídas») <b>cita o que foi excluído</b> (números ou quantidade exata) e <b>o que foi preservado por estar fechado</b>; no banco as fechadas da faixa continuam e as abertas saíram (DC1). Hoje a mensagem cita só a faixa digitada («Exclusão efetuada com sucesso. Inicial : … Final: …»): <b>faixa inteira como excluída</b> = REPROVADO (critério de aceite não entregue). Variante de bloqueio só com decisão escrita de Produtos (DC2). Com muitas averbações, a mensagem pode agrupar por intervalo ou dar a quantidade, desde que a quantidade excluída seja exatamente a do banco e a fechada preservada seja identificada.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Sem regressão: faixa só de abertas, Em bloco com Mês/Ano e Seleção (CA, 3ª frase)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-008</span><span class="ct-title">Regressão: Em bloco com faixa só de abertas continua excluindo todas e a mensagem não inventa fechada preservada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA, 3ª frase («faixa sem fechadas»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1: quatro abertas novas criadas pela tela (D1 a D4, numeração maior que a da última fechada). Faixa: de D1 até D4.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Preencher Filial, Apólice, Subgrupo, Tipo Em bloco, Inicial e Final; clicar em Excluir e confirmar Sim (N3); capturar o aviso no instante e ler o campo «Averbações Excluídas» (DC5); registrar o SELECT <b>depois</b>.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>No banco as 4 saíram; a mensagem cita a faixa (ou os números) excluída, <b>sem</b> mencionar fechada preservada (não há). Aviso «Exclusão efetuada com sucesso!». Qualquer averbação da faixa que ficou, ou mensagem de bloqueio, = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-009</span><span class="ct-title">Regressão: Em bloco com Mês/Ano de mês fechado bloqueia sem pedir confirmação; de mês aberto lista a faixa</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — comportamento medido em 13/11/2026 (#9483, CT-RCV-007)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1: Mês/Ano 03/2026 (fechado, fechamento 188) e Mês/Ano 09/2026 (aberto). Leitura: não clicar em Excluir e confirmar Sim.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Informar Mês/Ano 03/2026 no Em bloco e clicar em Excluir; capturar o aviso. Repetir com 09/2026 e conferir a faixa preenchida (Inicial e Final) sem confirmar a exclusão.</li><li>SELECT depois: total da apólice igual ao de antes (nada foi excluído).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mês fechado: aviso «Averbações selecionadas estão fechadas, para efetuar a exclusão deve-se primeiro cancelar o fechamento», sem confirmação e sem faixa. Mês aberto: faixa preenchida com a menor e a maior aberta do mês. Banco inalterado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-010</span><span class="ct-title">Regressão: Exclusão por Seleção — sem Mês/Ano lista só as abertas; com mês fechado bloqueia; excluir uma aberta continua funcionando</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA, 3ª frase («Seleção»); comportamento do #9483</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). RCV, apólice 777, subgrupo 1, depois dos destrutivos do Grupo A (resta a fechada 2026000001 e abertas criadas pela QA, DC3).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente e do build; entrar (N1); abrir a janela de exclusão (N2); registrar o SELECT <b>antes</b> da faixa (O1, DC1).</li><li>Tipo Seleção sem Mês/Ano: Pesquisar e conferir a grade (só abertas; a fechada não aparece). Tipo Seleção com 03/2026: Pesquisar e capturar o aviso.</li><li>Selecionar uma aberta na grade (Seleção sem Mês/Ano), Excluir e Sim; capturar o aviso; SELECT depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem Mês/Ano: a grade lista só as abertas e não lista a fechada. Com 03/2026: aviso «Existem Averbações fechadas na competência 03/2026, para efetuar a exclusão deve-se primeiro cancelar o fechamento: fechamento 188 (ref. 03/2026) com 1 averbação(ões), nº 2026000001.». Exclusão: «Exclusão efetuada com sucesso!» e só a aberta marcada sai do banco. Qualquer diferença em relação à medição de 13/11 = REPROVADO (regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-010"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EBL-011</span><span class="ct-title">Exploratório (15 a 30 minutos, guiado por risco): bordas da faixa e da mensagem do Em bloco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Nacional da QA; massa própria da QA (DC3). Sem clicar em «Sim» em massa de desenvolvimento ou de Produtos.</li></ul>
+      <h4>Passos</h4><ol><li>Explorar: Inicial maior que Final; Inicial igual a Final numa aberta; número inexistente; faixa que cruza duas competências; faixa com a fechada no limite inferior e no superior; RCTR-C com várias fechadas; duplo clique em Excluir.</li><li>Em cada variação, comparar a mensagem com o SELECT depois (DC1); observar também o usuário de alteração gravado nas linhas já excluídas, sem veredito (DC6).</li><li>Qualquer achado novo: classificar (do card × pré-existente, A9) antes de abrir defeito.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em nenhuma variação a mensagem afirma a exclusão de uma averbação que o banco mostra preservada, nem esconde uma excluída. Sem ocorrências: registrar «Exploratório executado [DD/MM HML]. Sem ocorrências.»; achado: work item conforme a classificação (A9).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EBL-011"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA, 1ª frase — a mensagem do Em bloco com faixa mista informa o excluído e o preservado</td><td>CT-EBL-001 · CT-EBL-002 · CT-EBL-003 · CT-EBL-004 · CT-EBL-005 · CT-EBL-007</td><td>Pendente</td></tr><tr><td>CA, 2ª frase — fechada nunca é excluída</td><td>CT-EBL-006 · CT-EBL-007 · SELECT antes e depois em CT-EBL-001 a 005</td><td>Pendente</td></tr><tr><td>CA, 3ª frase — sem regressão da faixa sem fechadas e da Seleção</td><td>CT-EBL-008 · CT-EBL-009 · CT-EBL-010</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-EBL-011</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o critério do card (mensagem do Em bloco com faixa mista informa o excluído e o preservado; fechada nunca é excluída; sem regressão da Seleção e da faixa sem fechadas) mapeado a CTs (100%): fechada no início, no fim e no meio da faixa, RCV e RCTR-C, faixa mínima e longa, faixa só de fechadas, faixa só de abertas, Em bloco com Mês/Ano, Seleção e um exploratório. Oráculo: o texto da mensagem contra o SELECT somente leitura antes e depois. A prova de pré-existência já está no card e não é refeita.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Massa acaba durante a execução (cada CT destrutivo consome abertas)</td><td>Alta</td><td>Média</td><td>Massa própria e consumível, recriada pela tela; ordem de execução definida (DC3, Ordem).</td></tr><tr><td>Montar a fechada de numeração maior pela Emissão da tela falha ou fecha mais do que o previsto</td><td>Média</td><td>Média</td><td>Mês próprio só com as duas averbações a fechar; se a Emissão não puder ser montada, o CT-EBL-002 e o 003 usam o desenho de Produtos em leitura da grade e a QA registra a limitação, sem consumir massa alheia.</td></tr><tr><td>Aviso transitório não capturado</td><td>Média</td><td>Alta</td><td>Capturar no instante, remover aviso antigo antes da ação, 2 tentativas por passo; sem aviso lido não há veredito (DC5).</td></tr><tr><td>Correção bloqueia a faixa mista em vez de informar</td><td>Média</td><td>Média</td><td>Variante prevista em DC2: só vale com decisão de Produtos escrita no card; senão vale o critério de aceite.</td></tr><tr><td>Clique destrutivo em massa de outra pessoa</td><td>Baixa</td><td>Alta</td><td>Só massa própria; massa de desenvolvimento e de Produtos em leitura; SELECT do alcance antes de cada «Sim» (DC3).</td></tr><tr><td>Correção apaga fechada ou esquece abertas da faixa (regressão grave)</td><td>Baixa</td><td>Alta</td><td>SELECT antes e depois em todos os CTs destrutivos; CT-EBL-006 e 008.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
