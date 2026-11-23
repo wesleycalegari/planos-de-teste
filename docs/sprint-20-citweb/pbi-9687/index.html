@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9687 · CITWEB Zurich — demora na exclusão em bloco de averbações RCTR-C / RC-DC</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9687 · Sprint 20</span>
+    <h1>CITWEB Zurich: a Exclusão em Bloco de averbações RCTR-C / RC-DC deve concluir 5.000 embarques em tempo hábil e aceitar mais de 5.000 em uma única execução</h1>
+    <div class="sub">CITWEB Nacional · Zurich · Averbação RCTR-C / RC-DC · Exclusão em Bloco · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug — sem aprovação de Produtos; nenhum CT executado (a execução começa com o card em Pronto para homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">13</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">13</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/5/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 13 executados · 13 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>13 CTs</strong> (6×P1 · 5×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 13, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 13}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITWEB do Zurich, ao excluir em bloco um lote grande de averbações de transporte rodoviário (RCTR-C e RC-DC), a tela fica em «PROCESSANDO...» por mais de 10 minutos para 5.000 embarques, sem dar erro, e não dá para excluir mais de 5.000 de uma vez: o usuário precisa dividir em várias exclusões. O card pede que a exclusão de 5.000 fique bem mais rápida e que seja possível excluir mais de 5.000 de uma vez.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 13 situações no ambiente de testes do Zurich: excluir 5.000 averbações e medir o tempo; excluir 10.000 de uma vez; repetir o caso real do chamado (averbações do mês anterior); conferir que o resultado não mudou (as mesmas averbações saem, a apólice de RC-DC acompanha, as que estão fora do intervalo ou já fechadas ficam, o usuário e a data da exclusão ficam registrados); e conferir que os outros tipos de seguro que usam a mesma tela continuam funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o desenvolvimento só entregou a análise e ainda não começou a correção (card em «In Progress»). <b>Ressalva importante:</b> na análise o desenvolvimento prevê manter o jeito antigo (lento) quando as averbações têm faturamento por e-mail, que, segundo a análise técnica, é o caso das viagens do mês anterior, exatamente o caso do chamado. Por isso testamos esse caso separado: se continuar lento, o chamado não estaria resolvido.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem exclui lotes grandes deixa de esperar mais de 10 minutos e deixa de precisar dividir a exclusão em lotes de 5.000.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Uma pergunta (não trava os testes):</b> o card diz «tempo significativamente menor» sem dizer quanto. <b>Opção A:</b> aceitar até 5 minutos para 5.000 averbações (metade dos 10 minutos de hoje); <b>opção B:</b> outro tempo que Produtos definir. <b>Recomendação da QA: opção A.</b> Até a resposta, testamos com a opção A.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b>, tenant <b>Zurich</b>, HML — Averbação › <b>RCTR-C</b> › botão «Exclusão em Bloco» (modal «Exclusão Averbação - RCTRC»), ramos <b>54 (RCTR-C)</b> e <b>55 (RC-DC)</b>.</td></tr><tr><th>Card</th><td>BUG-9687 — «[EXT] Demora na Exclusão de Embarques - CITWEB Zurich» · board CITWEB Team · Sprint 20 · estado <b>In Progress</b> · tags main, ZURICH · chamado externo de 10/11/2026.</td></tr><tr><th>Tasks</th><td>#9905 [QA] Plano de teste — BUG #9687 (este plano; fecha na entrega) · #9838 Análise e Planejamento (concluída pelo desenvolvimento; a correção ainda não foi iniciada).</td></tr><tr><th>Ambiente</th><td>HML do CITWEB Zurich (build V 1.0.261119.1733, lido na tela em 23/11/2026; endereços e perfis no arquivo de ambiente do time). A tela de Exclusão em Bloco foi aberta em 23/11/2026 sem executar nenhuma exclusão. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITWEB Zurich, a exclusão <b>«Em bloco»</b> de averbações RCTR-C / RC-DC (filtro por Mês/Ano e faixa de averbação) fica em «PROCESSANDO...» por <b>mais de 10 minutos para 5.000 embarques</b>, em qualquer horário, sem mensagem de erro; o usuário também não consegue excluir mais de 5.000 por execução e precisa fracionar o lote. Chamado de 10/11/2026 (produção), com o print da tela «Exclusão Averbação - RCTRC». A análise do desenvolvimento (19/11/2026) aponta que a rotina executa, para <b>cada</b> averbação, uma sequência de comandos no banco (e repete tudo para o RC-DC) dentro de uma única transação; não há trava de 5.000 no sistema, o limite é prático. A correção proposta troca o laço por uma exclusão da faixa inteira, só nos ramos 54/55, <b>mantendo o laço antigo</b> quando a faixa tiver protocolo do CITNET, chassi, faturamento por e-mail, embarque esporádico ou apólice ajustável. A QA mede o efeito na tela (tempo, contagens, resultado); a causa e a técnica são do desenvolvimento.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — A exclusão em bloco de 5.000 embarques conclui em tempo significativamente menor que o atual (mais de 10 minutos)</td><td>CT-EXB-001 · CT-EXB-003 (o caso real do chamado) · CT-EXB-004</td></tr><tr><td><b>CA2</b> — É possível excluir mais de 5.000 embarques em uma única execução, sem fracionar</td><td>CT-EXB-002</td></tr><tr><td><b>Paridade</b> (o resultado da exclusão não muda; vem do plano de verificação do desenvolvimento)</td><td>CT-EXB-005 · CT-EXB-006 · CT-EXB-007 · CT-EXB-008 · CT-EXB-009</td></tr><tr><td><b>Regressão</b> — demais caminhos e ramos que usam a mesma rotina</td><td>CT-EXB-010 · CT-EXB-011 · CT-EXB-012</td></tr><tr><td>Exploratório</td><td>CT-EXB-013</td></tr><tr><td>Critérios <b>técnicos/DoD</b> do card (testes unitários e de integração, Quality Gate do Sonar nível A, 2 aprovadores no PR, evidências do QA em HML, homologação do PO em RELEASE)</td><td>Não geram CT: são garantidos pela política de branch e pelo DoD do desenvolvimento; as evidências do QA em HML são este plano e a execução; a homologação em RELEASE é de Produtos</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Descrição do Bug (contexto, cenário atual, cenário desejado, usuário afetado, ambiente, evidência), critérios de aceite, 1 anexo (roteiro de diagnóstico do desenvolvimento), a task filha e os 4 comentários (12/11, 16/11 e 19/11) lidos por inteiro. <b>Tags:</b> sistema (main) e seguradora (ZURICH) identificados; módulo Averbação RCTR-C / RC-DC declarado (ramos 54 e 55). <b>Oráculo observável:</b> tempo da exclusão (da confirmação à mensagem de resultado), mensagem de sucesso, lista «Averbações Excluídas» e contagem de averbações da faixa antes e depois. <b>Não é débito técnico:</b> o usuário espera mais de 10 minutos e não consegue excluir lotes maiores. <b>Uma lacuna de critério:</b> «tempo significativamente menor» não traz número; a QA aplica uma regra padrão (DC1) e leva a pergunta ao trio na publicação do plano, sem travar a execução. Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação e a correção publicada em HML.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação e correção publicada:</b> O card está em <b>In Progress</b> (só a análise foi concluída). A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação) <b>e</b> a correção publicada em HML; antes disso a execução fica fora do ciclo (espera legítima, sem veredito).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>O que é «tempo significativamente menor» (CA1)</b></td><td>O card não dá número; o relato é «mais de 10 minutos» para 5.000. <b>Regra padrão do QA até a resposta do trio:</b> 5.000 embarques concluem em <b>até 5 minutos</b> (metade do que o card relata), medido do clique em «Sim» na última confirmação até a mensagem de resultado. Acima de 5 minutos, mesmo sem erro, o CA1 não é atendido (REPROVADO). Pergunta levada ao trio na publicação do plano (opções A e B); a execução segue com a regra padrão.</td></tr><tr><td><b>DC2</b></td><td><b>O que é «mais de 5.000» (CA2)</b></td><td>O card não fixa o volume. <b>Posição do QA:</b> 10.000 embarques em uma única execução (o dobro do limite prático de hoje); o CT-EXB-013 explora volumes maiores. Aprovado = conclui, com mensagem de sucesso e todas as averbações excluídas, sem tela de erro nem tempo esgotado do servidor; o tempo é registrado e comparado ao do CT-EXB-001.</td></tr><tr><td><b>DC3</b></td><td><b>Massa e carga em lote</b></td><td>Exclusão é destrutiva: <b>só em massa própria da QA</b> (apólice 626, filial 0001, subgrupo 1, ramo 54, com a RC-DC 251194 vinculada, vigente de 02/02/2026 a 02/02/2027, já usada em outro card da QA). Os volumes (5.000, 10.000 e 5.000) são carregados pela QA em lote pela própria tela do sistema (Conversor de arquivos), com arquivo gerado pela QA; a forma e o tempo da carga ficam registrados no resultado do CT-EXB-001. Nada de outro usuário ou apólice é excluído. A QA não grava dado de negócio direto no banco: as leituras no banco são só de consulta.</td></tr><tr><td><b>DC4</b></td><td><b>O caminho alternativo previsto pelo desenvolvimento × o caso do chamado</b></td><td>A análise do desenvolvimento mantém o laço antigo (lento) quando a faixa tem faturamento por e-mail, que, segundo a análise técnica do card, só ocorre para viagens do <b>mês anterior</b> — exatamente o caso do chamado (competência 10/2026 excluída em 11/2026). <b>Posição do QA:</b> o CT-EXB-003 reproduz esse caso com 5.000 embarques e exige a mesma meta de tempo; se continuar no caminho lento, o CA1 não está atendido para o caso que originou o card (REPROVADO, com o tempo medido) — o plano não aceita «melhorou só para o caso simples».</td></tr><tr><td><b>DC5</b></td><td><b>Correção ainda não publicada</b></td><td>O card está em In Progress e o desenvolvimento só concluiu a análise. <b>Posição do QA:</b> a execução só começa com o card em Pronto para homologação e a correção publicada em HML (build lido na tela e registrado no 1º CT). Antes disso a execução fica fora do ciclo (espera legítima, sem veredito).</td></tr><tr><td><b>DC6</b></td><td><b>HML não é produção</b></td><td>O tempo do HML não é o da produção. <b>Posição do QA:</b> a regra padrão (DC1) vale para o HML; resultado perto do limite é registrado com o tempo medido e as condições (volume, hora, carga do servidor) para Produtos decidir; o 5.000 do chamado em produção é confirmado por Produtos/suporte depois do staging, fora da QA.</td></tr><tr><td><b>DC7</b></td><td><b>Fora do escopo por decisão registrada no card</b></td><td>(a) O bug da competência «101» (a autorização de faturamento do CITNET nunca é removida na exclusão em bloco) será tratado em task separada, por alterar faturamento; (b) a opção «Por faixa» só existe com um indicador do tenant e <b>está desligada no HML Zurich</b> (a tela mostra só «Seleção» e «Em bloco», lido em 23/11/2026): N/A neste tenant.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Exclusão em Bloco do RCTR-C no HML Zurich (ramos 54 e 55): tempo para 5.000 embarques, mais de 5.000 em uma única execução, o caso do chamado (competência do mês anterior) e a faixa com protocolo do CITNET.</li><li>Paridade do resultado: contagem de excluídas (tela, relatório e banco em leitura), RC-DC acompanhando, faixa parcial, averbações fechadas intactas, usuário e data da exclusão, validações da tela.</li><li>Regressão: exclusão por Seleção do RCTR-C e Exclusão em Bloco dos demais ramos que usam a mesma rotina (RCTA-C, RCTF-C, RCA-C, RCV).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A); o tempo real do chamado é confirmado por Produtos/suporte.</li><li><b>Bug da competência «101»</b> (autorização de faturamento do CITNET) — task separada, decisão registrada no card (DC7).</li><li><b>Opção «Por faixa»</b> — desligada no tenant (DC7); N/A.</li><li><b>Índices e demais ajustes no banco</b> — análise do DBA, sem comportamento de tela.</li><li>Código, testes unitários, Sonar e política de PR (DoD do desenvolvimento).</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano e nenhuma averbação foi criada ou excluída. O card está em <b>In Progress</b> (o desenvolvimento concluiu só a análise). O esperado vem dos critérios de aceite, da análise do desenvolvimento e do que a tela de Exclusão em Bloco já mostra (aberta em 23/11/2026 sem executar nada). A medição é feita por script local (Playwright) sobre o login feito por clique: grava em disco a hora de início e de fim, a mensagem de resultado e a lista de excluídas; as contagens antes e depois são lidas na tela e conferidas por consulta de leitura ao banco.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB Zurich (endereços e perfis no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. O build exibido no rodapé da tela é registrado em cada CT.</li><li><b>Identidade de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Usuário do CITWEB Zurich com acesso a Averbação › RCTR-C e à Exclusão em Bloco; para o CT-EXB-004 também um usuário do CITNET do tenant. Faltando identidade, a QA cria ou edita usuário do tenant pela tela e registra o que fez, sem a senha.</li><li><b>Massa (própria da QA)</b> — Apólice 626 / filial 0001 / subgrupo 1 / RCTR-C com a RC-DC 251194 vinculada (vigente de 02/02/2026 a 02/02/2027) para os volumes; apólices próprias para os demais ramos no CT-EXB-011/012. Cada CT monta a sua massa (CTs independentes) e anota a faixa de numeração usada.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina): login por clique, abertura da Exclusão em Bloco pelo menu, cronômetro do clique em «Sim» até a mensagem de resultado, captura de tela e registro em disco; leituras de contagem por consulta de leitura ao banco do HML Zurich. Reuso: roteiro de Exclusão em Bloco do plano EXCBL (testes-automatizados/excbl).</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas desde o login (faixa preenchida, mensagem final, lista de excluídas), o registro de tempo (início, fim, duração) e as contagens antes e depois (tela e banco em leitura); usuário, perfil, apólice e faixa (sem credencial).</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir a tela de login do CITWEB Zurich HML, entrar com o usuário do CT (clique) e abrir o módulo <b>Nacional</b> pelo ladrilho do menu inicial; registrar o build do rodapé.</li><li><b>N2 — Tela:</b> menu superior <b>Averbação › RCTR-C</b> e botão <b>«Exclusão em Bloco»</b> (abre «Exclusão Averbação - RCTRC», com Filial, Apólice, Subgrupo, Tipo de Exclusão «Seleção» ou «Em bloco», Mês/Ano e, em bloco, Averbação Inicial e Final); o botão <b>«Exclusão em Bloco RCF»</b> trata a RC-DC.</li><li><b>N3 — Exclusão:</b> escolher «Em bloco», informar filial, apólice, subgrupo, Mês/Ano e a faixa; <b>Pesquisar</b> (a lista mostra as averbações abertas da faixa); <b>Excluir</b>; confirmar os avisos de confirmação com «Sim» (texto exato registrado no resultado).</li><li><b>N4 — Medição:</b> o cronômetro começa no clique no «Sim» da última confirmação e termina quando a mensagem de resultado e a lista «Averbações Excluídas» aparecem; registrar hora de início, de fim e duração.</li><li><b>N5 — Conferência:</b> contagem da faixa antes (lista da pesquisa) e depois (lista de excluídas, relatório «Averbações Excluídas» e consulta de leitura ao banco).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Volumes:</b> 5.000 (CT-EXB-001), 10.000 (CT-EXB-002), 5.000 da competência do mês anterior (CT-EXB-003); 1.000, 300 e 600 nos CTs de paridade; 10 a 30 nos demais.</li><li><b>Apólice dos volumes:</b> 626 / filial 0001 / subgrupo 1 / RCTR-C com a RC-DC 251194 vinculada (pior caso: a rotina antiga repete tudo para o RC-DC).</li><li><b>Competência do mês anterior (CT-EXB-003):</b> Averbações com data de saída em 10/2026 e exclusão em 11/2026, como no chamado; se o sistema recusar criar averbação de mês anterior, a mensagem exata é registrada e a QA usa a apólice/ramo em que o mês anterior possa ser carregado, sem pedir a Produtos.</li><li><b>Faixa com protocolo do CITNET (CT-EXB-004):</b> Averbações criadas pelo CITNET do tenant, em quantidade pequena, numa faixa só delas.</li><li><b>Averbação de mês fechado (CT-EXB-007):</b> Uma averbação de movimento já fechado na apólice da QA; se não houver, a QA faz o fechamento do mês pela tela.</li><li><b>Dados fixos nos CTs:</b> Faixas de numeração e quantidades exatas ficam no guia privado e são reconfirmadas na tela e em leitura no banco no instante do CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; CT-EXB-001 registra o build e confirma que a correção está no ar.</li><li>Grupo A (001 a 004) → Grupo B (005 a 009) → Grupo C (010 a 013). Os volumes grandes (001, 002, 003) usam a mesma apólice em faixas de numeração distintas e são carregados antes de cada CT.</li><li>Cada CT é independente: monta a própria massa e anota a faixa usada.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Tempo e volume (critérios de aceite do card): 5.000, mais de 5.000, o caso do chamado e a faixa com protocolo do CITNET</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-001</span><span class="ct-title">Exclusão em Bloco de 5.000 averbações RCTR-C (apólice com RC-DC vinculada): conclui no tempo da meta e sem erro</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / desempenho — CA1 (também confirma que a correção está publicada e registra o build)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada em HML (DoD). Massa própria: 5.000 averbações abertas na apólice 626 / filial 0001 / subgrupo 1, em faixa de numeração própria, carregadas em lote (DC3). Usuário do CITWEB Zurich logado por clique.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, o usuário e o build do rodapé.</li><li>Averbação › RCTR-C › Exclusão em Bloco; filial 0001, apólice 626, subgrupo 1, tipo «Em bloco», Mês/Ano da massa e a faixa das 5.000.</li><li>Pesquisar; conferir que a lista traz 5.000 averbações abertas; capturar a tela.</li><li>Excluir e confirmar os avisos com «Sim»; iniciar o cronômetro no último «Sim».</li><li>Aguardar a mensagem de resultado e a lista «Averbações Excluídas»; parar o cronômetro; capturar a tela inteira com a mensagem.</li><li>Contar as averbações da faixa em aberto (consulta de leitura ao banco): antes 5.000, depois 0.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem de sucesso, lista «Averbações Excluídas» com as 5.000 e <b>nenhuma</b> mensagem de erro ou tempo esgotado, em <b>até 5 minutos</b> (regra padrão DC1). Mais de 5 minutos = REPROVADO (CA1 não atendido; no card: mais de 10 minutos), com a duração medida no resultado. Faixa em aberto = 0 ao final. Evidência: capturas desde o login, registro de início, fim e duração, contagens antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-002</span><span class="ct-title">Exclusão em Bloco de 10.000 averbações em uma única execução, sem fracionar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / volume — CA2 (DC2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 10.000 averbações abertas na mesma apólice (RC-DC vinculada), em faixa de numeração própria.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build.</li><li>Averbação › RCTR-C › Exclusão em Bloco; informar a faixa das 10.000 (uma única faixa); Pesquisar; conferir 10.000 na lista e capturar a tela.</li><li>Excluir, confirmar com «Sim», cronometrar até a mensagem de resultado.</li><li>Capturar a mensagem e a lista de excluídas; contar a faixa em aberto (consulta de leitura ao banco): antes 10.000, depois 0.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Uma única execução conclui com mensagem de sucesso, as 10.000 aparecem na lista de excluídas, faixa em aberto = 0, <b>sem</b> tela de erro nem tempo esgotado do servidor. O tempo é registrado e comparado ao do CT-EXB-001; tempo muito acima do dobro é anotado como risco no resultado (não reprova por si: o CA2 pede conseguir excluir em uma execução). Erro, tempo esgotado ou exclusão parcial = REPROVADO. Evidência: capturas, tempo e contagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-003</span><span class="ct-title">O caso do chamado: 5.000 averbações da competência do mês anterior (10/2026 excluídas em 11/2026) concluem no tempo da meta</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / desempenho — CA1 (DC4: caminho do faturamento por e-mail)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 5.000 averbações abertas com data de saída em 10/2026 na apólice 626 (RC-DC vinculada), como no chamado (filtro Mês/Ano 10/2026). O indicador de faturamento por e-mail do tenant é lido e registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário, build e o indicador de faturamento por e-mail do tenant.</li><li>Averbação › RCTR-C › Exclusão em Bloco; filial 0001, apólice 626, subgrupo 1, «Em bloco», Mês/Ano 10/2026 e a faixa das 5.000; Pesquisar e conferir 5.000 na lista.</li><li>Excluir, confirmar com «Sim» e cronometrar até a mensagem de resultado.</li><li>Capturar mensagem e lista; contar a faixa em aberto antes (5.000) e depois (0) em leitura no banco.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Concluir em <b>até 5 minutos</b> (a mesma meta do CT-EXB-001), com mensagem de sucesso e as 5.000 na lista de excluídas. Se esta faixa continuar lenta (a rotina antiga mantida para o caso do mês anterior), o CA1 <b>não</b> está atendido para o caso que originou o card = REPROVADO, com o tempo medido. Evidência: capturas, tempo, contagens e o indicador lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-004</span><span class="ct-title">Faixa com averbações criadas pelo CITNET (protocolo do CITNET): todas saem e o resultado é o mesmo de antes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — caminho alternativo previsto pelo desenvolvimento (resultado, não tempo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 30 averbações criadas pelo CITNET do tenant, em faixa só delas, na apólice da QA. Usuário do CITNET e do CITWEB do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuários e build.</li><li>No CITNET, conferir que as 30 averbações aparecem na consulta do usuário; capturar a tela.</li><li>No CITWEB: Averbação › RCTR-C › Exclusão em Bloco; informar a faixa das 30; Pesquisar (30 na lista); Excluir e confirmar com «Sim».</li><li>Conferir a mensagem de resultado e a lista de excluídas (30).</li><li>No CITNET, repetir a consulta; capturar a tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 30 saem: mensagem de sucesso e lista de excluídas com 30; no CITNET as 30 <b>deixam de aparecer</b> na consulta; faixa em aberto = 0 em leitura no banco. Sobrar averbação da faixa, mensagem de erro ou averbação ainda visível no CITNET = REPROVADO (resultado funcional alterado pela correção). Evidência: capturas CITWEB e CITNET e contagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-004"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo B — Paridade do resultado: a correção só pode mudar o tempo, nunca o que a exclusão faz</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-005</span><span class="ct-title">As três fontes concordam: lista da tela, relatório «Averbações Excluídas» e consulta de leitura ao banco trazem o mesmo número de excluídas</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — paridade (contagem)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 1.000 averbações abertas na apólice 626, faixa própria. Usuário do CITWEB Zurich.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build; anotar a faixa e contar na pesquisa (1.000).</li><li>Excluir em bloco a faixa inteira e confirmar com «Sim»; anotar o total da lista «Averbações Excluídas».</li><li>Menu Relatórios › Averbações Excluídas: filtrar o dia, a apólice e a faixa; anotar o total do relatório.</li><li>Consulta de leitura ao banco: total de excluídas da faixa e de abertas da faixa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Lista da tela, relatório e banco informam <b>1.000</b> excluídas e <b>0</b> abertas na faixa. Qualquer divergência entre as três fontes = REPROVADO. Evidência: capturas da lista e do relatório e as contagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-006</span><span class="ct-title">RC-DC vinculada: a exclusão em bloco do RCTR-C leva junto as averbações do RC-DC; a Exclusão em Bloco RCF também funciona</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — paridade (regra 54 ↔ 55)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 300 averbações RCTR-C na apólice 626, com as 300 correspondentes na RC-DC 251194; e mais 100 averbações do RC-DC em faixa própria para o teste do botão RCF.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build; contar as averbações da faixa nos dois ramos (tela e leitura no banco): 300 e 300.</li><li>Exclusão em Bloco do RCTR-C na faixa das 300 (Pesquisar, Excluir, «Sim»); capturar a mensagem.</li><li>Pesquisar a mesma faixa na Exclusão em Bloco RCF e contar o RC-DC em leitura no banco.</li><li>Para a faixa das 100 do RC-DC: Exclusão em Bloco RCF (Pesquisar, Excluir, «Sim»); capturar a mensagem e contar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois da 1ª exclusão: RCTR-C = 0 e RC-DC correspondente = 0 na faixa (a pesquisa RCF não devolve nenhuma). A Exclusão em Bloco RCF da faixa própria exclui as 100 com mensagem de sucesso. Sobrar averbação do RC-DC vinculada ou erro = REPROVADO. Evidência: capturas e contagens por ramo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-007</span><span class="ct-title">Faixa parcial: só o intervalo informado sai; as averbações fora da faixa e a de movimento fechado permanecem</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — paridade (escopo da exclusão)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 600 averbações abertas em numeração contínua na apólice 626 e 1 averbação de movimento fechado na apólice; a faixa a excluir cobre as 300 do meio.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build; anotar a faixa total, a faixa a excluir e a averbação fechada.</li><li>Exclusão em Bloco com a faixa das 300 do meio (Pesquisar: 300 na lista); Excluir e confirmar com «Sim».</li><li>Conferir a mensagem e a lista de excluídas (300).</li><li>Conferir que as 300 de fora seguem abertas (consulta da apólice na tela e leitura no banco) e que a averbação fechada continua na consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saem exatamente as 300 da faixa; as 300 fora da faixa permanecem abertas; a averbação de movimento fechado <b>continua</b> intacta. Excluir fora da faixa, ou excluir a fechada = REPROVADO. Evidência: capturas e contagens antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-008</span><span class="ct-title">Usuário e data da exclusão ficam registrados em todas as averbações excluídas em bloco</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — paridade (auditoria)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 300 averbações abertas na apólice 626, faixa própria. Usuário do CITWEB Zurich conhecido.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build.</li><li>Excluir em bloco a faixa das 300 (Pesquisar, Excluir, «Sim»).</li><li>Menu Relatórios › Averbações Excluídas: filtrar o dia e a faixa; ler o usuário e a data da exclusão de uma amostra no começo, no meio e no fim da faixa.</li><li>Consulta de leitura ao banco: usuário e data de exclusão das 300 (quantas têm o usuário do teste e a data do dia).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 300 excluídas trazem o <b>usuário do teste</b> e a <b>data do dia</b> da exclusão (como a rotina antiga gravava). Registro sem usuário, com outro usuário ou sem data = REPROVADO. Evidência: captura do relatório e a contagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-009</span><span class="ct-title">Validações da tela continuam: faixa em branco, faixa sem averbações e resposta «Não» na confirmação não excluem nada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — validações (comportamento já medido no plano EXCBL, 11/05/2026, em outro tenant)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 20 averbações abertas na apólice 626, faixa própria.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build.</li><li>Em bloco com Averbação Inicial e/ou Final em branco: Pesquisar; capturar a tela.</li><li>Em bloco com uma faixa que não tem averbação (fora da numeração): Pesquisar; capturar a lista e tentar Excluir.</li><li>Com a faixa das 20: Pesquisar, Excluir e responder «Não» na confirmação; conferir a contagem da faixa (leitura no banco).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Faixa em branco: a lista <b>não</b> é carregada (a tela impede). Faixa sem averbações: lista vazia e Excluir não processa nada. «Não» na confirmação: as 20 seguem abertas. Qualquer exclusão nesses três casos = REPROVADO. Evidência: capturas e contagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-009"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Regressão nos demais caminhos que usam a mesma rotina e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-010</span><span class="ct-title">Regressão — exclusão por «Seleção» no RCTR-C continua funcionando</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — caminho que não deve mudar</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 10 averbações abertas na apólice 626, faixa própria.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build.</li><li>Averbação › RCTR-C › Exclusão em Bloco; tipo «Seleção»; filial, apólice, subgrupo; Pesquisar.</li><li>Marcar 3 averbações na lista, Excluir e confirmar com «Sim»; capturar a mensagem.</li><li>Pesquisar de novo e conferir que as 3 saíram e as 7 restantes seguem na lista.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem de sucesso; as 3 marcadas saem e as 7 permanecem. Sair outra quantidade ou erro = REPROVADO. Evidência: capturas antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-011</span><span class="ct-title">Regressão — Exclusão em Bloco nos ramos que compartilham a rotina (RCTA-C, RCTF-C e RCA-C; Transporte Nacional e RR do Internacional se a tela oferecer)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — rotina compartilhada (a correção deve ficar restrita aos ramos 54/55)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. Massa própria: 10 averbações abertas por ramo, em apólice vigente da QA em cada ramo.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário e build.</li><li>Para cada ramo, pelo menu Averbação › ramo › Exclusão em Bloco: «Em bloco», faixa das 10, Pesquisar (10 na lista), Excluir e «Sim».</li><li>Capturar a mensagem e a lista de excluídas por ramo; contar a faixa depois (leitura no banco).</li><li>Registrar o ramo cuja tela não tem Exclusão em Bloco (N/A com a captura do menu).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada ramo: mensagem de sucesso, as 10 saem e a faixa fica em 0, como antes. Qualquer mudança de comportamento, mensagem de erro ou exclusão fora da faixa = REPROVADO. Ramo sem a opção na tela = N/A com a captura. Evidência: capturas e contagens por ramo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-012</span><span class="ct-title">Regressão — RCV (que já excluía em lote) continua excluindo em bloco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — ramo 59 (a rotina compartilhada tem um caminho próprio para o RCV)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada. O HML Zurich não tem movimento do ramo 59 (medido em 23/11/2026): a QA usa apólice RCV própria (criada pela tela, se o tenant permitir) ou o tenant com RCV que esteja na mesma versão; 20 averbações abertas.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, usuário, tenant e build.</li><li>Averbação › RCV › Exclusão em Bloco: «Em bloco», faixa das 20, Pesquisar, Excluir, «Sim».</li><li>Capturar a mensagem e a lista; contar a faixa depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagem de sucesso, as 20 saem e a faixa fica em 0, como antes. Mudança de comportamento ou erro = REPROVADO. Se nenhum tenant da mesma versão tiver RCV nem permitir criá-lo pela tela, o motivo exato é registrado e o CT fica N/A (não é falha do card).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-EXB-013</span><span class="ct-title">Exploratório: volume maior, duas exclusões seguidas, subgrupo diferente de 1, fechar a tela durante o processamento</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11 (15 a 30 minutos, guiado por risco)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais concluídos; massa própria disponível (inclusive uma faixa de 20.000 para o teste de volume).</li></ul>
+      <h4>Passos</h4><ol><li>Excluir em bloco 20.000 averbações em uma execução e registrar tempo e resultado.</li><li>Duas exclusões em bloco seguidas, sem recarregar a tela, em faixas diferentes; conferir as duas listas.</li><li>Exclusão em apólice com subgrupo diferente de 1 e com Mês/Ano preenchido e em branco.</li><li>Fechar a aba durante o processamento de uma faixa de 5.000 e conferir depois a contagem (tudo ou nada, nunca parcial).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem erro nem exclusão parcial: ou a faixa inteira saiu, ou nenhuma. Qualquer comportamento inesperado é classificado (do card × pré-existente, A9) e vira item correspondente. Sem ocorrências: comentar no card «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em Pronto para homologação e a correção publicada em HML (Bug — sem aprovação de Produtos). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-EXB-013"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — 5.000 embarques em tempo significativamente menor que o atual (DC1; DC4 para o caso do chamado)</td><td>CT-EXB-001 · CT-EXB-003 · CT-EXB-004</td><td>Pendente</td></tr><tr><td>CA2 — Mais de 5.000 embarques em uma única execução (DC2)</td><td>CT-EXB-002</td><td>Pendente</td></tr><tr><td>Paridade do resultado (contagem, RC-DC, faixa parcial, auditoria, validações)</td><td>CT-EXB-005 · CT-EXB-006 · CT-EXB-007 · CT-EXB-008 · CT-EXB-009</td><td>Pendente</td></tr><tr><td>Regressão — Seleção, demais ramos e RCV</td><td>CT-EXB-010 · CT-EXB-011 · CT-EXB-012</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-EXB-013</td><td>Pendente</td></tr><tr><td>Bug da competência «101»; opção «Por faixa»; índices no banco; critérios técnicos/DoD do card</td><td>— fora do escopo (task separada / indicador desligado / DBA / DoD do desenvolvimento)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 2 critérios de aceite de produto do card (CA1 e CA2) mapeados a CTs, o caso real do chamado em CT próprio, a paridade do resultado vinda do plano de verificação do desenvolvimento, a regressão nos caminhos que compartilham a rotina e o exploratório. Os critérios técnicos/DoD do card não geram CT (garantidos fora da homologação).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não publicada em HML</td><td>Alta</td><td>Média</td><td>Execução só com o card em homologação e a correção no ar; o CT-EXB-001 registra o build (DC5).</td></tr><tr><td>Correção que acelera só o caso simples e deixa o caso do chamado no caminho lento</td><td>Alta</td><td>Alta</td><td>CT-EXB-003 reproduz o caso do chamado (mês anterior) com a mesma meta de tempo (DC4).</td></tr><tr><td>Meta de tempo sem número no card</td><td>Alta</td><td>Média</td><td>Regra padrão de 5 minutos (DC1) e pergunta ao trio na publicação do plano; a execução não espera.</td></tr><tr><td>Exclusão parcial ou além da faixa por mudança do jeito de excluir</td><td>Média</td><td>Alta</td><td>CT-EXB-005, 006, 007 e 008 conferem tela, relatório e banco; só massa própria.</td></tr><tr><td>Carga de 20.000 averbações em lote demorar ou o sistema recusar mês anterior</td><td>Média</td><td>Média</td><td>Carga em lote pela tela com tempo registrado; recusa registrada com a mensagem exata (DC3).</td></tr><tr><td>Rotina compartilhada alterar o comportamento de outros ramos</td><td>Média</td><td>Alta</td><td>CT-EXB-011 e 012: a correção deve ficar restrita aos ramos 54/55.</td></tr><tr><td>Tempo do HML não representar a produção</td><td>Média</td><td>Baixa</td><td>Registrar volume, hora e condições; a confirmação em produção é de Produtos/suporte (DC6).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 · card em In Progress · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
