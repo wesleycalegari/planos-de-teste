@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-9708 · CITNET (STARR) — De/Para do Conversor com a sessão expirada</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-9708 · Sprint 20 Sustentação</span>
+    <h1>[QA] CITNET (STARR) — tela De/Para do Conversor: com a sessão expirada, a tela deve levar à tela de sessão encerrada e não ficar em «Aguarde um momento…»</h1>
+    <div class="sub">CITNET (legado) · Conversor › De/Para · tenant STARR (e TOKIO/CHUBB) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, sem Gate 2 (achado em casa / Sustentação); execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (5×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela De/Para do Conversor do CITNET, quando a pessoa fica um tempo parada e a sessão acaba, ao clicar em Consultar a tela fica «carregando» («Aguarde um momento…») e não avisa que a sessão terminou. O pedido é que ela leve para a tela «Sessão indisponível!», como as outras telas, para a pessoa saber que precisa entrar de novo.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 12 situações: simular a sessão acabando e clicar em Consultar em vários cadastros (inclusive Município), repetir com a sessão acabando de verdade (mais de uma hora parada), conferir nos outros ambientes que têm a tela, ver que excluir sem sessão não apaga nada, que um erro do servidor não deixa a tela travada, e que consultar e excluir com a sessão ativa continuam iguais ao de hoje.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos nada: o card está em «New» e o desenvolvimento ainda não entregou a correção. O comportamento de hoje já foi medido por nós em 12 e 13/11 e está nos anexos do card: a tela fica carregando por pelo menos 45 segundos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem fica com a sessão expirada passa a ver imediatamente o aviso de sessão encerrada e o link para entrar de novo, em vez de uma tela «carregando» que parece travada. Nenhum dado era exposto; é uma melhoria de uso.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto: o comportamento esperado é o que as outras telas do CITNET já fazem, e a QA mede o tempo delas para comparar.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET (legado)</b> — menu <b>Conversor › De/Para</b>, tela <b>De/Para do Conversor - Consulta/Exclusão</b>: filtros Filial, Ramo, Apólice e «De/Para de:» (País, Complemento País, Estado, Complemento Estado, Mercadoria, Embalagem, Município, Navio, Moeda, Representante País), botões <b>Consultar</b>, <b>Novo</b> e <b>Excluir</b> por linha; tela de sessão encerrada «Sessão indisponível!».</td></tr><tr><th>Card</th><td>PBI-9708 — «[QA] [CITNET - STARR] Tela «De/Para do Conversor»: com a sessão expirada, a tela fica em «Aguarde um momento…» e não vai para a tela de sessão encerrada (achado pré-existente, origem #9246)» · board Sustentação · Sprint 20 Sustentação · estado <b>New</b> · tags achado-preexistente, Citnet, STARR, sem-gate2-po · aberto pela QA · 3 critérios de aceite (consulta com sessão expirada, bloqueio que não permanece, sem regressão) · sem tarefas filhas do desenvolvimento · relacionado ao Bug #9246.</td></tr><tr><th>Tasks de QA</th><td>#9909 [QA] Plano de teste — PBI #9708 (este plano; fecha na entrega). <b>Card do board da Sustentação, de achado pré-existente: Produtos não aprova o plano; o plano segue com a marcação de execução pronta e a execução acontece com o card em homologação e a correção publicada em HML.</b></td></tr><tr><th>Relacionados</th><td>#9246 (Bug de proteção de sessão nos cadastros De/Para do Conversor Internacional) — origem do achado; <b>não é reprovado por este PBI</b> (o comportamento já existia no cadastro de Município antes dele).</td></tr><tr><th>Ambiente</th><td>HML do CITNET, tenant <b>STARR</b> (tela e medições do card); <b>TOKIO</b> e <b>CHUBB</b> também têm a tela (CT-DPS-005). O tenant AIG não tem a tela. Endereços e perfis no arquivo de ambiente do time. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na tela «De/Para do Conversor - Consulta/Exclusão», quando a sessão do usuário acaba (limite de 60 minutos do servidor ou sessão perdida) e ele clica em <b>Consultar</b>, a tela fica em «Aguarde um momento…» e não vai para a tela de sessão encerrada «Sessão indisponível!», como as demais telas do CITNET fazem. Nada é exibido; nas medições da QA de 12 e 13/11/2026 a tela não saiu sozinha em 45 segundos, em nenhuma das tentativas (cadastros Embalagem e Município no STARR; Município também no TOKIO). O servidor responde que a sessão expirou, mas a tela não trata essa resposta, e por isso o aviso de «carregando» não é removido e o usuário não sabe que precisa entrar de novo. Nenhum dado é exposto: o risco é de usabilidade (severidade proposta 3 — Medium).</p><p><b>Natureza do card:</b> achado <b>pré-existente</b> encontrado no reteste do Bug #9246 (A9). A QA provou, no card, que o cadastro de Município (que já tinha proteção de sessão antes do #9246) se comporta igual ao de Embalagem e que o script da tela é o mesmo nos ambientes com e sem o ajuste do #9246. O card não traz análise nem tarefa do desenvolvimento; <b>o que a correção fará (script da tela, tratamento geral das respostas ou resposta do servidor) é decisão do desenvolvimento</b> — o plano mede o efeito observável na tela.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — Com a sessão expirada, CONSULTAR (qualquer cadastro, inclusive Município) leva à tela «Sessão indisponível!»</td><td>CT-DPS-001 (repetição do roteiro do card) · CT-DPS-002 (Município) · CT-DPS-003 (demais cadastros) · CT-DPS-004 (expiração real) · CT-DPS-005 (outros tenants)</td></tr><tr><td><b>CA2</b> — O «Aguarde um momento…» não permanece depois de uma resposta de erro ou de sessão expirada</td><td>CT-DPS-001 a CT-DPS-004 (sessão expirada) · CT-DPS-007 (resposta de erro com sessão ativa) · CT-DPS-006 (exclusão)</td></tr><tr><td><b>CA3</b> — Sem regressão: com sessão ativa consultar e excluir seguem iguais; a proteção de sessão do #9246 continua recusando sem sessão</td><td>CT-DPS-008 (consultar) · CT-DPS-009 (excluir) · CT-DPS-010 (proteção do #9246) · CT-DPS-011 (demais telas)</td></tr><tr><td>Exploratório</td><td>CT-DPS-012</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro (descrição com as 7 seções, critério de aceite, comentário de complemento de 13/11 e os 7 anexos de medição e prova de pré-existência). O card não tem tarefas filhas. <b>Tags</b> Citnet e STARR (sistema e tenant); ramo de teste 22 (exportação) conforme o roteiro do card. Os critérios têm <b>oráculo observável na tela</b>: tela «Sessão indisponível!» com o link para novo login, e o «Aguarde um momento…» presente ou ausente. Não é débito técnico: o usuário percebe a tela presa. <b>Pré-existência (A9):</b> já provada pela QA no próprio card (comparativo Município × Embalagem e hash do script da tela por ambiente); este plano não a refaz. Não há decisão de produto pendente: o comportamento esperado é o das demais telas do CITNET (referência de sistema), e o único limite não numerado (quanto tempo até a tela sair) é inferência do QA no DC1.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação e correção publicada:</b> O card está em <b>New</b> e sem tarefa do desenvolvimento. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação) e a correção publicada em HML: o CT-DPS-001 registra a versão e o script da tela servidos (comparados com os de referência no card); sem a correção no ar, a execução fica fora do ciclo (espera legítima, sem veredito).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Em quanto tempo a tela deve sair do «Aguarde um momento…»</b></td><td>O card diz «leva à tela de sessão encerrada» sem dar prazo; nas demais telas do CITNET a saída é imediata. <b>Posição do QA:</b> medir o tempo nas demais telas (CT-DPS-011) e considerar aprovado o De/Para que sair em até <b>10 segundos</b> (ordem de grandeza da resposta do servidor); o tempo medido de cada CT é registrado. Permanecer em «Aguarde um momento…» passados os 45 segundos usados na medição do card = REPROVADO.</td></tr><tr><td><b>DC2</b></td><td><b>Como a sessão é perdida nos CTs</b></td><td><b>Posição do QA:</b> dois caminhos. (a) <b>Rápido</b> (CT-DPS-001 a 003, 005 a 007): perder a sessão do servidor pelo navegador mantendo a tela aberta, igual ao passo do card. (b) <b>Real</b> (CT-DPS-004): deixar a tela aberta sem nenhuma ação por mais de 62 minutos e consultar na mesma aba. O caminho (b) prova que a mesma tela se comporta bem quando a expiração é a de produção, não só a simulada.</td></tr><tr><td><b>DC3</b></td><td><b>Tenants e massa</b></td><td>O STARR é o tenant das medições do card (tem o ajuste do #9246 e a base com muitos De/Para); TOKIO e CHUBB têm a tela e entram só no CT-DPS-005. <b>Posição do QA:</b> consulta e exclusão usam apenas registros <b>criados pela QA</b> (marca QA9708 na descrição, pela própria tela, botão Novo); registro do segurado ou de outra pessoa nunca é excluído. Login e perfil são massa: a QA usa o usuário de teste do tenant ou cria o seu.</td></tr><tr><td><b>DC4</b></td><td><b>Extensão da correção à exclusão e aos erros do servidor</b></td><td>O critério fala em «CONSULTAR» e em «resposta de erro ou de sessão expirada». <b>Posição do QA:</b> a exclusão usa o mesmo mecanismo de chamada e a mesma tela, então a regra vale para ela (CT-DPS-006: sessão perdida → tela de sessão encerrada e <b>nenhum registro excluído</b>); e a resposta de erro do servidor com sessão ativa não pode deixar a tela travada (CT-DPS-007). Se o desenvolvimento limitar a correção à consulta, o CT-DPS-006 vira achado separado e o card não reprova por ele (a decisão fica registrada).</td></tr><tr><td><b>DC5</b></td><td><b>Dono do achado e o que reprova este card</b></td><td>O PBI nasceu como achado pré-existente do Bug #9246, sem responsável. <b>Posição do QA:</b> este plano julga só a correção do PBI; se a leitura do desenvolvimento mostrar que o ajuste do #9246 tocou o script da tela, o card passa a ser defeito do #9246 (ressalva já registrada no card), sem mudar nenhum CT daqui.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Tela De/Para do Conversor no STARR: CONSULTAR com a sessão do servidor perdida (simulada e real), nos cadastros do #9246 (ex.: Embalagem), em Município e nos demais cadastros da lista.</li><li>Tela de sessão encerrada: aparece, mostra o link para novo login, e depois do novo login a consulta volta a funcionar.</li><li>Exclusão pela tela com sessão perdida (nenhum registro some) e resposta de erro do servidor com sessão ativa (a tela não fica travada).</li><li>TOKIO e CHUBB (têm a tela) como conferência do alcance da correção.</li><li>Regressão: consultar e excluir com sessão ativa, proteção de sessão do #9246 (sem dado sem sessão) e as demais telas do CITNET com sessão expirada.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Tenant AIG</b> — não tem a tela De/Para (varredura de menu de 09/11/2026).</li><li><b>Os 9 cadastros do #9246 como controle de acesso</b> (qualquer ação sem sessão, tela dos tenants que não têm o De/Para) — escopo do Bug #9246; aqui só se confere que a proteção continua (CT-DPS-010).</li><li><b>Leitura do diff do #9246 e do código da correção</b> — decisão e análise do desenvolvimento; o plano mede o efeito observável.</li><li><b>Forma de expirar ou contornar a sessão além do necessário para o teste</b> — detalhes de roteiro ficam no guia privado, não neste plano.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. O card está em <b>New</b>, sem análise nem correção do desenvolvimento. O comportamento atual (tela presa por pelo menos 45 segundos) já foi medido pela QA em 12 e 13/11/2026 e está nos anexos do card; <b>o que a tela mostra de fato depois da correção</b> (tela de sessão encerrada, tempo, link de login) é registrado na execução como observado. A QA não escreve no banco: registros de teste são criados e removidos pela própria tela. A perda de sessão e a medição do tempo são feitas por script local sobre a sessão já aberta por clique (tempo e texto gravados em disco).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET, tenants STARR (principal), TOKIO e CHUBB (endereços e perfis no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. O login do CITNET tem limite: 1 login por perfil por rodada, espaçando os CTs que precisam entrar de novo; resposta de limite no login invalida a rodada, não o CT.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Usuário interno de teste do STARR (e dos tenants TOKIO e CHUBB para o CT-DPS-005). Faltando usuário ou senha válida, a QA cria ou ajusta o usuário pela tela de Segurança do tenant e registra só o que mudou, sem a senha.</li><li><b>Massa</b> — Apólice de exportação (ramo 22, filial e número conforme a lista do combo do STARR, registrados no CT na hora). Para exclusão: registros De/Para criados pela QA com a marca <b>QA9708</b> (até 30 caracteres) pela tela, botão Novo; nenhum registro existente do tenant é excluído.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina): login por clique, perda da sessão do servidor pelo navegador, clique em Consultar e cronômetro até a tela mudar, gravando em disco o tempo, o texto da tela e a captura; credencial nunca é impressa. O Playwright MCP só para explorar uma tela nova.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura da tela final com o texto legível («Sessão indisponível!» ou o «Aguarde um momento…» preso), tempo medido até a tela mudar e identificação do tenant e perfil (sem credencial). Evidência de outro CT só com legenda.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir a tela de login do CITNET do tenant do CT e entrar com o perfil interno de teste (clique); registrar só tenant e perfil.</li><li><b>N2 — Tela De/Para:</b> pelo menu, clicar em <b>Conversor</b> e depois em <b>De/Para</b>; escolher Filial, Ramo «22 - EXPORTAÇÃO» e uma Apólice; escolher «De/Para de:» e clicar em <b>Consultar</b> (a grade aparece, ou a mensagem de nenhum dado).</li><li><b>N3 — Perder a sessão:</b> com a tela aberta, perder a sessão do servidor pelo navegador (script local) sem recarregar a página; registrar data e hora.</li><li><b>N4 — Ação seguinte:</b> na mesma aba, escolher outro «De/Para de:» (ou o mesmo) e clicar em <b>Consultar</b>; iniciar o cronômetro no clique; capturar a tela aos 3 s, 10 s e 45 s e o instante em que a tela mudar.</li><li><b>N5 — Registro:</b> data/hora, tenant, perfil, cadastro, tempo até a tela mudar, texto exato da tela final, presença ou ausência do «Aguarde um momento…» e do link «Clique aqui para efetuar o LOGIN»; depois do novo login, repetir a consulta (contraprova).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Tenant e perfil:</b> STARR (principal) com usuário interno de teste; TOKIO e CHUBB só no CT-DPS-005.</li><li><b>Apólice e cadastro:</b> Ramo 22 (exportação) com apólice de número pequeno escolhida na lista do combo; cadastros País, Embalagem e Município como no roteiro do card, os demais da lista no CT-DPS-003. Registrar a apólice usada em cada CT.</li><li><b>Registros de teste:</b> Criados pela QA pela tela (botão Novo), marca QA9708 na descrição; só esses são consultados para exclusão (CT-DPS-006 e CT-DPS-009) e todos são excluídos ao final pela própria tela.</li><li><b>Dados fixos nos CTs:</b> Valores concretos e o roteiro de scripts ficam no guia privado e são reconfirmados no instante do CT (tenant compartilhado).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; conferir que a correção está publicada (CT-DPS-001, passo de versão) e criar os registros de teste pela tela (marca QA9708).</li><li>Grupo C primeiro, com sessão ativa (CT-DPS-008, 009, 010, 011: não gastam login extra além do necessário) → Grupo A (001 a 003) → Grupo B (004 a 007; o CT-DPS-004 espera 62 minutos: iniciar cedo e executar os demais enquanto isso, em outra sessão) → Grupo D.</li><li>Cada CT que perde a sessão exige novo login para o próximo; espaçar os logins e registrar qualquer resposta de limite de login como rodada inválida (repetir depois).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: com a sessão expirada, CONSULTAR leva à tela de sessão encerrada e o «Aguarde um momento…» não fica preso</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-001</span><span class="ct-title">Repetição do roteiro do card: consulta de País com sucesso, sessão perdida, depois CONSULTAR Embalagem na mesma aba leva à tela «Sessão indisponível!» e o «Aguarde um momento…» não fica preso</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA2 (cadastro do #9246, STARR; correção publicada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção publicada em HML (DoD). STARR, usuário interno logado por clique. Tela De/Para aberta pelo menu; Ramo 22, uma apólice de exportação; versão e script da tela servidos registrados.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar data/hora, tenant, perfil e o script da tela servido (tamanho e hash), comparando com o de referência do card.</li><li>Escolher «De/Para de: País» e clicar em Consultar; conferir que a grade aparece (controle positivo com sessão).</li><li>Perder a sessão do servidor pelo navegador, sem recarregar a página.</li><li>Na mesma aba, escolher «De/Para de: Embalagem» e clicar em Consultar; medir o tempo e capturar a tela aos 3 s, 10 s e 45 s.</li><li>Se a tela de sessão encerrada aparecer, clicar no link para novo login, entrar de novo e repetir a consulta de Embalagem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela vai para «Sessão indisponível!» com o link «Clique aqui para efetuar o LOGIN» em até 10 s (DC1); o «Aguarde um momento…» não permanece; nenhum dado é exibido; depois do novo login a consulta de Embalagem funciona. Permanecer em «Aguarde um momento…» aos 45 s, ou sair sem a tela de sessão encerrada, = REPROVADO (se o script da tela servido for o mesmo de referência, registrar que a correção pode não estar neste ambiente e conferir o ambiente do comentário do desenvolvimento antes de concluir). Evidência: capturas da grade, da tela aos 3/10/45 s e da tela de sessão encerrada, mais o tempo medido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-002</span><span class="ct-title">Município (cadastro que já tinha proteção de sessão antes do #9246): CONSULTAR com a sessão perdida leva à tela «Sessão indisponível!»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (inclusive Município, critério expresso do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado por clique (novo login depois do CT-DPS-001). Tela De/Para aberta; Ramo 22 e a mesma apólice.</li></ul>
+      <h4>Passos</h4><ol><li>Escolher «De/Para de: Município» e clicar em Consultar; conferir a grade ou a mensagem de nenhum dado com sessão ativa.</li><li>Perder a sessão do servidor pelo navegador, sem recarregar.</li><li>Na mesma aba, clicar em Consultar de novo (Município); medir o tempo e capturar aos 3 s, 10 s e 45 s.</li><li>Entrar de novo pelo link e repetir a consulta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesmo resultado do CT-DPS-001: tela «Sessão indisponível!» em até 10 s, sem «Aguarde um momento…» preso, depois do novo login a consulta funciona. Preso em «Aguarde um momento…» = REPROVADO (é exatamente o caso que o card cita). Evidência: capturas e tempo medido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-003</span><span class="ct-title">Todos os demais cadastros da lista (Complemento País, Estado, Complemento Estado, Mercadoria, Navio, Moeda, Representante País): CONSULTAR com a sessão perdida leva à tela de sessão encerrada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 («qualquer cadastro»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno de teste; um novo login para cada cadastro (a sessão se perde de novo a cada rodada); apólice do CT-DPS-001. Logins espaçados (limite de login).</li></ul>
+      <h4>Passos</h4><ol><li>Para cada cadastro, nesta ordem: Complemento País, Estado, Complemento Estado, Mercadoria, Navio, Moeda, Representante País — entrar, abrir Conversor › De/Para, escolher o cadastro e Consultar (com sessão, controle positivo).</li><li>Perder a sessão do servidor pelo navegador e, na mesma aba, clicar em Consultar; medir o tempo e capturar a tela aos 10 s.</li><li>Registrar, por cadastro, a tela final e o tempo; se aparecer resposta de limite de login, esperar e repetir o cadastro.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em todos os 7 cadastros a tela vai para «Sessão indisponível!» em até 10 s, sem «Aguarde um momento…» preso. Um único cadastro preso = REPROVADO (a correção não vale para «qualquer cadastro»). Evidência: uma captura por cadastro e a tabela de tempos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Alcance da correção: demais cadastros, expiração real, outros tenants, exclusão, resposta de erro</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-004</span><span class="ct-title">Expiração real do servidor: tela aberta e ociosa por mais de 62 minutos, depois CONSULTAR leva à tela «Sessão indisponível!»</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA2 (caminho de produção, sem simular a perda da sessão)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado por clique; tela De/Para aberta com uma consulta feita; nenhuma ação na aba por mais de 62 minutos (o limite do servidor é de 60). O CT roda em paralelo aos demais, em outra sessão de navegador.</li></ul>
+      <h4>Passos</h4><ol><li>Fazer a consulta de Embalagem com sessão (grade ou mensagem de nenhum dado) e registrar a hora.</li><li>Deixar a aba aberta, sem nenhuma ação, por 62 minutos ou mais; registrar a hora.</li><li>Na mesma aba, sem recarregar, escolher «De/Para de: Município» e clicar em Consultar; medir o tempo e capturar aos 3 s, 10 s e 45 s.</li><li>Conferir que o servidor de fato expirou a sessão (a tela final é a de sessão encerrada, não uma grade).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Tela «Sessão indisponível!» em até 10 s, sem «Aguarde um momento…» preso. Se o servidor <b>não</b> expirou depois de 62 minutos, o CT fica PENDENTE (sem o caminho real; sem veredito) e se repete com mais tempo. Preso em «Aguarde um momento…» = REPROVADO. Evidência: horas de início e fim da espera, capturas aos 3/10/45 s e a tela final.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-005</span><span class="ct-title">Outros tenants que têm a tela (TOKIO e CHUBB): CONSULTAR com a sessão perdida leva à tela de sessão encerrada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (alcance da correção nos demais tenants com a tela)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TOKIO (usuário interno de teste) e CHUBB (acesso de gestor de teste do tenant); correção publicada em cada um (registrar o script da tela servido por tenant). A tela De/Para existe pelo menu nos dois.</li></ul>
+      <h4>Passos</h4><ol><li>Em cada tenant: entrar, abrir Conversor › De/Para, escolher Ramo e Apólice disponíveis e consultar «Município» com sessão ativa.</li><li>Perder a sessão do servidor pelo navegador e, na mesma aba, clicar em Consultar; medir o tempo e capturar aos 3 s, 10 s e 45 s.</li><li>Registrar tenant, apólice, tempo e tela final.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nos dois tenants a tela vai para «Sessão indisponível!» em até 10 s, sem «Aguarde um momento…» preso. Se a correção estiver publicada só no STARR no momento do teste, o tenant sem a correção fica PENDENTE com o motivo («correção não publicada neste ambiente»), não aprovado. Evidência: capturas por tenant e o registro do script servido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-006</span><span class="ct-title">Excluir com a sessão perdida: o clique em Excluir leva à tela de sessão encerrada e nenhum registro é excluído</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (ação seguinte da tela; DC4; contraprova: o registro continua depois do novo login)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; um registro De/Para <b>criado pela QA</b> (marca QA9708, pela tela, botão Novo) visível na grade de Município ou Embalagem. Nunca usar registro existente do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Consultar o cadastro e conferir que o registro de teste aparece na grade.</li><li>Perder a sessão do servidor pelo navegador, sem recarregar.</li><li>Clicar em Excluir na linha do registro de teste e confirmar no modal «Confirma a Exclusão?»; medir o tempo e capturar aos 3 s, 10 s e 45 s.</li><li>Entrar de novo pelo link, repetir a consulta e conferir se o registro de teste continua na grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela vai para «Sessão indisponível!» em até 10 s, sem «Aguarde um momento…» nem mensagem de «excluído com sucesso»; depois do novo login o registro de teste <b>continua</b> na grade (nada foi excluído sem sessão). Tela presa, ou registro excluído sem sessão = REPROVADO. Se a correção ficar só na consulta, ver DC4 (achado separado, o card não reprova por este CT). Evidência: capturas das etapas e da grade antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-007</span><span class="ct-title">Resposta de erro do servidor com a sessão ativa: o «Aguarde um momento…» não permanece e a tela volta a responder</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (bloqueio não permanece depois de uma resposta de erro)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; tela De/Para aberta; script local que faz o servidor devolver erro na próxima consulta (simulação de falha do servidor, só no navegador do teste).</li></ul>
+      <h4>Passos</h4><ol><li>Escolher um cadastro (Embalagem) e clicar em Consultar com a simulação de erro ligada; medir o tempo e capturar a tela aos 3 s, 10 s e 45 s.</li><li>Registrar o que o usuário vê (mensagem, grade vazia, botão liberado) e se «Aguarde um momento…» saiu.</li><li>Desligar a simulação e clicar em Consultar de novo; conferir que a consulta funciona sem recarregar a página.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O «Aguarde um momento…» some em até 10 s e a tela volta a aceitar cliques; <b>o texto de erro que a tela mostrar é registrado como observado</b> (o card não define um texto; comparar com a mensagem das demais telas do cadastro, se existir). Com a simulação desligada a consulta funciona normalmente. Permanecer em «Aguarde um momento…» = REPROVADO. Evidência: capturas aos 3/10/45 s e a consulta seguinte funcionando.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Sem regressão: sessão ativa, proteção de sessão do #9246 e demais telas do CITNET</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-008</span><span class="ct-title">Com sessão ativa, consultar os cadastros principais (País, Embalagem, Município) continua igual: grade com dados ou mensagem de nenhum dado, e o «Aguarde um momento…» some</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA3 (consultar com sessão ativa)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; tela De/Para aberta; Ramo 22 e apólice com registros (a base do tenant tem muitos De/Para) e uma apólice sem registros, se houver.</li></ul>
+      <h4>Passos</h4><ol><li>Consultar País, Embalagem e Município com a apólice com registros; contar as linhas da grade e comparar com a contagem anterior da mesma apólice.</li><li>Consultar um cadastro de apólice sem registros e anotar a mensagem exata.</li><li>Em cada consulta, conferir que o «Aguarde um momento…» aparece durante a busca e some depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada consulta mostra a grade (colunas Código Seguradora / Descrição Seguradora / Descrição Segurado / Status) ou a mensagem «Não foram encontrados dados para a consulta solicitada!»; o «Aguarde um momento…» some em cada uma; contagens iguais às anteriores da mesma apólice. Mensagem diferente da registrada, ou «Aguarde um momento…» preso com sessão ativa = REPROVADO (regressão). Evidência: capturas das grades e da mensagem de nenhum dado, com a contagem de linhas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-009</span><span class="ct-title">Com sessão ativa, excluir um registro De/Para de teste pela tela continua igual: confirmação, mensagem de sucesso e a linha some</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA3 (excluir com sessão ativa; massa própria)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; registros De/Para criados pela QA (marca QA9708, botão Novo) em dois cadastros; nunca registro existente do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Consultar o cadastro e conferir os registros de teste na grade (contagem anotada).</li><li>Clicar em Excluir na linha de um registro de teste, ler o modal «Confirma a Exclusão?» e confirmar.</li><li>Anotar a mensagem e consultar de novo; conferir a nova contagem.</li><li>Repetir no segundo cadastro (e deixar a massa de teste zerada ao final).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Aparece «De/Para excluído com sucesso!» (texto exato registrado), a linha some e a contagem cai em exatamente 1; os demais registros do tenant não mudam. Falha na exclusão ou outra mensagem = REPROVADO (regressão). Evidência: capturas do modal, da mensagem e da grade antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-010</span><span class="ct-title">A proteção de sessão do #9246 continua: sem sessão, a consulta dos cadastros recusa e não devolve nenhum dado (e com sessão devolve a lista)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA3 (proteção do #9246 preservada; contraprova positiva com sessão)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR com o ajuste do #9246; usuário interno de teste. Chamadas feitas por script local sobre o contexto do navegador (par de verificação válido e cabeçalho de chamada da própria tela); nada de credencial impresso.</li></ul>
+      <h4>Passos</h4><ol><li>Com sessão ativa, repetir a consulta de Embalagem pelo script e registrar o formato da resposta (lista de registros): controle positivo.</li><li>Perder a sessão do servidor pelo navegador; repetir a mesma consulta (Embalagem) e a de Município; registrar status, tamanho e texto da resposta.</li><li>Conferir que nenhuma linha de dado do tenant aparece em nenhuma das duas respostas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem sessão: ambas respondem a mensagem de sessão expirada (texto curto, sem lista e sem dado do tenant); com sessão: lista de registros. Qualquer resposta sem sessão que contenha dados = REPROVADO (regressão grave da proteção do #9246). Resposta de erro por falta do par de verificação é inconclusiva (refazer). Evidência: arquivo de texto com status, tamanho e a resposta de cada chamada, sem dado do tenant, e a captura da tela do controle positivo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-011</span><span class="ct-title">Demais telas do CITNET com a sessão expirada continuam levando à tela «Sessão indisponível!» (tratamento geral preservado) e dão o tempo de referência do DC1</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA3 (tratamento geral de sessão expirada; referência de tempo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; duas outras telas do CITNET com ação que chama o servidor sem recarregar a página (a QA escolhe, por exemplo, a consulta de averbação e uma tela de relatório e registra as escolhidas).</li></ul>
+      <h4>Passos</h4><ol><li>Em cada uma das duas telas, executar a consulta com sessão (controle positivo).</li><li>Perder a sessão do servidor pelo navegador e executar a mesma ação de novo, na mesma aba; medir o tempo até a tela mudar.</li><li>Registrar tela final, texto e tempo; entrar de novo para a segunda tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas telas vão para «Sessão indisponível!» em segundos, como antes da correção (tempo registrado como referência do DC1). Qualquer uma que passe a ficar presa depois da correção = REPROVADO (regressão do tratamento geral). Evidência: capturas e tempos das duas telas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-011"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DPS-012</span><span class="ct-title">Exploratório: F5 durante o «Aguarde um momento…», duas abas, botão Voltar do navegador, botão Novo e exclusão com a sessão perdida</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11 (15 a 30 minutos, guiado por risco)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>STARR, usuário interno logado; CTs formais concluídos.</li></ul>
+      <h4>Passos</h4><ol><li>Com a sessão perdida, clicar em Consultar e atualizar a página (F5) durante a espera; registrar a tela.</li><li>Abrir a tela De/Para em duas abas; perder a sessão; consultar na primeira e depois na segunda aba.</li><li>Depois da tela de sessão encerrada, usar o botão Voltar do navegador e tentar consultar de novo.</li><li>Com a sessão perdida, clicar em Novo e tentar gravar um registro de teste; registrar o que acontece.</li><li>Registrar qualquer comportamento inesperado (tela presa, mensagem técnica, registro gravado sem sessão).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma tela presa e nenhuma mensagem técnica; sem sessão nenhuma gravação é feita. Se houver defeito, classificar (do card × pré-existente, A9) e abrir o item correspondente. Sem ocorrências: comentar no card «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DPS-012"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Com a sessão expirada, CONSULTAR (qualquer cadastro, inclusive Município) leva à tela «Sessão indisponível!»</td><td>CT-DPS-001 · CT-DPS-002 · CT-DPS-003 · CT-DPS-004 · CT-DPS-005</td><td>Pendente</td></tr><tr><td>CA2 — O «Aguarde um momento…» não permanece depois de resposta de erro ou de sessão expirada</td><td>CT-DPS-001 · CT-DPS-002 · CT-DPS-003 · CT-DPS-004 · CT-DPS-006 · CT-DPS-007</td><td>Pendente</td></tr><tr><td>CA3 — Sem regressão: consultar e excluir com sessão ativa; proteção de sessão do #9246</td><td>CT-DPS-008 · CT-DPS-009 · CT-DPS-010 · CT-DPS-011</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-DPS-012</td><td>Pendente</td></tr><tr><td>Prova de pré-existência, leitura do diff do #9246, tenant AIG (sem a tela), produção e staging</td><td>— fora do escopo (já provado no card / desenvolvimento / não aplicável)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 3 critérios de aceite do card mapeados a CTs (100% dos critérios observáveis), mais o alcance a todos os cadastros da lista, à expiração real, a outros tenants, à exclusão e à resposta de erro do servidor, a regressão com sessão ativa, a proteção de sessão do #9246 e as demais telas do CITNET, e um exploratório. A prova de pré-existência já está no card e não é refeita.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Card em New e correção ainda não publicada em HML no início da execução</td><td>Alta</td><td>Média</td><td>Execução só com o card em homologação e a correção no ar (DoD do dev); sem isso, espera legítima, sem veredito.</td></tr><tr><td>Limite de login do CITNET travar as rodadas que precisam entrar de novo a cada CT</td><td>Média</td><td>Média</td><td>Espaçar logins, um usuário por rodada, registrar resposta de limite como rodada inválida (repetir depois).</td></tr><tr><td>Aprovar por «a tela mudou» sem conferir que é a tela de sessão encerrada e o link de novo login</td><td>Média</td><td>Alta</td><td>Todo CT de correção confere texto, link e a consulta funcionando depois do novo login (contraprova).</td></tr><tr><td>Expiração real (62 min) não acontecer por atividade em segundo plano da página</td><td>Baixa</td><td>Baixa</td><td>O CT-DPS-004 confirma que a tela final é a de sessão encerrada; sem expiração, fica PENDENTE e repete com mais tempo.</td></tr><tr><td>Exclusão de teste atingir registro de outra pessoa na base compartilhada do STARR</td><td>Baixa</td><td>Alta</td><td>Só registros criados pela QA com a marca QA9708; conferir a descrição antes de confirmar cada exclusão.</td></tr><tr><td>A correção ficar só no STARR e os outros tenants seguirem presos</td><td>Média</td><td>Baixa</td><td>CT-DPS-005 mede TOKIO e CHUBB e registra o script servido; tenant sem a correção fica PENDENTE com o motivo.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
