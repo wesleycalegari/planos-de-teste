@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9772 · CITNET: pedido sem token de segurança válido não devolve página de erro com detalhes internos</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9772 · Sprint 20 Sustentação</span>
+    <h1>CITNET: pedido sem token de segurança válido não pode devolver a página de erro com detalhes técnicos internos</h1>
+    <div class="sub">CITNET (módulos de serviço) · tenants AIG, FAIRFAX e TOKIO · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — Bug de segurança: o plano descreve o comportamento esperado; detalhes de exploração ficam no card</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">10/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (10×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Hoje, quando alguém usa uma tela do CITNET depois de a sessão ter terminado (por exemplo, uma tela que ficou aberta depois de sair do sistema em outra aba), ou quando um pedido chega sem a chave de segurança do formulário, o sistema mostra uma página de erro cheia de nomes e textos técnicos internos. O card pede que apareça só uma mensagem simples, e que o detalhe técnico fique guardado apenas no registro interno do servidor.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos testar, nas seguradoras de homologação (AIG, FAIRFAX e TOKIO), que o pedido sem a chave de segurança, ou com chave errada, recebe só a mensagem padrão; que isso vale com e sem usuário logado; que a tela aberta depois da sessão encerrada mostra uma mensagem simples ao usuário; que o detalhe fica no registro do servidor; e que o uso normal (consultar, navegar, entrar) continua funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos — plano publicado. O card está em «New» (a correção ainda não foi entregue); os testes começam assim que ele chegar em homologação. Para registro: o problema já existia antes e foi descoberto nos testes de outro card (não foi causado por ele).</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem usar uma tela com a sessão encerrada passa a ver uma mensagem simples, sem expor nomes internos do sistema. O uso normal não muda.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto — Bug não passa por aprovação de Produtos.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — módulos de serviço (consultas e ações chamadas pelas telas) · tenants AIG, FAIRFAX e TOKIO</td></tr>
+    <tr><th>Card</th><td>BUG-9772 — pedido sem sessão e sem token de segurança válido devolve página de erro com detalhes internos · board Sustentação · Tags: achado-preexistente; vulnerabilidade · estado <b>New</b> · relacionado ao card #9288 (onde o achado foi descoberto; não causado por ele)</td></tr>
+    <tr><th>Tasks filhas</th><td>#9922 [QA] Plano de teste — BUG #9772 (QA)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> (board Sustentação): sem aprovação de Produtos sobre o plano. Plano v1.0 publicado em 23/11/2026 → execução em HML assim que o card estiver em homologação → revisão independente → resultado (NOR_QA_002) no card.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET nos tenants AIG (principal), FAIRFAX e TOKIO, com a correção implantada (a confirmar por comportamento, não por relato do dev)</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Hoje, uma ação de serviço do CITNET chamada sem a chave de segurança do formulário válida (ausente, inválida ou de outra sessão — por exemplo, uma tela que ficou aberta depois que a sessão foi encerrada em outra aba) devolve uma página de erro do sistema que mostra componentes internos, o tipo da exceção e a mensagem completa da exceção, inclusive orientação de configuração do servidor, sem exigir login. O card pede que a resposta seja só uma mensagem padrão ao usuário (sessão encerrada ou «Erro no processamento!»), com o detalhe técnico registrado apenas no log do servidor. Os valores concretos de execução (ações, variações, termos a varrer) ficam no guia privado anexado ao card.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com descrição, passos do erro, evidência, comportamento esperado, critério de aceite com oráculo observável (conteúdo da resposta, tela e log) e prova de pré-existência (A9) registrada pela QA no card. Ramo: não se aplica (comportamento do módulo de serviço do CITNET, independente de ramo). Seguradoras: tenants citados no card (AIG, FAIRFAX, TOKIO).</div>
+  <h3>Decisões e inferências do QA</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DEC-1</b></td><td><b>Mensagem padrão</b></td><td>O card aceita como mensagem padrão «sessão expirada/encerrada» ou «Erro no processamento!». A QA aprova qualquer uma das duas (texto exato lido na execução), desde que sem detalhe técnico. O código de status da resposta não reprova sozinho: o critério é o conteúdo da resposta.</td></tr><tr><td><b>DEC-2</b></td><td><b>Alcance do ajuste</b></td><td>O critério de aceite formal trata do pedido sem token de segurança válido; o texto de «comportamento esperado» menciona também a página de erro em produção. A QA valida o critério formal (grupos A a F) e testa a página de erro geral no CT-9772-13; se o dev limitou o ajuste ao erro de token, esse CT fica N/A com a diferença registrada (não reprova o card).</td></tr><tr><td><b>DEC-3</b></td><td><b>Pré-existência</b></td><td>O achado já existia antes do card #9288 (prova do card: mesmo pedido, mesma página, em tenant com e sem o ajuste daquele card). Este card trata a correção; o critério de aprovação é o comportamento observado em HML, não o relato do dev.</td></tr><tr><td><b>DEC-4</b></td><td><b>Massa e superfície pública</b></td><td>Só pedidos de teste a tenants de HML, sem tocar dados de negócio; usuário válido do QA para os CTs com sessão. Os detalhes que reproduzem a falha ficam no guia privado anexado ao card.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Sem sessão, com chave de segurança ausente, inválida ou sem cookie de segurança: AIG (CT-9772-01 a 03), FAIRFAX (04), TOKIO (05); demais ações de serviço (06).</li>
+    <li>Com sessão válida (CT-9772-07, 08); tela aberta depois da sessão encerrada em outra aba (09); log (10); regressão do uso normal e do bloqueio por sessão (11, 12); página de erro geral (13); exploratório (14).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — N/A (a QA não testa em produção).</li>
+    <li><b>Comportamento do pedido com chave válida e sem sessão em tenants que não receberam o ajuste do card #9288</b> — fora deste card.</li>
+    <li><b>Novos scans da ferramenta de segurança</b> e <b>itens de DoD de engenharia</b> — processo do dev/segurança; não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação por clique a partir do login — nunca por URL direta (exceto o endereço do login). Os CTs sem sessão usam ferramenta de requisições do QA (script) por não terem tela; os CTs com tela (CT-9772-07 a 09 e 11) partem do login. Evidência por CT no bloco do CT e anexada ao card (nunca neste documento público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET dos tenants AIG, FAIRFAX e TOKIO com a correção (conferir antes do CT-9772-01 medindo o comportamento).</li>
+    <li><b>Contas:</b> usuário válido do QA para o tenant AIG (credencial fora deste documento). Nenhum dado de negócio é criado, alterado nem excluído.</li>
+    <li><b>Ordem sugerida:</b> CT-9772-01 a 06 (e 12) em sequência; CT-9772-10 logo depois (usa os horários dos pedidos); CT-9772-07, 08, 09 e 11 com login novo (sessão degrada após cerca de 1 h); CT-9772-13 e 14 por último.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Sem sessão: pedido sem chave de segurança válida (ausente, errada ou sem o cookie de segurança) responde só a mensagem padrão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-01</span><span class="ct-title">AIG, sem sessão: pedido sem a chave de segurança do formulário responde só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Pedido montado por ferramenta de requisições do QA (script do repositório privado), não por tela. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Enviar a ação de consulta indicada no guia como pedido de serviço, sem sessão e <b>sem</b> a chave de segurança do formulário (com o cookie de segurança recebido no login).</li><li>Ler o status, o tamanho e o corpo da resposta; varrer os termos vetados do guia.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script): texto padrão presente e termos vetados ausentes.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-02</span><span class="ct-title">AIG, sem sessão: pedido com chave de segurança inválida (e cookie de segurança do login) responde só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Ferramenta de requisições do QA. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Enviar a mesma ação do CT-9772-01, sem sessão, com um valor <b>inválido</b> no lugar da chave (valor do guia) e com o cookie de segurança do login.</li><li>Ler status, tamanho e corpo; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-03</span><span class="ct-title">AIG, sem sessão e sem o cookie de segurança: pedido com chave inválida responde só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Ferramenta de requisições do QA, em conexão nova (sem nenhum cookie). Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Em conexão nova (nenhum cookie), enviar a mesma ação do CT-9772-01 com um valor inválido no lugar da chave (valor do guia).</li><li>Ler status, tamanho e corpo; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-03"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-04</span><span class="ct-title">FAIRFAX, sem sessão: as três variações da chave (ausente, inválida, inválida sem cookie) respondem só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Repetir as três variações dos CT-9772-01 a 03 neste tenant, com a mesma ação do guia.</li><li>Ler status, tamanho e corpo de cada uma; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas três variações: A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo de cada resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-05</span><span class="ct-title">TOKIO (tenant que não recebeu o ajuste do card #9288), sem sessão: as três variações da chave respondem só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant TOKIO (HML). Ferramenta de requisições do QA. Neste tenant a ação do guia, sem sessão, hoje devolve dados normalmente (comportamento anterior, fora deste card); o que se avalia é a resposta aos pedidos com chave ausente/inválida. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Repetir as três variações dos CT-9772-01 a 03 neste tenant, com a mesma ação do guia.</li><li>Ler status, tamanho e corpo de cada uma; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas três variações: A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). O comportamento do pedido <b>com</b> chave válida e sem sessão neste tenant não é alterado por este card e não é avaliado aqui. Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo de cada resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-05"></div>
+    </div>
+  </div>
+  <div class="group-header alt">B — Demais ações de serviço do CITNET seguem a mesma regra</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-06</span><span class="ct-title">Abrangência: as demais ações de serviço listadas no guia (consultas de lista e ação de liberação) respondem só a mensagem padrão nas três variações da chave</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Ferramenta de requisições do QA. Lista de ações = a do guia privado (as já medidas no card, de comportamentos diferentes: uma já devolvia a mensagem de sessão encerrada, as outras devolviam a página de erro). Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Para cada ação do guia, enviar as variações da chave (ausente, inválida com cookie, inválida sem cookie), sem sessão.</li><li>Montar a tabela ação × variação com status, tamanho e resultado da varredura dos termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em todas as combinações: A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). A ação que já respondia a mensagem de sessão encerrada continua respondendo como antes (não regride). Evidência: tabela ação × variação.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tabela de respostas (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-06"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Com sessão válida: pedido sem chave de segurança válida responde só a mensagem padrão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-07</span><span class="ct-title">Com sessão válida: pedido de serviço sem a chave de segurança responde só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Usuário válido do QA (credencial fora deste documento). Pedido feito por script reaproveitando a sessão aberta por tela de login. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login pela tela (Filial, Usuário, Senha, <b>Acessar</b>) e confirmar o menu principal (captura).</li><li>Com o cookie dessa sessão, enviar a ação de consulta do guia <b>sem</b> a chave de segurança.</li><li>Ler status, tamanho e corpo; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). A sessão do usuário não é afetada pelo pedido recusado (o menu continua acessível). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script) + tela do menu principal após o pedido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-07"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-08</span><span class="ct-title">Com sessão válida: pedido de serviço com chave inválida responde só a mensagem padrão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Usuário válido do QA. Mesma preparação do CT-9772-07. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Fazer login pela tela e confirmar o menu principal (captura).</li><li>Com o cookie dessa sessão, enviar a ação de consulta do guia com valor <b>inválido</b> no lugar da chave.</li><li>Ler status, tamanho e corpo; varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nome de componente interno (controle/ação), tipo de exceção, texto da mensagem de exceção nem orientação de configuração do servidor (varredura por script dos termos do guia privado) e traz só a mensagem padrão (a mesma de sessão encerrada ou «Erro no processamento!», texto exato lido na execução). Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script) + tela do menu principal.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-08"></div>
+    </div>
+  </div>
+  <div class="group-header alt">D — Tela aberta depois de a sessão ter sido encerrada em outra aba</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-09</span><span class="ct-title">Tela de serviço aberta depois de a sessão ser encerrada em outra aba: ao usar a tela, o usuário vê só uma mensagem simples</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Usuário válido do QA. Dois separadores do mesmo navegador. Navegação só por cliques. Tela de serviço do guia que faz consulta ao abrir/usar (ex.: lista de apoio de um cadastro de Operações). Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Aba 1: login (Filial, Usuário, Senha, <b>Acessar</b>) e abrir pelo menu a tela de serviço do guia (captura).</li><li>Aba 2: no mesmo navegador, sair do sistema (botão de saída do menu) e confirmar o retorno ao login (captura).</li><li>Aba 1 (tela ainda aberta): acionar pelo clique a ação que dispara a consulta de serviço do guia.</li><li>Ler o texto exibido na tela, a resposta de rede da ação e varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O usuário vê uma mensagem padrão simples (sessão encerrada/erro no processamento, texto exato lido na execução) — <b>nenhuma</b> página de erro com nome de componente, tipo ou texto de exceção, nem orientação de configuração do servidor. Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>texto da tela (captura, desde o login) + resposta de rede da ação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-09"></div>
+    </div>
+  </div>
+  <div class="group-header">E — Detalhe técnico só no registro do servidor</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-10</span><span class="ct-title">O detalhe técnico do erro fica registrado no log central do servidor (HML), sem dado sensível</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Após os CT-9772-01 a 03 (horários anotados). Acesso de leitura ao log central do HML (credencial fora deste documento). Se o log do CITNET do tenant não estiver disponível no sistema de logs, o CT fica sem veredito por falta de oráculo (medir e registrar a indisponibilidade) e é tratado com o dev.</li></ul>
+      <h4>Passos</h4><ol><li>No sistema de logs do HML, filtrar o período dos pedidos dos CT-9772-01 a 03 e o aplicativo do CITNET do tenant.</li><li>Localizar o registro do erro de cada pedido; ler operação, horário e se o detalhe técnico (tipo/mensagem da exceção) está registrado; conferir que não há cookie, senha nem valor da chave no registro.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Existe registro do erro no horário de cada pedido, com o detalhe técnico para o time, e <b>sem</b> senha, cookie nem valor da chave. Evidência: captura do registro (dados sensíveis mascarados).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>registro no log central (conteúdo e horário).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-10"></div>
+    </div>
+  </div>
+  <div class="group-header alt">F — Regressão: uso normal continua funcionando</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-11</span><span class="ct-title">Regressão: consulta de serviço com sessão e chave de segurança válidas continua funcionando pela tela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Usuário válido do QA. Navegação só por cliques.</li></ul>
+      <h4>Passos</h4><ol><li>Login pela tela e abertura, pelo menu, de uma tela de Operações com consulta de apoio (a do guia).</li><li>Usar a tela normalmente: acionar a consulta e conferir o resultado na tela (lista/combo preenchidos).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta responde normalmente (lista/combo preenchidos), sem mensagem de erro nem de sessão encerrada. Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (lista/combo preenchidos) + resposta de rede.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-11"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-12</span><span class="ct-title">Regressão: pedido sem sessão, mas com chave de segurança válida, continua respondendo a mensagem de sessão encerrada como antes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). Ferramenta de requisições do QA. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET do tenant no HML (único endereço digitado) apenas para receber o cookie de segurança — sem entrar.</li><li>Obter a chave válida da tela de login; enviar a ação de consulta do guia sem sessão com essa chave e o cookie de segurança.</li><li>Ler status e corpo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta é a mensagem de sessão encerrada de antes do card (texto exato igual ao registrado no card #9772, item de evidência), sem nenhum detalhe técnico: o ajuste não alterou o bloqueio por sessão que já funcionava. Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script), comparado ao registro do card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-12"></div>
+    </div>
+  </div>
+  <div class="group-header">G — Outro erro não tratado: a página de erro não mostra detalhe interno</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-13</span><span class="ct-title">Outro erro não tratado de servidor (entrada que o sistema não sabe processar): a página de erro não mostra detalhe técnico interno</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant AIG (HML). O card pede também que, em produção, a página de erro não mostre componente, ação nem exceção (item de comportamento esperado). Verificação por ferramenta de requisições do QA com a entrada do guia privado. Se a entrega do dev ficar restrita ao erro de chave de segurança (critério de aceite formal do card), este CT fica N/A com a diferença registrada — não reprova o card (ver DEC-2).</li></ul>
+      <h4>Passos</h4><ol><li>Executar a verificação do guia privado e ler status e corpo.</li><li>Varrer os termos vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A página/resposta de erro não traz nome de componente interno, tipo de exceção, mensagem de exceção nem orientação de configuração do servidor. Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>corpo da resposta (script) + captura da página, se houver.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-13"></div>
+    </div>
+  </div>
+  <div class="group-header alt">H — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-9772-14</span><span class="ct-title">Exploratório (15–30 min) guiado por risco sobre pedidos sem chave válida, conforme o roteiro do guia privado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenants AIG, FAIRFAX e TOKIO. Valores concretos (ações, variações da chave, contas, termos a varrer) no <b>guia privado de execução</b>, anexado ao card #9772 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Executar o roteiro exploratório do guia privado (variações do estado da sessão, do cookie e da chave; telas antigas abertas) e registrar status/trecho/varredura de cada tentativa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma variação devolve detalhe técnico interno; respostas seguem o padrão dos grupos A a D. Qualquer divergência é achado a classificar (do card × pré-existente, A9) e tratado pelo canal do card — não neste documento. Sem ocorrências → «Exploratório executado. Sem ocorrências.» Evidência no bloco do CT e anexada ao card: resposta lida por script (status, tamanho, início e trecho do corpo, varredura dos termos vetados do guia), capturas de tela quando houver tela; horário de cada pedido.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>resposta de cada tentativa (script) + capturas quando houver tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-9772-14"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA — pedido sem token de segurança válido (ausente ou inválido), com ou sem sessão, não devolve nome de componente, ação, tipo de exceção nem texto da mensagem de exceção</td><td>CT-9772-01, CT-9772-02, CT-9772-03, CT-9772-04, CT-9772-05, CT-9772-06, CT-9772-07, CT-9772-08</td><td>Pendente</td></tr><tr><td>CA — o detalhe fica registrado no log do servidor</td><td>CT-9772-10</td><td>Pendente</td></tr><tr><td>CA — a tela aberta mostra a mensagem padrão ao usuário</td><td>CT-9772-09</td><td>Pendente</td></tr><tr><td>Comportamento esperado — mensagem padrão (sessão encerrada ou «Erro no processamento!»), sem detalhe técnico, também na página de erro em produção</td><td>CT-9772-09, CT-9772-13</td><td>Pendente</td></tr><tr><td>Regressão — bloqueio por sessão que já funcionava e uso normal preservados</td><td>CT-9772-06, CT-9772-11, CT-9772-12</td><td>Pendente</td></tr><tr><td>Variações e contorno</td><td>CT-9772-14</td><td>Pendente</td></tr><tr><td>DoD de engenharia (testes, Quality Gate, aprovadores no PR)</td><td>— sem CT: enforçado por branch policy e DoD do dev; a evidência em HML é entregue pelas evidências dos CTs</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas ficam no <b>painel do topo</b>. Todos os critérios de produto do card têm CT; processo/DoD não gera CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O build do HML não ter a correção (card ainda em «New»)</td><td>Alta</td><td>Alto</td><td>Antes de executar, medir o comportamento atual com o CT-9772-01; se ainda mostrar o detalhe técnico, a execução só começa com o card em homologação; não é reprovação enquanto o dev não liberar.</td></tr><tr><td>Mensagem padrão diferente da prevista no card</td><td>Média</td><td>Baixo</td><td>DEC-1: qualquer mensagem sem detalhe técnico, igual ou equivalente à de sessão encerrada, aprova.</td></tr><tr><td>Log do CITNET do tenant não estar no sistema de logs do HML</td><td>Média</td><td>Baixo</td><td>CT-9772-10 fica sem veredito por falta de oráculo; tratar com o dev.</td></tr><tr><td>Sessão do CITNET degradar depois de ~1 h de uso</td><td>Média</td><td>Baixo</td><td>Novo login antes de cada CT com sessão; registrar.</td></tr><tr><td>Ajuste ficar só em alguns tenants</td><td>Média</td><td>Médio</td><td>Os CT-9772-04 e 05 repetem a verificação em FAIRFAX e TOKIO; divergência entre tenants vira reprovação do critério de abrangência.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · Bug — sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
