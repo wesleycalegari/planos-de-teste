@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9729 · CITNET Novo AXA — filtros de Averbações cortados em janela estreita</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9729 · Sprint 20 Sustentação</span>
+    <h1>CITNET Novo (AXA) - consulta de Averbações: os filtros ficam cortados em janela estreita (1024 px ou menos) — o combo Filial mostra «1 - S…» (achado pré-existente, origem #9461)</h1>
+    <div class="sub">CITNET Novo · Averbações (nacionais e internacionais) · painel FILTROS · AXA · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (23/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado e nenhum CT executado (a execução começa com o card em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/4/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (6×P1 · 4×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela de consulta de Averbações do CITNET Novo (AXA), quando a janela do navegador fica estreita (1024 pixels ou menos), os campos do painel de filtros ficam espremidos e o texto aparece cortado: o campo Filial mostra «1 - S…» em vez de «1 - SAO PAULO». A filial escolhida está certa, só a exibição é que fica cortada, e acontece em qualquer perfil (Interno, Corretor, Segurado). O card pede que o nome da filial e os demais campos fiquem legíveis.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 12 situações: o campo Filial e os outros campos dos filtros nas janelas de 1024 e 768 pixels, nos perfis Interno, Corretor e Segurado; as consultas de todos os ramos (nacionais e internacionais); a tela de criação de Importação-Definitiva; que escolher a filial, ver a lista de opções e consultar continuam funcionando como hoje; que a janela larga (1366 pixels) não piorou; e uma sessão exploratória. Cada teste mede o texto contra o espaço do campo e confere na imagem da tela.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos nada neste card: ele está «New», sem responsável e sem correção publicada. O problema foi medido pela QA em 13/11 (anexos do card): a 1024 pixels o campo Filial tem 121 pixels de largura e a 768 apenas 70, para um texto que precisa de 97. O erro já existia antes do ajuste do card #9461.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje, em janela estreita, o usuário não consegue ler qual filial está selecionada nem o conteúdo de alguns filtros, embora o filtro funcione.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto.</b> Este card (Sustentação, tipo Bug) não precisa de aprovação do plano. O card diz que as larguras de janela suportadas estão «a definir por Produtos» e sugere 1024 e 768 pixels; adotamos essas duas até Produtos escrever outras no card, e então ajustamos os testes.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET Novo</b> (seguradora AXA, HML) — menu <b>Averbações</b>, tela de consulta com o painel <b>FILTROS</b> (Filial, Ramo, Apólice, Subgrupo, Protocolo, Saída de, Saída até, Placa, CT-e / Documento, Nº Averbação), nos ramos nacionais e internacionais; e a criação de Importação-Definitiva (campo Filial).</td></tr><tr><th>Card</th><td>BUG-9729 — «[CITNET-Novo - AXA] Filtros de Averbações ficam cortados em janela estreita (1024 px ou menos) — o combo Filial mostra «1 - S…» e os demais campos também» · board Sustentação · Sprint 20 Sustentação · estado <b>New</b>, sem responsável · tags achado-preexistente, AXA e citnet-novo · 7 anexos (capturas do combo a 1366, 1024, 768 e 800 px e as medidas em arquivo, para Interno e Corretor) · critério de aceite no card · sem tarefas filhas · 1 comentário (automático, sem conteúdo de QA).</td></tr><tr><th>Relacionados</th><td>#9461 (rótulo «código - nome» do combo Filial) — origem do achado, medido em 13/11/2026 (CT exploratório daquele card). Este Bug <b>não reprova nem reabre o #9461</b>: a prova de pré-existência é do card (mesma largura no perfil que já tinha o rótulo antes do ajuste, e corte também em campos que o #9461 nunca tocou).</td></tr><tr><th>Tasks de QA</th><td>#9919 [QA] Plano de teste — BUG #9729 (este plano; fecha na entrega). <b>Card do board da Sustentação, tipo Bug: Produtos não aprova o plano</b>; ele sai com a marcação de execução pronta. A execução começa com o card em homologação e a correção publicada em HML (DC4).</td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, tenant AXA Seguros S/A, perfis Interno, Corretor e Segurado da QA. Janela do navegador definida por tamanho de viewport (1366, 1024, 800, 768 e 480 px de largura). Endereços e perfis no arquivo de ambiente do time. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 23/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na consulta de Averbações do CITNET Novo (AXA), o painel <b>FILTROS</b> usa uma grade de 5 colunas. Em janela estreita cada campo fica com poucos pixels e o texto aparece cortado: o combo <b>Filial</b> mostra «1 - S…» a 768 px e «1 -» a 480 px, e Ramo, Apólice, Subgrupo e Saída de também. A opção escolhida está certa («1 - SAO PAULO»); é só a exibição. O defeito não depende do perfil (Interno e Corretor medidos, com as mesmas larguras). Na criação de Importação-Definitiva a 800 px a última letra do campo Filial também fica cortada. Medido pela QA em 13/11/2026 (anexos do card): combo com 190 px a 1366, 121 px a 1024, 76 px a 800, 70 px a 768 e 64 px a 480, contra 97 px do texto; área útil de 75, 30, 24 e 18 px nas quatro larguras estreitas.</p><p><b>Critério de aceite do card e como o plano o cobre</b> (as larguras «suportadas» estão a definir por Produtos; o card sugere 1024 e 768 px — DC2):</p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA, 1ª frase</b> — rótulo do combo Filial e demais campos do painel FILTROS legíveis, sem corte que esconda o nome da filial, nas larguras suportadas</td><td>CT-FLT-001 e 002 (Interno, combo Filial, 1024 e 768) · CT-FLT-003 (demais campos do painel) · CT-FLT-004 (Corretor) · CT-FLT-005 (Segurado) · CT-FLT-007 (outros ramos nacionais)</td></tr><tr><td><b>CA, «nacionais e internacionais»</b></td><td>CT-FLT-006 (consultas internacionais) · CT-FLT-007 (demais nacionais) · CT-FLT-008 (criação de Importação-Definitiva, descrição do card)</td></tr><tr><td><b>CA, 2ª frase</b> — valor selecionado, lista «código - nome» e filtro não mudam</td><td>CT-FLT-009 (filtrar e consultar) · CT-FLT-010 (janela larga) · CT-FLT-011 (lista longa de filiais)</td></tr><tr><td>Exploratório</td><td>CT-FLT-012</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (23/11/2026).</b> Card lido por inteiro (7 seções do Bug, critério de aceite, prova de pré-existência, 7 anexos); sem tarefas filhas; o único comentário é automático e sem conteúdo de QA. <b>Tags:</b> citnet-novo (sistema) e AXA (seguradora). Não há ramo único: o defeito está na grade de filtros de todas as consultas de Averbações, com o RCTR-C como tela de medição. Não é débito técnico: o usuário vê o texto cortado. O critério tem <b>oráculo observável e mensurável</b>: largura do texto do campo contra a área útil do campo, mais a captura da tela. <b>Sem decisão de produto que trave o plano:</b> o card deixa as larguras suportadas «a definir por Produtos» e sugere 1024 e 768 px; o plano adota a sugestão como padrão (DC2) e a QA ajusta se Produtos escrever outras larguras. O card pertence ao board da Sustentação e é do tipo Bug: <b>sem Gate 2 e sem aprovação de Produtos</b>.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação:</b> O card está em <b>New</b>, sem responsável e sem correção publicada. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação). Com o card em homologação e o texto ainda cortado em 1024 ou 768 px = REPROVADO (DC4).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Oráculo: o texto do campo cabe na área útil do campo — medido e conferido na captura</b></td><td>Em cada largura a QA mede, por script no navegador, a largura do texto exibido (na mesma fonte do campo) e a <b>área útil</b> do campo (largura menos bordas, margens internas e seta), e confere o resultado na captura de tela. O CT aprova quando: (a) o texto inteiro cabe (esperado: «1 - SAO PAULO» completo no combo Filial); ou (b) se a correção abreviar o texto com reticências, o que aparece ainda identifica a filial (o código e parte suficiente do nome para distingui-la das demais) e o nome completo continua disponível (dica ao passar o mouse ou na lista aberta). «1 - S…» e «1 -» (o que acontece hoje) = REPROVADO. O mesmo vale para Ramo, Apólice, Subgrupo, Saída de/até e demais campos: nenhum rótulo ou valor de campo cortado de modo que impeça a leitura. A QA registra, por largura, as medidas (combo, texto, útil) em arquivo anexado ao card, no mesmo formato do card.</td></tr><tr><td><b>DC2</b></td><td><b>Larguras suportadas: 1024 e 768 px (sugestão do card); 1366 px como controle; 800 e 480 px só informativas</b></td><td>O critério deixa as larguras «a definir por Produtos» e sugere 1024 e 768. O plano adota essas duas como as suportadas (veredito), 1366 como controle de que a janela larga não mudou, 800 px apenas na criação de Importação-Definitiva (onde o card mediu) e 480 px como <b>medição informativa</b> no exploratório (registrada, sem reprovar). Se Produtos escrever outras larguras no card, a QA passa a usar as novas, sem republicar o plano com nova validação (o plano não tem Gate 2). Referência de comportamento: o próprio critério de aceite; o CITNET legado não define layout para janela estreita e não é usado como oráculo desta tela.</td></tr><tr><td><b>DC3</b></td><td><b>Perfis e login: um login por perfil por rodada</b></td><td>Interno (sem vínculos de filial, filial própria 1 — o perfil do card), Corretor e Segurado da QA; Interno com muitas filiais vinculadas para a lista longa (CT-FLT-011). O login do CITNET Novo limita tentativas (resposta 429 após poucas entradas em 10 minutos): um login por perfil, reaproveitando a sessão para todas as larguras (a largura muda no navegador, sem novo login). Falta de usuário ou senha válida não é impedimento: a QA cria ou ajusta o usuário de teste pela tela e registra só o que mudou, sem a senha.</td></tr><tr><td><b>DC4</b></td><td><b>Execução depende do card em homologação</b></td><td>O card está em <b>New</b>, sem responsável e sem correção publicada. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação) e a versão corrigida no HML; antes disso é espera legítima, sem veredito. Com o card em homologação e o combo ainda cortado em 1024 ou 768 px, o CT é <b>REPROVADO</b> (critério de aceite não entregue), não espera.</td></tr><tr><td><b>DC5</b></td><td><b>Medida × tela: nenhum aprova só pela medida</b></td><td>A medição por script ajuda, mas o veredito sai da <b>captura da tela</b>: a QA abre cada captura e lê o texto que o usuário vê. Medida que diz «cabe» com a captura mostrando corte (ou o contrário) não aprova: o CT para e a QA registra a divergência. Aviso de rolagem horizontal da página inteira é registrado como observação (a janela estreita pode exigi-la), sem reprovar sozinha.</td></tr><tr><td><b>DC6</b></td><td><b>Este Bug não reprova o #9461 e tudo aqui é leitura</b></td><td>O achado é pré-existente do #9461 (a prova está no card). Aqui o reteste da correção vive neste card. Nenhum CT grava dado de negócio; o filtro «Consultar» usa uma apólice vigente da filial 1, lida por tela na hora (nunca fixada neste documento).</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITNET Novo (AXA), menu Averbações: consulta nacional (RCA-C, RCTR-C, RCTA-C, RCV, Transporte Nacional) e internacional (Importação-Provisória, Importação-Definitiva, Exportação, RCT-VI), painel FILTROS, em 1366, 1024 e 768 px.</li><li>O combo Filial (valor, lista «código - nome» e filtro) e os demais campos do painel, nos perfis Interno, Corretor e Segurado.</li><li>Criação de Importação-Definitiva (campo Filial) a 800 px, citada na descrição do card.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Outros tenants</b> do CITNET Novo e o CITNET legado — fora do card; só entram no exploratório como observação.</li><li><b>Tela de Assessoria</b> (sem combo Filial; filtros de corretor e segurado) — fora do critério; observada no exploratório.</li><li><b>Celular e tablet reais</b> — só janelas de desktop redimensionadas; 480 px é medição informativa (DC2).</li><li><b>Código-fonte, estilo e testes unitários</b> — do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 23/11/2026:</b> nenhum CT foi executado por este plano. O comportamento de hoje foi medido pela QA em 13/11/2026 (anexos do card). O card está em <b>New</b>, sem responsável e sem correção publicada. Todos os CTs são de <b>leitura da tela</b>: nada é gravado; a única escrita possível é o filtro de pesquisa, que não altera dados.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo no ar (pré-verificação antes do 1º CT; servidor fora do ar ≠ CT reprovado). Login por clique: tela de login → «Ou entre com usuário e senha» → ambiente «AXA Seguros S/A» → usuário e senha → Entrar. Ctrl+F5 antes de cada perfil, para não usar o JavaScript antigo, e anotar a versão do sistema, se visível.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Usuários da QA dos perfis Interno, Corretor e Segurado do tenant AXA, e Interno com filiais vinculadas. DC3: um login por perfil; falta de usuário ou senha válida a QA resolve pela tela.</li><li><b>Massa</b> — Nenhuma massa de dados é consumida. A consulta usa uma apólice vigente da filial 1 no ramo da tela, lida pela própria tela na hora; nada é gravado (DC6).</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina), reaproveitando os do #9461 e do #9398 (testes-automatizados/sprint-19-citweb/pbi-9461 e sprint-18-citweb/bug-9398: login com limite de tentativas, navegação por menu, medição do combo Filial por largura de janela). O script grava captura e medidas em disco e imprime só veredito e caminho. O Playwright MCP só para explorar uma tela nova.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público), desde o login: captura do painel FILTROS em cada largura do CT e arquivo de medidas (combo, texto e área útil) por perfil e largura.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Entrar:</b> abrir a tela de login do CITNET Novo no HML (única navegação por endereço) → clicar «Ou entre com usuário e senha» → ambiente «AXA Seguros S/A» → usuário e senha do perfil → Entrar. Conferir «Operando em AXA Seguros S/A · perfil …» na tela inicial.</li><li><b>N2 — Abrir a consulta:</b> menu <b>Averbações</b> → ramo (ex.: <b>RCTR-C</b>; internacionais: <b>Importação-Provisória</b>, <b>Importação-Definitiva</b>, <b>Exportação</b>, <b>RCT-VI</b>) → painel <b>FILTROS</b> no topo da tela.</li><li><b>N3 — Mudar a largura:</b> redimensionar a janela do navegador (viewport) para 1366, 1024, 768 px (e 800 ou 480 onde o CT pedir) <b>com a tela já aberta</b>; aguardar o carregamento do combo Filial («Carregando...» some) antes de medir.</li><li><b>N4 — Oráculos:</b> (O1) medida do combo Filial e dos demais campos (texto × área útil), por script; (O2) captura da tela lida pela QA (DC5); (O3) valor e lista de opções do combo.</li><li><b>N5 — Consultar:</b> com a filial escolhida, escolher uma apólice vigente → <b>Consultar</b> (sem apólice a tela mostra «Selecione uma apólice para pesquisar.»).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Perfis:</b> Interno sem vínculos (filial própria 1, perfil do card) · Corretor · Segurado · Interno com muitas filiais vinculadas (CT-FLT-011). Credenciais no arquivo de ambiente; nunca neste documento.</li><li><b>Filial:</b> Filial 1, «1 - SAO PAULO» (97 px de texto na fonte do campo, medida de 13/11/2026). A QA lê de novo na tela e registra o valor lido.</li><li><b>Apólice para Consultar:</b> Uma apólice vigente da filial 1 no ramo da tela, escolhida pelo combo Apólice na hora do CT; a QA registra o número lido no resultado (nada fixado neste documento).</li><li><b>Larguras:</b> 1366 (controle), 1024 e 768 (veredito), 800 (criação de Importação-Definitiva), 480 (informativa). Altura 900 px em todas.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e da versão (DC4). Card em homologação: executar; card New ou em estado de desenvolvimento: espera legítima, sem veredito.</li><li>Um login por perfil: Interno (CT-FLT-001, 002, 003, 006, 007, 008, 009, 010), depois Corretor (004), Segurado (005), Interno com muitas filiais (011) e, por último, o exploratório (012). Em cada perfil medir de 1366 para 768 sem sair da tela.</li><li>Após cada CT, anexar captura e medidas ao card; divergência medida × captura para o CT (DC5).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Consulta de Averbações nacional: combo Filial e demais campos do painel FILTROS legíveis em 1024 e 768 px, em cada perfil (CA, 1ª frase)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-001</span><span class="ct-title">Interno, RCTR-C, janela de 1024 px: o combo Filial mostra o nome da filial legível</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (negativo hoje; reprodução do cenário do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno da QA (sem vínculos, filial própria 1); menu Averbações › RCTR-C; filial «1 - SAO PAULO» escolhida; janela 1024 × 900.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1) e abrir a consulta do ramo (N2); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O texto «1 - SAO PAULO» aparece <b>inteiro</b> no combo Filial (ou, se abreviado, ainda identifica a filial e o nome completo está disponível — DC1). Hoje o combo mostra «1 - S…» (121 px de largura a 1024, 70 px a 768, contra 97 px de texto): <b>texto cortado a ponto de esconder o nome da filial</b> = REPROVADO (critério de aceite não entregue).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-002</span><span class="ct-title">Interno, RCTR-C, janela de 768 px: o combo Filial mostra o nome da filial legível</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase (negativo hoje)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Mesma sessão do CT-FLT-001; janela 768 × 900 (reduzir de 1024 para 768 sem sair da tela).</li></ul>
+      <h4>Passos</h4><ol><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O texto «1 - SAO PAULO» aparece <b>inteiro</b> no combo Filial (ou, se abreviado, ainda identifica a filial e o nome completo está disponível — DC1). Hoje o combo mostra «1 - S…» (121 px de largura a 1024, 70 px a 768, contra 97 px de texto): <b>texto cortado a ponto de esconder o nome da filial</b> = REPROVADO (critério de aceite não entregue).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-003</span><span class="ct-title">Interno, RCTR-C, 1024 e 768 px: Ramo, Apólice, Subgrupo e Saída de legíveis, sem corte que impeça a leitura</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase («e os demais campos do painel FILTROS»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Mesma sessão; filial escolhida; depois escolher uma apólice vigente da filial 1, para o Subgrupo sair do estado «Selecione a apólice primeiro» e mostrar o valor.</li></ul>
+      <h4>Passos</h4><ol><li>Em 1024 px e depois em 768 px: capturar o painel FILTROS inteiro e medir, campo a campo, o texto exibido contra a área útil (Ramo, Apólice, Subgrupo, Protocolo, Saída de, Saída até, Placa, CT-e / Documento, Nº Averbação).</li><li>Repetir antes de escolher a apólice (Subgrupo com «Selecione a apólice primeiro») e depois de escolher.</li><li>Anotar na captura quais campos aparecem cortados e quais não.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em 1024 e 768 px nenhum campo do painel mostra rótulo ou valor cortado de modo que impeça a leitura: Ramo, a apólice escolhida, o Subgrupo («Selecione a apólice primeiro» e o valor depois de escolher), Saída de/até e os demais campos legíveis (DC1). Hoje Ramo, Apólice, Subgrupo e Saída de aparecem cortados nessas larguras: <b>qualquer campo do painel ainda cortado</b> = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-004</span><span class="ct-title">Corretor, RCTR-C, 1024 e 768 px: o combo Filial e os campos do painel legíveis (o defeito não depende do perfil)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase, perfil Corretor</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Login do perfil Corretor da QA (filial própria 1; rótulo «1 - SAO PAULO» já existia antes do #9461); menu Averbações › RCTR-C; janela 1024 e depois 768.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1) e abrir a consulta do ramo (N2); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li><li>Repetir em 1024 px e capturar o painel inteiro (campos Ramo, Apólice, Subgrupo, Saída de).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O texto «1 - SAO PAULO» aparece <b>inteiro</b> no combo Filial (ou, se abreviado, ainda identifica a filial e o nome completo está disponível — DC1). Hoje o combo mostra «1 - S…» (121 px de largura a 1024, 70 px a 768, contra 97 px de texto): <b>texto cortado a ponto de esconder o nome da filial</b> = REPROVADO (critério de aceite não entregue). No Corretor valem as mesmas larguras do Interno (o card mediu as duas iguais): qualquer campo do painel cortado = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-005</span><span class="ct-title">Segurado, RCTR-C, 768 px: o combo Filial e os campos do painel legíveis</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase, perfil Segurado</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Login do perfil Segurado da QA (filial própria 1); menu Averbações › RCTR-C; janela 768 × 900.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1) e abrir a consulta do ramo (N2); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O texto «1 - SAO PAULO» aparece <b>inteiro</b> no combo Filial (ou, se abreviado, ainda identifica a filial e o nome completo está disponível — DC1). Hoje o combo mostra «1 - S…» (121 px de largura a 1024, 70 px a 768, contra 97 px de texto): <b>texto cortado a ponto de esconder o nome da filial</b> = REPROVADO (critério de aceite não entregue). Painel FILTROS sem campo cortado a ponto de impedir a leitura.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Demais telas de consulta (nacionais e internacionais) e criação de Importação-Definitiva (CA, «nacionais e internacionais»)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-006</span><span class="ct-title">Consultas internacionais (Importação-Provisória, Importação-Definitiva, Exportação, RCT-VI), 1024 e 768 px: combo Filial e campos do painel legíveis</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase («nacionais e internacionais»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno (sessão do CT-FLT-001); em cada um dos 4 ramos internacionais: filial «1 - SAO PAULO» escolhida; janela 1024 e depois 768.</li></ul>
+      <h4>Passos</h4><ol><li>Menu Averbações › ramo internacional (um de cada vez); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li><li>Repetir nos 4 ramos, nas duas larguras; capturar o painel FILTROS de cada tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nos 4 ramos internacionais, em 1024 e 768 px, o combo mostra «1 - SAO PAULO» legível (DC1) e os demais campos do painel estão legíveis. Qualquer ramo com o combo cortado como hoje = REPROVADO, com o ramo e a largura registrados.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-007</span><span class="ct-title">Demais consultas nacionais (RCA-C, RCTA-C, RCV, Transporte Nacional), 768 px: combo Filial e campos do painel legíveis</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª frase («nacionais»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno (sessão do CT-FLT-001); em cada um dos 4 ramos: filial escolhida; janela 768 × 900 (a 1024 px é conferida só no RCTR-C pelo CT-FLT-001 e 003).</li></ul>
+      <h4>Passos</h4><ol><li>Menu Averbações › ramo nacional (um de cada vez); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Medir o combo Filial e capturar o painel FILTROS (N4, O1 e O2); anotar largura do combo, do texto e a útil.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nos 4 ramos nacionais, em 768 px, o combo mostra «1 - SAO PAULO» legível (DC1) e os demais campos do painel estão legíveis. Ramo com o combo cortado = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-008</span><span class="ct-title">Criação de Importação-Definitiva a 800 px: o campo Filial aparece inteiro (descrição do card)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — descrição do card (fora do critério estrito, mesmo oráculo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno; menu Averbações › Importação-Definitiva › Nova Averbação; filial «1 - SAO PAULO» escolhida; janela 800 × 900. Nada é gravado (não clicar em Gravar).</li></ul>
+      <h4>Passos</h4><ol><li>Menu Averbações › Importação-Definitiva › botão Nova Averbação; aguardar o campo Filial carregar; escolher «1 - SAO PAULO».</li><li>Ajustar a janela para 800 px; medir o campo Filial e capturar a IDENTIFICAÇÃO (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo Filial mostra «1 - SAO PAULO» inteiro (hoje perde a última letra a 800 px: 138 px de campo, texto de 97 px mais a seta). Se o corte persistir, o CT é REPROVADO e o achado fica descrito no card como complemento (a criação está na descrição do card, não no critério de aceite).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Sem regressão: valor, opções «código - nome» e filtro não mudam; janela larga igual à de hoje (CA, 2ª frase)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-009</span><span class="ct-title">A 768 px o valor escolhido, a lista «código - nome» e o filtro continuam corretos: escolher a filial, a apólice e consultar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA, 2ª frase</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno, RCTR-C, janela 768 × 900; filial 1 e uma apólice vigente da filial 1.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1) e abrir a consulta do ramo (N2); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Abrir a lista do combo Filial e ler as opções (código - nome, «Selecione...» no topo); escolher «1 - SAO PAULO».</li><li>Com a tela aberta, ajustar a janela para a largura do CT (N3) e aguardar o layout assentar.</li><li>Escolher uma apólice vigente da filial 1 pelo combo Apólice e clicar em <b>Consultar</b> (N5); capturar o painel e o resultado; <b>Limpar</b> e conferir que os filtros voltam ao estado inicial.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista tem «Selecione...» e as filiais no formato «código - nome»; o valor escolhido continua «1 - SAO PAULO» depois de reduzir a janela; <b>Consultar</b> devolve a grade da filial 1 e da apólice escolhida (mesmo conteúdo que a 1366 px); <b>Limpar</b> restaura o painel. Qualquer mudança no valor, nas opções ou no resultado do filtro = REPROVADO (regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-010</span><span class="ct-title">Janela larga (1366 px): o combo Filial continua inteiro e o layout do painel não mudou</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — controle (comportamento de hoje cabe em 190 px)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno, RCTR-C, janela 1366 × 900 (controle); filial 1 escolhida.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1) e abrir a consulta do ramo (N2); aguardar o combo Filial carregar; escolher «1 - SAO PAULO».</li><li>Ajustar a janela para 1366 px (N3); medir o combo Filial e capturar o painel FILTROS (N4).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A 1366 px o texto «1 - SAO PAULO» cabe inteiro (hoje: 190 px de combo para 97 px de texto) e os 5 grupos de filtros continuam legíveis, sem rolagem horizontal da página. Texto cortado a 1366 px ou painel com layout piorado = REPROVADO (regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-011</span><span class="ct-title">Interno com muitas filiais vinculadas: a lista aberta e a filial de nome mais longo legíveis a 768 px</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA, 1ª e 2ª frases (opção mais longa da lista)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Login do Interno da QA com muitas filiais vinculadas (37, perfil do #9398); RCTR-C; janela 768 × 900.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o perfil (N1); abrir a consulta do RCTR-C (N2); ajustar a janela para 768 px (N3).</li><li>Abrir o combo Filial e capturar a lista; escolher a filial de maior rótulo da lista e a «1 - SAO PAULO»; medir o combo (N4) em cada escolha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista aberta mostra todas as opções no formato «código - nome» legíveis. Com a filial de maior rótulo escolhida o combo continua identificando a filial (inteiro, ou abreviado com o nome completo disponível — DC1); «1 - SAO PAULO» continua legível. Rótulo ilegível = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-011"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FLT-012</span><span class="ct-title">Exploratório (15 a 30 minutos, guiado por risco): redimensionar com filial escolhida, 480 px, zoom do navegador, teclado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação e correção publicada em HML (DC4). Perfil Interno e, se houver tempo, Corretor; nada é gravado.</li></ul>
+      <h4>Passos</h4><ol><li>Explorar: reduzir e ampliar a janela com a filial já escolhida (o valor se mantém?); 480 px (medir e registrar, informativo — DC2); zoom do navegador de 125% e 150% numa janela de 1366 px (equivale a janela estreita); chegar ao combo por Tab e mudar a filial com as setas; Limpar em janela estreita.</li><li>Observar também a tela da Assessoria (sem combo Filial) e uma consulta de outro tenant, sem veredito.</li><li>Qualquer achado novo: classificar (do card × pré-existente, A9) antes de abrir defeito.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em nenhuma variação o valor escolhido se perde ao redimensionar, nem o combo fica inutilizável por teclado. Medidas de 480 px e zoom registradas no resultado como informação. Sem ocorrências: registrar «Exploratório executado [DD/MM HML]. Sem ocorrências.»; achado: work item conforme a classificação (A9).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FLT-012"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA, 1ª frase — rótulo do combo Filial legível, nas larguras suportadas, em cada perfil</td><td>CT-FLT-001 · CT-FLT-002 · CT-FLT-004 · CT-FLT-005 · CT-FLT-011</td><td>Pendente</td></tr><tr><td>CA, 1ª frase — demais campos do painel FILTROS sem corte que impeça a leitura</td><td>CT-FLT-003 · CT-FLT-004 · CT-FLT-005</td><td>Pendente</td></tr><tr><td>CA — consulta de Averbações nacionais e internacionais</td><td>CT-FLT-006 · CT-FLT-007 · CT-FLT-008</td><td>Pendente</td></tr><tr><td>CA, 2ª frase — valor selecionado, lista «código - nome» e filtro não mudam</td><td>CT-FLT-009 · CT-FLT-010 · CT-FLT-011</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-FLT-012</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o critério do card (rótulo do combo Filial e demais campos do painel FILTROS legíveis nas larguras suportadas, nas consultas nacionais e internacionais; valor, lista «código - nome» e filtro sem mudança) mapeado a CTs (100%): três perfis, 1024 e 768 px, controle de 1366 px, todos os ramos nacionais e internacionais, lista longa de filiais, a criação de Importação-Definitiva citada na descrição e um exploratório. Oráculo: texto do campo × área útil medidos por script e conferidos na captura de tela. A prova de pré-existência já está no card e não é refeita.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Limite de entradas do login (resposta 429) interrompe a rodada</td><td>Média</td><td>Média</td><td>Um login por perfil e sessão reaproveitada para todas as larguras (DC3); se bloquear, a QA espera o intervalo e retoma sem veredito.</td></tr><tr><td>Medida do script diz «cabe» e a captura mostra corte (ou o contrário)</td><td>Média</td><td>Alta</td><td>Veredito pela captura lida pela QA; divergência para o CT (DC5).</td></tr><tr><td>Correção abrevia o texto com reticências sem deixar a filial identificável</td><td>Média</td><td>Média</td><td>Regra de identificação em DC1 (código e parte do nome + nome completo disponível); «1 - S…» continua reprovado.</td></tr><tr><td>Produtos define larguras suportadas diferentes das sugeridas</td><td>Média</td><td>Baixa</td><td>DC2: a QA passa a usar as novas larguras escritas no card; 1024 e 768 são o padrão até lá.</td></tr><tr><td>Correção só em um ramo (RCTR-C) e as outras telas continuam cortadas</td><td>Média</td><td>Alta</td><td>CT-FLT-006 e 007 cobrem os 4 ramos internacionais e os 4 nacionais restantes.</td></tr><tr><td>Correção piora a janela larga (campos desalinhados a 1366 px)</td><td>Baixa</td><td>Média</td><td>CT-FLT-010 mede o controle de 1366 px.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (23/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
