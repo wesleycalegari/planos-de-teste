@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9847 · AXA — CITWEB: Condição Comercial do RCV com averbações em movimento aberto</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9847 · Sprint 20 Sustentação</span>
+    <h1>AXA — CITWEB: remover a trava que impede alterar a Condição Comercial do RCV com averbações em movimento aberto</h1>
+    <div class="sub">CITWEB — Condições Comerciais do RCV (ramo 59) · AXA · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">17</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">17</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">9/7/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 17 executados · 17 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>17 CTs</strong> (9×P1 · 7×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 17, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 17}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No cadastro de condições comerciais do RCV, hoje o sistema não deixa salvar nenhuma mudança (alterar taxa ou valor, incluir uma condição nova ou replicar para outro subgrupo) quando já existem averbações abertas na apólice: o usuário precisa excluir as averbações e lançar tudo de novo. O card pede que o sistema salve a mudança e recalcule sozinho as averbações abertas, sem mexer no que já foi fechado ou faturado.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 17 situações no ambiente de homologação da AXA (e em mais um tenant): mudar o valor do prêmio fixo e a taxa com averbações abertas e conferir o novo prêmio de cada averbação, mudar vigência e tipo, incluir condição nova, replicar para outro subgrupo, conferir que o fechado/faturado não muda, que a regra de vigência continua valendo, que os outros ramos e o tenant com a regra desligada seguem iguais.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está «Pronto para desenvolvimento» e a trava ainda existe no sistema hoje. A execução começa quando ele for liberado para homologação. Por ser um Bug da Sustentação, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem altera a taxa ou o valor de uma condição do RCV deixa de precisar excluir e relançar as averbações abertas, e o prêmio delas passa a refletir a nova condição.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada trava a execução.</b> Já existe no card a pergunta do dev à Produtos (19/11), sem resposta: a trava sai por completo (salvar, incluir e replicar) ou só para mudança de taxa/valor? <b>A)</b> por completo, como os critérios do card escrevem; <b>B)</b> só taxa/valor. <b>Recomendação da QA: A</b> — é o que está escrito; o plano já testa A e, se a resposta for B, ajustamos dois casos de teste e republicamos.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> (Nacional), tenant <b>AXA</b> — <b>Dados da Apólice RCV › Condições Comerciais</b> (botões Salvar, Novo e Replicar) e <b>Cadastros › Subgrupo</b>; ramo <b>RCV (59)</b>. O defeito relatado: com o indicativo de flexibilização de município ligado e <b>averbações em movimento aberto</b>, qualquer inserção, alteração ou replicação de condição comercial é recusada com a mensagem «Existem averbações em movimento aberto para esta apólice…», obrigando o operador a excluir e registrar tudo de novo.</td></tr><tr><th>Card</th><td>BUG-9847 — «TECSD-49095 - Taxa do RCV bloqueada» · board CITWEB SUSTENTAÇÃO (Sustentacao CITWEB) · Sprint_20_Sustentacao (kanban: a iteração não conta) · estado <b>Pronto para desenvolvimento</b> · tags AXA, citweb e melhoria · sem tarefas filhas · 1 comentário (pergunta do dev à Produtos sobre o escopo da trava, ainda sem resposta) · 9 critérios de aceite (CA01 a CA09).</td></tr><tr><th>Tasks de QA</th><td>#9985 [QA] Plano de teste — BUG #9847 (este plano; fecha na entrega). <b>Bug / Sustentação: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em «Pronto para homologação» (ou Em homologação).</td></tr><tr><th>Ambiente</th><td>HML do CITWEB, tenant <b>AXA</b> (endereços no arquivo de ambiente do time); segunda rodada em um tenant com o indicativo ligado (DC3). Produção e staging não entram — N/A. A versão (build) exibida no rodapé da tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Hoje, com o indicativo de flexibilização de município ligado, o sistema <b>recusa</b> qualquer gravação de condição comercial do RCV quando a apólice (ou o subgrupo) tem averbações em movimento aberto: inserir, atualizar e replicar para outro subgrupo passam pela mesma verificação. O card pede que a trava saia — a condição é salva, as averbações abertas são <b>recalculadas</b> pela nova condição e o que já está fechado ou faturado não muda. O plano <b>não escolhe como a correção é feita</b>: o oráculo é a <b>tela</b> (mensagem de sucesso no lugar da mensagem de bloqueio, condição gravada) e o <b>prêmio de cada averbação</b> antes e depois da alteração:</p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA01</b> — Alterar taxa ou valor com averbações abertas salva, sem a mensagem de bloqueio</td><td>CT-CCR-001 · CT-CCR-003 · CT-CCR-004 · CT-CCR-005 · CT-CCR-015</td></tr><tr><td><b>CA02</b> — Prêmio das averbações abertas passa a refletir a nova taxa/valor; nenhuma fica com a condição antiga</td><td>CT-CCR-002 · CT-CCR-003 · CT-CCR-015</td></tr><tr><td><b>CA03</b> — Inserir nova condição com averbações abertas, sem bloqueio</td><td>CT-CCR-006 · CT-CCR-016</td></tr><tr><td><b>CA04</b> — Replicar para subgrupo com averbações abertas, sem bloqueio e com recálculo do destino</td><td>CT-CCR-007 · CT-CCR-008 · CT-CCR-016</td></tr><tr><td><b>CA05</b> — As demais validações continuam (vigência fora da apólice e as regras entre tipos)</td><td>CT-CCR-009 · CT-CCR-011</td></tr><tr><td><b>CA06</b> — Movimento fechado ou faturado não é alterado</td><td>CT-CCR-010</td></tr><tr><td><b>CA07</b> — Sem regressão nos ramos 21, 54, 55, 56 e 58</td><td>CT-CCR-013 · CT-CCR-014</td></tr><tr><td><b>CA08</b> — Indicativo desligado: comportamento igual ao atual</td><td>CT-CCR-012</td></tr><tr><td><b>CA09</b> — Validação por seguradora (tenant) que opera RCV</td><td>CT-CCR-015 · CT-CCR-016 (e a rodada da AXA nos Grupos A e B)</td></tr><tr><td>Exploratório</td><td>CT-CCR-017</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Campo de reprodução do Bug lido por inteiro (o que deveria acontecer, o que acontece hoje, impacto, passo a passo, frequência), os 9 critérios de aceite, o único comentário (pergunta do dev à Produtos) e a ausência de tarefas filhas e de anexos conferidos. <b>Tags:</b> AXA e citweb (seguradora e sistema identificados). Bug com contexto, cenário atual, cenário desejado e passo a passo; o preenchimento de apólice/subgrupo/ambiente do relato foi complementado pela QA (massa própria no HML da AXA). <b>Ramo declarado:</b> RCV (59). Os 9 critérios têm oráculo observável na tela (mensagem de sucesso/bloqueio, valores da condição, prêmio de cada averbação). <b>Não é débito técnico:</b> há comportamento observável pelo usuário. <b>Bug sem a tag DEFEITO</b> e do board Sustentação: segue o fluxo de Bug, com plano e <b>sem aprovação de Produtos</b>. <b>Leitura do código-fonte (planejamento):</b> a trava é uma única verificação, chamada em três pontos (inserir, atualizar e replicar), que só atua com o indicativo ligado e no ramo 59 — consistente com os critérios CA07 e CA08.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em Pronto para homologação:</b> O card está em <b>Pronto para desenvolvimento</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug / Sustentação: sem aprovação de Produtos</b> — quando o card chegar lá, a execução começa na hora.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Escopo da trava: sai por completo ou só para taxa/valor?</b></td><td>O dev perguntou isso à Produtos no card em 19/11 (ainda sem resposta; <b>não foi repetida a cobrança</b>). <b>Posição do QA:</b> os critérios escritos mandam sair por completo nos três pontos (CA01 alterar, CA03 inserir, CA04 replicar), então o plano testa <b>a trava removida em tudo</b>; CT-CCR-004 (mudar a vigência) e CT-CCR-005 (mudar o tipo da condição) cobrem os dois casos que o dev levantou. Se Produtos responder «só taxa/valor», esses dois CTs passam a esperar o bloqueio e o plano é republicado.</td></tr><tr><td><b>DC2</b></td><td><b>Como o recálculo das averbações abertas é disparado (CA02)</b></td><td>O card diz que o recálculo do RCV já funciona e não descreve o gatilho. <b>Posição do QA:</b> o oráculo é o <b>prêmio de cada averbação aberta</b> lido antes e depois; depois de salvar a condição a QA segue o que o sistema oferecer (aviso «Serão recalculadas N averbações. Confirma?» na gravação da apólice, ou recálculo automático) e registra o caminho. Averbação aberta com o valor antigo depois do recálculo = REPROVADO (CA02 não entregue).</td></tr><tr><td><b>DC3</b></td><td><b>Quais seguradoras entram (CA09)</b></td><td>O card pede «cada seguradora que opera RCV (AXA / EZZE / STARR / NStech, confirmar quais)». <b>Medido no HML em 24/11/2026:</b> o indicativo está <b>ligado</b> nas bases da AXA, Fairfax, HDI e Suhai e <b>desligado</b> em NStech, Mitsui, Mapfre, Allianz, Sura e STG; EZZE e STARR <b>não têm RCV</b> no HML. <b>Posição do QA:</b> rodada principal na <b>AXA</b> (tag do card; Grupos A e B); segunda rodada no <b>HDI</b> (indicativo ligado e muita massa) nos CT-CCR-015 e 016; NStech cobre o indicativo desligado (CT-CCR-012). Fairfax e Suhai só se HDI não tiver massa.</td></tr><tr><td><b>DC4</b></td><td><b>Oráculo do «movimento fechado/faturado não muda» (CA06)</b></td><td><b>Posição do QA:</b> prêmio de uma averbação de movimento já fechado (e o valor de uma fatura já emitida, se houver na massa) <b>lido antes e depois</b> da alteração da condição; iguais = APROVADO. O valor vem da consulta de averbações do próprio sistema, conferido por leitura (nunca por escrita) no banco.</td></tr><tr><td><b>DC5</b></td><td><b>Mensagens exatas</b></td><td>Sucesso: «Atualização realizada com sucesso.» (alterar) e «Inserção realizada com sucesso.» (novo), conforme o código; bloqueio que deve <b>desaparecer</b>: «Existem averbações em movimento aberto para esta apólice…»; vigência (CA05): «Data prevista fora da vigência da apólice». O texto exato de cada mensagem é <b>capturado em tela</b> na execução e registrado como observado; divergência de texto de sucesso não reprova se a condição for gravada.</td></tr><tr><td><b>DC6</b></td><td><b>Versão em teste e massa (a QA resolve; nenhuma pergunta ao dev)</b></td><td>A QA testa o que está na homologação: passou = aprovado; falhou = REPROVADO com defeito. A versão da tela é só registrada. Apólice RCV com averbações abertas e condições comerciais, subgrupo adicional, usuário e valores são massa da QA (banco consultado só para leitura; criação pela tela); a QA não escreve dado de negócio no banco.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITWEB Nacional, tenant AXA (e HDI na 2ª rodada): tela Condições Comerciais do RCV (ramo 59) com Salvar, Novo e Replicar, e a mesma tela pelo cadastro de subgrupo.</li><li>Alterar o valor do Prêmio Fixo e a taxa da Taxa Única, a vigência e o tipo da condição, com averbações em movimento aberto na apólice e no subgrupo; inserir condição nova; replicar para outro subgrupo.</li><li>Recálculo das averbações abertas (prêmio antes × depois) e preservação das averbações de movimento fechado/faturado.</li><li>Validações que continuam (vigência fora da apólice, regras entre tipos de condição), indicativo desligado (NStech) e regressão dos ramos 21, 54, 55, 56 e 58.</li><li>Exploratório (NOR_QA_002 seção 11).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Como a correção é implementada</b> (código, banco) — o plano julga o comportamento na tela e o prêmio das averbações, não a implementação.</li><li><b>Cálculo de prêmio em si</b> do RCV fora do recálculo disparado pela mudança de condição (já coberto por outros planos) e a exclusão de averbações.</li><li>Tenants sem RCV no HML (EZZE e STARR) e demais ramos além dos citados no CA07.</li><li>Fatura e relatórios, exceto a conferência de valor de fatura já emitida do CT-CCR-010.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano e o card está em <b>Pronto para desenvolvimento</b> — no código de hoje a trava ainda existe, então a execução só faz sentido com o card liberado para homologação. Antes de publicar, a QA <b>mediu no HML</b> (somente leitura): o indicativo ligado na AXA, averbações em movimento aberto em apólices RCV da AXA com condições dos tipos Prêmio Fixo, Taxa Única, Prêmio por Viagem, Taxa por Percurso e Prêmio por KM, um subgrupo adicional com averbação aberta (para Replicar) e averbações de movimento fechado. Os valores concretos de cada massa vão para o guia privado; rótulos, ordem e mensagens são registrados na execução como observado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, tenant AXA (e HDI na 2ª rodada). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário e perfil</b> — Usuário interno da QA no tenant com acesso a Apólice RCV, Condições Comerciais e Cadastros › Subgrupo (dados no guia privado). Falta de usuário ou senha é massa: a QA cria ou edita pela tela e segue.</li><li><b>Massa da QA</b> — Apólice RCV com <b>averbações em movimento aberto</b> e condição do tipo <b>Prêmio Fixo</b> (oráculo simples: prêmio de cada averbação = valor fixo), outra com <b>Taxa Única</b>, um <b>subgrupo adicional</b> com averbação aberta (Replicar), averbações de <b>movimento fechado</b> e, para os ramos do CA07, apólices dos ramos 21, 54/55, 56 e 58 com averbação aberta. Valores de teste sintéticos; cada CT que altera condição restaura o valor original ao final (massa compartilhada).</li><li><b>Ferramentas</b> — Script local (Playwright) com captura da tela e do texto exato das mensagens; leitura (somente SELECT) para conferir o prêmio das averbações e o indicativo; grava a captura por CT e imprime só o veredito e o caminho dos arquivos. Credencial nunca é impressa.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura <b>desde o login</b> até o resultado, com a condição antes do clique, a mensagem exata depois, a condição gravada e o prêmio de cada averbação antes e depois (quando o CT trata de recálculo).</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o CITWEB do tenant e entrar com o usuário da QA, por clique desde a tela de login.</li><li><b>N2 — Apólice:</b> pelo menu <b>Nacional › Apólice › RCV</b> (Dados da Apólice) pesquisar e abrir a apólice da massa; clicar em <b>Condições Comerciais</b>. Para o subgrupo, usar também <b>Cadastros › Subgrupo</b>. Sem digitar endereço.</li><li><b>N3 — Estado antes:</b> registrar Subgrupo, Tipo de Condição, valor/taxa, vigência (De/Até), versão do rodapé e, na consulta das averbações em movimento aberto da apólice, o <b>prêmio de cada averbação</b> (antes).</li><li><b>N4 — Alteração:</b> mudar o campo do CT (valor do Prêmio Fixo, taxa, vigência ou tipo) e clicar em <b>Salvar</b> (ou <b>Novo</b> + Salvar; ou <b>Replicar</b>); registrar o texto exato da mensagem.</li><li><b>N5 — Recálculo:</b> seguir o que o sistema oferecer para recalcular as averbações abertas (aviso de confirmação ou automático) e registrar o caminho.</li><li><b>N6 — Estado depois:</b> reabrir a condição e a consulta de averbações; registrar o valor gravado e o prêmio de cada averbação (depois); restaurar o valor original ao final do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário da QA (AXA, CITWEB):</b> Perfil interno com acesso a Apólice RCV e Subgrupo; dados no guia privado.</li><li><b>Apólice RCV — Prêmio Fixo com averbações abertas:</b> Condição de valor fixo por viagem vigente e três averbações em movimento aberto, todas com prêmio igual ao valor fixo atual (oráculo do CT-CCR-002).</li><li><b>Apólice RCV — Taxa Única com averbação aberta:</b> Condição de taxa única vigente e averbação aberta com prêmio igual à taxa vezes a base (oráculo do CT-CCR-003).</li><li><b>Apólice RCV com subgrupo adicional:</b> Subgrupo 1 com condição e subgrupo 2 com averbação aberta (Replicar, CT-CCR-007 e 008).</li><li><b>Averbações de movimento fechado:</b> Apólice RCV com averbações de mês já fechado, para o CT-CCR-010.</li><li><b>Tenant com indicativo desligado e HDI:</b> NStech (indicativo desligado, CT-CCR-012) e HDI (ligado, CT-CCR-015 e 016) — apólices registradas no resultado de cada CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente, login e leitura do estado inicial (condições e prêmio das averbações abertas); registrar versão.</li><li>Grupo A (CT-CCR-001 a 005) → Grupo B (006 a 008) → Grupo C (009 a 011) → Grupo D (012 a 017).</li><li>Cada CT restaura o valor/vigência/tipo original ao final (massa compartilhada) e cita o valor antes e depois; nenhum CT depende do resultado de outro (o CT-CCR-002 lê o prêmio das averbações deixadas pelo CT-CCR-001, por isso rodam em seguida).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Alterar a condição com averbações abertas e recalcular (CA01 e CA02)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-001</span><span class="ct-title">Alterar o valor do Prêmio Fixo (valor fixo por viagem) com averbações em movimento aberto → Salvar → condição gravada, sem a mensagem de bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 (reprodução do relato; oráculo: mensagem e condição gravada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Usuário da QA; apólice RCV com averbações em movimento aberto e condição de Prêmio Fixo vigente (massa no guia privado); estado antes registrado (N3).</li></ul>
+      <h4>Passos</h4><ol><li>Navegar por clique até Condições Comerciais da apólice (N1 e N2) e registrar o estado antes (N3).</li><li>Mudar o <b>valor do Prêmio Fixo</b> para outro valor válido (ex.: de R$ 150,00 para R$ 200,00) e clicar em Salvar (N4).</li><li>Registrar o texto exato da mensagem, reabrir a condição e registrar o valor gravado (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A condição é <b>salva</b> (mensagem de sucesso, como «Atualização realizada com sucesso.») e o valor gravado é o novo; a mensagem «Existem averbações em movimento aberto para esta apólice…» <b>não aparece</b>. Mensagem de bloqueio, ou valor antigo mantido = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-002</span><span class="ct-title">Depois da alteração do CT-CCR-001, o prêmio de cada averbação aberta reflete o novo valor e nenhuma fica calculada pela condição anterior</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA02 (antes × depois; discriminador: valor antigo conhecido)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-CCR-001 executado sem restaurar o valor; prêmio de cada averbação aberta registrado antes (valor antigo do Prêmio Fixo, por averbação).</li></ul>
+      <h4>Passos</h4><ol><li>Seguir o que o sistema oferecer para recalcular as averbações abertas (N5), confirmando o aviso se houver, e registrar o caminho.</li><li>Na consulta das averbações em movimento aberto, registrar o <b>prêmio de cada averbação</b> (N6) e conferir por leitura no banco; comparar com o valor novo da condição.</li><li>Restaurar o valor original do Prêmio Fixo ao final.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Todas</b> as averbações abertas passam a ter prêmio igual ao novo valor fixo; <b>nenhuma</b> fica com o valor antigo. Uma ou mais com o valor antigo depois do recálculo = REPROVADO. Se o sistema não oferecer nenhum recálculo e os valores não mudarem, o resultado é REPROVADO (CA02 não entregue).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-003</span><span class="ct-title">Alterar a taxa da Taxa Única com averbação aberta → salva e o prêmio da averbação passa a ser a nova taxa vezes a base</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 e CA02 (segundo tipo de condição; discriminador: taxa antiga conhecida)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com condição de Taxa Única vigente e ao menos uma averbação aberta, com prêmio igual à taxa atual vezes a base (massa).</li></ul>
+      <h4>Passos</h4><ol><li>Navegar até Condições Comerciais, registrar a taxa, a vigência e o prêmio da averbação aberta (N3).</li><li>Alterar a <b>taxa</b> (ex.: de 0,15 para 0,20) e Salvar (N4); seguir o recálculo (N5).</li><li>Registrar a mensagem, a taxa gravada e o prêmio da averbação depois (N6); calcular nova taxa × base e comparar; restaurar a taxa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A condição é salva sem mensagem de bloqueio, a taxa gravada é a nova e o prêmio da averbação aberta é <b>nova taxa × base</b> (cálculo registrado), diferente do valor anterior. Bloqueio ou prêmio inalterado = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-004</span><span class="ct-title">Alterar a vigência (data final) da condição com averbações abertas → regra padrão do plano: salva sem bloqueio e as averbações continuam coerentes (DC1)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 (caso levantado pelo dev: vigência) e regra padrão DC1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-CCR-001; nova data dentro da vigência da apólice e sem sobrepor outra condição.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o estado antes (N3) e <b>mudar a data final</b> da vigência da condição para outra data válida dentro da vigência da apólice.</li><li>Salvar (N4), registrar a mensagem e o estado depois (N6), incluindo o prêmio das averbações abertas; restaurar a data.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Regra padrão (DC1): a condição é salva <b>sem a mensagem de bloqueio</b> e o prêmio das averbações abertas segue a condição vigente na data de saída de cada uma. Se Produtos decidir manter a trava para vigência, o esperado passa a ser o bloqueio (republicar). Bloqueio com a trava removida pelo card = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-005</span><span class="ct-title">Trocar o tipo da condição (ex.: Prêmio Fixo → Taxa Única) com averbações abertas → regra padrão do plano: salva sem bloqueio e o prêmio é recalculado (DC1)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 (caso levantado pelo dev: tipo da condição) e regra padrão DC1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com averbações abertas e condição de um tipo; combinação de tipos permitida no período (sem as restrições entre tipos).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o estado antes (N3) e <b>trocar o Tipo de Condição</b> por outro permitido, preenchendo o campo do novo tipo.</li><li>Salvar (N4), seguir o recálculo (N5), registrar a mensagem e o prêmio das averbações antes e depois (N6); restaurar a condição original.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Regra padrão (DC1): condição salva sem a mensagem de bloqueio e o prêmio das averbações abertas passa a refletir o novo tipo (valor conferido pelo cálculo do tipo). Recusa por regra <b>de tipos</b> (e não pela trava) é a validação que continua (CT-CCR-011); a mensagem de averbações abertas = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-005"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo B — Inserir condição nova e replicar para outro subgrupo (CA03 e CA04)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-006</span><span class="ct-title">Inserir uma condição nova (Novo + Salvar) com averbações abertas → inserida sem a mensagem de bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA03 (oráculo: mensagem e condição na lista)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com averbações abertas e um período da vigência da apólice <b>livre</b> de outras condições (ou período livre aberto pela QA pela tela).</li></ul>
+      <h4>Passos</h4><ol><li>Em Condições Comerciais, clicar em <b>Novo</b>, escolher o tipo e preencher a condição e a vigência no período livre (N4).</li><li>Clicar em Salvar, registrar a mensagem e conferir a condição na lista (N6); excluir a condição nova ao final (massa própria).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A condição é <b>inserida</b> (mensagem de sucesso, como «Inserção realizada com sucesso.») e aparece na lista; a mensagem de averbações abertas <b>não aparece</b>. Bloqueio = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-007</span><span class="ct-title">Replicar a condição para um subgrupo com averbações abertas → replicada sem a mensagem de bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA04 (oráculo: mensagem e condição do subgrupo destino)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com subgrupo 1 (com condição) e <b>subgrupo adicional com averbação em movimento aberto</b> (massa); estado das condições do subgrupo destino registrado.</li></ul>
+      <h4>Passos</h4><ol><li>No subgrupo de origem, em Condições Comerciais, clicar em <b>Replicar</b> (N2 e N4).</li><li>Registrar a mensagem e abrir as condições do subgrupo destino (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A replicação <b>conclui</b>: o subgrupo destino passa a ter a condição do subgrupo de origem e a mensagem de averbações abertas <b>não aparece</b>. Bloqueio = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-008</span><span class="ct-title">Depois do Replicar, as averbações abertas do subgrupo destino são recalculadas pela condição replicada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA04 (antes × depois no subgrupo destino)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-CCR-007 executado; prêmio das averbações abertas do subgrupo destino registrado antes.</li></ul>
+      <h4>Passos</h4><ol><li>Seguir o recálculo oferecido pelo sistema (N5) e registrar o caminho.</li><li>Na consulta de averbações abertas do subgrupo destino, registrar o prêmio depois (N6) e comparar com o cálculo da condição replicada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O prêmio das averbações abertas do subgrupo destino é o calculado pela <b>condição replicada</b> (cálculo registrado) e difere do valor de antes se a condição era outra. Averbação do destino com o cálculo antigo = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Demais validações e movimento fechado/faturado preservados (CA05 e CA06)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-009</span><span class="ct-title">Condição com vigência fora da vigência da apólice continua bloqueada com a mensagem de vigência (e não pela mensagem de averbações abertas)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA05 (validação que continua valendo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com averbações abertas; data final da condição posterior à vigência da apólice.</li></ul>
+      <h4>Passos</h4><ol><li>Em Condições Comerciais, preencher uma condição (alterar ou Novo) com a <b>data final fora da vigência da apólice</b> (N4) e clicar em Salvar.</li><li>Registrar o texto exato da mensagem e conferir que nada foi gravado (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema recusa com a mensagem de vigência («Data prevista fora da vigência da apólice») e <b>nada é gravado</b>; a mensagem de averbações abertas não aparece. Gravar a condição fora da vigência, ou bloquear com a mensagem errada = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-010</span><span class="ct-title">Averbações de movimento fechado/faturado e fatura emitida não mudam de prêmio depois da alteração da condição</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA06 (antes × depois; DC4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com averbações abertas <b>e</b> averbações de movimento já fechado (e fatura emitida, se existir na massa); prêmio das fechadas registrado antes.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o prêmio de cada averbação fechada e, se houver, o valor da fatura emitida (N3).</li><li>Executar a alteração do CT-CCR-001 (e o recálculo), registrar o prêmio das fechadas e o valor da fatura depois (N6) e restaurar a condição.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O prêmio de <b>todas</b> as averbações fechadas e o valor da fatura emitida são <b>idênticos</b> antes e depois. Qualquer valor fechado alterado = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-011</span><span class="ct-title">As regras entre tipos de condição continuam: inserir uma condição incompatível com as existentes no período é recusada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA05 (validação existente por tipo/sobreposição)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV com condição de Prêmio por KM (ou de Prêmio por Viagem) vigente no período; averbações abertas.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em Novo e tentar inserir, no mesmo período, uma condição de tipo incompatível com a existente (N4).</li><li>Salvar e registrar o texto exato da mensagem (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A inserção é recusada pela <b>regra entre tipos</b> (mensagem própria dessa regra) e nada é gravado; a mensagem de averbações abertas não aparece. Gravar a condição incompatível = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-011"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo D — Indicativo desligado, outros ramos e segundo tenant (CA07, CA08 e CA09) + exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-012</span><span class="ct-title">Indicativo desligado (NStech): alterar a condição RCV com averbações abertas salva como hoje, sem trava</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA08 (comportamento igual ao atual com o indicativo desligado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tenant NStech (indicativo desligado, conferido na leitura); apólice RCV com averbação aberta e condição (massa).</li></ul>
+      <h4>Passos</h4><ol><li>Navegar até Condições Comerciais da apólice do tenant (N1 e N2), registrar o estado (N3) e alterar o valor/taxa da condição (N4).</li><li>Salvar, registrar a mensagem e a condição gravada (N6); restaurar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A condição é salva <b>sem mensagem de bloqueio</b>, igual ao comportamento atual; a conferência do indicativo (desligado) é registrada no resultado. Bloqueio com o indicativo desligado = REPROVADO (regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-013</span><span class="ct-title">Regressão dos ramos 54 e 55 (par sincronizado): alterar condição com averbação aberta continua como hoje</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA07 (ramos 54 e 55; o 55 acompanha o 54)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice do ramo 54/55 com averbação aberta e condição comercial (massa; criada pela tela se faltar).</li></ul>
+      <h4>Passos</h4><ol><li>Navegar até Condições Comerciais da apólice do ramo 54 (N2), registrar o estado (N3) e alterar a condição (N4).</li><li>Salvar, registrar a mensagem e conferir a condição do ramo 55 vinculado (N6); restaurar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Comportamento <b>idêntico ao de antes da correção</b> (a condição é salva, sem trava; o ramo 55 acompanha o 54). Mudança de comportamento nesses ramos = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-014</span><span class="ct-title">Regressão dos ramos 21, 56 e 58: alterar condição com averbação aberta continua como hoje</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA07 (ramos 21, 56 e 58)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma apólice de cada ramo (21, 56 e 58) com averbação aberta e condição comercial (massa; criada pela tela se faltar).</li></ul>
+      <h4>Passos</h4><ol><li>Para cada ramo, navegar até Condições Comerciais (N2), registrar o estado (N3) e alterar a condição (N4).</li><li>Salvar e registrar a mensagem e a condição gravada (N6); restaurar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nos três ramos o comportamento é <b>idêntico ao atual</b> (condição salva, sem trava). Qualquer mudança = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-015</span><span class="ct-title">Segundo tenant com o indicativo ligado (HDI): alterar a condição RCV com averbações abertas salva e recalcula</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA09 (CA01 e CA02 em outra seguradora)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tenant HDI (indicativo ligado, conferido na leitura); apólice RCV com averbações abertas e condição (massa).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o estado antes e o prêmio das averbações abertas (N3); alterar o valor/taxa da condição e Salvar (N4).</li><li>Seguir o recálculo (N5) e registrar a mensagem, a condição gravada e o prêmio depois (N6); restaurar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Condição salva sem mensagem de bloqueio e prêmio das averbações abertas conferindo com o cálculo esperado (cálculo registrado). Resultado diferente do da AXA sem explicação = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-015"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-016</span><span class="ct-title">Segundo tenant (HDI): inserir condição nova e replicar para outro subgrupo com averbações abertas</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA09 (CA03 e CA04 em outra seguradora)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tenant HDI; apólice RCV com subgrupo adicional com averbação aberta e período livre de condições.</li></ul>
+      <h4>Passos</h4><ol><li>Inserir uma condição nova (Novo + Salvar) e registrar a mensagem (N4 e N6).</li><li>Replicar a condição para o subgrupo com averbação aberta, seguir o recálculo e registrar a mensagem e o prêmio depois (N4 a N6); restaurar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Inserção e replicação concluem <b>sem a mensagem de bloqueio</b> e o prêmio das averbações abertas do destino reflete a condição replicada. Bloqueio = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-016"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CCR-017</span><span class="ct-title">Exploratório (NOR_QA_002 seção 11): 15 a 30 min guiados por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Massa dos CTs anteriores.</li></ul>
+      <h4>Passos</h4><ol><li>Clicar duas vezes seguidas em Salvar e em Replicar; salvar duas alterações em sequência; alterar com a apólice recém-averbada (averbação aberta criada na hora).</li><li>Valores extremos (taxa muito alta ou zero, valor fixo zero), vigência em um único dia e condição para o subgrupo 2 sem condição no subgrupo 1.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhum registro duplicado de condição, nenhuma averbação aberta com valor antigo depois do recálculo e nenhuma mensagem de bloqueio por averbações abertas. O que divergir é registrado como observado. Sem ocorrências: comentar no card «Exploratório executado [data HML]. Sem ocorrências.»</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CCR-017"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA01 — Alterar taxa/valor com averbações abertas salva, sem a mensagem de bloqueio</td><td>CT-CCR-001 · CT-CCR-003 · CT-CCR-004 · CT-CCR-005 · CT-CCR-015</td><td>Pendente</td></tr><tr><td>CA02 — Prêmio das averbações abertas reflete a nova condição; nenhuma fica com a anterior</td><td>CT-CCR-002 · CT-CCR-003 · CT-CCR-015</td><td>Pendente</td></tr><tr><td>CA03 — Inserir condição nova com averbações abertas, sem bloqueio</td><td>CT-CCR-006 · CT-CCR-016</td><td>Pendente</td></tr><tr><td>CA04 — Replicar para subgrupo com averbações abertas, sem bloqueio e com recálculo do destino</td><td>CT-CCR-007 · CT-CCR-008 · CT-CCR-016</td><td>Pendente</td></tr><tr><td>CA05 — As demais validações continuam (vigência fora da apólice; regras entre tipos)</td><td>CT-CCR-009 · CT-CCR-011</td><td>Pendente</td></tr><tr><td>CA06 — Movimento fechado ou faturado não é alterado</td><td>CT-CCR-010</td><td>Pendente</td></tr><tr><td>CA07 — Sem regressão nos ramos 21, 54, 55, 56 e 58</td><td>CT-CCR-013 · CT-CCR-014</td><td>Pendente</td></tr><tr><td>CA08 — Indicativo desligado: comportamento igual ao atual</td><td>CT-CCR-012</td><td>Pendente</td></tr><tr><td>CA09 — Validação por seguradora que opera RCV (AXA nos Grupos A e B; HDI aqui)</td><td>CT-CCR-015 · CT-CCR-016</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-CCR-017</td><td>Pendente</td></tr><tr><td>Como a correção é implementada (código, banco)</td><td>— não gera CT: o plano julga o comportamento na tela, não o código</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 9 critérios de aceite do card mapeados a CTs (100%), com oráculo na <b>tela</b> (mensagem de sucesso no lugar do bloqueio, condição gravada) e no <b>prêmio de cada averbação</b> antes e depois (conferido por leitura no banco), contraprova do que deve continuar (vigência, regras entre tipos, movimento fechado, outros ramos, indicativo desligado) e segunda seguradora. O que o card deixou aberto (escopo da trava e gatilho do recálculo) está nas decisões DC1 e DC2, com regra padrão e CTs isolados.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>A trava sai, mas o recálculo das averbações abertas não roda ou roda só em parte (o dev já alertou que «o recálculo talvez não cubra tudo»)</td><td>Média</td><td>Alta</td><td>CT-CCR-002, 003, 004, 005 e 008 medem o prêmio de cada averbação antes e depois (DC2); averbação com valor antigo = REPROVADO.</td></tr><tr><td>Correção que remove a trava só em um dos três pontos (alterar, inserir ou replicar)</td><td>Média</td><td>Alta</td><td>CT-CCR-001, 006 e 007 exercitam os três caminhos, e o CT-CCR-016 repete inserir e replicar em outro tenant.</td></tr><tr><td>Remoção da trava vazando para outros ramos ou para o movimento fechado</td><td>Baixa</td><td>Alta</td><td>CT-CCR-010 (fechado/faturado) e CT-CCR-013 e 014 (ramos 21, 54, 55, 56 e 58).</td></tr><tr><td>Escopo da trava decidido de outro jeito por Produtos (só taxa/valor)</td><td>Média</td><td>Média</td><td>DC1: CT-CCR-004 e 005 isolam vigência e tipo; basta inverter o esperado deles e republicar.</td></tr><tr><td>Massa compartilhada alterada por um CT e usada por outro (valor de condição e prêmio das averbações)</td><td>Média</td><td>Média</td><td>Cada CT registra o valor original e o restaura ao final; o par CT-CCR-001/002 roda em sequência de propósito.</td></tr><tr><td>Tenants com RCV sem massa de averbação aberta (HDI, NStech)</td><td>Baixa</td><td>Baixa</td><td>A QA cria averbação aberta pela tela; Fairfax e Suhai como alternativas ao HDI (DC3).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
