@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-5991 · Proteção contra tentativas repetidas de senha no login do CITNET (FAIRFAX)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-5991 · Sprint 20 Sustentação</span>
+    <h1>Proteção contra tentativas repetidas de senha no login do CITNET (FAIRFAX): bloqueio temporário conforme definido no card</h1>
+    <div class="sub">CITNET (login) · tenant FAIRFAX · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug de segurança: o plano descreve o comportamento esperado; detalhes de execução ficam no card</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">15</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">15</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/7/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 15 executados · 15 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>15 CTs</strong> (6×P1 · 7×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 15, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 15}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Um teste de segurança externo mostrou que o login do CITNET da FAIRFAX aceita um número ilimitado de tentativas de senha, o que permite a um programa tentar descobrir senhas. O card pede que o sistema passe a se proteger disso, por exemplo parando de aceitar novas tentativas por um tempo depois de várias erradas.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Que o login continua normal dentro do limite, que passado o limite o sistema barra novas tentativas e orienta a aguardar, que nem a senha certa entra durante o bloqueio, que uma conta barrada não atrapalha os outros usuários, que o acesso volta ao normal depois do período, que o uso legítimo não foi prejudicado e que o bloqueio fica registrado em log. Se o desenvolvedor também adotar regra de senha forte ou verificação anti-robô, testamos essas partes.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos — o card está em planejamento e ainda sem correção no ambiente de testes. Plano publicado agora; os testes começam quando o card chegar em homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem errar a senha repetidamente verá um aviso para aguardar; os demais usuários não são afetados e o login correto segue funcionando.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto — Bug não passa por aprovação de Produtos. O card não define o número de tentativas nem o tempo de bloqueio; a QA valida o que o desenvolvedor registrar no card (mesmo critério usado no card irmão da mesma frente de vulnerabilidades, o #9238).</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — tela de login · tenant FAIRFAX</td></tr>
+    <tr><th>Card</th><td>BUG-5991 — vulnerabilidade de força bruta no login (achado de teste de segurança externo) · board Sustentação · Tags: Citnet; FAIRFAX; vulnerabilidade · estado atual <b>In Planning</b> · frente de vulnerabilidades do CITNET</td></tr>
+    <tr><th>Tasks filhas</th><td>#9969 [QA] Plano de teste — BUG #5991 (QA)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem aprovação de Produtos sobre o plano. Plano v1.0 publicado em 24/11/2026 → execução em HML quando o card chegar em homologação → revisão independente → resultado (NOR_QA_002) no card.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET da FAIRFAX com a correção implantada (a confirmar por comportamento, não por relato do dev) · contas de teste inexistentes exclusivas do card</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Um teste de segurança externo mostrou que a tela de login aceita muitas tentativas de senha seguidas sem nenhuma contenção, o que permite descobrir senhas por tentativa e erro automatizada. O card recomenda controle de tentativas inválidas com bloqueio temporário, regra de complexidade de senha e verificação anti-automação. Este plano valida em HML, por tela, resposta e log, o comportamento que o desenvolvedor entregar e descrever no card — o relato do dev não é oráculo. Os valores concretos de execução ficam no guia privado anexado ao card.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com contexto, cenário atual (tentativas ilimitadas), recomendações do card como cenário desejado, tenant e sistema identificados pelas tags. O card não traz critérios de aceite numéricos; o oráculo de cada CT é observável na tela, na resposta e no log e a regra padrão para os valores está fechada em DEC-1 e DEC-2 — documentado, não bloqueia o plano.</div>
+  <h3>Decisões e inferências do QA</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DEC-1</b></td><td><b>Recomendações do card</b></td><td>O card lista três recomendações (bloqueio temporário, senha complexa, verificação anti-automação) como <b>caminhos possíveis</b>, não como critérios cumulativos. O mínimo testável é o bloqueio temporário (grupos A a F). Os CTs do grupo I só rodam para o que o desenvolvedor declarar no card; sem declaração, ficam N/A. Se o desenvolvedor entregar só uma recomendação, isso não reprova o card.</td></tr><tr><td><b>DEC-2</b></td><td><b>Valores do limite</b></td><td>O card não define o número de tentativas nem o tempo de bloqueio. Regra padrão: vale o que o desenvolvedor registrar no card (critério já aplicado no card irmão #9238); valores concretos ficam no guia privado. Se o desenvolvedor não registrar nada, a QA mede o comportamento e registra no card — ausência total de bloqueio é REPROVADO.</td></tr><tr><td><b>DEC-3</b></td><td><b>Mecanismo</b></td><td>A QA mede o comportamento observável (tela, resposta, log), não o nome do mecanismo implementado.</td></tr><tr><td><b>DEC-4</b></td><td><b>Massa</b></td><td>Só contas inexistentes exclusivas do card (TESTE5991*) e uma conta real dedicada ao QA neste tenant, criada pela QA; nenhuma conta real de cliente recebe tentativa errada. Execução só depois do card chegar em homologação.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>Login da FAIRFAX: dentro e acima do limite (CT-5991-01, 02, 03); isolamento entre contas e abrangência (04, 05); demais telas de autenticação do card (06); fim do bloqueio e login legítimo (07, 08, 09); concorrência (10); log (11).</li>
+    <li>Controle em outra seguradora (CT-5991-12); recomendações complementares, só se adotadas (CT-5991-13, 14); exploratório (CT-5991-15).</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — N/A (a QA não testa em produção).</li>
+    <li><b>Novo teste de segurança externo</b> e <b>encerramento do achado</b> — processo da equipe de segurança.</li>
+    <li><b>Itens de DoD de engenharia</b> — não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação por clique a partir do login — nunca por URL direta (exceto o endereço do login). O CT de concorrência usa ferramenta de requisições do QA (script) por não ter tela. Evidência por CT no bloco do CT e anexada ao card (nunca neste documento público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET da FAIRFAX com a correção (conferir com uma tentativa de controle antes do CT-5991-01).</li>
+    <li><b>Contas:</b> contas inexistentes «TESTE5991…» (uma por CT, confirmadas por consulta somente leitura); usuário válido do QA para a FAIRFAX; uma conta real dedicada ao QA nos CT-5991-03 e 08 (credenciais fora deste documento; a QA cria a conta se não houver).</li>
+    <li><b>Janela do bloqueio:</b> definida pelo desenvolvedor no card; cada CT registra o horário de cada tentativa. Valores no guia privado.</li>
+    <li><b>Ordem sugerida:</b> CT-5991-07 e 11 reaproveitam o bloqueio do CT-5991-02; 08 reaproveita o do CT-5991-03; 04 e 06 devem ser feitos logo depois do respectivo bloqueio; 12 pode ser feito a qualquer hora.</li>
+  </ul>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Limite no login: dentro do limite responde como hoje; acima do limite é barrado</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-01</span><span class="ct-title">Tentativas dentro do limite definido no card: todas respondem o erro normal de login, sem bloqueio</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Conta TESTE5991A1.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Fazer tentativas seguidas com senha incorreta na conta <code>TESTE5991A1</code> até o limite definido no card (preencher os campos e clicar no botão de entrada); após cada uma ler o texto da tela e a resposta por script e anotar o horário.</li><li>Conferir que nenhuma resposta trouxe aviso de limite e que a tela de login continuou disponível.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as tentativas dentro do limite respondem a mensagem normal de usuário/senha inválidos (a mesma de antes da correção, texto exato lido na tela), sem aviso de limite. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (texto exato) + resposta de cada tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-02</span><span class="ct-title">Tentativa acima do limite: é barrada com a resposta de bloqueio definida no card e orienta aguardar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Conta TESTE5991A2 (diferente da do CT-5991-01).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Fazer tentativas seguidas com senha incorreta na conta <code>TESTE5991A2</code> até o limite definido no card (preencher os campos e clicar no botão de entrada); após cada uma ler o texto da tela e a resposta por script e anotar o horário.</li><li>Fazer uma tentativa adicional, acima do limite, dentro da janela definida no card; ler por script a resposta, a orientação de espera e o texto exibido na tela; anotar o horário (usado nos CT-5991-07 e 11).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tentativa acima do limite recebe a resposta de bloqueio definida no card, com orientação de espera, e a tela mostra o aviso (texto exato lido na execução). Nenhuma autenticação é processada nessa tentativa. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>resposta + orientação de espera (script) + texto da tela. O contraste «antes da correção» vem do controle do CT-5991-12 e do histórico do card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-03</span><span class="ct-title">Conta real de teste: durante o bloqueio nem a senha correta entra</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste real exclusiva do QA neste tenant (criada pelo QA como massa de teste do HML; credencial fora deste documento). Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Levar a conta dedicada ao bloqueio com senha incorreta, conforme o guia privado.</li><li>Tentar com a <b>senha correta</b> durante o bloqueio; ler texto e resposta; conferir que não há sessão iniciada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Durante o bloqueio, mesmo com a senha correta, o acesso é barrado sem autenticar e sem abrir o sistema. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>resposta + texto da tela; ausência de sessão (a tela do sistema não abre).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-03"></div>
+    </div>
+  </div>
+  <div class="group-header alt">B — Isolamento entre contas e abrangência definida no card</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-04</span><span class="ct-title">Conta barrada não bloqueia os outros usuários: logo depois do bloqueio, outra conta recebe o erro normal e um login válido entra</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Contas TESTE5991B1 (a bloquear) e TESTE5991B2. Usuário válido do QA para a FAIRFAX (credencial fora deste documento). Executar dentro da janela do bloqueio.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Fazer tentativas seguidas com senha incorreta na conta <code>TESTE5991B1</code> até ser barrado (confirmar o bloqueio) (preencher os campos e clicar no botão de entrada); após cada uma ler o texto da tela e a resposta por script e anotar o horário.</li><li>Imediatamente, no mesmo navegador: 1 tentativa com senha incorreta na conta <code>TESTE5991B2</code>; ler texto e resposta.</li><li>Em seguida, login com o usuário válido do QA e a senha correta; ler o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conta B1 é barrada; a tentativa da conta B2 responde o erro normal de login (não o bloqueio); o login válido do QA entra normalmente. O bloqueio não é coletivo para o tenant, a menos que o card defina abrangência diferente (CT-5991-05). Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + resposta de cada tentativa; tela do sistema após o login válido (menu principal).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-04"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-05</span><span class="ct-title">Abrangência do bloqueio conforme o definido pelo desenvolvedor no card (por conta e/ou conjunto de tentativas)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Contas do guia privado. Execução conforme a abrangência declarada pelo desenvolvedor no card; sem declaração, vale a regra padrão do CT-5991-04.</li></ul>
+      <h4>Passos</h4><ol><li>Executar as variações de abrangência do guia privado (derivadas do que o desenvolvedor descrever no card) e ler a resposta de cada tentativa, em ordem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O comportamento observado corresponde exatamente ao descrito pelo desenvolvedor no card; divergência é registrada como defeito do card. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>resposta + texto da tela de cada tentativa, em ordem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-05"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Demais telas de autenticação previstas no card</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-06</span><span class="ct-title">Demais telas de autenticação do tenant previstas no card (ex.: troca de senha): com a conta já barrada, seguem a mesma regra</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste da QA criada para este card (credencial fora deste documento). Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Executar dentro da janela do bloqueio. Se o desenvolvedor declarar que só o login foi protegido, o CT fica N/A com a declaração como oráculo.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Fazer tentativas seguidas com senha incorreta na conta <code>de teste</code> até ser barrado (confirmar o bloqueio) (preencher os campos e clicar no botão de entrada); após cada uma ler o texto da tela e a resposta por script e anotar o horário.</li><li>Abrir a outra tela de autenticação pelo caminho que a tela de login oferece (registrar o caminho exato na evidência) e submeter dados de teste conforme o guia privado.</li><li>Ler o texto da tela e a resposta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela responde o bloqueio definido no card e mostra o aviso, ou o card declara expressamente que ela está fora do escopo. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>texto da tela + resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-06"></div>
+    </div>
+  </div>
+  <div class="group-header alt">D — Fim do bloqueio e login legítimo</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-07</span><span class="ct-title">Passado o período de bloqueio definido no card, a conta barrada volta ao normal: a tentativa seguinte responde o erro normal de login</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Reusar a conta TESTE5991A2 do CT-5991-02 (se a janela já tiver expirado, refazer o bloqueio) — sem nenhuma tentativa nela durante a espera.</li></ul>
+      <h4>Passos</h4><ol><li>Anotar o horário do bloqueio do CT-5991-02; aguardar o período definido no card (mais uma margem) <b>sem fazer nenhuma tentativa</b> na conta.</li><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Fazer 1 tentativa com senha incorreta na conta <code>TESTE5991A2</code>; ler texto e resposta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tentativa depois do período responde o erro normal de login (não o bloqueio): o bloqueio é temporário. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>resposta + texto da tela; intervalo medido entre o bloqueio e a tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-07"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-08</span><span class="ct-title">Conta real de teste: passado o período, a senha correta entra normalmente</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta real dedicada do CT-5991-03, bloqueada naquele CT. Sem nenhuma tentativa durante a espera.</li></ul>
+      <h4>Passos</h4><ol><li>Aguardar o período definido no card após o bloqueio do CT-5991-03.</li><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Login com a <b>senha correta</b>; aguardar o menu principal.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O login com a senha correta entra normalmente no menu principal: o bloqueio não deixa a conta inutilizada. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela do menu principal após o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-08"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-09</span><span class="ct-title">Regressão: login válido na FAIRFAX, dentro do uso normal, entra e carrega o menu principal</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Usuário válido do QA para a FAIRFAX (credencial fora deste documento). Sem tentativas erradas prévias nessa conta.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Preencher os dados corretos e entrar; aguardar o menu principal e abrir uma tela de Operações pelo menu.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Login entra normalmente, sem aviso de limite, e o menu principal e a tela de Operações carregam. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (menu principal e tela de Operações).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-09"></div>
+    </div>
+  </div>
+  <div class="group-header">E — Concorrência</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-10</span><span class="ct-title">Tentativas concorrentes para a mesma conta: o limite do card não é ultrapassado e não há erro de servidor</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Conta TESTE5991E1. Execução por ferramenta de requisições do QA (script do repositório privado), não por tela.</li></ul>
+      <h4>Passos</h4><ol><li>Disparar tentativas de login incorretas em paralelo para a conta <code>TESTE5991E1</code>, na quantidade do guia privado.</li><li>Contar as respostas por tipo: erro normal × bloqueio × erro de servidor.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A quantidade de respostas de erro normal não passa do limite do card; as demais são bloqueio; nenhuma resposta de erro de servidor. Evidência: tabela de contagem por resposta e horários; uma captura da tela de aviso.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>contagem por tipo de resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-10"></div>
+    </div>
+  </div>
+  <div class="group-header alt">F — Registro em log do bloqueio</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-11</span><span class="ct-title">O bloqueio fica registrado no log central do HML, sem a senha digitada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Após o CT-5991-02 (horário do bloqueio anotado). Acesso de leitura ao log central do HML (credencial fora deste documento). Se o log deste tenant não estiver disponível no sistema de logs, o CT fica sem veredito por falta de oráculo (medir e registrar) e é tratado com o desenvolvedor.</li></ul>
+      <h4>Passos</h4><ol><li>No sistema de logs do HML, filtrar o período do bloqueio do CT-5991-02 e o aplicativo do CITNET da FAIRFAX.</li><li>Localizar o registro do bloqueio; ler operação e horário; procurar a senha digitada na mensagem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Existe registro do bloqueio no horário da tentativa barrada, identificando a operação, e <b>não contém</b> a senha digitada. Evidência: captura do registro (dados sensíveis mascarados).</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>registro no log central (conteúdo e horário).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-11"></div>
+    </div>
+  </div>
+  <div class="group-header">G — Outra seguradora: login normal (regressão)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-12</span><span class="ct-title">Controle em outra seguradora do HML: login e erro normal de senha seguem como antes, conforme o escopo declarado pelo desenvolvedor</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Login do CITNET de outra seguradora do HML (a mesma usada como controle no #9238; único endereço digitado). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Conta TESTE5991X1. Oráculo: o escopo declarado pelo desenvolvedor no card (correção só da FAIRFAX × componente compartilhado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da outra seguradora no HML.</li><li>Fazer 1 tentativa com senha incorreta em <code>TESTE5991X1</code> e depois um login válido do QA; ler texto e resposta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Erro normal de login na tentativa errada e login válido entra normalmente — o ajuste não quebrou o login de outra seguradora; se o card declarar componente compartilhado, a regra de bloqueio vale também ali. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-12"></div>
+    </div>
+  </div>
+  <div class="group-header">I — Recomendações complementares do card (EXECUTAR SE o desenvolvedor as adotar)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-13</span><span class="ct-title">EXECUTAR SE o desenvolvedor adotar regra de complexidade de senha — senha fraca é recusada e senha que cumpre a regra é aceita</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). A regra é a descrita pelo desenvolvedor no card (a recomendação do card cita tamanho mínimo, maiúscula, minúscula, número e caractere especial). Conta de teste da QA (credencial fora deste documento). Se o card declarar que esta parte não foi adotada, o CT é N/A com a declaração como oráculo.</li></ul>
+      <h4>Passos</h4><ol><li>Pelo caminho de troca de senha que a tela oferece, tentar definir senhas que violam cada item da regra, uma por vez; ler a mensagem exata.</li><li>Definir uma senha que cumpre a regra; confirmar o resultado e voltar a entrar com ela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada senha que viola a regra é recusada com mensagem clara (texto exato lido na tela) e nada é gravado; a senha que cumpre a regra é aceita e permite novo login. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>texto da tela por tentativa + novo login com a senha aceita.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-13"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-14</span><span class="ct-title">EXECUTAR SE o desenvolvedor adotar verificação anti-automação: o login só prossegue após a verificação e falha sem ela</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conforme o mecanismo descrito pelo desenvolvedor no card. Se o card declarar que esta parte não foi adotada, o CT é N/A com a declaração como oráculo. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Tentar entrar com credenciais corretas sem cumprir a verificação; ler texto e resposta.</li><li>Repetir cumprindo a verificação; ler o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem cumprir a verificação, o login não prossegue e a tela informa; cumprindo, o login com credenciais corretas entra normalmente. Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>texto da tela + resposta + menu principal após o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-14"></div>
+    </div>
+  </div>
+  <div class="group-header alt">H — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5991-15</span><span class="ct-title">Exploratório (15–30 min) guiado por risco sobre o bloqueio, conforme o roteiro do guia privado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação ou Em homologação; sem isso, não há execução). Conta de teste inexistente exclusiva deste card (nome iniciado por «TESTE5991», uma por CT); nenhuma conta real recebe tentativa errada. Valores concretos (limite, janela, ordem das tentativas, contas e variações) no <b>guia privado de execução</b>, anexado ao card #5991 (nunca neste documento público). Contas de teste do guia privado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do CITNET da FAIRFAX no HML (único endereço digitado); preencher os campos de autenticação e usar o botão de entrada.</li><li>Executar o roteiro exploratório do guia privado, registrando texto e resposta de cada tentativa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nada contorna o bloqueio; as respostas seguem o padrão dos grupos A e D. Qualquer contorno é achado a classificar (do card × pré-existente, A9) e tratado pelo canal do card — não neste documento. Sem ocorrências → «Exploratório executado. Sem ocorrências.» Evidência no bloco do CT e anexada ao card: capturas desde o login (3 telas), de cada resposta e do aviso; texto da tela e resposta lidos por script; horário de cada tentativa.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela + resposta de cada tentativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução assim que o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5991-15"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Recomendação 1 do card — bloquear por usuário ou origem após tentativas inválidas, por um tempo (limite e tempo definidos pelo desenvolvedor — DEC-2)</td><td>CT-5991-01, CT-5991-02, CT-5991-03, CT-5991-05, CT-5991-07, CT-5991-08, CT-5991-10</td><td>Pendente</td></tr><tr><td>Uso legítimo preservado (implícito: sem atrapalhar quem acerta a senha)</td><td>CT-5991-04, CT-5991-08, CT-5991-09, CT-5991-12</td><td>Pendente</td></tr><tr><td>Demais telas de autenticação do tenant</td><td>CT-5991-06</td><td>Pendente</td></tr><tr><td>Registro do bloqueio em log</td><td>CT-5991-11</td><td>Pendente</td></tr><tr><td>Recomendação 2 do card — complexidade de senha (condicional: só se adotada — DEC-1)</td><td>CT-5991-13</td><td>Pendente</td></tr><tr><td>Recomendação 3 do card — verificação anti-automação (condicional: só se adotada — DEC-1)</td><td>CT-5991-14</td><td>Pendente</td></tr><tr><td>Variações e contorno</td><td>CT-5991-15</td><td>Pendente</td></tr><tr><td>Encerramento do achado do teste de segurança externo</td><td>— sem CT: feito pela equipe de segurança na origem, depois da entrega (processo)</td><td>N/A</td></tr><tr><td>DoD de engenharia (testes unitários, Quality Gate, aprovadores no PR)</td><td>— sem CT: enforçado por branch policy e DoD do dev; a evidência em HML vem dos CTs</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas ficam no <b>painel do topo</b>. Todas as recomendações de produto do card têm CT; processo/DoD não gera CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O build do HML não ter a correção (o dev validou só localmente)</td><td>Média</td><td>Alto</td><td>Antes do CT-5991-01, medir se o bloqueio atua com uma conta de teste; sem bloqueio nenhum com o card em homologação, é REPROVADO (a QA testa o que está no HML).</td></tr><tr><td>Reinício do servidor durante o CT</td><td>Baixa</td><td>Médio</td><td>Cada CT usa conta própria; reinício no meio → repetir o CT e registrar.</td></tr><tr><td>Uso do mesmo ambiente por outros usuários alterar a leitura</td><td>Baixa</td><td>Baixo</td><td>Contas TESTE5991* exclusivas.</td></tr><tr><td>Bloqueio da conta real dedicada atrapalhar outros CTs</td><td>Média</td><td>Baixo</td><td>Conta dedicada do QA; se ficar barrada além do previsto, resolver pela tela de Segurança e registrar.</td></tr><tr><td>Limite de requisições de borda (rate limit do ambiente) confundir a leitura do bloqueio da aplicação</td><td>Média</td><td>Médio</td><td>Registrar resposta e tela de cada tentativa; se a resposta vier de camada anterior à aplicação, anotar a camada no CT sem inventar causa.</td></tr><tr><td>Log do tenant não estar no sistema de logs do HML</td><td>Média</td><td>Baixo</td><td>CT-5991-11 fica sem veredito por falta de oráculo; tratar com o dev.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug — sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
