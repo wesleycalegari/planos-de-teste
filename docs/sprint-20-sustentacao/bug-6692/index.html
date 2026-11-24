@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-6692 · VULNERABILIDADE (alerta externo) - CITNET Allianz: bibliotecas JavaScript com falhas conhecidas + proteções do mesmo endereço (tasks filhas)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-6692 · Sprint 20 Sustentação</span>
+    <h1>VULNERABILIDADE (alerta externo) - CITNET Allianz: bibliotecas JavaScript com falhas conhecidas + proteções do mesmo endereço (tasks filhas)</h1>
+    <div class="sub">CITNET (legado) — tenant Allianz · bibliotecas JavaScript e proteções do endereço · vulnerabilidade (alerta externo) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado; nenhum CT executado (o card ainda está em Pronto para desenvolvimento)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">12</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">12</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/7/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 12 executados · 12 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>12 CTs</strong> (4×P1 · 7×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 12, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 12}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Uma ferramenta externa de segurança, a pedido da Allianz, apontou que as telas do CITNET usam bibliotecas de programação (JavaScript) com falhas de segurança já conhecidas. O card pede atualizar essas bibliotecas ou retirá-las. Ligadas ao card há ainda três tarefas do mesmo alerta: proteções nos cabeçalhos das páginas, cookie de sessão e página de erro sem detalhes técnicos.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 12 situações no CITNET da Allianz em homologação: (1) conferir se ainda existe alguma biblioteca com falha conhecida, na tela de login e nas telas de cada módulo; (2) conferir que o uso normal não quebrou — login, menus, consultas com tabela e exportação, relatório de fatura em tela, calendário e janelas de aviso, aparência das telas; (3) conferir as três proteções das tarefas ligadas ao card.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» (a correção ainda não foi entregue). O plano fica publicado e a execução começa quando o card chegar em homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Para quem usa o sistema no dia a dia nada deve mudar: mesmas telas e mesmos botões. A atualização é invisível; o risco é ela quebrar algo (tabela, calendário, janela), por isso testamos o uso normal.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Sustentação: sem aprovação de Produtos). Para ciência: o novo exame da ferramenta externa e o comunicado às demais seguradoras ficam fora do teste da QA.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET (legado) — tenant <b>Allianz</b>: tela de login e telas dos módulos Averbações, Relatórios (Consulta e Fatura Mensal), Conversor e Operações.</td></tr><tr><th>Card</th><td>BUG-6692 — «VULNERABILIDADE · alerta externo de segurança (bibliotecas JavaScript com vulnerabilidades conhecidas)» · board <b>Sustentação</b> · estado <b>Pronto para desenvolvimento</b> (sem responsável) · tags ALLIANZ; Citnet; vulnerabilidade · 6 tasks filhas (3 achados do mesmo endereço com orientação de correção, 1 resumo do chamado e 2 containers/e-mail de solicitação).</td></tr><tr><th>Fluxo</th><td>Bug no board da Sustentação: <b>sem aprovação de Produtos</b>; o plano sai com a marcação de execução pronta e a execução começa com o card em homologação · APROVADO com revisão independente sem apontamento grave → conclusão e envio ao staging · REPROVADO → defeito filho para o desenvolvedor · achado já existente antes do card → novo item na Sustentação, sem reprovar este card.</td></tr><tr><th>Ambiente</th><td>Homologação da Allianz (CITNET legado); versão lida no rodapé no início da execução e registrada no resultado do primeiro CT.</td></tr><tr><th>Autor QA / versão</th><td>Wesley Moreira · plano versão 1.0 (24/11/2026) · evidência por CT: anexo no card (nunca neste documento, por ser um bug de segurança).</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O alerta externo informa que <b>uma ou mais bibliotecas JavaScript carregadas pelas páginas têm vulnerabilidade conhecida</b> (categoria: componentes com vulnerabilidades conhecidas; OWASP A06:2021; CWE-1104). A orientação do alerta é <b>atualizar as bibliotecas afetadas para versões sem vulnerabilidade conhecida, ou remover a dependência</b>.</p><p>O card não traz critério de aceite numerado nem lista as bibliotecas; o QA derivou o critério do próprio alerta e do que o alerta mede (ver tabela e DoR). As tasks filhas trazem três outros achados do mesmo endereço, com a correção proposta pelo time (ajuste de configuração do servidor) — entram como grupo C.</p><table><tr><th>Critério</th><th>Origem</th><th>Onde a QA lê o resultado</th></tr><tr><td>CA-1</td><td>Alerta do card: nenhuma biblioteca carregada pelas páginas com vulnerabilidade conhecida</td><td>Lista de bibliotecas e versões (lidas na tela e no arquivo) + relatório da ferramenta de varredura de bibliotecas, na tela de login e em cada módulo</td></tr><tr><td>CA-2</td><td>Recomendação do alerta: atualizar ou remover — sem trocar por versão mais antiga</td><td>Comparação com o baseline anterior ao ajuste (guardado na task do plano)</td></tr><tr><td>CA-3</td><td>Implícito: a atualização não pode quebrar o uso normal</td><td>Telas, tabelas, exportações, relatório, calendário, janelas e erros de script no console</td></tr><tr><td>CA-4</td><td>Task filha dos cabeçalhos de proteção</td><td>Cabeçalhos da resposta das páginas</td></tr><tr><td>CA-5</td><td>Task filha do cookie de sessão</td><td>Atributos do cookie na resposta do login</td></tr><tr><td>CA-6</td><td>Tasks filhas da página de erro (duas, mesmo tema)</td><td>Corpo da resposta a um erro de aplicação</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido com inferência documentada em 24/11/2026:</b> tags da seguradora (Allianz) e do sistema (Citnet) ✓ · Bug com contexto (alerta externo), cenário atual (biblioteca com falha conhecida) e cenário desejado (atualizar ou remover a dependência) ✓ · critério de aceite: o card não traz CA numerado, mas o alerta define o oráculo — «nenhuma biblioteca carregada com vulnerabilidade conhecida» — mensurável por varredura e pela versão lida na tela, com controle positivo ✓ · ramo: não se aplica (correção transversal; telas exercitadas com o ramo 54, RCTR-C). <b>Não é débito técnico:</b> a atualização tem resultado observável por quem mede de fora (a ferramenta do alerta) e risco funcional de regressão nas telas.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card deve estar em <b>Pronto para homologação</b> (ou Em homologação) com a atualização publicada no HML da Allianz. Em 24/11/2026 está em Pronto para desenvolvimento e sem responsável: o plano fica publicado e a execução começa quando o card chegar em homologação, sem nova ação de ninguém. No início da execução a QA confirma, no CT-VUL-001, que o ajuste está no ar.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>D1</b></td><td><b>Escopo do card</b></td><td>O título trata das bibliotecas JavaScript; as tasks filhas trazem outros três achados do mesmo endereço com a correção proposta. Inferência: entram como grupo C, executados só se a task filha correspondente não estiver em To Do; os não entregues ficam pendentes com o motivo e não reprovam as bibliotecas.</td></tr><tr><td><b>D2</b></td><td><b>Oráculo da biblioteca</b></td><td>O card não lista as bibliotecas. O que o alerta mede é a versão de cada biblioteca contra a base de vulnerabilidades conhecidas — a QA usa a versão lida na tela e no arquivo + a varredura, nunca o nome do arquivo.</td></tr><tr><td><b>D3</b></td><td><b>Biblioteca sem correção publicada</b></td><td>Se restar achado para o qual não existe versão corrigida, vale a recomendação do alerta (remover a dependência): o CT reprova e o desenvolvimento decide remover ou justificar no card.</td></tr><tr><td><b>D4</b></td><td><b>Não é débito técnico</b></td><td>Atualização de biblioteca costuma ser débito técnico, mas aqui nasce de alerta externo com resultado mensurável por quem está fora e risco de regressão visível ao usuário — a QA atua.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Bibliotecas JavaScript carregadas pela tela de login e pelas telas dos módulos Averbações, Relatórios, Conversor e Operações da Allianz (CA-1, CA-2).</li><li>Regressão do uso normal após a atualização: login, menus, grade com exportação, relatório em tela, formulários e janelas, aparência (CA-3).</li><li>Achados das tasks filhas do mesmo endereço: cabeçalhos de proteção, cookie de sessão, página de erro e cache das páginas autenticadas (CA-4 a CA-6).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li>Novo exame da ferramenta externa (Bitsight) e comunicado às demais seguradoras — processo/equipes fora da QA.</li><li>Produção, staging e demais tenants (CITNET de outras seguradoras compartilham o código, mas o card trata a Allianz).</li><li>Bibliotecas do CITNET Novo e do CITWEB; critérios de processo/DoD (Sonar, PR, RELEASE).</li><li>Tasks filhas apenas documentais (resumo do chamado, container e e-mail de solicitação): sem CT.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 24/11/2026, antes de publicar (somente leitura, nada foi gravado):</b> a tela de login do CITNET da Allianz carrega cinco pacotes de script (compatibilidade com navegadores antigos, núcleo, plugins, interface e detecção de recursos). O baseline com nomes e versões fica <b>só na task do plano</b> (bug de segurança). Menu lido: Averbações (RCTR-C, Transporte Nacional, Aut. Fat P. Mínimo, Importação-Provisória, Importação-Definitiva, Exportação, RCTR-VI-C), Relatórios (Consulta e Fatura Mensal, Nacional e Internacional), Conversor, Operações. A tela de login exige a escolha da <b>Filial</b>. Usuário e senha de QA do tenant: confirmar no dia da execução (falta de acesso é massa — a QA cria ou ajusta e segue).</div>
+  <ul><li><b>Ambiente</b> — CITNET da Allianz em homologação, com o card em homologação e a atualização no ar (confirmada no CT-VUL-001).</li><li><b>Perfil</b> — Usuário interno de QA do tenant Allianz. Falta de usuário ou senha é massa: a QA cria ou ajusta e segue.</li><li><b>Ferramenta de varredura</b> — Ferramenta de varredura de bibliotecas JavaScript (retire.js ou equivalente) com a base de vulnerabilidades atualizada no dia — registrar a data da base no resultado de cada CT.</li><li><b>Baseline</b> — Arquivos e lista de versões de 24/11/2026 (antes do ajuste), guardados na task do plano: servem de controle positivo da varredura e de comparação do CA-2.</li><li><b>Navegador</b> — Janela sem cache em cada leitura (o ambiente fica atrás de uma camada de cache de borda: conferir a versão pelo conteúdo do arquivo, nunca só pelo nome).</li><li><b>Evidência</b> — Anexo por CT no card: captura da tela (login até o fim do cenário) e arquivo com a lista/relatório; nada de dado real.</li></ul>
+  <h3>Navegação base e oráculos (NA a ND e O1 a O5)</h3>
+  <ol><li><b>NA — Entrada:</b> abrir a tela de login do CITNET da Allianz em homologação (única URL digitada) → combo <b>Filial</b> → usuário e senha do perfil de QA → <b>Acessar</b>. Daqui em diante só clique.</li><li><b>NB — Menus:</b> topo da tela: <b>Averbações</b> (RCTR-C · Transporte Nacional · Aut.Fat P.Mínimo · Importação-Provisória · Importação-Definitiva · Exportação · RCTR-VI-C), <b>Relatórios</b> (Consulta e Fatura Mensal, nacional e internacional), <b>Conversor</b>, <b>Operações</b>, <b>Alterar Senha</b>, <b>Sair</b>.</li><li><b>NC — Consulta de averbações:</b> Relatórios → <b>Consulta</b> (nacional) → filtros (filial, apólice, período) → consultar → grade de resultados.</li><li><b>ND — Fatura Mensal:</b> Relatórios → <b>Fatura Mensal</b> (nacional) → ramo, apólice, subgrupo, mês/ano → <b>Consultar</b> → relatório em tela com barra de páginas e menu de exportação; sem mês/ano, a janela de aviso «ATENÇÃO!» com «Informe o Mês/Ano» (texto medido no CITNET legado em 09/11/2026; reconferir na Allianz).</li><li><b>O1 — Lista de bibliotecas e versões</b> (versão lida na tela e no cabeçalho do arquivo) · <b>O2 — Relatório da ferramenta de varredura</b> · <b>O3 — Tela</b> (texto exato) · <b>O4 — Cabeçalhos e cookie da resposta</b> (arquivo anexado) · <b>O5 — Console do navegador</b> (erros de script).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólice / filial / competência:</b> ramo 54 (RCTR-C), filial 9081, apólice 2026540003932, competência 10/2026 — usadas na Allianz em 16/11/2026 (#9490); reconfirmar no dia na tela de consulta</li><li><b>Baseline:</b> lista de bibliotecas, versões e arquivos de 24/11/2026 (task do plano)</li><li><b>Limite de acesso:</b> pausas de pelo menos 4 s entre logins; sem repetir login com senha errada (o ambiente pode bloquear)</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>CT-VUL-001 primeiro (confirma que o ajuste está no ar e valida a varredura com controle positivo) e CT-VUL-004 (controle positivo funcional: o sistema abre).</li><li>Bibliotecas: CT-VUL-002 e CT-VUL-003.</li><li>Regressão funcional: CT-VUL-005, 006, 007 e 008.</li><li>Tasks filhas (grupo C): CT-VUL-009 a 012, cada um só se a task correspondente não estiver em To Do no dia.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Nenhuma biblioteca JavaScript com vulnerabilidade conhecida (alerta do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-001</span><span class="ct-title">Tela de login: nenhuma biblioteca JavaScript carregada tem vulnerabilidade conhecida (com controle positivo da varredura)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação com a atualização no ar; baseline de 24/11/2026 disponível; ferramenta de varredura pronta.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (única URL digitada), <b>sem</b> entrar, em janela sem cache.</li><li>Pelo script de QA (janela sem cache), listar os arquivos de script carregados pela tela e ler a versão que cada biblioteca informa sobre si (objeto da biblioteca no navegador e cabeçalho do arquivo); gravar a lista (biblioteca, versão, origem do dado) em arquivo.</li><li>Rodar a ferramenta de varredura de bibliotecas sobre a mesma tela (registrar a data da base de vulnerabilidades) e gravar o relatório.</li><li>Controle positivo: rodar a mesma ferramenta sobre o baseline de 24/11/2026 (arquivos guardados antes do ajuste) e confirmar que ela acusa pelo menos 1 achado — prova que a ferramenta enxerga.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Relatório da tela de login <b>sem nenhum achado</b>, com todas as bibliotecas identificadas por nome e versão; o controle positivo acusa achado no baseline. Biblioteca que continua com achado = REPROVADO (a recomendação do alerta é atualizar ou remover). Biblioteca sem versão identificável: registrar e julgar pelo conteúdo do arquivo, nunca pelo nome.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-002</span><span class="ct-title">Telas dos módulos: a varredura também não acusa achado em cada tela interna</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-VUL-001 aprovado; usuário de QA com acesso aos módulos.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (homologação), escolher a <b>Filial</b>, informar usuário e senha do perfil de QA e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Averbações</b> → <b>RCTR-C</b>; depois <b>Relatórios</b> → <b>Consulta</b> (nacional); <b>Relatórios</b> → <b>Fatura Mensal</b> (nacional); <b>Conversor</b>; <b>Operações</b>. Em cada tela, aguardar o carregamento completo.</li><li>Em cada uma das 5 telas, repetir a leitura da lista de bibliotecas (O1) e a varredura (O2), gravando um arquivo por tela.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 5 telas sem achado; nenhuma tela carrega biblioteca que a tela de login não carrega com versão diferente (nenhuma versão antiga escondida em tela específica). Qualquer achado em qualquer tela = REPROVADO, informando a tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-003</span><span class="ct-title">Nenhuma biblioteca foi trocada por versão mais antiga nem aparece duplicada com versões diferentes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-2</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-VUL-001 e CT-VUL-002 aprovados; baseline de 24/11/2026.</li></ul>
+      <h4>Passos</h4><ol><li>Comparar, biblioteca a biblioteca, a lista do CT-VUL-001/002 com o baseline de 24/11/2026.</li><li>Em cada tela, procurar a mesma biblioteca carregada duas vezes com versões diferentes (conflito).</li><li>Registrar o resultado por biblioteca: <i>mantida · atualizada · removida · nova</i>.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Toda biblioteca do baseline está <i>mantida, atualizada ou removida</i> (nenhuma com versão menor que a do baseline); nenhuma duplicata com versões diferentes na mesma tela. Versão menor ou duplicata = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Regressão: o uso normal não quebrou com a atualização</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-004</span><span class="ct-title">Login e navegação: entra, abre cada menu e volta, sem erro de script (controle positivo funcional)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário de QA do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login, escolher a Filial, informar usuário e senha e clicar em <b>Acessar</b> (registrar a versão do rodapé).</li><li>Clicar, um a um, em: <b>Averbações</b> (cada item da lista), <b>Relatórios</b> (Consulta e Fatura Mensal, nacional e internacional), <b>Conversor</b> e <b>Operações</b>; em cada tela anotar o título e aguardar o carregamento.</li><li>Em cada tela, ler o console do navegador e anotar erros de script (função inexistente, indefinido, arquivo de script não carregado).</li><li>Clicar em <b>Sair</b> e confirmar o retorno ao login.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Login entra; todos os menus abrem a tela certa; os submenus abrem ao clicar; <b>0 erros de script</b> no console em todas as telas; «Sair» volta ao login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-005</span><span class="ct-title">Consulta de averbações: grade ordena, pesquisa, pagina e exporta como antes</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-VUL-004 aprovado; filial, apólice e período com averbações (massa da seção 4).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (homologação), escolher a <b>Filial</b>, informar usuário e senha do perfil de QA e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Relatórios</b> → <b>Consulta</b> (nacional); informar filial, apólice e período e consultar.</li><li>Na grade: clicar no título de uma coluna (ordena), usar o campo de pesquisa, trocar a página e a quantidade de linhas por página (se a tela oferecer).</li><li>Se a tela oferecer botões de exportação, clicar em exportar para Excel e abrir o arquivo salvo; contar as linhas e conferir 3 valores com a grade.</li><li>Ler o console e anotar erros de script.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade carrega as averbações, ordena, pesquisa e pagina sem erro; o arquivo exportado abre e tem a mesma quantidade de linhas da grade, com os valores iguais; 0 erros de script. Exportação que não gera arquivo ou gera vazio = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-006</span><span class="ct-title">Formulários: calendário, máscaras de campo e janela de aviso funcionam</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-VUL-004 aprovado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (homologação), escolher a <b>Filial</b>, informar usuário e senha do perfil de QA e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Relatórios</b> → <b>Consulta</b> (nacional); clicar no campo de data e confirmar que o calendário abre; escolher uma data e conferir o preenchimento.</li><li>Digitar um valor nos campos com máscara (data e valor) e conferir a formatação.</li><li>Clicar em <b>Relatórios</b> → <b>Fatura Mensal</b> (nacional) e clicar em <b>Consultar</b> sem informar o mês/ano.</li><li>Ler a janela de aviso (texto exato) e clicar em <b>Fechar</b>.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Calendário abre e preenche; máscaras formatam; ao consultar sem mês/ano aparece a janela de aviso «ATENÇÃO!» com «Informe o Mês/Ano» (texto do legado; registrar o texto exato visto na Allianz) e o botão «Fechar» a fecha; a tela segue utilizável.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-007</span><span class="ct-title">Fatura Mensal em tela: o relatório aparece, pagina e exporta</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-VUL-004 aprovado; apólice, subgrupo e mês/ano com movimento (massa da seção 4).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (homologação), escolher a <b>Filial</b>, informar usuário e senha do perfil de QA e clicar em <b>Acessar</b>.</li><li>Clicar em <b>Relatórios</b> → <b>Fatura Mensal</b> (nacional); escolher ramo, apólice, subgrupo, informar mês/ano e o tipo de relatório e clicar em <b>Consultar</b>.</li><li>Com o relatório em tela, usar as setas de página (primeira, anterior, seguinte, última) e abrir o menu <b>Exportar</b>.</li><li>Exportar uma vez e abrir o arquivo salvo.</li><li>Ler o console e anotar erros de script.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O relatório aparece no visualizador, as setas de página funcionam, o menu Exportar abre e o arquivo exportado abre com o conteúdo do relatório; 0 erros de script.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-008</span><span class="ct-title">Aparência: login, menu e telas sem quebra de layout nem ícones ausentes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão visual — CA-3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Baseline de capturas de 24/11/2026 (task do plano).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da Allianz (homologação), escolher a <b>Filial</b>, informar usuário e senha do perfil de QA e clicar em <b>Acessar</b>.</li><li>Capturar a tela de login, a tela inicial e as telas Consulta e Fatura Mensal, na mesma resolução do baseline.</li><li>Comparar visualmente com o baseline: menu alinhado, botões, campos, rodapé, ícones.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem sobreposição, campos deslocados, menu quebrado ou ícone ausente (quadrado vazio); diferenças de pixel sem efeito de uso são aceitas e registradas. Quebra visível = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Tasks filhas do mesmo endereço (executar só a que não estiver em To Do)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-009</span><span class="ct-title">Cabeçalhos de proteção presentes na resposta das páginas (task filha dos cabeçalhos)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-4</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Task filha dos cabeçalhos fora de To Do no dia; senão o CT fica pendente com o motivo.</li></ul>
+      <h4>Passos</h4><ol><li>Pelo script de QA, fazer o pedido da tela de login e de uma página interna (com a sessão do CT-VUL-004) e gravar os cabeçalhos da resposta em arquivo.</li><li>Controle positivo: confirmar na mesma resposta status 200 e tipo de conteúdo (prova que a leitura funciona).</li><li>Conferir a presença e o valor de: proteção contra interpretação de tipo (nosniff), proteção contra moldura (mesma origem), transporte seguro estrito (validade de 1 ano ou mais, com subdomínios), política de referência e política de segurança de conteúdo.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os cabeçalhos presentes na tela de login e na página interna, com valor igual ou mais restritivo que o recomendado na task filha. Cabeçalho ausente ou mais fraco = REPROVADO, citando o cabeçalho.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-010</span><span class="ct-title">Cookie de sessão com os atributos Secure e HttpOnly (task filha do cookie)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-5</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Task filha do cookie fora de To Do no dia; senão pendente com o motivo.</li></ul>
+      <h4>Passos</h4><ol><li>Pelo script de QA, fazer o pedido da tela de login e gravar os cabeçalhos de cookie da resposta (somente nome e atributos; <b>nunca o valor</b>).</li><li>Repetir após o login (resposta de uma página interna).</li><li>Controle positivo: a resposta traz pelo menos 1 cookie (a leitura enxerga).</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O cookie de sessão traz <b>Secure</b> e <b>HttpOnly</b> (e SameSite definido) antes e depois do login. Cookie de sessão sem Secure = REPROVADO. Valor do cookie nunca em anexo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-011</span><span class="ct-title">Erro de aplicação não mostra detalhe técnico (task filha da página de erro)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-6</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tasks filhas da página de erro fora de To Do no dia; senão pendente com o motivo.</li></ul>
+      <h4>Passos</h4><ol><li>Logado (CT-VUL-004), pedir pelo script de QA, com a sessão ativa, uma página de aplicação que não existe no sistema e gravar status e corpo da resposta.</li><li>Controle positivo: pedir uma página existente (tela de consulta) e confirmar status 200.</li><li>Procurar no corpo da resposta de erro: pilha de chamadas, caminho de arquivos do servidor, trecho de código-fonte, versão da plataforma.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Resposta de erro genérica (página amigável ou mensagem curta), sem pilha de chamadas, sem caminho do servidor, sem código-fonte e sem versão da plataforma. Qualquer detalhe técnico = REPROVADO. (Exceção à navegação por clique, declarada: o objeto do teste é a resposta a um endereço inexistente.)</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-VUL-012</span><span class="ct-title">Cache das páginas autenticadas: o navegador não guarda a página</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-4 (cache)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Task filha dos cabeçalhos fora de To Do no dia; senão pendente com o motivo.</li></ul>
+      <h4>Passos</h4><ol><li>Com a sessão do CT-VUL-004, ler pelo script de QA o cabeçalho de controle de cache da resposta de uma página interna e da tela de login.</li><li>Controle positivo: o cabeçalho aparece nas duas respostas.</li><li>Anexar ao card a captura da tela (do login ao fim do cenário) e o arquivo com a lista/relatório; nada de dado real.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Controle de cache com diretivas que impedem o armazenamento (sem guardar e revalidar sempre) nas páginas autenticadas. Somente «private», sem as diretivas, = REPROVADO (P3).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa quando o card estiver em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-VUL-012"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-1 — nenhuma biblioteca com vulnerabilidade conhecida (alerta do card)</td><td>CT-VUL-001, CT-VUL-002</td><td>Pendente</td></tr><tr><td>CA-2 — atualizar ou remover, sem trocar por versão mais antiga</td><td>CT-VUL-003</td><td>Pendente</td></tr><tr><td>CA-3 — o uso normal não quebra (login, menus, grade, exportação, relatório, formulários, aparência)</td><td>CT-VUL-004, CT-VUL-005, CT-VUL-006, CT-VUL-007, CT-VUL-008</td><td>Pendente</td></tr><tr><td>CA-4 — task filha: cabeçalhos de proteção (e cache)</td><td>CT-VUL-009, CT-VUL-012</td><td>Pendente</td></tr><tr><td>CA-5 — task filha: cookie de sessão</td><td>CT-VUL-010</td><td>Pendente</td></tr><tr><td>CA-6 — tasks filhas: página de erro sem detalhe técnico</td><td>CT-VUL-011</td><td>Pendente</td></tr><tr><td>Tasks filhas documentais (resumo do chamado, container, e-mail de solicitação)</td><td>— sem CT (informativas)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os grupos A e B decidem o veredito do card; o grupo C só entra no veredito quando a task filha correspondente foi entregue. Itens de processo/DoD do desenvolvimento não viram CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>A atualização de biblioteca de interface quebra tabela, calendário, janela ou layout</td><td>Média</td><td>Alto</td><td>Grupo B (CT-VUL-004 a 008) com controle positivo funcional e captura de console</td></tr><tr><td>Varredura sem controle positivo: «nenhum achado» não prova que a ferramenta enxerga</td><td>Média</td><td>Alto</td><td>Controle positivo no CT-VUL-001 (a ferramenta acusa o baseline) e base de vulnerabilidades com data registrada</td></tr><tr><td>Camada de cache de borda serve arquivo antigo e esconde a atualização</td><td>Média</td><td>Médio</td><td>Janela sem cache; versão pelo conteúdo do arquivo; o nome do pacote carrega um selo de versão que muda com o conteúdo</td></tr><tr><td>Biblioteca minificada sem versão no cabeçalho</td><td>Média</td><td>Médio</td><td>Versão lida no objeto da biblioteca no navegador e comparada pelo conteúdo</td></tr><tr><td>Correção só em um tenant ou só em arquivo de configuração de cliente (não enviado ao HML)</td><td>Média</td><td>Médio</td><td>Grupo C só roda para a task filha entregue; o restante fica pendente com o motivo, sem reprovar o grupo A</td></tr><tr><td>Bloqueio de login por tentativas com senha errada</td><td>Baixa</td><td>Médio</td><td>Um único login por rodada; pausas de 4 s; usuário próprio da QA</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · card em Pronto para desenvolvimento · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
