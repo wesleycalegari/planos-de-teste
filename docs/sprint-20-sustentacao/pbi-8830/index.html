@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8830 · Suhai — Conversor RCTR-C: processamento exige CNPJ do embarcador sem campo no layout</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8830 · Sprint 20 Sustentação</span>
+    <h1>Suhai — Conversor RCTR-C: o processamento exige o CNPJ do embarcador, mas o layout não oferece o campo</h1>
+    <div class="sub">CITNET — Conversor RCTR-C · Suhai · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">10</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">10</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 10 executados · 10 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>10 CTs</strong> (6×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 10, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 10}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na Suhai, ao converter e processar uma planilha de averbação de transporte rodoviário (RCTR-C), a linha é aceita na conversão mas recusada no processamento com a mensagem «CNPJ Inválido». O que é exigido é o CNPJ do embarcador, e a pessoa não encontra no layout um campo para informá-lo. O card pede que o sistema pegue o CNPJ de uma fonte válida (ou ofereça o campo), aceite a linha correta e avise com clareza quando o CNPJ estiver faltando ou errado.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 10 situações no Conversor da Suhai: se o layout oferece o campo de CNPJ do embarcador (olhando todas as colunas); se o que foi mapeado continua ao salvar e reabrir; se uma linha correta vira averbação, uma só; o que aparece quando o CNPJ está vazio, errado ou com letras (formato novo); um arquivo com uma linha certa e uma errada; a comparação com outra seguradora em que a mesma planilha funciona; e um teste livre de formatos.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está em «Pronto para desenvolvimento» e a execução começa quando for liberado para homologação. Por ser um Bug da Sustentação, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem importa planilhas de averbação RCTR-C na Suhai passa a conseguir informar ou obter o CNPJ do embarcador e a ver a averbação gerada; quando o CNPJ estiver errado ou faltando, recebe uma mensagem que diz qual campo e qual linha corrigir.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Onde o card não diz o resultado exato, a QA adotou como regra: o campo do CNPJ do embarcador deve existir no layout (como nos outros casos do Conversor); CNPJ vazio segue o que a Suhai já faz hoje, mas a mensagem tem de citar o campo e a linha; CNPJ realmente errado continua sendo recusado. Produtos pode pedir outra regra ao ler o plano.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET</b>, tenant <b>Suhai</b> — menu <b>Conversor</b> › ramo <b>RCTR-C (54)</b>. O defeito: a conversão da planilha é aceita, mas o <b>processamento</b> rejeita a linha com a crítica genérica «CNPJ Inválido», e o usuário não encontra no layout um campo de <b>CNPJ do embarcador</b> para corrigir o problema.</td></tr><tr><th>Card</th><td>BUG-8830 — «[ CITNET - Suhai ] Conversor RCTR-C — processamento exige CNPJ do embarcador sem campo disponível no layout» · board Sustentação (Kanban, sem sprint) · estado <b>Pronto para desenvolvimento</b> · tags Citnet, tenant Suhai e ambiente HML Suhai · sem tarefas filhas · 2 comentários automáticos (triagem do Voidr, sem decisão) · 1 imagem anexada (modal «Registros Rejeitados») · achado do Voidr (caso CONVE-04), aberto pelo Wesley Moreira · 6 critérios de aceite testáveis.</td></tr><tr><th>Tasks de QA</th><td>#9976 [QA] Plano de teste — BUG #8830 (este plano; fecha na entrega). <b>Bug / Sustentação: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em «Pronto para homologação» (ou Em homologação).</td></tr><tr><th>Ambiente</th><td>HML do CITNET, tenant Suhai (endereços no arquivo de ambiente do time). Produção e staging não entram: N/A. A versão exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Conversor do CITNET, ramo RCTR-C, o card relata: filial 1, apólice e subgrupo 1 do tenant, uma planilha válida; a <b>conversão aceita</b> a linha (1 lida, 1 aceita) e o <b>processamento rejeita</b> (1 lida, 0 aceitas, 1 rejeitada) com a mensagem «CNPJ Inválido /» no modal «Registros Rejeitados». A validação relatada pelo usuário é que o documento exigido é o <b>CNPJ do embarcador</b> e que o layout visível não traz um campo para ele. O card avisa que a captura mostra só parte da planilha (rolagem horizontal): ela prova a rejeição, <b>não</b> prova sozinha que o campo falta em todo o layout. O oráculo deste plano é a <b>tela do Conversor</b> (lista de campos do layout, mapeamento salvo e reaberto, contadores Lidos/Aceitos/Rejeitados, texto da crítica) e a <b>consulta da averbação</b> gerada:</p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — O fluxo obtém o CNPJ do embarcador de fonte válida e acessível, sem depender de campo indisponível ao usuário</td><td>CT-CNE-001 · CT-CNE-003 · CT-CNE-009</td></tr><tr><td><b>CA2</b> — Se depender de mapeamento, o layout RCTR-C oferece o campo e preserva o mapeamento ao salvar e reabrir</td><td>CT-CNE-001 · CT-CNE-002</td></tr><tr><td><b>CA3</b> — Linha válida é aceita no processamento e gera averbação consultável, sem duplicação</td><td>CT-CNE-003 · CT-CNE-004 · CT-CNE-008</td></tr><tr><td><b>CA4</b> — CNPJ do embarcador ausente ou inválido gera crítica específica (campo e linha), com orientação para corrigir</td><td>CT-CNE-005 · CT-CNE-006 · CT-CNE-008</td></tr><tr><td><b>CA5</b> — Dados alfanuméricos seguem a regra de CNPJ do ambiente, sem conversão para só dígitos</td><td>CT-CNE-004 · CT-CNE-007</td></tr><tr><td><b>CA6</b> — Converter, processar e consultar a averbação validados juntos; entradas realmente inválidas continuam rejeitadas</td><td>CT-CNE-003 · CT-CNE-004 · CT-CNE-006 · CT-CNE-008</td></tr><tr><td>Controle de paridade e exploratório (NOR_QA_002 seção 11)</td><td>CT-CNE-009 · CT-CNE-010</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Descrição (campo de reprodução do Bug), 6 critérios de aceite, 1 anexo e os 2 comentários lidos por inteiro; card sem tarefas filhas; os comentários são só a triagem automática do Voidr (sem decisão de Produtos). <b>Tags:</b> Citnet, tenant Suhai e ambiente HML Suhai (sistema e seguradora identificados). Bug com contexto, passos, resultado atual × esperado, usuário, ambiente e evidência. <b>Ramo declarado:</b> RCTR-C (54); o card manda <b>não extrapolar</b> para outros ramos, usuários ou layouts (regra de um ramo não vale para os demais). Os critérios de aceite têm oráculo observável na tela (campos do layout, contadores, crítica, consulta da averbação). <b>Não é débito técnico:</b> há comportamento observável pelo usuário (linha rejeitada sem como corrigir). <b>Bug sem a tag DEFEITO:</b> segue o fluxo de Bug/Sustentação, com plano e sem aprovação de Produtos.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em Pronto para homologação:</b> O card está em <b>Pronto para desenvolvimento</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug / Sustentação: sem aprovação de Produtos</b> — nada mais a aguardar além do estado do card e da pré-verificação do ambiente.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Qual é a «fonte válida» do CNPJ do embarcador (CA1)</b></td><td>O card não diz se o valor vem de uma coluna da planilha mapeada no layout ou de um cadastro. <b>Posição do QA (regra padrão até Produtos dizer outra):</b> vale a mesma regra do legado e dos demais tenants do Conversor RCTR-C — o CNPJ do embarcador é uma coluna da planilha, mapeada no layout, e o layout precisa <b>oferecer esse campo</b>. O CT-CNE-009 compara com um tenant em que a mesma planilha é aceita; se o tenant de referência aceita e a Suhai não, é defeito. Se na tela o layout já tiver o campo, o defeito passa a ser de mapeamento/valor (CT-CNE-003).</td></tr><tr><td><b>DC2</b></td><td><b>O que conta como «campo disponível no layout» (CA2)</b></td><td>O card admite que a captura não mostra todo o layout. <b>Posição do QA:</b> o oráculo é a <b>lista completa de campos do layout</b> aberta em tela (rolando todas as colunas) e o campo de CNPJ do embarcador mapeado, salvo, reaberto e conferido. Campo escondido por rolagem não conta como ausente; campo presente mas sem efeito no processamento (CT-CNE-003) reprova do mesmo jeito.</td></tr><tr><td><b>DC3</b></td><td><b>CNPJ do embarcador vazio: exigir ou dispensar</b></td><td>Em outros fluxos do sistema alguns tenants dispensam o CNPJ do embarcador e outros exigem. <b>Posição do QA:</b> o que vale é o comportamento do tenant Suhai hoje: se exige, a linha vazia é <b>rejeitada com crítica específica</b> (CA4); se dispensa, a linha é aceita. O CT-CNE-005 registra o que a tela faz e julga só a <b>qualidade da crítica</b> (cita o campo e a linha), sem inventar uma regra nova de obrigatoriedade.</td></tr><tr><td><b>DC4</b></td><td><b>Massa, usuário, planilha e versão (a QA resolve; nenhuma pergunta ao dev)</b></td><td>A QA testa o que está na homologação: passou = aprovado; falhou = REPROVADO com defeito. A versão da tela é só registrada. Usuário de teste, apólice/subgrupo do ramo 54, planilhas sintéticas e o layout próprio da QA são massa, criados ou localizados pela tela quando faltarem; a QA não escreve dado de negócio no banco.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Conversor do CITNET, ramo <b>RCTR-C (54)</b>, tenant Suhai: lista de campos do layout, mapeamento do CNPJ do embarcador, salvar e reabrir o layout.</li><li>Converter e <b>Processar</b> uma planilha sintética: contadores Lidos/Aceitos/Rejeitados, texto da crítica no modal «Registros Rejeitados» e a averbação gerada, consultada pela tela, sem duplicação.</li><li>CNPJ do embarcador válido, ausente, inválido (dígito verificador) e alfanumérico válido; lote com linha válida e linha inválida.</li><li>Paridade com um tenant de referência em que a mesma planilha é aceita; exploratório de formato (máscara, espaços) no mesmo ramo.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Código do Conversor e do serviço de validação</b> e a causa raiz — o card lista hipóteses sem confirmar nenhuma; o plano julga o comportamento na tela.</li><li><b>Outros ramos, usuários e layouts do Conversor</b> — o card pede para não extrapolar; só o RCTR-C da Suhai é testado (um tenant de referência entra apenas como controle, CT-CNE-009).</li><li>Averbação manual do CITNET Novo e demais telas de averbação; desempenho de carga.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano e o card está em <b>Pronto para desenvolvimento</b>. Os passos seguem o fluxo reproduzido no próprio card e o fluxo do Conversor do CITNET já mapeado em tela no projeto (Filial › Ramo › Segurado › Importar › Layout › Converter › Processar). O que a tela mostra de fato no tenant Suhai (nomes dos campos do layout, ordem, mensagens, versão) é registrado na execução como observado. A QA não escreve dado de negócio no banco; a massa concreta vai para o guia privado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET, tenant Suhai (endereços no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário e contexto</b> — Usuário de teste da QA com acesso ao Conversor da Suhai; filial 1, ramo RCTR-C, apólice e subgrupo 1 do tenant, segurado de teste. Se o usuário faltar, estiver vencido ou for recusado, a QA cria ou edita pela tela (massa, nunca impeditivo).</li><li><b>Massa da QA</b> — Planilhas sintéticas (XLSX ou CSV/TXT conforme o Conversor aceitar) de <b>1 linha</b> e de <b>2 linhas</b> no layout do ramo, com CNPJ de embarcador sintético válido, ausente, com dígito verificador errado e alfanumérico válido; layout de entrada <b>próprio da QA</b> criado na execução. Valores no guia privado, reconfirmados no instante do CT.</li><li><b>Ferramentas</b> — Script local (Playwright) por clique desde o login; grava captura por CT e imprime só o veredito e o caminho dos arquivos. Credencial nunca é impressa. A sessão do sistema pode degradar após cerca de 1 h: refazer o login.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura desde o login; lista dos campos do layout; modal de resultado com contadores e texto exato da crítica; consulta da averbação; <b>o arquivo importado</b> anexado. Documento e nome de segurado mascarados.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o CITNET do tenant Suhai e entrar com o usuário de teste, por clique desde a tela de login.</li><li><b>N2 — Módulo:</b> clicar em <b>Conversor</b> no menu de topo.</li><li><b>N3 — Contexto:</b> escolher Filial 1, Ramo <b>RCTR-C</b>, o segurado de teste, a apólice e o subgrupo 1 (a ordem da tela é obrigatória: Filial › Ramo › Segurado › arquivo › Importar › Layout).</li><li><b>N4 — Layout:</b> escolher o arquivo, <b>Importar</b>, abrir «Novo Layout de Entrada», dar o nome do layout e percorrer <b>todas</b> as colunas da lista de campos (inclusive com rolagem horizontal), mapear os campos obrigatórios e <b>Salvar</b>.</li><li><b>N5 — Converter e Processar:</b> escolher o layout, <b>Converter</b>, confirmar a linha inicial, ler Lidos/Aceitos/Rejeitados, clicar em <b>Processar</b> e abrir o modal «Registros Rejeitados» quando houver rejeição.</li><li><b>N6 — Consulta:</b> em Averbação › Consulta, filtrar pelo protocolo gerado e conferir a averbação (uma só).</li><li><b>N7 — Registro:</b> data/hora, versão exibida, texto exato das mensagens e dos campos do layout, contadores e protocolo, no resultado de cada CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Contexto do ramo 54 na Suhai:</b> Filial, apólice e subgrupo do ramo RCTR-C que o Conversor oferece ao usuário de teste; conferidos na tela no instante do CT.</li><li><b>Planilha de 1 linha válida:</b> Linha completa e coerente com a apólice, com o CNPJ do embarcador sintético válido.</li><li><b>Planilha de 2 linhas:</b> Uma linha válida e uma com o CNPJ do embarcador inválido (CT-CNE-008).</li><li><b>Variações do CNPJ do embarcador:</b> Vazio; 14 dígitos com dígito verificador errado; alfanumérico válido; 14 dígitos válidos com pontuação.</li><li><b>Tenant de referência:</b> Um tenant do CITNET em que a mesma planilha RCTR-C é aceita no processamento (para o CT-CNE-009); a QA localiza pela tela.</li><li><b>Layout de entrada próprio da QA:</b> Criado na execução com nome identificável; nunca altera layout de usuário real.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; registrar a versão exibida.</li><li>Grupo A (CT-CNE-001 a 004) → Grupo B (005, 006 e 008) → Grupo C (007, 009 e 010).</li><li>Cada CT usa a sua planilha; o CT-CNE-001 e o 002 preparam o layout usado nos seguintes, mas cada um registra o seu próprio resultado; as averbações geradas são identificadas pelo protocolo e consultadas uma única vez.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — O layout RCTR-C oferece o campo e a linha válida vira averbação (CA1, CA2 e CA3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-001</span><span class="ct-title">RCTR-C: a lista de campos do layout oferece o campo de CNPJ do embarcador</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA2 (o card diz que o campo não está disponível; a captura dele não mostra todo o layout)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Usuário e contexto do ramo 54 da Suhai (N1 a N3); planilha de 1 linha; nenhum layout prévio necessário.</li></ul>
+      <h4>Passos</h4><ol><li>Importar a planilha de 1 linha e abrir «Novo Layout de Entrada» (N4).</li><li>Percorrer <b>toda</b> a lista de campos do layout, inclusive a rolagem horizontal, e registrar com captura o nome exato de cada campo relacionado a CNPJ/CPF (segurado, embarcador, tomador).</li><li>Conferir se existe um campo de <b>CNPJ do embarcador</b> que o usuário possa mapear.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout RCTR-C da Suhai <b>lista um campo de CNPJ do embarcador</b> mapeável (ou o card prova que o valor vem de fonte automática e acessível, sem exigir campo — nesse caso o CT-CNE-003 decide). Layout sem o campo <b>e</b> processamento que continua exigindo o CNPJ do embarcador = REPROVADO. Evidência: captura da lista completa de campos e o registro dos nomes exatos; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-002</span><span class="ct-title">RCTR-C: o mapeamento do CNPJ do embarcador persiste ao salvar e reabrir o layout</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-CNE-001 com o campo encontrado; layout próprio da QA ainda não salvo.</li></ul>
+      <h4>Passos</h4><ol><li>No layout novo, mapear o campo de CNPJ do embarcador para a coluna da planilha que o contém e mapear os demais campos obrigatórios.</li><li>Salvar o layout e confirmar que aparece na lista de layouts.</li><li>Importar de novo o arquivo (ordem obrigatória), reabrir o layout salvo e conferir o campo de CNPJ do embarcador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ao reabrir, o campo de CNPJ do embarcador mostra <b>a mesma coluna</b> que foi mapeada antes de salvar, e os demais campos também; nenhum campo volta vazio. Mapeamento perdido ao reabrir = REPROVADO. Evidência: capturas antes de salvar e depois de reabrir; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-003</span><span class="ct-title">RCTR-C: a linha com CNPJ do embarcador válido é convertida e <b>aceita no processamento</b> (reprodução do card)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1, CA3 e CA6 (o card relata conversão aceita e processamento rejeitado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo do CT-CNE-002; planilha de 1 linha com o CNPJ do embarcador sintético válido na coluna mapeada.</li></ul>
+      <h4>Passos</h4><ol><li>Escolher o layout salvo, <b>Converter</b>, informar a linha inicial e registrar Lidos/Aceitos/Rejeitados da conversão.</li><li>Clicar em <b>Processar</b> e registrar Lidos/Aceitos/Rejeitados do processamento; se houver rejeição, abrir «Registros Rejeitados» e copiar o texto exato da crítica.</li><li>Anexar o arquivo importado ao card.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Conversão <b>1 lida, 1 aceita</b> e processamento <b>1 lida, 1 aceita, 0 rejeitadas</b>, sem a crítica «CNPJ Inválido». Processamento que rejeita a linha por CNPJ do embarcador mesmo com o campo mapeado e o valor válido = REPROVADO (o defeito do card segue). Evidência: capturas desde o login, dos contadores e do modal; o arquivo importado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-004</span><span class="ct-title">RCTR-C: a averbação gerada pela linha aceita é consultável e única</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA3, CA5 e CA6 (converter, processar e consultar validados juntos)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-CNE-003 aprovado (linha aceita e protocolo registrado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir Averbação › Consulta e filtrar pelo protocolo gerado (e pela apólice) (N6).</li><li>Conferir os dados da averbação (ramo, apólice, subgrupo, valor segurado, percurso, documento) e o CNPJ do embarcador, mascarado.</li><li>Conferir que existe <b>uma só</b> averbação para essa linha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta mostra <b>uma</b> averbação com os dados da planilha e o CNPJ do embarcador igual ao informado. Nenhuma averbação, duas averbações ou dados trocados = REPROVADO. Evidência: capturas da consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Críticas específicas e entradas realmente inválidas (CA4 e CA6)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-005</span><span class="ct-title">RCTR-C: CNPJ do embarcador ausente gera crítica específica (campo e linha), com orientação</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 (o card critica a mensagem genérica «CNPJ Inválido /»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo do CT-CNE-002; planilha de 1 linha idêntica à do CT-CNE-003, mas com o CNPJ do embarcador <b>vazio</b>.</li></ul>
+      <h4>Passos</h4><ol><li>Escolher o layout, Converter e Processar; registrar contadores.</li><li>Se houver rejeição, abrir «Registros Rejeitados» e copiar o texto exato da crítica e o que a grade mostra sobre a linha.</li><li>Confirmar, comparando com a planilha do CT-CNE-003, que a única diferença é o CNPJ do embarcador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Regra do tenant (DC3): se o processamento <b>rejeita</b>, a crítica <b>cita o campo (CNPJ do embarcador) e a linha</b> e orienta a correção — texto genérico como «CNPJ Inválido /», sem identificar o campo, = REPROVADO. Se o tenant <b>dispensa</b> o CNPJ vazio, a linha é aceita (1 aceita) e a averbação é consultável. Evidência: capturas do modal e da grade; o arquivo importado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-006</span><span class="ct-title">RCTR-C: CNPJ do embarcador com dígito verificador errado continua rejeitado, com crítica específica</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 e CA6 (entrada realmente inválida deve ser rejeitada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo; planilha de 1 linha igual à do CT-CNE-003 com o CNPJ do embarcador de 14 dígitos e dígito verificador errado.</li></ul>
+      <h4>Passos</h4><ol><li>Converter e Processar; registrar contadores.</li><li>Abrir «Registros Rejeitados» e copiar o texto exato da crítica.</li><li>Consultar a averbação por apólice e data para confirmar que <b>nada</b> foi gravado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Processamento <b>0 aceitas, 1 rejeitada</b>; crítica que <b>identifica o campo e a linha</b> e diz que o dígito verificador está inválido; nenhuma averbação gravada. Linha inválida aceita = REPROVADO (a correção não pode «resolver» deixando de validar). Crítica genérica = REPROVADO (CA4). Evidência: capturas do modal e da consulta vazia; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-008</span><span class="ct-title">RCTR-C: lote com 1 linha válida e 1 inválida — a crítica aponta a linha certa, sem duplicar a válida</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA3, CA4 e CA6</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo; planilha de 2 linhas: linha 1 válida e linha 2 com o CNPJ do embarcador inválido.</li></ul>
+      <h4>Passos</h4><ol><li>Converter e Processar; registrar contadores.</li><li>Abrir «Registros Rejeitados» e conferir qual linha aparece.</li><li>Consultar a averbação e conferir que a linha válida gerou <b>uma</b> averbação; reprocessar a mesma planilha e conferir que não duplica.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Processamento <b>2 lidas, 1 aceita, 1 rejeitada</b>; a rejeitada é a <b>linha 2</b> e a crítica cita o campo; a linha 1 gera uma única averbação mesmo após o segundo processamento. Linha trocada, duplicação ou as duas aceitas = REPROVADO. Evidência: capturas dos contadores, do modal e da consulta; o arquivo importado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — CNPJ alfanumérico, paridade com outro tenant e exploratório (CA5)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-007</span><span class="ct-title">RCTR-C: CNPJ do embarcador alfanumérico válido é aceito e guardado sem virar só dígitos</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA5 (regra do CNPJ alfanumérico adotada no ambiente)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo; planilha de 1 linha com CNPJ do embarcador alfanumérico válido (dígitos verificadores corretos pela regra alfanumérica); feature de CNPJ alfanumérico do Conversor como referência.</li></ul>
+      <h4>Passos</h4><ol><li>Converter e Processar; registrar contadores.</li><li>Consultar a averbação e abrir o CNPJ do embarcador (mascarado).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Linha <b>aceita</b> e a averbação guarda o CNPJ do embarcador <b>com as letras</b>, sem remover os não numéricos. Rejeição por «CNPJ Inválido» de um alfanumérico válido, ou letras trocadas/removidas = REPROVADO. Se o ambiente ainda não adota o CNPJ alfanumérico no Conversor, registrar o texto exato e julgar pela regra vigente no tenant. Evidência: capturas e o arquivo importado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-009</span><span class="ct-title">Paridade: a mesma planilha RCTR-C é aceita em um tenant de referência (controle positivo do arquivo)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão / paridade — CA1 (no CITNET o legado e os demais tenants são o oráculo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tenant de referência do CITNET localizado pela tela (massa); mesma estrutura de planilha do CT-CNE-003, ajustando só apólice/filial do tenant.</li></ul>
+      <h4>Passos</h4><ol><li>No tenant de referência, abrir o layout RCTR-C e registrar quais campos de CNPJ ele oferece.</li><li>Converter e Processar a planilha equivalente e registrar contadores.</li><li>Comparar com o CT-CNE-001 e o CT-CNE-003 (Suhai).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O tenant de referência <b>aceita</b> a linha. Se o layout dele oferece o campo e o da Suhai não (ou a Suhai rejeita a mesma linha válida), é <b>divergência</b> = REPROVADO no card; se os dois têm o mesmo comportamento, registrar e julgar pelos CT-CNE-001 a 003. Evidência: capturas dos dois layouts e dos dois contadores; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CNE-010</span><span class="ct-title">Exploratório (15 a 30 min): formatos do CNPJ do embarcador e comportamento do restante do ramo</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11 (guiado por risco)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout salvo; sessão do CT-CNE-003 ainda válida.</li></ul>
+      <h4>Passos</h4><ol><li>Testar o CNPJ do embarcador com pontuação, com espaços nas pontas e com zeros à esquerda; conferir o tratamento.</li><li>Testar a mesma planilha duas vezes seguidas e com o segurado trocado; registrar o que a tela faz.</li><li>Conferir que os demais campos do ramo continuam sendo validados (ex.: apólice inexistente).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem ocorrência: CNPJ com pontuação/espaços tratado de forma coerente (aceito ou rejeitado com crítica específica), sem erro genérico nem tela travada; as demais validações do ramo seguem funcionando. Achado novo vira defeito do card ou, se pré-existente e provado pela QA, bug no board Sustentação (regra A9). Evidência: registro do que foi testado; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CNE-010"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — O fluxo obtém o CNPJ do embarcador de fonte válida e acessível, sem depender de campo indisponível</td><td>CT-CNE-001 · CT-CNE-003 · CT-CNE-009</td><td>Pendente</td></tr><tr><td>CA2 — O layout RCTR-C oferece o campo e preserva o mapeamento ao salvar e reabrir</td><td>CT-CNE-001 · CT-CNE-002</td><td>Pendente</td></tr><tr><td>CA3 — Linha válida aceita no processamento e averbação consultável, sem duplicação</td><td>CT-CNE-003 · CT-CNE-004 · CT-CNE-008</td><td>Pendente</td></tr><tr><td>CA4 — CNPJ do embarcador ausente ou inválido gera crítica específica (campo e linha) com orientação</td><td>CT-CNE-005 · CT-CNE-006 · CT-CNE-008</td><td>Pendente</td></tr><tr><td>CA5 — Dado alfanumérico segue a regra de CNPJ do ambiente, sem virar só dígitos</td><td>CT-CNE-004 · CT-CNE-007</td><td>Pendente</td></tr><tr><td>CA6 — Converter, processar e consultar validados juntos; entrada inválida continua rejeitada</td><td>CT-CNE-003 · CT-CNE-004 · CT-CNE-006 · CT-CNE-008</td><td>Pendente</td></tr><tr><td>Paridade com outro tenant e exploratório (NOR_QA_002 seção 11)</td><td>CT-CNE-009 · CT-CNE-010</td><td>Pendente</td></tr><tr><td>Causa raiz no serviço de validação (hipóteses do card, nenhuma confirmada)</td><td>— não gera CT: o plano julga o comportamento na tela, não o código</td><td>N/A</td></tr><tr><td>Outros ramos, usuários e layouts do Conversor</td><td>— não geram CT: o card pede para não extrapolar (regra de um ramo não vale para os demais)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 6 critérios de aceite do card mapeados a CTs (100%), com oráculo na <b>tela do Conversor</b> (lista completa de campos, mapeamento salvo e reaberto, contadores, texto da crítica) e na <b>consulta da averbação</b>, contraprova positiva (linha válida aceita e única), entradas inválidas que continuam rejeitadas, paridade com outro tenant e exploratório. A causa raiz no servidor e os demais ramos ficam fora, por decisão do plano (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O campo existe mas fica fora da área visível (rolagem horizontal) e é dado como ausente</td><td>Média</td><td>Alta</td><td>CT-CNE-001 percorre toda a lista de campos e registra os nomes exatos (DC2); a captura do card é parcial, como o próprio card admite.</td></tr><tr><td>Mapeamento aparenta salvar mas o servidor guarda o layout sem o campo, e a rejeição persiste</td><td>Média</td><td>Alta</td><td>CT-CNE-002 reabre o layout e CT-CNE-003 prova o efeito no processamento, não só a tela do layout.</td></tr><tr><td>Correção que «resolve» deixando de validar o CNPJ do embarcador</td><td>Média</td><td>Alta</td><td>CT-CNE-006 e CT-CNE-008 exigem que a entrada realmente inválida continue rejeitada, com crítica específica.</td></tr><tr><td>CNPJ alfanumérico tratado como numérico em algum ponto (conversão para dígitos)</td><td>Média</td><td>Média</td><td>CT-CNE-007 confere a averbação com as letras preservadas; a feature de CNPJ alfanumérico do Conversor é a referência.</td></tr><tr><td>Falta de usuário, apólice/subgrupo, tenant de referência ou planilha de teste na Suhai</td><td>Média</td><td>Média</td><td>A QA localiza ou cria pela tela (DC4) e acesso nunca é impeditivo; não se pergunta ao dev nem a Produtos.</td></tr><tr><td>Sessão do CITNET degrada após cerca de 1 h e limite de logins</td><td>Média</td><td>Baixa</td><td>Refazer o login por CT e registrar a ocorrência.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
