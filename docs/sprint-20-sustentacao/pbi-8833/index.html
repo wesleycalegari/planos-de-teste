@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8833 · Travamento no processamento de DI's/DUIMP's (CITWEB · Interface WI / Siscomex)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8833 · Sprint 20 Sustentação</span>
+    <h1>Travamento no processamento de DI's/DUIMP's (CITWEB · Interface WI / Siscomex · Processar Declarações / Adições)</h1>
+    <div class="sub">CITWEB · Interface WI / Siscomex › Declarações Adições › Processamento · Berkley · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em homologação e a correção publicada em HML)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">17</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">17</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">10/5/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 17 executados · 17 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>17 CTs</strong> (10×P1 · 5×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 17, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 17}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Ao processar as declarações de importação (DI e DUIMP) na tela «Processar Declarações / Adições», o sistema para no meio, sem mostrar erro, sem deixar cancelar e trava o módulo para todo mundo; depois disso, navegar no módulo mostra erro de servidor por causa da sessão. O card pede que o processamento termine sem travar, avise quando algo falhar, deixe cancelar e recomeçar e leve ao login quando a sessão expirar.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 17 situações: processar com poucas, cerca de 50 e centenas de declarações; itens que pedem confirmação, com um e com dois usuários ao mesmo tempo; falha de um item mostrada na tela; outro usuário usando o módulo enquanto um processa; cancelar e recomeçar; sessão que expira (parada e no meio do processamento); reprocessar sem duplicar embarques; e uma exploração livre.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos: o plano acabou de ser publicado e a execução começa quando o card chegar a homologação (hoje o desenvolvimento ainda está refazendo a correção). Pela análise do desenvolvimento, parte dos pontos (cancelar, módulo livre durante o processamento, sessão expirada ir ao login) ainda não está no código em teste; se for assim, esses testes reprovam por falta da funcionalidade.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje o cliente só consegue processar um segurado por dia, porque o módulo trava e bloqueia. Depois do card, o processamento deve terminar, poder ser cancelado e recomeçado, e não bloquear outros usuários.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Uma decisão de escopo foi levada a Produtos no card: A) este card entrega só parte (janelas de confirmação por usuário, erro de sessão e aviso do que falhou) e o restante (cancelar, rodar em segundo plano e deixar o módulo livre) vira card novo; B) este card entrega tudo. Recomendação da QA: B até Produtos escrever o contrário, porque o cenário desejado do card inclui tudo. Enquanto não houver resposta, os testes de todos os pontos valem.</li><li>Este card (Bug da Sustentação) não precisa de aprovação do plano de Produtos.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — botão <b>Interface WI / Siscomex</b> › Declarações Adições › <b>Processamento</b> (tela «Processar Declarações / Adições»). Seguradora do card: <b>Berkley</b> (tag do card). Ramo: Importação (DI e DUIMP, internacional).</td></tr><tr><th>Card</th><td>BUG-8833 — «[CITWEB] Travamento no processamento de DI's/DUIMP's (InterfaceSTREITI)» · board Sustentação · Sprint 20 Sustentação (card na iteração raiz, carregado de sprint antiga, não alterada) · estado <b>Aguardando PR HML</b> · tags BERKLEY e citweb · relato de produção (chamado de cliente) · sem tarefas filhas · pai: tarefa de análise e desenvolvimento · vários commits e 5 PRs ligados ao card.</td></tr><tr><th>Tasks de QA</th><td>#9975 [QA] Plano de teste — BUG #8833 (este plano; fecha na entrega). <b>Card do tipo Bug na Sustentação: Produtos não aprova o plano</b>; a execução começa assim que o card estiver em homologação.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB, seguradora Berkley (endereços e perfis no arquivo de ambiente do time); módulo Interface WI / Siscomex abre em nova aba a partir do menu principal. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na tela «Processar Declarações / Adições», o processamento de DI e DUIMP avança até um ponto (no relato, com 49 declarações incluídas) e <b>para para sempre</b>: a barra congela, não aparece erro, não há como cancelar nem tentar de novo, e o módulo fica bloqueado para qualquer outro processamento (o cliente só consegue processar um segurado por dia). Depois do travamento, navegar no módulo devolve um erro de servidor ligado à sessão do usuário (referência nula no layout comum das telas). O mesmo relato aparece com pacotes pequenos e grandes: não parece ser só volume.</p><p><b>Critérios de aceite.</b> O card não traz lista numerada: o «Cenário desejado» (descrição do card e complemento da coordenação de 26/10) é o critério. A QA o numerou em CA-1 a CA-7, alinhado à análise do desenvolvimento de 27/10 (CA-1 a CA-6; o cancelamento é o CA-7).</p><table><tr><th>Critério (derivado do «Cenário desejado»)</th><th>CTs</th></tr><tr><td><b>CA-1</b> — o processamento conclui integralmente as declarações incluídas</td><td>CT-DIP-001 · 002 · 003 · 005 · 006 · 016</td></tr><tr><td><b>CA-2</b> — conclui independentemente do volume e da amplitude do período informado</td><td>CT-DIP-001 · 003 · 004</td></tr><tr><td><b>CA-3</b> — falhas durante a execução são mostradas ao usuário, com identificação do ponto de parada</td><td>CT-DIP-007</td></tr><tr><td><b>CA-4</b> — o módulo permanece disponível para outros usuários e outras operações durante e depois da execução</td><td>CT-DIP-006 · 008 · 009</td></tr><tr><td><b>CA-5</b> — reprocessar não duplica embarques (já existia; testado como regressão)</td><td>CT-DIP-011 · 014</td></tr><tr><td><b>CA-6</b> — sessão expirada leva ao login, sem erro não tratado na renderização das telas</td><td>CT-DIP-012 · 013</td></tr><tr><td><b>CA-7</b> — o usuário pode cancelar e reiniciar o processamento</td><td>CT-DIP-010 · 011</td></tr><tr><td>Isolamento por usuário do progresso e dos contadores (correção anterior de outro card, regressão)</td><td>CT-DIP-015</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-DIP-017</td></tr><tr><td>Testes unitários, cobertura do diff, PR, build, release e refeitura do patch sobre a main (informados pelo desenvolvimento)</td><td>— não geram CT: processo/engenharia, garantidos por política de branch e DoD do desenvolvimento</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Card lido por inteiro (descrição com cenário atual, cenário desejado, usuário, ambiente e evidências), os 10 comentários (triagem automática de setembro, análise do desenvolvimento de 26 e 27/10 contra o código em HML, comentário complementar da coordenação com o cenário desejado) e os 2 anexos (pacote de DI/DUIMP e documento de evidências do cliente). Sem tarefas filhas. <b>Tags:</b> citweb (sistema) e Berkley (seguradora); ramo de Importação (DI/DUIMP) inferido do módulo. <b>Oráculo observável:</b> tela de processamento (barra, contadores finais, janelas de confirmação, mensagens), navegação do módulo durante a execução, tela de login após sessão expirada e a consulta de embarques gerados. Não é débito técnico: muda comportamento visível do usuário. <b>Decisão pendente de escopo (uma só, DC3):</b> o desenvolvimento propõe cumprir neste card só parte dos critérios e levar o restante para um card novo; isso é decisão de Produtos e não está escrita no card. Enquanto não houver resposta, <b>todos os critérios valem</b> e o plano os cobre.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — correção em HML:</b> O card está em «Aguardando PR HML»: o patch do card ainda não está em HML. A execução só começa com o card em «Pronto para homologação» ou «Em homologação». Falha no que estiver em HML = REPROVADO + defeito (DC4).</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Oráculo: tela e embarques gerados; «não travou» sozinho não aprova</b></td><td>Todo CT de processamento prova duas coisas: o <b>estado final da tela</b> (contadores fechando, mensagem, ausência de erro de servidor) e o <b>resultado de negócio</b> (embarques gerados conferidos por consulta somente leitura). Os textos de aviso e de erro são lidos da tela e registrados exatamente como aparecem, nunca parafraseados. Tela parada sem mudança por mais de 10 minutos, com a execução ainda sem concluir, é CT REPROVADO (é a falha do card).</td></tr><tr><td><b>DC2</b></td><td><b>Critérios numerados pela QA</b></td><td>O card não tem lista numerada de critérios. A QA usa o «Cenário desejado» como critério e o numerou em CA-1 a CA-7 (acima). Se a coordenação preferir outra numeração, o plano é renumerado sem mudar o conteúdo dos CTs.</td></tr><tr><td><b>DC3</b></td><td><b>Escopo do card: todos os critérios valem até Produtos decidir</b></td><td>O desenvolvimento propõe que este card cubra só CA-1, CA-3 e CA-6 (canal de confirmação por usuário, layout à prova de nulo, registro do erro por item) e que processamento em segundo plano, acompanhamento e cancelamento (CA-2, CA-4 e CA-7) vão para card novo. Isso muda o que o card promete e só vale se Produtos escrever no card. <b>Posição do QA:</b> o oráculo é o cenário desejado do card; critério não entregue = REPROVADO + defeito para o desenvolvimento. A pergunta foi feita <b>uma única vez</b> ao trio no card (24/11/2026), com a regra padrão: todos os CTs executam. Se Produtos decidir por card novo, os CTs de CA-2, CA-4 e CA-7 ficam N/A «fora do escopo deste card (decisão de Produtos)» e migram para o plano do card novo.</td></tr><tr><td><b>DC4</b></td><td><b>Execução na hora em que o card chegar a homologação; sem perguntar versão ao desenvolvimento</b></td><td>«Aguardando PR HML» é espera legítima de desenvolvimento. Quando o card estiver em «Pronto para homologação» ou «Em homologação», a QA testa o que está no HML: passou = aprovado; falhou = REPROVADO + defeito. A versão do rodapé é só registrada na evidência.</td></tr><tr><td><b>DC5</b></td><td><b>Massa: pacote do próprio card carregado na tela; usuários e volumes montados pela QA</b></td><td>O pacote de DI/DUIMP anexado ao card é carregado no HML pelo menu Carga (Listar Pacotes › Efetuar Carga) ou pela recepção manual de pacotes; para volume pequeno e grande a QA usa pacotes do próprio ambiente. Usuário e perfil (inclusive um segundo usuário para os CTs de concorrência) a QA cria ou localiza pelas telas de Segurança, sem pedir a ninguém; nunca grava senha em texto. A QA não escreve dado de negócio no banco do HML: a massa entra pela tela; o banco só é lido para conferir embarques.</td></tr><tr><td><b>DC6</b></td><td><b>Sessão expirada simulada pelo navegador de teste</b></td><td>Para não depender do tempo de expiração, o script de teste remove o cookie de sessão do navegador no meio da navegação (estado equivalente ao de sessão vazia no servidor) e em seguida clica no menu do módulo. Um CT adicional aguarda a expiração real quando o tempo da sessão do ambiente permitir. Evidência: captura da tela de login (ou do erro, se ocorrer).</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITWEB (Berkley), Interface WI / Siscomex › Declarações Adições › Processamento: processar DI e DUIMP, confirmações durante o processamento, mensagens e contadores, cancelar e reiniciar.</li><li>Navegação do módulo (Carga, DE/PARA, Relatórios e demais menus) durante e depois do processamento, com um ou dois usuários, e com a sessão expirada.</li><li>Regressão: reprocessar sem duplicar embarques e isolamento do progresso por usuário.</li><li>Exploratório guiado por risco sobre a tela de processamento.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A). O relato do cliente é de produção; a reprodução é no HML.</li><li><b>Pacote de DI/DUIMP do cliente em produção</b> — dados reais não entram no plano nem na evidência pública; o pacote anexado ao card só é usado no HML, com máscara nas capturas.</li><li><b>Worker de integração da DUIMP e a tela de acerto de inconsistências</b> — outros cards; só entram se o processamento depender deles na execução.</li><li><b>Execução em segundo plano como arquitetura</b> — o plano mede o comportamento visível (não trava, cancela, módulo livre), não a forma como o desenvolvimento resolve.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano. O card está em «Aguardando PR HML»: o desenvolvimento informa que o patch próprio do card ainda não chegou a nenhuma branch de ambiente e que o que roda em HML é a correção do isolamento por usuário, de outro card. A execução começa quando o card chegar a homologação; a QA testa o que estiver no HML naquele momento. Análise do desenvolvimento é insumo, não veredito: a QA reexecuta cada CT. Os CTs de volume ficam sujeitos ao tempo da própria tela (o processamento roda dentro da requisição; execuções de vários minutos são esperadas e medidas).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, tenant Berkley (endereços e perfis no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. O módulo abre em nova aba pelo botão Interface WI / Siscomex.</li><li><b>Identidades de teste (arquivo de ambiente do time; credenciais fora deste documento)</b> — Usuário Berkley já existente do ambiente para o processamento; segundo usuário (CT-DIP-006, 008, 015) criado ou localizado pela QA (DC5). Perfil de gestor para a autorização de itens que a exigem. Nunca conta compartilhada de cliente.</li><li><b>Massa</b> — Apólice Berkley com declarações no pacote carregado; volumes: pequeno (poucas declarações), médio (por volta de 50 incluídas, o ponto do relato) e grande (centenas). Período de desembaraço amplo (quatro meses) e curto (um mês), mês/ano de movimento obrigatório. Valores concretos ficam no guia privado e são reconfirmados na hora.</li><li><b>Ferramentas</b> — Scripts locais (Playwright instalado na máquina), dois contextos de navegador para os CTs de concorrência; timeouts longos de tela. Estado, mensagem e captura vão para o disco; o script imprime só veredito e caminho. Conferência de embarques por consulta somente leitura.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura do estado final (ou do ponto de parada), da navegação paralela ou do login, e da conferência dos embarques. Nomes e documentos em tarja.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Acessar o módulo:</b> login do HML Berkley → menu principal → botão <b>Interface WI / Siscomex</b> (abre nova aba). Anotar a versão do rodapé.</li><li><b>N2 — Carga:</b> menu <b>Declarações Adições › Carga</b>: Listar Pacotes › Efetuar Carga (pacote da massa). <b>N3 — Processamento:</b> menu <b>Declarações Adições › Processamento</b>: Filial, Apólice (lupa), critério Desembaraço com datas, mês/ano de movimento, marcar Processar DI's e/ou Processar DUIMP's e a opção das desprezadas.</li><li><b>N4 — Processar:</b> botão Processar › confirmar «Sim» no modal «Confirma o processamento das Declarações?». Ler barra, contadores (Lidas · Desprezadas · Inconsistentes · Incluídas) e mensagens. Janelas de confirmação de itens (duplicidade, acúmulo de risco, autorização do gestor) respondem na própria sessão.</li><li><b>N5 — Registro:</b> data/hora, tenant, usuário (sem senha), versão do rodapé, duração, contadores finais, texto exato de qualquer mensagem e embarques conferidos.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Volume pequeno:</b> CT-DIP-003.</li><li><b>Volume médio (≈ 50 incluídas, reprodução do relato):</b> CT-DIP-001, 002, 005, 006, 007, 008, 009, 010, 011, 012, 013, 014, 015, 016.</li><li><b>Volume grande (centenas de declarações):</b> CT-DIP-004.</li><li><b>Usuários de teste:</b> Um usuário: CT-DIP-001 a 005, 007, 009 a 014, 016, 017 · dois usuários simultâneos: CT-DIP-006, 008 e 015.</li><li><b>Dados fixos nos CTs:</b> Valores concretos e o roteiro de scripts ficam no guia privado e são reconfirmados no instante do CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e da versão do rodapé (DC4). Card em homologação: executar.</li><li>Grupo A (001 a 004) → Grupo B (005 a 007) → Grupo C (008 a 011) → Grupo D (012, 013) → Grupo E (014 a 017). Cada CT recarrega o pacote e parte de sessão nova; CT que muda a massa (processa de verdade) é seguido de nova carga antes do próximo.</li><li>Qualquer CT em que a tela fique parada além de 10 minutos sem concluir, ou em que o módulo não responda a outro usuário, = REPROVADO + defeito para o desenvolvedor do card; o card fica onde está.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — O processamento conclui sem travar, com qualquer volume e período (CA-1, CA-2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-001</span><span class="ct-title">Reprodução do relato: processar DI e DUIMP (≈ 50 incluídas, período de quatro meses) → o processamento conclui e os totais fecham</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1, CA-2 (reprodução do cenário do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Volume médio com cerca de 49 declarações incluídas; critério Desembaraço com intervalo de quatro meses; Processar DI's, Processar DUIMP's e desprezadas marcados; mês/ano de movimento preenchido.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Informar filial, apólice, período e mês/ano de movimento, marcar as opções e clicar em Processar › Sim (N4).</li><li>Aguardar o fim e ler barra, contadores e mensagens; anotar a duração (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela <b>conclui</b>: barra no fim, contadores finais coerentes (Lidas − Desprezadas − Inconsistentes = Incluídas) e <b>sem erro de servidor</b>. Parar em ponto intermediário sem concluir, ou erro de servidor ao navegar depois = REPROVADO + defeito. Evidência: captura do estado final e da duração.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-002</span><span class="ct-title">Cada declaração incluída vira embarque: a contagem dos embarques gerados bate com «Incluídas» do CT-DIP-001</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1 (resultado de negócio)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Logo depois do CT-DIP-001 concluído (mesma massa).</li></ul>
+      <h4>Passos</h4><ol><li>Anotar «Incluídas» do CT-DIP-001.</li><li>Consultar, por tela de consulta de averbações do movimento (ou leitura no banco, somente leitura), os embarques gerados pela execução.</li><li>Comparar a contagem com «Incluídas» e anotar divergências (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O número de embarques gerados <b>é igual</b> a «Incluídas» (nenhuma incluída sem embarque; nenhum embarque a mais). Divergência = REPROVADO + defeito. Evidência: captura da consulta e do contador.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-003</span><span class="ct-title">Pacote pequeno (poucas declarações): o processamento conclui — o travamento não depende só de volume</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1, CA-2 (o relato cita travamento com 3 embarques)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Volume pequeno (por volta de 3 declarações incluídas).</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Processar o pacote pequeno com as opções do CT-DIP-001 (N4).</li><li>Ler o resultado e a duração (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Conclui</b> com contadores finais coerentes e sem erro. Travar com volume pequeno = REPROVADO + defeito. Evidência: captura do estado final.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-004</span><span class="ct-title">Pacote grande (centenas de declarações) e período amplo: o processamento conclui, sem erro de tempo esgotado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-2 (volume e amplitude do período)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Volume grande (centenas de declarações incluídas); período amplo; mesma sessão sem interrupção.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Processar o pacote grande (N4) e acompanhar a tela sem interferir.</li><li>Registrar a duração e o estado final (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Conclui</b> com contadores finais coerentes e sem erro de servidor nem tempo esgotado. Tela parada além de 10 minutos sem concluir ou erro de tempo = REPROVADO + defeito. Evidência: captura do estado final e da duração.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Confirmações por usuário e erro por item visível na tela (CA-1, CA-3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-005</span><span class="ct-title">Item que pede confirmação (duplicidade, acúmulo de risco ou autorização do gestor): a janela aparece para quem processa e o processamento segue após a resposta</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1 (canal de confirmação por usuário, um só usuário)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Massa em que pelo menos um item exige confirmação (declaração já cadastrada, acúmulo de risco ou necessidade de gestor); perfil gestor disponível para a autorização.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Processar a massa (N4); quando a janela de confirmação aparecer, responder.</li><li>Acompanhar até o fim e ler o contador de desprezadas e as mensagens (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A janela de confirmação aparece <b>na própria sessão</b>, o processamento <b>continua</b> após a resposta, sem esperar um minuto por item e <b>sem «Erro de comunicação»</b> nos itens. Item desprezado por erro de comunicação, ou janela que não aparece = REPROVADO + defeito. Evidência: captura da janela, do resultado e do texto exato de qualquer mensagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-006</span><span class="ct-title">Dois usuários processam ao mesmo tempo e itens pedem confirmação para os dois: cada janela aparece só para o seu dono</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1, CA-4 (canal de confirmação isolado por usuário; concorrência)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Dois usuários, em dois navegadores, cada um com apólice/massa própria em que pelo menos um item exige confirmação.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de Processamento nos dois navegadores (N1, N3); iniciar o processamento do usuário A e, em seguida, o do usuário B (N4).</li><li>Responder cada janela de confirmação no navegador a que ela aparece; observar se alguma janela aparece no navegador errado.</li><li>Esperar o fim dos dois e conferir contadores e mensagens de cada um (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada janela de confirmação aparece <b>apenas no navegador de quem iniciou aquele processamento</b>; os dois processamentos concluem; nenhum item é desprezado por «Erro de comunicação». Janela no usuário errado ou item parado à espera de resposta que não chega = REPROVADO + defeito. Evidência: capturas dos dois navegadores.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-007</span><span class="ct-title">Falha ao processar um item: a tela informa onde parou (declaração/adição/item e motivo) e o processamento não fica mudo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-3 (mensagem com o ponto de parada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Massa em que pelo menos um item falha no processamento (a QA localiza ou monta pela tela: por exemplo, declaração com cadastro faltante); demais itens normais.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Processar a massa com o item que falha (N4).</li><li>Ler as mensagens da tela e o resultado dos demais itens (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela <b>identifica o ponto da falha</b> (declaração e etapa) e o motivo, em vez de silêncio; os demais itens seguem e os contadores refletem o item que falhou. Sem identificação na tela (só em arquivo de protocolo) = REPROVADO + defeito. Evidência: captura da mensagem exata e dos contadores.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Módulo disponível durante o processamento; cancelar e reiniciar (CA-4, CA-7)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-008</span><span class="ct-title">Enquanto um usuário processa o pacote médio, outro usuário navega e usa o módulo (Carga, DE/PARA, Relatórios) sem esperar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-4 (módulo disponível para outros usuários)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Dois usuários em dois navegadores; usuário A processando o volume médio (execução longa).</li></ul>
+      <h4>Passos</h4><ol><li>Iniciar o processamento do usuário A (N4).</li><li>Com o processamento de A em andamento, no navegador do usuário B abrir Declarações Adições › Carga, DE/PARA e Relatórios, uma tela após a outra, anotando o tempo de resposta (N1).</li><li>Esperar o fim do processamento de A e conferir o resultado (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As telas do usuário B <b>abrem e respondem</b> durante o processamento de A, sem esperar o fim e sem erro de servidor. Tela de B travada até o fim de A, ou erro = REPROVADO + defeito. Evidência: capturas das telas de B abertas com o processamento de A ainda em andamento.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-009</span><span class="ct-title">O mesmo usuário, com o processamento em andamento, abre outra tela do módulo em outra aba e ela responde</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-4 (módulo disponível para o próprio usuário)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Uma sessão de usuário com duas abas; processamento do volume médio em andamento na primeira aba.</li></ul>
+      <h4>Passos</h4><ol><li>Iniciar o processamento na aba 1 (N4).</li><li>Na aba 2, da mesma sessão, abrir uma tela do módulo (por exemplo Declarações Adições › Carga) clicando pelo menu.</li><li>Anotar se a tela abre durante o processamento e o tempo de resposta (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A aba 2 <b>abre a tela</b> durante o processamento da aba 1, sem esperar o fim. Aba 2 pendurada até o fim da aba 1 = REPROVADO + defeito (é o bloqueio do módulo relatado). Evidência: captura da aba 2 aberta com a aba 1 ainda processando.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-010</span><span class="ct-title">Cancelar o processamento em andamento: a tela é liberada e informa o cancelamento</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-7 (cancelar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Volume médio; processamento em andamento; recurso de cancelamento da execução disponível na tela.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Iniciar o processamento (N4) e, com ele em andamento, acionar o cancelamento do processamento.</li><li>Ler a mensagem e confirmar que a tela e o módulo ficaram livres (abrir outra tela do módulo) (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema <b>interrompe</b> o processamento, informa o cancelamento e <b>libera</b> a tela e o módulo. Não existir como cancelar a execução, ou a tela continuar presa = REPROVADO + defeito (critério não entregue, DC3). Evidência: captura do momento do cancelamento, da mensagem e de outra tela aberta depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-011</span><span class="ct-title">Reiniciar o processamento depois de cancelar: conclui e não duplica embarques gerados antes do cancelamento</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-5, CA-7 (reiniciar sem duplicar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Logo depois do CT-DIP-010 (mesma apólice e período; parte dos itens já processada antes do cancelamento).</li></ul>
+      <h4>Passos</h4><ol><li>Anotar a contagem de embarques da apólice e do período antes de reiniciar.</li><li>Reiniciar o processamento com os mesmos filtros (N3, N4) e esperar o fim.</li><li>Conferir «Incluídas» e a contagem final de embarques por consulta somente leitura (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O processamento <b>conclui</b>; o que já tinha sido processado volta como <b>desprezado por duplicidade</b> e o total de embarques cresce só pelo que faltava (sem duplicar). Embarque duplicado ou reinício que não conclui = REPROVADO + defeito. Evidência: capturas dos contadores e das contagens antes × depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-011"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Sessão expirada leva ao login, sem erro de servidor (CA-6)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-012</span><span class="ct-title">Sessão expirada: ao clicar em um menu do módulo, o usuário é levado ao login, sem erro de servidor</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-6 (sessão expirada; DC6)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Usuário logado e na tela de Processamento, sem processamento em andamento.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Remover o cookie de sessão do navegador de teste (DC6) e clicar em outro menu do módulo (por exemplo Declarações Adições › Carga).</li><li>Ler a tela exibida e, se aparecer o login, entrar de novo e conferir que o módulo volta a abrir (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O usuário é levado à <b>tela de login</b>, sem «Server Error» nem erro de referência nula, e depois de entrar de novo o módulo funciona. Página de erro de servidor ou tela em branco = REPROVADO + defeito. Evidência: captura da tela exibida e do módulo depois do novo login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-013</span><span class="ct-title">Sessão expirada durante o processamento: ao voltar à tela, vai ao login e o reprocessamento conclui sem duplicar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-6, CA-5 (sessão expirada no meio da execução)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Volume médio; processamento em andamento.</li></ul>
+      <h4>Passos</h4><ol><li>Iniciar o processamento (N4) e, com ele em andamento, remover o cookie de sessão (DC6).</li><li>Clicar em um menu do módulo e ler a tela exibida; entrar de novo.</li><li>Reprocessar a mesma apólice e período até o fim e conferir contadores e embarques (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem erro de servidor ao voltar: <b>login</b>; depois de entrar, o reprocessamento <b>conclui</b> sem duplicar embarques. Erro de servidor ou duplicidade = REPROVADO + defeito. Evidência: capturas do login, do resultado e da contagem de embarques.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-013"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo E — Regressão e exploratório (CA-5, isolamento por usuário, NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-014</span><span class="ct-title">Reprocessar a mesma apólice e período já processado: não duplica embarques (regressão)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-5 (já existia; reforçada em card anterior)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Apólice e período já processados por completo (por exemplo, no fim do CT-DIP-001).</li></ul>
+      <h4>Passos</h4><ol><li>Anotar a contagem de embarques.</li><li>Processar de novo com os mesmos filtros (N3, N4).</li><li>Ler os contadores e a contagem final de embarques (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As declarações já incluídas voltam como <b>desprezadas por duplicidade</b> e a contagem de embarques <b>não muda</b>. Embarque duplicado = REPROVADO + defeito (se já ocorria antes do card, achado pré-existente: Bug próprio e CT N/A com prova de baseline, A9). Evidência: capturas dos contadores e das contagens antes × depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-015</span><span class="ct-title">Isolamento por usuário do progresso e dos contadores: duas sessões, apólices diferentes, nada cruza (regressão)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — correção anterior de outro card (progresso e contadores por usuário)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Dois usuários, em dois navegadores, cada um com apólice própria.</li></ul>
+      <h4>Passos</h4><ol><li>Iniciar o processamento do usuário A e depois o do usuário B (N4).</li><li>Ler, nos dois navegadores, barra e contadores até o fim.</li><li>Comparar os contadores finais de cada um com a apólice processada (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A barra e os contadores de cada usuário <b>correspondem só à sua execução</b>; nenhum valor do outro usuário aparece. Contador de uma sessão mudando por causa da outra = REPROVADO + defeito (regressão). Evidência: capturas dos dois navegadores com os contadores finais.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-015"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-016</span><span class="ct-title">Combinações de opções: só DI, só DUIMP e desprezadas «Processar» ou não: o processamento conclui em todas</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA-1 (variação das opções da tela)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Massa com DI e DUIMP; volume médio reduzido por filtro para execuções rápidas.</li></ul>
+      <h4>Passos</h4><ol><li>Pré-verificação do ambiente; login por clique, abrir Interface WI / Siscomex (N1) e a tela de Processamento (N3).</li><li>Processar com só «Processar DI's»; recarregar e processar com só «Processar DUIMP's»; recarregar e processar com a opção das desprezadas diferente (N4).</li><li>Ler contadores finais e mensagens de cada execução (N5).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada combinação <b>conclui</b> com contadores coerentes com o que foi marcado (só DI ou só DUIMP). Travar em alguma combinação = REPROVADO + defeito. Evidência: captura do estado final de cada combinação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-016"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DIP-017</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco sobre a tela de processamento</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação (DC4); pacote da massa carregado (N2); usuário Berkley de teste. Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Explorar: fechar e reabrir a aba durante o processamento; atualizar a página no meio; clicar duas vezes em Processar; períodos invertidos ou vazios; mês/ano de movimento vazio; filial/apólice trocadas durante a execução.</li><li>Registrar qualquer comportamento diferente do esperado e o texto exato das mensagens (N5).</li><li>Sem ocorrências: comentar «Exploratório executado [DD/MM HML]. Sem ocorrências.» no card.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem travamento permanente nem erro de servidor nas situações exploradas. Achado do card = defeito; achado pré-existente = Bug próprio na Sustentação (A9) e fora do veredito do card. Evidência: capturas dos achados, se houver.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DIP-017"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-1 — conclui integralmente as declarações incluídas</td><td>CT-DIP-001 · CT-DIP-002 · CT-DIP-003 · CT-DIP-005 · CT-DIP-006 · CT-DIP-016</td><td>Pendente</td></tr><tr><td>CA-2 — independe do volume e da amplitude do período</td><td>CT-DIP-001 · CT-DIP-003 · CT-DIP-004</td><td>Pendente</td></tr><tr><td>CA-3 — falha mostrada na tela, com o ponto de parada</td><td>CT-DIP-007</td><td>Pendente</td></tr><tr><td>CA-4 — módulo disponível durante e depois da execução</td><td>CT-DIP-006 · CT-DIP-008 · CT-DIP-009</td><td>Pendente</td></tr><tr><td>CA-5 — reprocessar não duplica embarques (regressão)</td><td>CT-DIP-011 · CT-DIP-014</td><td>Pendente</td></tr><tr><td>CA-6 — sessão expirada leva ao login</td><td>CT-DIP-012 · CT-DIP-013</td><td>Pendente</td></tr><tr><td>CA-7 — cancelar e reiniciar o processamento</td><td>CT-DIP-010 · CT-DIP-011</td><td>Pendente</td></tr><tr><td>Isolamento do progresso e dos contadores por usuário (regressão)</td><td>CT-DIP-015</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-DIP-017</td><td>Pendente</td></tr><tr><td>Testes unitários, cobertura, PR, build e release (processo do desenvolvimento)</td><td>— não geram CT</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o «Cenário desejado» do card mapeado a CTs (100%): conclui integralmente com qualquer volume e período, janelas de confirmação por usuário, erro por item visível, módulo disponível durante a execução, cancelar e reiniciar, sessão expirada levando ao login, reprocesso sem duplicar, isolamento por usuário e exploratório. Oráculo na tela (estado final, mensagens exatas, navegação paralela, login) e nos embarques gerados; roteiro de scripts e massa só no guia privado.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Patch do card ainda não está em HML (card em Aguardando PR HML)</td><td>Alta</td><td>Média</td><td>Execução só com o card em homologação (DC4); o que estiver no HML é testado e o que falhar é REPROVADO com defeito, sem perguntar versão.</td></tr><tr><td>Escopo do card ser reduzido (CA-2, CA-4 e CA-7 para card novo) depois da execução</td><td>Média</td><td>Média</td><td>Pergunta única ao trio (DC3); se Produtos decidir por card novo, esses CTs ficam N/A e migram para o plano do outro card.</td></tr><tr><td>Execuções longas (minutos) estourarem o tempo de script ou a sessão de teste</td><td>Média</td><td>Média</td><td>Timeouts longos, relogin por CT e registro da duração; nenhuma tela é dada como travada antes de 10 minutos sem mudança (DC1).</td></tr><tr><td>Massa de pacote grande ou de itens que pedem confirmação indisponível no HML Berkley</td><td>Média</td><td>Média</td><td>A QA carrega o pacote do card, monta a massa pela tela e usa outro pacote do ambiente; CT sem massa possível registra a causa medida, sem veredito.</td></tr><tr><td>Dados de cliente reais no pacote do card e nas capturas</td><td>Média</td><td>Alta</td><td>Pacote só no HML; capturas com tarja; plano público sem apólice, CNPJ, CPF nem nome de cliente; evidência só no card.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
