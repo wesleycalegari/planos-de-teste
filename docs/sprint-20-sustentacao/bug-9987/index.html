@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9987 · [CITWEB] Cadastro de apólice (RCTR-C e RC-DC): a flag «Juros» não pode ficar marcada depois de desmarcada e salva — reflexo no fechamento mensal e na exclusão do cadastro</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9987 · Sprint 20 Sustentação</span>
+    <h1>[CITWEB] Cadastro de apólice (RCTR-C e RC-DC): a flag «Juros» não pode ficar marcada depois de desmarcada e salva — reflexo no fechamento mensal e na exclusão do cadastro</h1>
+    <div class="sub">CITWEB Nacional — cadastro de apólice (RCTR-C e RC-DC): flag «Juros» · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">10</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">10</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/6/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 10 executados · 10 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>10 CTs</strong> (3×P1 · 6×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 10, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 10}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Um cliente da Berkley relatou que, no cadastro de duas apólices (uma de RCTR-C, transporte rodoviário de carga, e uma de RC-DC, desvio de carga), a opção «Juros» em «Dados para Cobrança de Fatura Mensal» não sai: o usuário desmarca, salva, reabre e ela está marcada de novo. Por causa disso o faturamento continua cobrando juros. Também não foi possível excluir o cadastro, porque o sistema diz que existe averbação mesmo quando ela já foi excluída.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos recriar a situação do cliente no ambiente de testes (apólice com «Juros» marcado e a opção «Cobrar Juros» desligada na parametrização) e conferir que: (1) ao desmarcar «Juros» e salvar, a opção continua desmarcada ao reabrir, em RCTR-C e em RC-DC; (2) no Fechamento Mensal (Emissão) apólice com «Juros» desmarcado não cobra juros, e apólice com «Juros» marcado continua cobrando; (3) marcar e desmarcar continua funcionando onde a parametrização permite; (4) apólice sem averbação pode ser excluída, e a apólice com averbação recebe uma mensagem que diz a situação real; (5) a mesma regra vale em outros ramos nacionais.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» e a correção ainda não está no ambiente de testes. Os testes começam assim que o card for liberado para homologação. <b>Já medimos no ambiente de testes:</b> a opção «Cobrar Juros» está desligada na parametrização de todos os ramos nacionais — exatamente a condição relatada pelo cliente — e hoje nenhuma apólice de lá tem «Juros» marcado, então a QA monta a situação pela tela (liga o parâmetro, cria a apólice, desliga o parâmetro) e devolve a parametrização ao estado original no fim.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem cadastra apólice passa a conseguir desmarcar «Juros» e o faturamento deixa de cobrar juros dessas apólices. Onde «Juros» continua marcado de propósito, nada muda.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: o ajuste definitivo das duas apólices de produção por script e a conferência em produção ficam fora da homologação (a QA não testa em produção); e na exclusão do cadastro a QA espera que apólice <b>sem</b> averbação seja excluída e que qualquer bloqueio cite o vínculo real.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b> — Cadastros › Apólice › RCTR-C (e, a partir dele, RC-DC); Fechamento Mensal › Emissão; Tabelas › Parâmetros › Customização (preparação da massa).</td></tr><tr><th>Card</th><td>BUG-9987 — «[Movidesk #503196] Flag "Juros" não pode ser desmarcada no cadastro da apólice» · board Sustentação · estado <b>Pronto para desenvolvimento</b> · aberto pela coordenação a partir de chamado de cliente (Berkley) de 13/11/2026; sem tarefas filhas e sem comentários.</td></tr><tr><th>Tasks</th><td>#9988 [QA] Plano de teste — BUG #9987 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> no board da Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB — base da Berkley (a do cliente que relatou). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No cadastro da apólice (RCTR-C e RC-DC), seção «Dados para Cobrança de Fatura Mensal», a opção <b>Juros</b> volta marcada depois de o usuário desmarcá-la e salvar. O faturamento segue cobrando juros dessas apólices. O suporte confirmou que a parametrização (Tabelas › Parâmetros › Customização) <b>não</b> habilita cobrança de juros para o produto, mas a informação continua gravada no cadastro e é considerada pelo sistema; ligar o parâmetro e depois remover a flag na apólice não resolveu. O card relata ainda que o cadastro não pode ser excluído porque o sistema diz haver averbação, mesmo sem averbação. As duas apólices do relato (uma de RCTR-C e uma de RC-DC, filial 4) estão em produção e não são reproduzíveis em HML.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — desmarcar «Juros» e salvar: a opção permanece desmarcada ao reabrir o cadastro</td><td>CT-JUR-001 (RCTR-C) · CT-JUR-002 (RC-DC) · CT-JUR-003 (reabertura em nova sessão e demais flags preservadas)</td></tr><tr><td><b>CA2</b> — apólice sem cobrança obrigatória de juros: o faturamento gerado não cobra juros</td><td>CT-JUR-004 (flag desmarcada: sem juros) · CT-JUR-005 (contraprova: flag marcada continua cobrando)</td></tr><tr><td><b>CA3</b> — cadastro sem averbação vigente: a exclusão é permitida ou a mensagem reflete a situação real</td><td>CT-JUR-007 · CT-JUR-008</td></tr><tr><td><b>CA4</b> — outras apólices com juros habilitado no ramo/produto: marcar/desmarcar sem regressão</td><td>CT-JUR-006 · CT-JUR-009 (outros ramos)</td></tr><tr><td>Definition of Done: script de remoção da flag nas 2 apólices de produção, conferência em produção, cliente avisado</td><td>— sem CT: produção é N/A para a QA; o script de dados e o aviso ao cliente são do desenvolvimento/suporte. A evidência de QA em HML é a deste plano.</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-JUR-010</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 24/11/2026:</b> sistema (CITWEB) pelo card e pelo título; seguradora Berkley pelo cliente do chamado — o card não tem tags (inferido, registrado aqui) ✓ · Bug com contexto, passos para reproduzir, comportamento atual e esperado, ambiente e evidências (4 imagens do chamado) ✓ · critérios de aceite com oráculo observável: o estado da flag ao reabrir o cadastro (<b>tela</b>), o campo «Juros» e o valor de juros no modal do Fechamento Mensal (<b>tela</b>), a mensagem de exclusão (<b>tela</b>) ✓ · ramos: RCTR-C (54) e RC-DC (55) declarados ✓ · descrição, passos, critérios de aceite, anexos e comentários lidos (o card não tem tarefas filhas nem comentários). <b>Não é débito técnico:</b> o comportamento é observável e validável pelo usuário.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>, com desenvolvedor atribuído e sem pedido de integração conhecido: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (flag, faturamento, exclusão). A parte de dados (script em produção) e o aviso ao cliente não viram CT.</td></tr><tr><td><b>DI2</b></td><td><b>Como reproduzir o cliente em HML</b></td><td>Na base de teste a parametrização «Cobrar Juros» já está desligada e nenhuma apólice tem «Juros» marcado. A QA monta o estado pela tela (ligar o parâmetro, criar a apólice, desligar o parâmetro) e restaura o estado original — é o caminho que gera a mesma combinação do relato (flag gravada marcada e parametrização desligada).</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O estado da flag <b>ao reabrir</b> o cadastro (tela), o campo e o valor de juros no modal do Fechamento (tela) e a mensagem de exclusão (tela), com leitura do valor gravado como segunda fonte. «Salvou sem erro» não aprova.</td></tr><tr><td><b>DI4</b></td><td><b>Exclusão (CA3 «permitida ou mensagem condizente»)</b></td><td>Posição do QA: apólice sem nenhuma averbação deve ser excluída (qualquer bloqueio precisa citar vínculo real); apólice com averbação deve receber mensagem que diga isso. É a leitura mais conservadora do critério e não trava a execução.</td></tr><tr><td><b>DI5</b></td><td><b>Ramos e base</b></td><td>Regra por ramo (regra 9): RCTR-C e RC-DC são obrigatórios; RCA-C e RCTA-C entram no CT-JUR-009, cada um por si. A reprodução é na base da Berkley; as bases em que o campo já é sempre editável ficam cobertas só pela regressão (CT-JUR-006), sem a reprodução.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: critérios de aceite têm oráculo e a única dúvida (exclusão) foi resolvida pela regra do QA acima. Produção e script de dados ficam fora da QA.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Flag «Juros» do cadastro de apólice: desmarcar, salvar, reabrir — RCTR-C e RC-DC, com a parametrização do ramo desligada (condição do cliente).</li><li>Reflexo no Fechamento Mensal (Emissão): sem flag = sem juros; com flag = juros calculados (contraprova).</li><li>Regressão da flag onde a parametrização permite, e a mesma verificação em outros ramos nacionais.</li><li>Exclusão do cadastro: sem averbação (permitida) e com averbação (mensagem condizente).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A). O script de remoção da flag nas 2 apólices do cliente, a conferência em produção e o aviso ao cliente são do desenvolvimento/suporte.</li><li><b>Investigação de outras apólices e clientes afetados</b> — levantamento de dados do desenvolvimento/suporte; a QA cobre a regra por ramo (CT-JUR-009).</li><li><b>Parametrização de produção</b> («Cobrar Juros» do cliente) — decisão do suporte, não mudança de sistema.</li><li><b>Internacional e CITNET</b> — fora do card.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 24/11/2026, antes de publicar (base HML da Berkley, consulta somente leitura; nada gravado):</b> a opção «Cobrar Juros» da parametrização (Customização) está <b>desligada</b> em todos os ramos nacionais da base (21, 54, 55, 56 e 58) — é a condição relatada pelo cliente — e <b>nenhuma</b> apólice nacional dessa base tem «Juros» marcado (ramos 21, 54, 55, 56 e 58, todas desmarcadas). Existem apólices vigentes de RCTR-C e RC-DC criadas em 17/11/2026 (par 8591000000001 / 8591000000002, filial 1) com «Juros» desmarcado, usáveis só para leitura. Pelo código da tela de cadastro, na <b>inclusão</b> a flag «Juros» nasce marcada quando a parametrização do ramo a habilita, e o campo só fica editável quando a parametrização a habilita. O Fechamento Mensal (Emissão) só deixa o campo «Juros» do modal editável e calcula juros quando a apólice tem a flag marcada. Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, base da Berkley (endereço e usuário interno de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — estado do defeito (P1)</b> — A QA <b>monta pela tela</b> a situação do cliente, registrando data e valores de cada passo: (1) anotar o estado atual de «Cobrar Juros» (moeda corrente) do ramo na Customização; (2) ligar «Cobrar Juros» e salvar; (3) criar a apólice nova (a flag «Juros» nasce marcada) e salvar; (4) voltar à Customização, desligar «Cobrar Juros» e salvar; (5) reabrir a apólice: é o ponto de partida dos CTs do Grupo A. <b>No fim do Grupo A/B a parametrização volta ao estado anotado em (1).</b> Apólice própria de cada CT; nunca editar apólice existente do ambiente para este fim.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, preenche as telas, lê o estado dos campos e grava em disco capturas e valores lidos; imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Conferência no banco (leitura)</b> — Como segunda fonte do oráculo, a QA lê (somente leitura) o valor gravado da flag da apólice do CT; a tela continua sendo o oráculo principal. A QA não escreve no banco do ambiente.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado), os valores lidos e a versão do rodapé em cada execução.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML, base da Berkley), entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li><b>NB — Apólice:</b> tile <b>Nacional</b> (abre em nova aba) › menu <b>Cadastros</b> › <b>Apólice</b> › <b>RCTR-C</b> · aba <b>Consulta</b> (Geral + Vigentes) › lápis da apólice. Seção «Dados para Cobrança de Fatura Mensal»: flags Custo, Juros, IOF e Prêmio Manutenção. A apólice de RC-DC nasce do botão «Cadastrar apólice de RC-DC» dentro do RCTR-C (não há item de menu para ela).</li><li><b>NC — Parametrização:</b> tile <b>Tabelas</b> (nova aba) › <b>Parâmetros</b> › <b>Customização</b> › Ramo + Produto › grupo «Dados para Emissão de Conta Mensal», coluna Moeda Corrente, «Cobrar Juros» › <b>Salvar</b>.</li><li><b>ND — Fechamento:</b> Nacional › <b>Fechamento Mensal</b> › <b>Emissão</b> › Seleção por Apólice (filial, ramo, número, mês/ano) › SELECIONAR › marcar a apólice no grid para abrir o modal «Fechamento Mensal» (campo «Juros», taxa e valor).</li><li><b>O1 — Oráculo da flag:</b> reabrir o cadastro (Consulta › lápis) e ler, por script, se a flag «Juros» está marcada e se está habilitada, mais captura da seção; conferir o valor gravado por leitura no banco.</li><li><b>O2 — Oráculo do fechamento:</b> no modal, ler se o campo «Juros» está marcado/habilitado e o valor de juros exibido; esperado: sem flag = campo desabilitado e juros 0,00; com flag = campo habilitado e juros calculados maiores que zero.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólices de leitura (existentes):</b> RCTR-C filial 1 nº 8591000000001 e RC-DC filial 1 nº 8591000000002, vigentes de 17/11/2026 a 17/11/2027, «Juros» desmarcado (consulta de 24/11/2026). Só leitura; reconfirmar antes do CT.</li><li><b>Apólices dos CTs:</b> Criadas pela QA pela tela (RCTR-C, RC-DC e uma apólice de cada outro ramo do CT-JUR-009), com número, filial e data de criação registrados no resultado de cada CT; seguem a feature de cadastro de apólice já validada.</li><li><b>Parametrização do ramo:</b> «Cobrar Juros» da moeda corrente desligado hoje em todos os ramos nacionais da base (medido em 24/11/2026); estado anotado e restaurado pelo próprio script no fim dos Grupos A e B.</li><li><b>Fechamento (CT-JUR-004 e 005):</b> Apólices próprias com averbações de teste lançadas pela tela, para competência com prêmio calculável; a QA registra competência e valores lidos (prêmio líquido, juros, total).</li><li><b>Exclusão (CT-JUR-007 e 008):</b> Apólice própria sem averbação; apólice própria com uma averbação lançada pela tela. Clique destrutivo (Excluir) só nas apólices e averbações criadas pela QA no próprio CT.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card em homologação). Anotar a parametrização de «Cobrar Juros» antes de qualquer alteração.</li><li>Grupo A → B → C → D → E (exploratório por último, 15 a 30 minutos); restaurar a parametrização ao estado anotado ao final dos Grupos A, B e C.</li><li>Cada CT faz login e navega por clique do início.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — A flag «Juros» pode ser desmarcada e a escolha é gravada (RCTR-C e RC-DC)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-001</span><span class="ct-title">RCTR-C: com «Cobrar Juros» desligado na parametrização, desmarcar «Juros», salvar e reabrir — a opção permanece desmarcada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do cenário do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C própria no estado do defeito (flag «Juros» gravada marcada e parametrização do ramo desligada).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Preparar o estado do defeito (NC e NB): anotar «Cobrar Juros» do ramo; ligar e salvar; criar a apólice nova (a flag «Juros» nasce marcada) e salvar; voltar à Customização, desligar «Cobrar Juros» e salvar.</li><li>Abrir a apólice (Cadastros › Apólice › RCTR-C › Consulta › lápis) e ler (O1) o estado da flag «Juros» <b>antes</b> de mexer: registrar se está marcada e se está habilitada.</li><li>Desmarcar «Juros» e salvar, confirmando a cadeia de perguntas do salvar (Sim); registrar a mensagem exibida.</li><li>Fechar a apólice, reabri-la pela Consulta e ler (O1) a flag «Juros»; ler também o valor gravado (leitura no banco).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Antes de mexer: flag «Juros» <b>marcada</b> (confirma que o estado do defeito foi montado). A flag pode ser desmarcada (o usuário consegue clicar nela) e o salvar termina com «Atualização dos dados efetuada com sucesso». Ao reabrir: <b>«Juros» desmarcado</b> e valor gravado coerente com desmarcado. Se a flag estiver desabilitada e não puder ser desmarcada, ou voltar marcada, é REPROVADO. Evidência: capturas desde o login, antes e depois, valores lidos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-002</span><span class="ct-title">RC-DC: com «Cobrar Juros» desligado na parametrização, desmarcar «Juros», salvar e reabrir — a opção permanece desmarcada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — o card cita apólice de RC-DC</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RC-DC própria (criada pelo botão «Cadastrar apólice de RC-DC» a partir de um RCTR-C), no estado do defeito; parametrização do ramo 55 «Cobrar Juros» ligada e depois desligada, como no CT-JUR-001.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Repetir a preparação do estado do defeito para o ramo RC-DC (parametrização do ramo e produto do RC-DC; registrar o estado original).</li><li>Abrir a apólice de RC-DC e ler (O1) a flag «Juros» antes de mexer.</li><li>Desmarcar «Juros», salvar (confirmando as perguntas do salvar) e registrar a mensagem.</li><li>Reabrir pela Consulta e ler (O1) a flag; ler também o valor gravado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Antes: flag marcada. A flag pode ser desmarcada e o salvar conclui com sucesso. Ao reabrir: <b>«Juros» desmarcado</b> e valor gravado coerente. Falhar em RC-DC reprova mesmo que o RCTR-C passe (ramos independentes). Evidência por captura e valor lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-003</span><span class="ct-title">A escolha persiste em nova sessão e o salvar não altera as demais flags de cobrança</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / regressão colateral (CA1)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólices dos CT-JUR-001 e 002 já com «Juros» desmarcado e salvo. Registrar antes o estado de Custo, IOF e Prêmio Manutenção de cada apólice.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Sair do sistema e entrar de novo (nova sessão) e abrir a apólice do CT-JUR-001 e a do CT-JUR-002.</li><li>Ler (O1) «Juros» e as demais flags da seção (Custo, IOF, Prêmio Manutenção) e comparar com o registrado antes do salvar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em ambas as apólices «Juros» continua <b>desmarcado</b> depois de nova sessão; Custo, IOF e Prêmio Manutenção (e seus valores) iguais ao estado anterior — nenhum salvar alterou outra flag. Evidência: capturas e leituras.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Reflexo no Fechamento Mensal: cobra juros só quando a flag está marcada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-004</span><span class="ct-title">Fechamento Mensal (Emissão): apólice com «Juros» desmarcado não cobra juros</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C própria do CT-JUR-001 (flag desmarcada, salva) com averbações de teste e competência com prêmio calculável.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Nacional › Fechamento Mensal › Emissão; Seleção por Apólice com filial, ramo, número e mês/ano da competência; SELECIONAR.</li><li>Marcar a apólice no grid para abrir o modal «Fechamento Mensal» e ler (O2) o campo «Juros», o valor de juros, o prêmio líquido e o total; capturar. Não emitir a fatura.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Campo «Juros» <b>desabilitado e desmarcado</b>; valor de juros <b>0,00</b>; total = prêmio líquido (+ custo/IOF quando houver) sem parcela de juros. Qualquer valor de juros maior que zero é REPROVADO. Evidência: captura do modal e valores lidos (nada é emitido).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-005</span><span class="ct-title">Contraprova: apólice com «Juros» marcado continua cobrando juros no Fechamento Mensal</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — contraprova positiva do CT-JUR-004 (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C própria criada com «Cobrar Juros» ligado na parametrização e a flag mantida marcada; mesma competência/estrutura do CT-JUR-004 (averbações de teste).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ligar «Cobrar Juros» na parametrização do ramo (NC) e criar a apólice com «Juros» marcado; lançar as averbações de teste.</li><li>Nacional › Fechamento Mensal › Emissão › Seleção por Apólice › SELECIONAR › marcar a apólice e ler o modal (O2).</li><li>Restaurar a parametrização ao estado anotado no início.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Campo «Juros» <b>habilitado e marcado</b>; valor de juros <b>maior que zero</b> (taxa aplicada sobre o prêmio líquido). A contraprova mostra que o CT-JUR-004 passou porque a flag estava desmarcada, e não porque o fechamento deixou de calcular juros. Evidência: captura e valores lidos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-005"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão: onde a parametrização permite «Juros», marcar e desmarcar continua funcionando</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-006</span><span class="ct-title">Com «Cobrar Juros» ligado na parametrização, marcar e desmarcar a flag funciona nos dois sentidos (sem regressão)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Parametrização do ramo com «Cobrar Juros» ligado; apólice RCTR-C própria com «Juros» marcado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Abrir a apólice, desmarcar «Juros», salvar e reabrir (O1).</li><li>Marcar «Juros», salvar e reabrir (O1).</li><li>Restaurar a parametrização ao estado anotado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois do primeiro salvar a flag fica <b>desmarcada</b> e depois do segundo fica <b>marcada</b>, nas duas reaberturas; salvar conclui sem erro e sem alterar Custo, IOF e Prêmio Manutenção. Evidência por captura e leitura.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exclusão do cadastro: sem averbação exclui; com averbação a mensagem é a real</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-007</span><span class="ct-title">Excluir apólice sem averbação: a exclusão é permitida</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C própria, criada pela QA no CT, <b>sem nenhuma averbação</b> (nem excluída).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastros › Apólice › RCTR-C › Consulta › lápis da apólice própria; clicar em <b>Excluir</b> e confirmar a pergunta.</li><li>Registrar a mensagem exibida e confirmar, pela Consulta (Geral + Vigentes) e por leitura no banco, que a apólice deixou de existir.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A apólice é <b>excluída</b> (mensagem de sucesso, some da Consulta e do banco). Se houver bloqueio, a mensagem precisa citar um vínculo real e verificável — para apólice sem nenhuma averbação, bloqueio por «existe averbação» é REPROVADO. Evidência: captura e texto exato da mensagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-008</span><span class="ct-title">Excluir apólice com averbação: a mensagem reflete a situação real; depois de excluir a averbação, a exclusão é permitida</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — cenário do card (mensagem de averbação)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C própria com <b>uma averbação</b> lançada pela tela pela QA (registrar o número).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Abrir a apólice própria e clicar em <b>Excluir</b>; registrar o texto exato da mensagem.</li><li>Excluir a averbação própria pela tela de averbação; reabrir a apólice e clicar em <b>Excluir</b> de novo; registrar a mensagem e conferir (Consulta e banco) o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com a averbação existente: mensagem de bloqueio <b>condizente</b> (cita a averbação existente) e a apólice continua. Depois de excluir a averbação: a apólice é <b>excluída</b>, sem a mensagem de averbação. Se a mensagem de averbação persistir mesmo sem nenhuma averbação, é REPROVADO. Evidência: capturas e textos exatos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo E — Outros ramos nacionais e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-009</span><span class="ct-title">Outros ramos nacionais (RCA-C e RCTA-C): a flag «Juros» pode ser desmarcada e a escolha é gravada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / regressão por ramo (CA4) — cada ramo é verificado de forma independente</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Para cada ramo: parametrização do ramo ligada e depois desligada e apólice própria no estado do defeito; registrar o estado original.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastros › Apólice › RCA-C: repetir o CT-JUR-001 (estado do defeito, desmarcar, salvar, reabrir).</li><li>Cadastros › Apólice › RCTA-C: repetir o mesmo roteiro.</li><li>Restaurar a parametrização de cada ramo ao estado anotado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada ramo: antes, flag marcada; depois de desmarcar e salvar, ao reabrir a flag está <b>desmarcada</b>. Cada ramo vale por si: a falha em um reprova só o ramo, com a evidência dele. Evidência por ramo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-JUR-010</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais, com a parametrização restaurada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Explorar a seção «Dados para Cobrança de Fatura Mensal»: alternar flags em sequência, salvar sem alterar nada, abrir a apólice por Consulta de apólice cancelada/vencida, e a mesma seção no cadastro de apólice nova.</li><li>Conferir se o salvar sem mudança mantém as flags e se a regra da flag «Juros» é a mesma ao criar uma apólice nova com a parametrização desligada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem inconsistência nas flags de cobrança. Achado novo gera defeito (ou Bug pré-existente, conforme prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-JUR-010"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — desmarcar «Juros» e salvar: permanece desmarcada ao reabrir</td><td>CT-JUR-001 · CT-JUR-002 · CT-JUR-003</td><td>Pendente</td></tr><tr><td>CA2 — sem cobrança obrigatória de juros, o faturamento não cobra juros (com contraprova)</td><td>CT-JUR-004 · CT-JUR-005</td><td>Pendente</td></tr><tr><td>CA3 — exclusão do cadastro sem averbação vigente: permitida ou mensagem real</td><td>CT-JUR-007 · CT-JUR-008</td><td>Pendente</td></tr><tr><td>CA4 — onde o juros está habilitado, marcar/desmarcar sem regressão; outros ramos</td><td>CT-JUR-006 · CT-JUR-009</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-JUR-010</td><td>Pendente</td></tr><tr><td>DoD: script de remoção nas 2 apólices de produção, conferência em produção, cliente avisado</td><td>— sem CT: produção é N/A para a QA; script de dados e aviso ao cliente são do desenvolvimento/suporte</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O critério CA1 está coberto em RCTR-C e RC-DC (com leitura em nova sessão); o CA2 pelo modal do Fechamento com contraprova positiva; o CA3 por exclusão com e sem averbação; o CA4 pela regressão com a parametrização ligada e por outros dois ramos. O DoD de produção fica registrado na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em Pronto para desenvolvimento)</td><td>Alta</td><td>Médio — os CTs do Grupo A reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>Alterar a parametrização compartilhada («Cobrar Juros») atrapalhar outros testes na mesma base</td><td>Média</td><td>Médio</td><td>Estado original anotado antes, janela curta, restauração ao final dos Grupos A, B e C e conferência da restauração por leitura; registrado no resultado.</td></tr><tr><td>O estado do defeito não poder ser montado pela tela (ex.: flag nasce desmarcada)</td><td>Baixa</td><td>Médio</td><td>A QA tenta pela tela as duas vias (ligar→criar→desligar e criar→editar); se persistir, registra o que a tela fez e o motivo — sem inventar resultado.</td></tr><tr><td>Fechamento sem competência/prêmio calculável para a apólice de teste</td><td>Média</td><td>Baixo — massa, não impeditivo</td><td>A QA cria as averbações de teste pela tela e escolhe a competência (regra 4).</td></tr><tr><td>Defeito só reproduzir com dados de produção (histórico do cliente)</td><td>Média</td><td>Médio</td><td>A reprodução por estado (flag gravada × parametrização desligada) cobre o mecanismo; o ajuste das 2 apólices do cliente é script do desenvolvimento, fora da QA.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
