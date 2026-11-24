@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-8684 · [SEGURANÇA] Servidor web: bloquear a enumeração de nomes curtos de arquivos e pastas nas aplicações do CITWEB</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-8684 · Sprint 20</span>
+    <h1>[SEGURANÇA] Servidor web: bloquear a enumeração de nomes curtos de arquivos e pastas nas aplicações do CITWEB</h1>
+    <div class="sub">CITWEB — todas as seguradoras · bloqueio da enumeração de nomes curtos no servidor web · card de segurança · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — plano publicado para o Gate 2 de Produtos; nenhum CT executado (card em Pronto para desenvolvimento)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">24</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">24</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">15/7/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 24 executados · 24 pendentes</strong> — plano publicado, aguardando a validação do Gate 2 de Produtos (nenhum CT executado ainda). Falta testar: <strong>24 CTs</strong> (15×P1 · 7×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 24, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 24}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Fechar uma brecha de segurança apontada no teste de invasão: hoje, quem conhece a técnica consegue descobrir nomes de arquivos e pastas internos das aplicações só pedindo endereços especiais ao servidor, o que ajuda um ataque. A correção faz o servidor <b>recusar</b> esses pedidos nas cerca de 15 aplicações do CITWEB, em todas as seguradoras. Para quem usa o sistema, nada deve mudar.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 24 verificações: (1) confirmar quais aplicações estão no ar; (2) em cada uma das 15 aplicações, o servidor recusa o pedido especial do mesmo jeito, exista ou não o arquivo (é isso que impede a descoberta); (3) todas as seguradoras ficam protegidas, sem exceção; (4) o que não pode piorar: telas, menus, relatórios, envio de arquivos no Conversor e as integrações com outros sistemas continuam funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não testamos nada: o card está em «Pronto para desenvolvimento», a correção ainda não foi entregue. A execução começa quando ele chegar a «Pronto para homologação».</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Nenhuma mudança visível no uso do dia a dia (mesmas telas e botões). O risco que vigiamos é algum caminho legítimo do sistema que use o caractere agora bloqueado: por isso há testes de navegação completa e de envio de arquivo.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora.</b> Para ciência: a confirmação com a infraestrutura (proteção no próprio servidor) e o novo teste de invasão oficial são de outras equipes e ficam <b>fora do teste da QA</b>.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — cerca de 15 aplicações publicadas no servidor web: as 11 aplicações de tela (Nacional, Internacional, Conversor, Interface, Interface dedicada, Tabelas, Gestão, Segurança, Liberação de Cobertura, Login e a base compartilhada) e 4 serviços de integração (API geral, API de dados de apólice, API de averbação e API de relatórios). Vale para <b>todas as seguradoras</b>. Não há tela nova nem mudança de regra de negócio: é endurecimento de segurança.</td></tr><tr><th>Card</th><td>PBI-8684 — «[SEGURANÇA] Enumeração de nomes curtos de arquivos no servidor web — ausência da regra de bloqueio» · board CITWEB Team · Sprint 20 · estado <b>Pronto para desenvolvimento</b> · tags Citnet; vulnerabilidade · aberto pela coordenação de QA · sem tarefas filhas, sem comentários, sem anexos · relacionado ao Bug #4957 (mesmo achado de teste de invasão, removido do quadro, sem correção entregue) · 6 critérios funcionais de segurança + 6 técnicos (DoD).</td></tr><tr><th>Tasks de QA</th><td>#10000 [QA] Plano de teste — PBI #8684 (este plano; fecha na entrega). A aprovação de Produtos (Gate 2) vem depois da publicação e <b>antes</b> da execução; a execução também espera o card em homologação.</td></tr><tr><th>Ambiente</th><td>Homologação do CITWEB (todos os tenants que existirem no dia) e, para abrangência, os ambientes de homologação do CITNET. Endereços no arquivo de ambiente do time e no guia restrito da task. Produção e staging: N/A (a QA não testa em produção).</td></tr><tr><th>Autor QA / versão</th><td>Wesley Moreira · plano versão 1.0 (24/11/2026) · evidência por CT: anexo no card (nunca neste documento, por ser um card de segurança).</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O teste de invasão apontou que o servidor web responde de forma diferente a pedidos com uma sequência especial de nome curto do Windows quando o nome existe e quando não existe; com isso é possível <b>descobrir a estrutura interna</b> das aplicações. A correção adiciona, nas aplicações do CITWEB, a <b>regra de bloqueio de requisições do servidor</b> para esse tipo de pedido. O comportamento esperado é que <b>nenhuma</b> das aplicações, em <b>nenhuma</b> seguradora, deixe de recusar o pedido, e que o uso legítimo continue igual.</p><table><tr><th>Critério do card</th><th>Onde a QA lê o resultado (oráculo)</th><th>CTs</th></tr><tr><td><b>CA-F1</b> — Regra de bloqueio adicionada em todas as aplicações listadas</td><td>Resposta do servidor ao pedido especial em cada aplicação: recusa idêntica para nome que existe e que não existe, com a assinatura do bloqueio</td><td>CT-SFN-002 a CT-SFN-016</td></tr><tr><td><b>CA-F2</b> — Requisições legítimas da aplicação não usam o caractere bloqueado</td><td>Captura de rede completa de uma navegação por clique: nenhuma requisição com a sequência e nenhuma resposta de bloqueio; envio de arquivo com o caractere no nome</td><td>CT-SFN-020 a CT-SFN-023</td></tr><tr><td><b>CA-F3</b> — Novo teste de invasão confirma que a enumeração não é mais possível</td><td>O novo teste oficial é de segurança/terceiros; a QA faz a verificação equivalente (as mesmas respostas do CA-F1) e entrega a evidência</td><td>CT-SFN-002 a CT-SFN-019</td></tr><tr><td><b>CA-F4</b> — Confirmação com a infraestrutura sobre a camada do servidor</td><td>Resposta da infraestrutura (fora da tela)</td><td>— não gera CT (ver DC3)</td></tr><tr><td><b>CA-F5</b> — Correção em todas as seguradoras, nenhum domínio exposto</td><td>Mesmo pedido em cada tenant de homologação: recusa com a assinatura do bloqueio</td><td>CT-SFN-017 a CT-SFN-019</td></tr><tr><td><b>CA-F6</b> — Aplicações permanecem funcionais</td><td>Navegação por clique, relatórios, Conversor e integrações sem erro de bloqueio</td><td>CT-SFN-020 a CT-SFN-023</td></tr><tr><td><b>Técnicos (DoD)</b> — teste RED→GREEN, testes de integração, Sonar nível A, PR com 2 aprovadores, evidências por aplicação, registro do achado</td><td>Processo de engenharia; a evidência por aplicação é este plano</td><td>— não geram CT: garantidos por política de branch e DoD do desenvolvimento</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — verificação de 24/11/2026:</b> descrição e critérios de aceite lidos por inteiro; card sem tarefas filhas, sem comentários e sem anexos; card relacionado #4957 lido (achado idêntico, removido do quadro). <b>Tags:</b> sistema (Citnet) e <b>vulnerabilidade</b>; a descrição declara «todas as seguradoras», logo não há seguradora única a identificar. Descrição no formato Quem / O quê / Por quê / Onde. Ramo: não se aplica (correção transversal de segurança). Os critérios funcionais têm <b>oráculo observável</b> na resposta do servidor ou na navegação, sem depender do código. <b>Lacunas do card (CWE, gravidade, ambientes afetados) são de classificação interna:</b> não alteram o que se testa e não travam o plano. <b>Não é débito técnico:</b> há comportamento observável (a recusa do servidor) e reteste de segurança. Itens de processo/DoD (Sonar, PR, RED→GREEN, testes de integração do desenvolvimento) <b>não viram CT</b>. Observação: o card diz que é a primeira vez que o achado é tratado, mas o Bug #4957 (removido) registra o mesmo achado — a correção anterior não foi entregue; o plano parte do princípio de que nada está corrigido.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>: a correção ainda não existe no ambiente. A execução só começa com o card em «Pronto para homologação» ou «Em homologação» (correção publicada no HML). Antes de interpretar qualquer resultado, o CT-SFN-001 prova que cada aplicação está no ar e fixa a assinatura da resposta «não encontrado» comum — sem isso, ausência de diferença não prova a correção.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Plano neutro (card de segurança)</b></td><td>Sem endereço, nome de aplicação no servidor, padrão do pedido, sequência bloqueada nem código de resposta; a técnica e o mapa aplicação → endereço ficam só no guia restrito anexado à task. Os CTs descrevem o comportamento esperado.</td></tr><tr><td><b>DC2</b></td><td><b>Oráculo = assinatura do bloqueio</b></td><td>O card pede que a enumeração «não seja mais possível». <b>Posição do QA:</b> comparar apenas «respostas iguais» não prova a correção (um servidor sem nomes curtos já responde igual). O esperado é a recusa com a <b>assinatura do bloqueio</b>, distinta do «não encontrado» comum; sem ela, REPROVADO. Regra padrão enquanto não houver decisão diferente.</td></tr><tr><td><b>DC3</b></td><td><b>Confirmação com infraestrutura e novo teste oficial</b></td><td>Critérios do card que dependem de outras equipes (camada do servidor; novo teste de invasão). <b>Posição do QA:</b> não geram CT; a QA mede o resultado externo em HML e entrega a evidência por aplicação para essas equipes.</td></tr><tr><td><b>DC4</b></td><td><b>Critérios de processo/DoD</b></td><td>Sonar, PR com 2 aprovadores, RED→GREEN, testes de integração do desenvolvimento e registro do achado são garantidos por política de branch e DoD do desenvolvimento, fora da homologação.</td></tr><tr><td><b>DC5</b></td><td><b>Base compartilhada e CITNET</b></td><td>A base compartilhada pode não ter endereço público: N/A com a medida (o efeito vale nas demais). Ambientes do CITNET fora da lista do card, se enumeráveis, são <b>achado pré-existente</b> (novo Bug na Sustentação, com prova), e não reprovam este card.</td></tr><tr><td><b>DC6</b></td><td><b>Tenants</b></td><td>Cada tenant de homologação que responder no dia é medido (CA-F5). Tenant que não responde fica «sem medição» com a medida registrada; não se infere resultado.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Resposta do servidor ao pedido de enumeração de nomes curtos em cada uma das 15 aplicações do CITWEB (CA-F1/F3).</li><li>Todas as seguradoras com homologação ativa (CA-F5) e abrangência nos ambientes do CITNET.</li><li>Regressão de uso legítimo: navegação por clique, relatórios, Conversor com envio de arquivo e serviços de integração (CA-F2/F6).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li>Confirmação da camada do servidor com a infraestrutura e novo teste de invasão oficial (segurança/infraestrutura; a QA mede o resultado externo, mas não executa nem atesta a configuração do servidor).</li><li>Critérios de processo/DoD (Sonar, PR, RED→GREEN, testes de integração do desenvolvimento, registro do achado).</li><li>Produção e staging (N/A), demais camadas de mitigação do servidor, e aplicações que não estejam na lista do card.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Limite de medição, registrado antes de publicar:</b> o pedido objeto do teste não é feito por navegação por clique (é um pedido direto ao servidor); por isso os CT-SFN-002 a CT-SFN-019 usam um script de QA com a técnica descrita só no guia restrito da task — <b>exceção declarada à regra de navegação por clique</b>, com a navegação por clique mantida nos testes de regressão (CT-SFN-020 a CT-SFN-023). <b>Armadilha:</b> se o servidor já não gerasse nomes curtos, o pedido nunca revelaria diferença, com ou sem a correção; por isso o oráculo é a <b>assinatura do bloqueio</b> (que só aparece com a regra ativa), e não só «sem diferença».</div>
+  <ul><li><b>Ambiente</b> — Homologação do CITWEB com a correção publicada (card em homologação); lista de tenants e de aplicações confirmada no CT-SFN-001.</li><li><b>Perfis</b> — Usuário de QA com acesso às telas de cada aplicação para a regressão; para o bloqueio não é preciso login (o pedido é recusado antes). Falta de usuário ou senha é massa: a QA cria ou ajusta e segue.</li><li><b>Ferramenta</b> — Script local de QA (pedido direto e captura de resposta em arquivo) para o bloqueio; navegador por clique com captura de rede para a regressão. Técnica e mapa aplicação → endereço: <b>guia restrito</b> anexado à task.</li><li><b>Arquivos</b> — Arquivos sintéticos criados pela QA, um deles com o caractere sensível no nome; nenhum dado real.</li><li><b>Evidência</b> — Anexo por CT no card: arquivo com as respostas (status, tamanho e corpo) de cada pedido e captura da tela/rede; nada neste documento.</li><li><b>Limite de taxa</b> — Pausa de pelo menos 2 s entre pedidos ao mesmo tenant; resposta de excesso de requisições invalida a rodada daquele tenant.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1 a O3)</h3>
+  <ol><li><b>NA — Regressão por clique:</b> abrir a tela de login do CITWEB de um tenant de homologação (única URL digitada) → informar usuário e senha → entrar; daqui em diante só clique pelos menus.</li><li><b>NB — Conversor:</b> menu <b>Conversor</b> → Filial → Ramo → Segurado → <b>Escolher arquivo</b> → <b>IMPORTAR</b> (caminho validado em tela no CITNET; reconferir na execução).</li><li><b>O1 — Resposta do servidor</b> (status, tamanho e corpo salvos em arquivo) · <b>O2 — Assinatura do bloqueio</b> (distinta do «não encontrado» comum, fixada no CT-SFN-001) · <b>O3 — Captura de rede</b> da navegação (lista de todas as requisições e respostas).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Tenants:</b> todos os tenants de homologação do CITWEB que responderem no dia (lista medida e registrada no CT-SFN-001)</li><li><b>Aplicações:</b> as 15 aplicações do card (11 de tela e 4 serviços de integração), por nome funcional; mapa para endereço no guia restrito</li><li><b>Arquivo de teste:</b> planilha e texto sintéticos; um com o caractere sensível no nome, criados pela QA</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>CT-SFN-001 primeiro (aplicações no ar e assinatura do «não encontrado» comum): sem ele nenhum resultado dos grupos B a D é interpretável.</li><li>Grupo B e C: bloqueio por aplicação, do mais exposto ao menos (serviços de integração e Login primeiro).</li><li>Grupo D: cada seguradora e os ambientes do CITNET.</li><li>Grupo E: regressão por clique e exploratório por último.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Linha de base: aplicações no ar e assinatura do «não encontrado» comum</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-001</span><span class="ct-title">Cada aplicação do card está no ar no tenant-base, e a resposta «não encontrado» comum está fixada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Linha de base — controle positivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Ambiente de homologação do CITWEB com o card em homologação; tenant-base escolhido e registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Para cada uma das 15 aplicações, pelo script de QA, requisitar um recurso público conhecido (sem a sequência) e registrar status e tamanho.</li><li>Para cada aplicação, requisitar um recurso comprovadamente inexistente (sem a sequência) e <b>fixar a assinatura do «não encontrado» comum</b> (status, tamanho, trecho do corpo).</li><li>Para as aplicações que não respondem, registrar a medida (host, data e hora): a aplicação fica sem CT de bloqueio; aplicação sem endereço público (base compartilhada) fica N/A no CT próprio.</li><li>Listar os tenants de homologação que respondem no dia (base dos CT-SFN-017 a 019).</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Tabela das 15 aplicações com «no ar / fora do ar / sem endereço público», cada uma com a assinatura do «não encontrado» comum; lista dos tenants ativos. Sem esta linha de base, os CTs dos grupos B a D não são interpretáveis.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-001"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Bloqueio nas 11 aplicações de tela (CA-F1/F3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-002</span><span class="ct-title">Aplicação Nacional: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-003</span><span class="ct-title">Aplicação Internacional: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-004</span><span class="ct-title">Aplicação Conversor: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-005</span><span class="ct-title">Aplicação Interface: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-006</span><span class="ct-title">Aplicação Interface dedicada (variante): o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-007</span><span class="ct-title">Aplicação Tabelas: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-008</span><span class="ct-title">Aplicação Gestão: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-009</span><span class="ct-title">Aplicação Segurança: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-010</span><span class="ct-title">Aplicação Liberação de Cobertura: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-011</span><span class="ct-title">Aplicação Login (porta de entrada): o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-012</span><span class="ct-title">Base compartilhada de aplicações (se publicada): o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base. Se não houver endereço público, registrar N/A com a medida do CT-SFN-001; o efeito da base compartilhada é medido nas demais aplicações.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-012"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Bloqueio nos 4 serviços de integração, os mais expostos (CA-F1/F3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-013</span><span class="ct-title">Serviço de integração — API geral: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-014</span><span class="ct-title">Serviço de integração — API de dados de apólice: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-015</span><span class="ct-title">Serviço de integração — API de averbação: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-015"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-016</span><span class="ct-title">Serviço de integração — API de relatórios: o servidor recusa o pedido de enumeração de nomes curtos, igual para nome que existe e que não existe</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F1/CA-F3</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado (aplicação no ar; assinatura do «não encontrado» comum registrada); correção publicada no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Localizar no guia restrito da task o endereço-base desta aplicação no tenant-base (exceção declarada: pedido direto por script de QA).</li><li><b>Controle de montagem:</b> com o mesmo método, requisitar um recurso público conhecido desta aplicação, sem a sequência de nome curto, e confirmar resposta normal.</li><li><b>Pedido A:</b> montar o endereço com a sequência de nome curto no padrão que, num servidor sem a proteção, corresponderia a um nome existente (padrão no guia restrito). <b>Pedido B:</b> mesma montagem, com padrão que não corresponde a nada.</li><li>Salvar status, tamanho e corpo das duas respostas, com pausa de 2 s entre elas.</li><li>Comparar A com B e as duas com a assinatura do «não encontrado» comum fixada no CT-SFN-001.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A e B recebem a <b>mesma</b> resposta de recusa, com a <b>assinatura do bloqueio</b> do servidor (distinta do «não encontrado» comum de recurso inexistente); nenhum nome de arquivo ou pasta aparece. Resposta diferente entre A e B, ou A sem a assinatura do bloqueio = <b>REPROVADO</b> (a aplicação ainda é enumerável). O controle de montagem tem de responder normalmente; se não responder, o CT fica sem veredito até corrigir a montagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-016"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Todas as seguradoras e abrangência no CITNET (CA-F5)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-017</span><span class="ct-title">Cada seguradora (tenant CITWEB de homologação): a porta de entrada e a aplicação principal recusam o pedido</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F5</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-001 aprovado com a lista de tenants ativos; um CT-SFN-002 e um CT-SFN-011 aprovados no tenant-base.</li></ul>
+      <h4>Passos</h4><ol><li>Para cada tenant ativo, repetir o <b>Pedido A</b> e o <b>Pedido B</b> (guia restrito) na aplicação Login e na aplicação Nacional, com pausa de 2 s e o controle de montagem.</li><li>Registrar uma linha por tenant: resposta de A, resposta de B, assinatura do bloqueio sim/não.</li><li>Tenant que não responde: registrar a medida (host, data e hora) e deixar a linha como «sem medição», sem inventar resultado.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os tenants medidos recusam A e B de forma idêntica e com a assinatura do bloqueio. <b>Qualquer</b> tenant medido que responda diferente = REPROVADO (CA-F5: nenhum domínio exposto), com o tenant identificado no resultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-017"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-018</span><span class="ct-title">Ambientes de homologação do CITNET (legado): abrangência da correção</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F5 (abrangência)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Ambientes de homologação do CITNET que responderem; guia restrito com a lista.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o <b>Pedido A</b> e o <b>Pedido B</b> na raiz de cada ambiente do CITNET que responde, com pausa de 2 s e o controle de montagem.</li><li>Para cada ambiente, identificar se ele hospeda uma das 15 aplicações do card.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Se o ambiente hospeda uma aplicação do card: recusa idêntica com a assinatura do bloqueio (senão REPROVADO). Se for aplicação que <b>não</b> está na lista do card e ainda enumerável: <b>N/A — fora do escopo, achado pré-existente</b>, registrado como novo Bug na Sustentação com a prova (regra A9), sem reprovar este card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-018"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-019</span><span class="ct-title">Plataforma nova do CITNET (CITNET Novo): abrangência da correção</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — CA-F5 (abrangência)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Ambiente de homologação do CITNET Novo respondendo.</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o <b>Pedido A</b> e o <b>Pedido B</b> no endereço-base do ambiente, com pausa de 2 s e o controle de montagem.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesma leitura do CT-SFN-018: aplicação do card = recusa com a assinatura do bloqueio; aplicação fora da lista e enumerável = N/A com achado pré-existente (A9).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-019"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo E — Regressão do uso legítimo e exploratório (CA-F2/F6)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-020</span><span class="ct-title">Regressão por clique no CITWEB: navegação completa sem nenhuma requisição bloqueada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F2/CA-F6</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário de QA com perfil de gestão no tenant-base; navegador com captura de rede ligada desde o login.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir o login do tenant-base (única URL digitada), entrar e ligar a captura de rede completa.</li><li>Clicar em cada item de menu principal (Averbação, Fechamento Mensal, Cadastros, Relatórios, Segurança, Tabelas, Gestão) e abrir pelo menos uma tela de cada um.</li><li>Abrir uma tela de consulta, uma de cadastro e emitir um relatório, sem gravar dado de negócio.</li><li>Ao final, procurar na captura: (a) qualquer requisição com a sequência bloqueada; (b) qualquer resposta com a assinatura do bloqueio. Salvar a captura em arquivo.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as telas carregam como hoje; <b>zero</b> requisição com a sequência bloqueada e <b>zero</b> resposta com a assinatura do bloqueio. Se uma navegação legítima usar o caractere e for bloqueada = REPROVADO (a correção quebra o uso — CA-F2).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-020"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-021</span><span class="ct-title">Regressão por clique no CITNET: navegação principal sem nenhuma requisição bloqueada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F2/CA-F6</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário de QA no CITNET de um tenant de homologação; captura de rede desde o login.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar no CITNET (única URL digitada) com a captura de rede ligada.</li><li>Clicar nos menus principais (Faturamento, Conversor, Operações e demais visíveis para o perfil) e abrir pelo menos uma tela de cada.</li><li>Procurar na captura requisições com a sequência bloqueada e respostas com a assinatura do bloqueio.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Telas carregam como hoje; zero requisição com a sequência e zero resposta de bloqueio. Qualquer bloqueio de navegação legítima = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-021"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-022</span><span class="ct-title">Serviços de integração consumidos pela tela: relatórios e consulta de apólice continuam funcionando</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA-F6</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-SFN-020 aprovado; tenant-base com apólice e relatório disponíveis.</li></ul>
+      <h4>Passos</h4><ol><li>Logado no CITWEB, abrir a consulta de apólice e carregar uma apólice existente.</li><li>Emitir um relatório que use o serviço de relatórios e abrir o arquivo gerado (anotar tamanho e tipo).</li><li>Abrir a tela de averbação em modo consulta (sem gravar) e confirmar que carrega os dados.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Consulta, relatório e tela de averbação carregam e geram arquivo como antes da correção; nenhuma mensagem de erro de servidor. Falha apenas depois da correção = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-022"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-023</span><span class="ct-title">Conversor: arquivo com o caractere sensível no nome é importado e convertido normalmente</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — risco-guiado</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Planilha sintética cujo nome contém o caractere sensível (como arquivos temporários de editores de planilha); Conversor acessível.</li></ul>
+      <h4>Passos</h4><ol><li>No Conversor (menu <b>Conversor</b>), escolher Filial, Ramo e Segurado.</li><li>Escolher o arquivo com o caractere sensível no nome e clicar em <b>IMPORTAR</b>.</li><li>Ler a prévia e seguir até converter, sem gravar dado de negócio.</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Importação e prévia como hoje. Se o envio ou a conversão falhar apenas por causa do caractere no nome (bloqueio em endereço de arquivo gerado), registrar como <b>REPROVADO</b> ou, se o mesmo ocorrer na versão sem a correção, como achado pré-existente (A9) com a prova.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-023"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SFN-024</span><span class="ct-title">Exploratório guiado por risco (15 a 30 minutos, NOR_QA_002 seção 11)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Todos os CTs formais executados; guia restrito aberto.</li></ul>
+      <h4>Passos</h4><ol><li>Explorar, por risco, variações do mesmo tipo de pedido nas aplicações mais expostas, conforme o guia restrito (sem detalhar aqui).</li><li>Registrar o que foi tentado e a resposta de cada tentativa; sem ocorrências → «Exploratório executado [DD/MM HML]. Sem ocorrências.»</li><li>Anexar ao card o arquivo com as respostas e a captura da tela/rede (nada de endereço em texto público).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma variação devolve diferença entre nome existente e inexistente. Achado → defeito (do card) ou Bug na Sustentação (se pré-existente e fora da lista), conforme as regras de fluxo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — a execução começa com o card em homologação e depois da validação de Produtos (Gate 2). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SFN-024"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA-F1 — Regra de bloqueio em todas as aplicações listadas</td><td>CT-SFN-001, CT-SFN-002, CT-SFN-003, CT-SFN-004, CT-SFN-005, CT-SFN-006, CT-SFN-007, CT-SFN-008, CT-SFN-009, CT-SFN-010, CT-SFN-011, CT-SFN-012, CT-SFN-013, CT-SFN-014, CT-SFN-015, CT-SFN-016</td><td>Pendente</td></tr><tr><td>CA-F2 — Requisições legítimas não usam o caractere bloqueado</td><td>CT-SFN-020, CT-SFN-021, CT-SFN-023</td><td>Pendente</td></tr><tr><td>CA-F3 — Enumeração não é mais possível (verificação equivalente ao reteste)</td><td>CT-SFN-002, CT-SFN-011, CT-SFN-013, CT-SFN-024</td><td>Pendente</td></tr><tr><td>CA-F4 — Confirmação com a infraestrutura</td><td>— (fora da tela; segurança/infraestrutura, DC3)</td><td>N/A</td></tr><tr><td>CA-F5 — Todas as seguradoras, nenhum domínio exposto</td><td>CT-SFN-017, CT-SFN-018, CT-SFN-019</td><td>Pendente</td></tr><tr><td>CA-F6 — Aplicações permanecem funcionais</td><td>CT-SFN-020, CT-SFN-021, CT-SFN-022, CT-SFN-023</td><td>Pendente</td></tr><tr><td>Técnicos (DoD) — RED→GREEN, integração, Sonar A, PR 2 aprovadores, registro do achado</td><td>— (garantidos por branch policy e DoD do desenvolvimento; evidência por aplicação = este plano)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os 6 critérios funcionais (CA-F1 a CA-F6) estão cobertos pelos 24 CTs, salvo o CA-F4 (infraestrutura, fora da tela). Os critérios técnicos do card são de processo e não geram CT (ver matriz). O CT-SFN-001 é o controle positivo do plano inteiro: sem ele, a recusa ou a ausência de diferença não é aprovação.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Ausência de diferença ser lida como aprovação (o servidor pode nunca ter gerado nomes curtos)</td><td>Média</td><td>Alto</td><td>Oráculo = assinatura do bloqueio, distinta do «não encontrado» comum, fixada no CT-SFN-001; sem assinatura, REPROVADO.</td></tr><tr><td>Montagem errada do pedido devolver «não encontrado» e parecer proteção</td><td>Média</td><td>Alto</td><td>Controle de montagem obrigatório em cada CT de bloqueio (recurso público responde normalmente).</td></tr><tr><td>Correção quebrar um fluxo legítimo que use o caractere no endereço ou no nome do arquivo</td><td>Baixa</td><td>Alto</td><td>Captura de rede completa na navegação (CT-SFN-020/021) e envio de arquivo com o caractere no nome (CT-SFN-023).</td></tr><tr><td>Uma seguradora ou aplicação ficar sem a regra (alteração em arquivo-base que não chega a todas)</td><td>Média</td><td>Alto</td><td>Medição por tenant e por aplicação (CT-SFN-017 e grupos B/C); qualquer tenant exposto reprova.</td></tr><tr><td>Ambiente de homologação diferente da produção quanto à camada do servidor</td><td>Média</td><td>Médio</td><td>Camada do servidor é da infraestrutura (DC3); a QA entrega o resultado medido em HML e registra o que mediu.</td></tr><tr><td>Limite de requisições no servidor durante a rodada</td><td>Baixa</td><td>Médio</td><td>Pausas de 2 s e um tenant por vez; excesso de requisições invalida a rodada daquele tenant.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 · card em Pronto para desenvolvimento · plano para o Gate 2 de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
