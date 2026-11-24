@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9284 · [Segurança] Conversor de Arquivos: o servidor não pode ler nem gravar arquivos fora da pasta temporária a partir de nomes vindos do formulário</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9284 · Sprint 20 Citweb</span>
+    <h1>[Segurança] Conversor de Arquivos: o servidor não pode ler nem gravar arquivos fora da pasta temporária a partir de nomes vindos do formulário</h1>
+    <div class="sub">CITWEB — Conversor de Arquivos (segurança) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">17</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">17</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/9/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 17 executados · 17 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>17 CTs</strong> (7×P1 · 9×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 17, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 17}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> O Conversor de Arquivos usava dois nomes que chegam da tela (o nome do layout e o nome do arquivo já enviado) para decidir onde o servidor lê e grava arquivos, sem conferir se eram válidos. Um usuário com acesso ao Conversor, mexendo na solicitação, poderia fazer o servidor ler um arquivo de fora da pasta temporária ou gravar um arquivo fora dela. O card pede que o servidor confira esses nomes e recuse qualquer tentativa de sair da pasta temporária, sem mudar o uso normal da tela.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos conferir duas coisas. (1) O uso normal continua igual: importar arquivo TXT e planilha, escolher o layout, converter, salvar/alterar/excluir layout, e nomes de arquivo com espaço, acento e ponto. (2) Quando a solicitação é alterada para apontar para fora da pasta temporária (na leitura, na conversão, na planilha e na gravação), o sistema recusa com mensagem e nada é lido nem gravado. Também conferimos que um nome de layout fora dos conhecidos é recusado.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «In Progress» e o desenvolvimento informou no card que a correção foi enviada ao ambiente de testes, mas o card ainda não foi liberado para homologação. Os testes começam assim que o card estiver em homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Para quem usa o Conversor normalmente nada muda (a tela é a mesma). Quem tentar apontar o servidor para fora da pasta temporária passa a receber uma recusa.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: a revisão dos mesmos pontos em outros módulos é tratada em outro card (#9289) e não faz parte deste teste.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — Conversor de Arquivos (módulo aberto pelo tile «Conversor de Arquivos» › menu «Converte Arquivo»): importar arquivo, selecionar layout, converter, salvar/alterar/excluir layout.</td></tr><tr><th>Card</th><td>BUG-9284 — «[Segurança] Conversor de Arquivos…» (achado ADO-8515) · board CITWEB Team · Sprint 20 · estado <b>In Progress</b> · aberto pela equipe de desenvolvimento · sem tarefas filhas · relacionado: #9289 (mesmo padrão em outros módulos) e #8515.</td></tr><tr><th>Tasks</th><td>#10001 [QA] Plano de teste — BUG #9284 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB (tenant padrão dos planos do Conversor; o tenant usado fica registrado no resultado de cada CT). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na rodada de testes unitários do módulo Conversor (ADO-8515) foi encontrado que o servidor compunha caminhos de arquivo a partir de dois valores que chegam do formulário — o <b>nome do layout</b> e o <b>nome do arquivo já enviado</b> — sem validação no servidor, o que permitiria a um usuário autenticado com acesso ao Conversor induzir leitura ou gravação de arquivo fora da pasta temporária do site. O desenvolvimento informa no card que a correção foi enviada ao ambiente de homologação, com validação desses valores no servidor, aviso na tela para valores inválidos e sem mudança visual. O que vale para a QA é o comportamento esperado abaixo.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — o fluxo normal do Conversor continua funcionando: importar TXT/XLSX/PRN, selecionar layout, converter, salvar/alterar/excluir layout</td><td>CT-PTR-001 · CT-PTR-002 · CT-PTR-003 · CT-PTR-004 · CT-PTR-016</td></tr><tr><td><b>CA2</b> — nomes de layout legítimos (todos os layouts de averbação) e nomes de arquivo com espaços/acentos continuam aceitos</td><td>CT-PTR-005 · CT-PTR-006</td></tr><tr><td><b>CA3</b> — qualquer tentativa de apontar para fora da pasta temporária é recusada com mensagem clara e nada é lido nem gravado</td><td>CT-PTR-007 · CT-PTR-008 · CT-PTR-009 · CT-PTR-010 · CT-PTR-012 · CT-PTR-014</td></tr><tr><td>Técnico (DoD) — nome do layout validado contra os layouts conhecidos antes de compor o nome do arquivo</td><td>CT-PTR-014 · CT-PTR-015</td></tr><tr><td>Técnico (DoD) — nome do arquivo do servidor validado em todos os pontos de leitura e gravação</td><td>CT-PTR-007 · CT-PTR-008 · CT-PTR-009 · CT-PTR-012 · CT-PTR-013 · CT-PTR-014</td></tr><tr><td>Técnico (DoD) — extensão validada no servidor</td><td>CT-PTR-011</td></tr><tr><td>Técnico (DoD) — testes de regressão automatizados do desenvolvimento · revisão de outros pontos do sistema · code review</td><td>— sem CT: processo/DoD de engenharia, garantido por branch policy e revisão (a QA exercita o comportamento nos CT-PTR-007 a 015; os outros módulos são o card #9289).</td></tr><tr><td>Técnico (DoD) — validação em HML antes de produção</td><td>Todos os CTs (evidência de QA em HML)</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-PTR-017</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 24/11/2026:</b> sistema (CITWEB, Conversor) pelas tags e pelo título ✓ · a correção não é específica de uma seguradora (comportamento do módulo, igual em todos os tenants): a seguradora do teste é inferida (tenant padrão dos planos do Conversor) e fica registrada no resultado ✓ · Bug com contexto, passos para reproduzir, comportamento atual e esperado e plano de teste sugerido ✓ · critérios de aceite com oráculo observável: a <b>tela</b> (mensagem exata de recusa e conteúdo do arquivo que não pode aparecer) e a resposta da solicitação capturada pelo script ✓ · layouts de todos os ramos nacionais e internacionais declarados nos critérios ✓ · descrição, critérios de aceite, vínculos e o comentário do desenvolvimento lidos (o card não tem tarefas filhas; o outro comentário é uma nota automática sem informação de negócio). <b>Não é débito técnico:</b> o comportamento (aceitar o uso normal e recusar o indevido) é observável e validável na tela.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>In Progress</b>: o desenvolvimento informa a correção no ambiente de testes, mas o card ainda não foi liberado. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (uso normal aceito; indevido recusado). Testes unitários, code review e a revisão dos outros módulos (#9289) não viram CT.</td></tr><tr><td><b>DI2</b></td><td><b>Seguradora/tenant</b></td><td>O card tem tag do sistema (citweb) e do módulo (conversor), mas não de seguradora: a correção é do módulo e vale para todos os tenants. A QA usa o tenant padrão dos planos do Conversor e registra o tenant em cada CT; não é decisão de Produtos.</td></tr><tr><td><b>DI3</b></td><td><b>Nome de layout fora da lista, sem sair da pasta</b></td><td>O critério técnico do card diz validar o layout contra os conhecidos. Posição do QA: nome inexistente deve ser recusado (CT-PTR-015); se for aceito, é critério técnico não entregue e REPROVADO, com o risco menor anotado no defeito.</td></tr><tr><td><b>DI4</b></td><td><b>Oráculo da recusa</b></td><td>«Não deu erro» não aprova: o veredito vem da mensagem exata exibida, da resposta capturada e da ausência de qualquer conteúdo do arquivo de fora da pasta temporária; antes de cada recusa há o controle positivo da técnica (solicitação sem alteração funcionando).</td></tr><tr><td><b>DI5</b></td><td><b>Documento público</b></td><td>Card de segurança: o plano descreve só o comportamento esperado; valores, variantes e arquivos de teste ficam no guia privado anexado ao card.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os critérios de aceite têm oráculo observável; massa, usuário e tenant são trabalho da QA.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Uso normal do Conversor: importar TXT/XLSX/PRN, selecionar layout, converter, salvar/alterar/excluir layout; nomes de layout legítimos; nomes de arquivo com espaços, acentos e ponto.</li><li>Recusa, com mensagem, de nome de arquivo que aponta para fora da pasta temporária nas etapas de leitura (selecionar layout, converter, conversão de planilha e demais ações que recarregam o arquivo).</li><li>Recusa de nome de layout inválido ou que aponta para fora da pasta temporária na gravação (importar).</li><li>Extensão validada no servidor; arquivo da pasta temporária que não foi criado pelo Conversor é recusado.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Outros módulos com o mesmo padrão</b> (interface de importação/exportação e demais) — tratados no card #9289; os módulos analisados e considerados não vulneráveis também ficam fora.</li><li><b>Testes unitários, revisão de código e branch policy</b> — processo/DoD do desenvolvimento, sem CT.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Card de segurança em repositório público:</b> este plano descreve só o <b>comportamento esperado</b>. Os valores concretos usados para alterar a solicitação, as variantes de caminho e os arquivos de teste ficam num guia de execução privado anexado ao card e nos scripts do repositório privado — nunca aqui. O layout da tela e as mensagens exatas do uso normal já estão validados em tela nas features do Conversor (execuções anteriores); as mensagens de recusa deste card serão lidas e registradas na execução. Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB (endereço e usuário de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Usuário</b> — Usuário de QA com acesso à tela do Conversor. Falta de usuário ou senha é massa: a QA cria ou ajusta pela tela de Segurança e segue.</li><li><b>Massa — arquivos</b> — Arquivos sintéticos criados pela QA (TXT de 1 linha no layout do CT, XLSX de 2 linhas × 7 colunas, nomes com espaços/acentos/ponto), sem CNPJ, CPF nem dado de cliente.</li><li><b>Massa — layouts</b> — Para salvar/alterar/excluir layout (CT-PTR-004) a QA cria layout <b>próprio</b>; o clique destrutivo (excluir) é só nele, nunca num layout do tenant.</li><li><b>Como a solicitação é alterada</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>; nos CTs dos Grupos B e C o botão é clicado normalmente e a solicitação gerada pelo clique é alterada pelo navegador do próprio script antes de sair, mantendo a sessão real do usuário. Valores e variantes: guia privado. Antes de cada recusa a QA repete a solicitação <b>sem alteração</b> (controle positivo da técnica): ela tem de funcionar, para que a recusa seja atribuída à validação e não à interceptação.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado/mensagem), a resposta capturada e a versão do rodapé em cada execução.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML), entrar com o usuário de QA e registrar a versão do rodapé.</li><li><b>NB — Conversor:</b> tile <b>Conversor de Arquivos</b> (abre em nova aba) › menu superior <b>Converte Arquivo</b> › item do ramo do CT (ex.: <b>RCTR-C / RC-DC</b> ou <b>Transporte Nacional</b>).</li><li><b>NC — Importar:</b> escolher o arquivo em «Caminho do Arquivo para Conversão» › <b>Importar</b> (planilha: confirmar o aviso de conversão com Sim ou Não conforme o CT) › escolher o layout › ler «Conteúdo do Arquivo» (texto) ou a grade (planilha) › <b>Converter</b>.</li><li><b>ND — Layout:</b> botões Salvar, Alterar e Excluir layout da própria tela, só em layout criado pela QA.</li><li><b>O1 — Oráculo de recusa:</b> mensagem exata exibida na tela (ou página de recusa) e resposta da solicitação capturada pelo script; <b>nenhuma linha do arquivo de fora da pasta temporária pode aparecer</b> em «Conteúdo do Arquivo», na grade nem no resultado da conversão.</li><li><b>O2 — Oráculo de não gravação:</b> recusa exibida na tela e resposta capturada; quando a QA tiver acesso de leitura ao diretório do servidor de HML, conferir também a ausência do arquivo fora da pasta temporária (registrar se esse acesso existe; sem ele, o oráculo é a recusa + a resposta capturada).</li><li><b>O3 — Oráculo do uso normal:</b> «Conteúdo do Arquivo» (ou grade) com as linhas enviadas e resultado da conversão sem mensagem de recusa nem de erro.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>TXT válido:</b> 1 linha sintética no layout do CT (ex.: layout RCTR-C: linha de 7 campos); nome simples, depois com espaços, acento e ponto no meio.</li><li><b>XLSX válido:</b> 2 linhas × 7 colunas sintéticas.</li><li><b>Arquivo-alvo da leitura:</b> Um arquivo existente no servidor, fora da pasta temporária, de conteúdo <b>não sensível</b>, escolhido e conferido pela QA (nome só no guia privado e na evidência do card).</li><li><b>Layout próprio:</b> Layout criado pela QA no CT-PTR-004 e excluído no mesmo CT; nenhum layout do tenant é alterado ou excluído.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card em homologação).</li><li>Grupo A (uso normal) → B (leitura) → C (gravação) → D (recuperação e exploratório por último, 15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início. O CT-PTR-016 só depois dos CTs de recusa.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Uso normal do Conversor continua funcionando (regressão)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-001</span><span class="ct-title">Importar um TXT válido no layout RCTR-C, selecionar o layout e ver as linhas do arquivo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — uso normal, caso legítimo do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Usuário de QA com acesso ao Conversor. TXT sintético de 1 linha no layout RCTR-C.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Escolher o TXT em «Caminho do Arquivo para Conversão» e clicar em <b>Importar</b>; escolher o layout do ramo e ler «Conteúdo do Arquivo» (NC, O3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo é aceito e as linhas enviadas aparecem em «Conteúdo do Arquivo», sem mensagem de recusa nem de erro (O3). Qualquer recusa ou página de erro no uso normal é REPROVADO. Evidência: capturas desde o login, texto lido da tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-002</span><span class="ct-title">Converter o TXT válido até o fim no layout RCTR-C</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — etapa que lê o arquivo inteiro</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TXT do CT-PTR-001 importado e layout selecionado (cada CT faz o próprio pré-requisito).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético, escolher o layout e clicar em <b>Converter</b>; ler o resultado exibido (O3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conversão conclui e o resultado reflete a linha enviada, sem mensagem de recusa nem de erro. Qualquer recusa no uso normal é REPROVADO. Evidência: capturas e resultado lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-003</span><span class="ct-title">Importar uma planilha XLSX válida (aviso de conversão) e converter</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — caminho de planilha</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>XLSX sintético de 2 linhas × 7 colunas.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Escolher o XLSX, clicar em <b>Importar</b> e responder ao aviso de conversão com <b>Não</b> (a grade com as colunas aparece); repetir com <b>Sim</b> (planilha convertida para texto) e clicar em <b>Converter</b>; ler grade e resultado (O3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas duas respostas ao aviso a planilha é lida e o resultado aparece (grade ou conteúdo convertido) sem recusa nem erro. Recusa ou página de erro no uso normal é REPROVADO. Evidência: capturas do aviso, da grade e do resultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-004</span><span class="ct-title">Salvar, alterar e excluir um layout próprio continua funcionando</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — ações de layout que também recarregam o arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo importado na tela; layout <b>próprio</b> da QA (criado neste CT). Clique destrutivo só nele.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; salvar um layout próprio (ND); alterar o layout salvo; excluir o layout salvo; a cada ação ler a mensagem e o estado da tela (O3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As três ações concluem com a mensagem de sucesso do sistema (texto exato registrado) e o layout aparece/muda/some conforme a ação; nenhuma recusa indevida. Evidência: capturas de cada ação e da lista de layouts antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-005</span><span class="ct-title">Todos os layouts legítimos oferecidos no menu continuam aceitos na importação</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA2) — cada layout é verificado de forma independente</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layouts de averbação oferecidos no menu do tenant (nacionais e, quando existirem no menu, internacionais). TXT sintético válido para cada layout.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Para cada item do menu «Converte Arquivo»: abrir o item, importar o TXT sintético do layout e ler «Conteúdo do Arquivo» (O3); anotar quais layouts o tenant oferece.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada layout oferecido aceita a importação (linhas exibidas, sem recusa). A falha em um reprova só aquele layout, com a evidência dele. Layout previsto no card e ausente do menu do tenant é registrado com o motivo (não reprova). Evidência por layout.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-006</span><span class="ct-title">Nomes de arquivo com espaços, acentos e ponto no meio continuam aceitos</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA2) — borda do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TXT sintético salvo com nome com espaços, com acento e com ponto no meio (ex.: um nome de relatório mensal com data e ponto).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar cada arquivo (um por vez) e ler «Conteúdo do Arquivo» (O3); depois clicar em <b>Converter</b> em um deles.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada nome é aceito e as linhas aparecem; a conversão conclui. Qualquer recusa de nome legítimo é REPROVADO (a validação não pode ser tão estrita que quebre o uso). Evidência por nome.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Leitura: o servidor recusa nomes de arquivo que apontam para fora da pasta temporária</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-007</span><span class="ct-title">Leitura na seleção de layout: nome do arquivo apontando para fora da pasta temporária é recusado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — caso de leitura do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo-alvo de conteúdo não sensível existente fora da pasta temporária (guia privado). TXT sintético importado pelo clique normal.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; no clique de escolher o layout, Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o clique de escolher o layout alterando, na solicitação, o nome do arquivo para apontar ao arquivo-alvo fora da pasta temporária e a extensão para texto (valores no guia privado).</li><li>Registrar a mensagem exata/página de recusa e a resposta capturada (O1); conferir que «Conteúdo do Arquivo» não mostra nenhuma linha do arquivo-alvo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A solicitação alterada é <b>recusada</b> com mensagem clara e nenhuma linha do arquivo de fora da pasta temporária é exibida (O1); a solicitação sem alteração funcionou (controle positivo). Qualquer linha do arquivo-alvo na tela, ou aceite silencioso, é REPROVADO. Evidência: capturas desde o login, resposta capturada e texto da recusa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-008</span><span class="ct-title">Leitura na conversão: a etapa que lê o arquivo inteiro também recusa o nome fora da pasta temporária</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — leitura integral</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesmo arquivo-alvo e mesmo TXT do CT-PTR-007.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético e escolher o layout normalmente; no clique de <b>Converter</b>, Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o clique de Converter alterando, na solicitação, o nome do arquivo para apontar ao arquivo-alvo (valores no guia privado).</li><li>Registrar mensagem e resposta (O1); conferir que o resultado da conversão não contém linhas do arquivo-alvo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A conversão é <b>recusada</b> com mensagem clara; nenhum conteúdo do arquivo-alvo aparece no resultado nem em arquivo gerado (O1). Qualquer conteúdo do arquivo-alvo é REPROVADO. Evidência: capturas, resposta e texto da recusa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-009</span><span class="ct-title">Leitura de planilha: nome fora da pasta temporária com extensão de planilha é recusado nas etapas da planilha</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — caminho de planilha (conversão e motivo de rejeição)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>XLSX sintético importado; arquivo-alvo (de planilha ou de qualquer tipo) de conteúdo não sensível fora da pasta temporária (guia privado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o XLSX sintético e responder ao aviso com <b>Sim</b>; Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o passo da conversão da planilha alterando, na solicitação, o nome do arquivo para apontar ao arquivo-alvo e a extensão para planilha; repetir para a etapa que verifica se a planilha deve ser rejeitada.</li><li>Registrar mensagens e respostas (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas etapas da planilha <b>recusam</b> o nome apontando para fora da pasta temporária, com mensagem clara e sem ler o arquivo-alvo (O1). Qualquer leitura do arquivo-alvo ou erro sem recusa explícita é REPROVADO. Evidência: capturas, respostas e textos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-010</span><span class="ct-title">Variantes de caminho previstas no card são recusadas na leitura</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — cada variante é verificada de forma independente</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesmo TXT importado do CT-PTR-007. Lista de variantes dos critérios do card: guia privado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; para <b>cada variante</b> repetir o clique de escolher o layout com a variante no nome do arquivo (O1) e registrar mensagem/resposta; reabrir a tela entre variantes.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada variante é <b>recusada</b> sem exibir conteúdo de arquivo de fora da pasta temporária. A falha em uma variante reprova o CT, com a variante registrada <b>só na evidência privada do card</b>. Evidência por variante.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-011</span><span class="ct-title">A extensão é validada no servidor: extensão alterada na solicitação é recusada</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (técnico/DoD) — não confiar na extensão enviada pelo formulário</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TXT sintético importado; o servidor tem de decidir a extensão por si.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; no clique de escolher o layout, Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o clique alterando, na solicitação, a extensão para um valor não previsto e, em outro passo, uma extensão incompatível com o arquivo enviado (valores no guia privado).</li><li>Registrar mensagem e resposta (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Extensão não prevista ou incompatível com o arquivo é <b>recusada</b> com mensagem clara; o arquivo não é lido como se fosse de outro tipo (O1). Aceite silencioso é REPROVADO. Evidência: capturas e respostas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-012</span><span class="ct-title">Demais ações que recarregam o arquivo (salvar, alterar e excluir layout, abertura da tela) recusam o nome fora da pasta temporária</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — todos os pontos de leitura</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo importado na tela e layout próprio da QA (como no CT-PTR-004); arquivo-alvo do CT-PTR-007.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; para cada ação — Salvar layout, Alterar layout, Excluir layout (só no layout próprio) e a reabertura da tela — repetir o clique alterando, na solicitação, o nome do arquivo para apontar ao arquivo-alvo (valores no guia privado) e registrar mensagem/resposta (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada ação <b>recusa</b> o nome fora da pasta temporária com mensagem clara; nenhuma linha do arquivo-alvo aparece e o layout próprio não é alterado nem excluído pela solicitação alterada (conferir a lista de layouts). A falha em uma ação reprova só ela, com a evidência dela. Evidência por ação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-013</span><span class="ct-title">Arquivo existente dentro da pasta temporária mas não criado pelo Conversor é recusado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (técnico/DoD) — nome do arquivo validado, não apenas o diretório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de outra origem presente na pasta temporária do site, de conteúdo não sensível (guia privado). Se a QA não conseguir identificar um arquivo assim, o CT registra o motivo e fica pendente <b>só com essa causa</b>.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Importar o TXT sintético; no clique de escolher o layout, Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o clique alterando, na solicitação, o nome do arquivo para o do arquivo de outra origem (nome simples, sem sair da pasta temporária); registrar mensagem e resposta (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo que não foi criado pelo Conversor é <b>recusado</b>; nenhuma linha dele é exibida. Aceite é REPROVADO. Evidência: capturas e resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-013"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Gravação: o servidor recusa nomes de layout inválidos ou que apontam para fora da pasta temporária</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-014</span><span class="ct-title">Gravação na importação: nome de layout apontando para fora da pasta temporária é recusado e nada é gravado fora dela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA3) — caso de gravação do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TXT sintético. Sem acesso ao diretório do servidor, o oráculo é a recusa + resposta (O2).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Escolher o TXT sintético; no clique de <b>Importar</b>, Controle positivo da técnica: repetir a solicitação <b>sem alteração</b> e confirmar que ela funciona (O3) — só então alterar.</li><li>Repetir o clique de Importar alterando, na solicitação, o nome do layout para apontar para fora da pasta temporária (valores no guia privado).</li><li>Registrar o alerta exato exibido e a resposta (O2); quando houver acesso de leitura ao servidor, conferir a ausência do arquivo fora da pasta temporária; conferir que o formulário continua utilizável.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A importação é <b>recusada</b> com alerta claro e o formulário volta utilizável; nenhum arquivo é gravado fora da pasta temporária (O2). Aceite da importação com o nome alterado é REPROVADO. Evidência: capturas desde o login, alerta, resposta e a conferência do diretório (se houver acesso).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-015</span><span class="ct-title">Nome de layout fora dos layouts conhecidos (sem sair da pasta temporária) é recusado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (técnico/DoD) — validação contra a lista de layouts</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>TXT sintético; um nome de layout inexistente de forma simples (sem separadores de caminho).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Escolher o TXT sintético; no clique de <b>Importar</b>, alterar na solicitação o nome do layout para um nome inexistente de aparência simples (valor no guia privado); registrar o alerta e a resposta (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Posição do QA (DI3): o critério técnico do card pede validar o layout contra os conhecidos — o nome inexistente deve ser <b>recusado</b> com alerta claro. Se for aceito, o critério técnico não foi entregue e o CT é REPROVADO, mesmo sem sair da pasta temporária (o risco de segurança é menor, e isso é registrado no defeito). Evidência: capturas e resposta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-015"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Recuperação após recusa e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-016</span><span class="ct-title">Depois de uma recusa, uma nova importação válida funciona na mesma sessão</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — a recusa não deixa a tela quebrada</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Sessão em que acabou de ocorrer uma recusa (CT-PTR-007 ou CT-PTR-014).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Conversor de Arquivos» › menu «Converte Arquivo» › item do ramo do CT (NB).</li><li>Provocar uma recusa (como no CT-PTR-014); em seguida importar o TXT sintético normalmente, escolher o layout e converter (O3).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Após a recusa o menu, o campo de arquivo e o botão Importar continuam visíveis e a nova importação e a conversão funcionam sem mensagem de erro. Tela quebrada ou sessão derrubada pela recusa é REPROVADO. Evidência: capturas da recusa e da importação seguinte.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-016"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PTR-017</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Explorar o Conversor: nomes de arquivo muito longos e com caracteres especiais no envio normal; arquivos grandes; troca de layout depois da importação; segunda aba aberta na mesma sessão; mensagens de erro claras para quem usa de forma legítima.</li><li>Conferir se alguma recusa vaza detalhes do servidor (caminho interno, nome de arquivo do servidor) na mensagem exibida.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem comportamento inesperado e sem detalhe interno do servidor nas mensagens. Achado novo gera defeito (ou Bug pré-existente, com prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PTR-017"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — fluxo normal continua funcionando (importar TXT/XLSX/PRN, selecionar layout, converter, salvar/alterar/excluir layout)</td><td>CT-PTR-001 · CT-PTR-002 · CT-PTR-003 · CT-PTR-004 · CT-PTR-016</td><td>Pendente</td></tr><tr><td>CA2 — nomes de layout legítimos e nomes de arquivo com espaços/acentos continuam aceitos</td><td>CT-PTR-005 · CT-PTR-006</td><td>Pendente</td></tr><tr><td>CA3 — tentativa de apontar para fora da pasta temporária é recusada com mensagem clara; nada é lido nem gravado</td><td>CT-PTR-007 · CT-PTR-008 · CT-PTR-009 · CT-PTR-010 · CT-PTR-012 · CT-PTR-014</td><td>Pendente</td></tr><tr><td>Técnico — nome do layout validado contra os layouts conhecidos</td><td>CT-PTR-014 · CT-PTR-015</td><td>Pendente</td></tr><tr><td>Técnico — nome do arquivo do servidor validado em todos os pontos de leitura e gravação</td><td>CT-PTR-007 · CT-PTR-008 · CT-PTR-009 · CT-PTR-012 · CT-PTR-013 · CT-PTR-014</td><td>Pendente</td></tr><tr><td>Técnico — extensão validada no servidor</td><td>CT-PTR-011</td><td>Pendente</td></tr><tr><td>Técnico — testes de regressão do dev · revisão de outros pontos do sistema (#9289) · code review</td><td>— sem CT: processo/DoD de engenharia, garantido por branch policy e revisão</td><td>N/A</td></tr><tr><td>Validação em HML antes de produção</td><td>CT-PTR-001 a CT-PTR-016 (evidência de QA em HML)</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-PTR-017</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1 e o CA2 são cobertos por CTs de uso normal (cada layout e cada nome por si); o CA3 pelos CTs de leitura (selecionar layout, converter, planilha, variantes, demais ações) e de gravação (importar), todos com controle positivo da técnica. Os itens de processo do DoD (testes do dev, code review, outros módulos) ficam na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não liberada no ambiente quando a execução começar (card em In Progress)</td><td>Média</td><td>Médio — os CTs dos Grupos B e C reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>A técnica de alterar a solicitação falhar por motivo do script e parecer uma recusa do sistema</td><td>Média</td><td>Alto — falso aprovado</td><td>Controle positivo em todo CT dos Grupos B e C: a solicitação sem alteração tem de funcionar antes da alterada; a recusa é atribuída à validação só com esse controle.</td></tr><tr><td>Não haver acesso de leitura ao diretório do servidor para provar a não gravação</td><td>Média</td><td>Médio</td><td>O oráculo vira a recusa exibida + a resposta capturada, registrado no CT (O2); a ausência do acesso não é motivo de pendência do CT.</td></tr><tr><td>Validação estrita demais quebrar o uso legítimo (nomes com espaço, acento ou ponto; layouts internacionais)</td><td>Média</td><td>Alto</td><td>Grupo A cobre o uso normal, cada layout e cada nome por si; recusa de nome legítimo é REPROVADO.</td></tr><tr><td>Mensagem de recusa expor detalhe interno do servidor</td><td>Baixa</td><td>Médio</td><td>O exploratório confere o texto exibido; o texto exato é registrado só na evidência do card.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Citweb · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
