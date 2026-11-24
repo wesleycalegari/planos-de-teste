@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9786 · AXA — CITNET: Averbação de Importação Definitiva não grava e não avisa o usuário</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9786 · Sprint 20 Sustentação</span>
+    <h1>AXA — CITNET: a Averbação de Importação Definitiva não grava e não avisa o usuário</h1>
+    <div class="sub">CITNET (legado) — Averbação de Importação Definitiva · AXA · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">9/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (9×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Ao gravar uma averbação de importação definitiva no CITNET da AXA, a tela volta para o topo sem avisar nada e sem gerar o número de protocolo: o usuário não sabe se gravou nem por que não gravou. O card pede que a gravação funcione e, quando não puder gravar, que o sistema diga o motivo e o campo, mantenha o que foi digitado e leve o usuário até a pendência. Pede também conferir o valor do «Saldo FOB» e tirar mensagens internas de depuração do console.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 14 situações no ambiente de homologação da AXA: repetir o caso do card (garantia marítima e data de chegada vazia), gravar com a data preenchida e com outro tipo de garantia, provocar erros (mercadoria, valor FOB ou data de saída em branco) para ver se aparece mensagem clara, se os dados ficam na tela e se a mensagem aparece onde o usuário está, conferir o Saldo FOB com o cadastro da apólice e a tela de importação provisória.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está «Pronto para desenvolvimento» e a execução começa quando ele for liberado para homologação. Por ser um Bug da Sustentação, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem averba importação deixa de ficar sem resposta ao clicar em Gravar: ou recebe o número de protocolo, ou uma mensagem que diz o que corrigir, sem perder o que já preencheu.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Onde o card não diz o resultado exato, a QA adotou como regra: data de chegada vazia não impede gravar (como nas execuções anteriores); o aviso precisa estar visível na janela e nomear o campo; o Saldo FOB certo é o limite da apólice menos o já averbado, e o valor de quase 1 bilhão do card só será considerado erro se não bater com a apólice usada.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET</b> (legado), tenant <b>AXA</b> — menu <b>Averbações › Internacional › Importação › Definitiva</b> (Averbação de Importação Definitiva), ramo <b>Importação (25)</b>. O defeito relatado: ao clicar em <b>Gravar</b> numa averbação definitiva vinculada a uma provisória, a página volta ao topo do formulário <b>sem mensagem de sucesso nem de erro</b> e o campo <b>Protocolo</b> continua em branco.</td></tr><tr><th>Card</th><td>BUG-9786 — «[AXA] Erro ao gravar averbação de importação - IMP / EXP» · board CITWEB SUSTENTAÇÃO (Sustentacao CITWEB) · Sprint_20_Sustentacao (kanban: a iteração não conta) · estado <b>Pronto para desenvolvimento</b> · tags AXA e Citnet · aberto pela coordenação · sem tarefas filhas · 1 comentário (aviso automático de falha de análise do Voidr, sem informação de negócio) · 6 critérios de aceite funcionais + 5 técnicos (DoD).</td></tr><tr><th>Tasks de QA</th><td>#9981 [QA] Plano de teste — BUG #9786 (este plano; fecha na entrega). <b>Bug / Sustentação: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em «Pronto para homologação» (ou Em homologação).</td></tr><tr><th>Ambiente</th><td>HML do CITNET (legado) do tenant AXA (endereços no arquivo de ambiente do time). O relato original veio de produção (treinamento de 28/10/2026): <b>produção e staging não entram — N/A</b>; a QA reproduz e valida no HML. A versão (build) exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No treinamento de 28/10/2026, uma averbação de <b>Importação Definitiva</b> originada de uma provisória (garantia <b>Marítimo Ampla A</b>, moeda dólar, mercadoria e embalagem preenchidas, <b>Data de Chegada em branco</b>) foi gravada pelo botão Gravar e a tela voltou ao topo, sem nenhuma mensagem e com o Protocolo em branco: o usuário não soube se gravou, nem por que não gravou. O console do navegador só tinha três linhas sem relação com a gravação (aviso de extensão, um registro de depuração do próprio sistema e o ícone do site ausente). O card levanta três hipóteses a confirmar no servidor (validação sem mensagem, Data de Chegada obrigatória e não sinalizada, exceção tratada sem mensagem) e um ponto de conferência (Saldo FOB de 999.815.696,60). O plano <b>não escolhe hipótese</b>: o oráculo é a <b>tela</b> depois do clique em Gravar (Protocolo preenchido, mensagem com motivo e campo, dados preservados, posição da tela) e o <b>Saldo FOB</b> conferido contra o cadastro da apólice:</p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — A gravação da averbação definitiva conclui e o Protocolo é gerado e apresentado</td><td>CT-IMP-001 · CT-IMP-002 · CT-IMP-003 · CT-IMP-004</td></tr><tr><td><b>CA2</b> — Quando a gravação não conclui, a tela mostra mensagem com o motivo e o campo envolvido</td><td>CT-IMP-004 · CT-IMP-005 · CT-IMP-006 · CT-IMP-007</td></tr><tr><td><b>CA3</b> — Os dados preenchidos são preservados quando a gravação não conclui</td><td>CT-IMP-004 · CT-IMP-008</td></tr><tr><td><b>CA4</b> — A tela fica posicionada no ponto da pendência</td><td>CT-IMP-009</td></tr><tr><td><b>CA5</b> — O Saldo FOB apresentado corresponde ao saldo da apólice</td><td>CT-IMP-010 · CT-IMP-011</td></tr><tr><td><b>CA6</b> — Sem registros de depuração no console</td><td>CT-IMP-012</td></tr><tr><td>Regressão da tela irmã (Importação Provisória) e exploratório</td><td>CT-IMP-013 · CT-IMP-014</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Descrição (campo de reprodução do Bug) lida por inteiro, os 6 critérios funcionais e os 5 técnicos, o único comentário (aviso automático do Voidr, sem conteúdo de negócio) e a ausência de tarefas filhas e de anexos conferidos. <b>Tags:</b> AXA e Citnet (seguradora e sistema identificados). Bug com contexto, cenário atual, cenário desejado, usuário afetado, ambiente e evidências (quadros da gravação do treinamento). <b>Ramo declarado:</b> Importação (25), Averbação Internacional. Os 6 critérios funcionais têm oráculo observável na tela (Protocolo, mensagem, campos, posição, Saldo FOB) e no console do navegador; os 5 critérios técnicos (testes unitários, Quality Gate do Sonar, 2 aprovadores no PR, evidência de HML e homologação em RELEASE) são <b>DoD de engenharia, sem oráculo no produto</b>: não geram CT (garantidos por branch policy e pelo dev). <b>Não é débito técnico:</b> há comportamento observável pelo usuário. <b>Bug sem a tag DEFEITO</b> e do board Sustentação: segue o fluxo de Bug, com plano e <b>sem aprovação de Produtos</b>.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em Pronto para homologação:</b> O card está em <b>Pronto para desenvolvimento</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug / Sustentação: sem aprovação de Produtos</b> — quando o card chegar lá, a execução começa na hora.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Data de Chegada vazia impede gravar?</b></td><td>O card levanta a hipótese de que o campo vazio seja obrigatório e não sinalizado. <b>Posição do QA:</b> as execuções anteriores de Importação Definitiva no projeto (outros tenants) gravaram com Data de Chegada em branco e geraram Protocolo; portanto, a regra padrão é <b>Data de Chegada vazia não impede a gravação</b> (CT-IMP-001). Se o sistema passar a exigir o campo, vale o critério CA2: mensagem que o nomeie. Silêncio nunca é aceitável.</td></tr><tr><td><b>DC2</b></td><td><b>O que conta como «avisar» (CA2, CA3 e CA4)</b></td><td>O card pede mensagem com <b>motivo e campo</b>, dados mantidos e tela posicionada no ponto da pendência. <b>Posição do QA:</b> a mensagem tem de estar <b>visível na janela do navegador</b> logo após o clique (sem rolar), nomear o campo ou a regra violada e deixar todos os campos como estavam; página que volta ao topo sem mensagem e sem Protocolo = REPROVADO. O plano não prescreve o formato (modal, faixa ou texto junto ao campo).</td></tr><tr><td><b>DC3</b></td><td><b>Referência do Saldo FOB (CA5)</b></td><td>O card pede que o Saldo FOB corresponda ao saldo da apólice. <b>Posição do QA:</b> saldo esperado = <b>limite (importância segurada) da apólice no cadastro do CITWEB menos o valor já averbado</b>, na moeda da apólice. O valor do card (próximo de 1 bilhão) pode ser correto se a apólice tem limite desse porte: o CT confere o número contra o cadastro, não presume erro.</td></tr><tr><td><b>DC4</b></td><td><b>Registros de depuração (CA6)</b></td><td><b>Posição do QA:</b> o oráculo é o console do navegador capturado pelo script ao abrir a tela, escolher filial e apólice e clicar em Gravar. Mensagens de extensão do navegador e ícone do site ausente não são do sistema e não reprovam; qualquer registro de depuração emitido pela própria aplicação (texto de log solto como «existe») reprova. O build de HML é a referência (produção = N/A).</td></tr><tr><td><b>DC5</b></td><td><b>Versão em teste e massa (a QA resolve; nenhuma pergunta ao dev)</b></td><td>A QA testa o que está na homologação: passou = aprovado; falhou = REPROVADO com defeito. A versão da tela é só registrada. Provisória vinculada, apólice de Importação com saldo, usuário e dados de teste são massa da QA (banco consultado só para leitura; criação pela tela, inclusive uma provisória nova pela própria tela de Importação Provisória); a QA não escreve dado de negócio no banco.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>CITNET (legado) do tenant AXA: tela Averbação de Importação Definitiva (Averbações › Internacional › Importação › Definitiva) com Gravar, Protocolo, mensagens, campos preenchidos, posição da tela e Saldo FOB.</li><li>Gravação com garantia marítima e Data de Chegada vazia (cenário do card), com Data de Chegada preenchida, com garantia não marítima e com garantia diferente da provisória (aviso existente).</li><li>Falhas de gravação provocadas pelo QA (campo obrigatório ausente, FOB zerado, Data de Saída vazia): mensagem, motivo e campo, dados preservados, posição da tela.</li><li>Conferência do Saldo FOB contra o cadastro da apólice e após uma gravação; console do navegador sem registro de depuração.</li><li>Regressão da tela irmã (Importação Provisória) e exploratório.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A); a ocorrência original foi em produção.</li><li><b>Causa raiz no servidor</b> (log, exceção tratada, validação) — o card manda confirmar no log; o plano julga o comportamento na tela, não a implementação.</li><li><b>Critérios técnicos do card</b> (testes unitários, Quality Gate do Sonar, 2 aprovadores no PR, evidência de HML do dev, homologação em RELEASE): DoD de engenharia, sem oráculo no produto — não geram CT.</li><li>Exportação, RCTR-VI e demais telas de averbação internacional (só entram no exploratório) e o CITNET Novo.</li><li>Averbação em produção, processamento de fatura e relatórios.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano e o card está em <b>Pronto para desenvolvimento</b>. O fluxo da tela segue o que já foi mapeado em tela no projeto para a Importação Definitiva (escolher Filial e Apólice, informar a provisória vinculada, garantia, mercadoria, embalagem, veículo de transporte, FOB, Gravar e, se houver, os avisos de confirmação). Rótulos, ordem, mensagens e versão do tenant AXA são registrados na execução como observado. A QA não escreve dado de negócio no banco; a massa concreta vai para o guia privado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET (legado), tenant AXA (endereços no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário e perfil</b> — Usuário interno da QA no tenant AXA com acesso a Averbações › Internacional (dados no guia privado). Falta de usuário ou senha é massa: a QA cria ou edita pela tela e segue.</li><li><b>Massa da QA</b> — Apólice de Importação com saldo, filial e subgrupo conferidos no HML; <b>provisória vinculada</b> com garantia <b>marítima</b> (cenário do card) e outra com garantia <b>aérea ou terrestre</b>; mercadoria e embalagem válidas; valores de FOB, frete, despesas e impostos sintéticos. Se faltar provisória, a QA cria pela tela de Importação Provisória (CT-IMP-013 prova esse fluxo).</li><li><b>Ferramentas</b> — Script local (Playwright) com captura do console do navegador, das respostas da gravação e da posição de rolagem da tela; grava a captura por CT e imprime só o veredito e o caminho dos arquivos. Credencial nunca é impressa. Sessão do CITNET pode degradar depois de cerca de 1 hora: relogar por CT.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura <b>desde o login</b> até o resultado, com o formulário preenchido antes do clique em Gravar, a tela imediatamente depois (com a posição de rolagem registrada), o texto exato da mensagem, o Protocolo (ou a sua ausência) e o console do navegador.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o CITNET do tenant AXA e entrar com o usuário da QA, por clique desde a tela de login.</li><li><b>N2 — Tela:</b> clicar no menu <b>Averbações</b>, depois <b>Internacional › Importação › Definitiva</b> (Averbação de Importação Definitiva). Sem digitar endereço.</li><li><b>N3 — Apólice e provisória:</b> escolher a <b>Filial</b> (o combo de Apólice só carrega depois do clique na Filial), a <b>Apólice</b> e o <b>Subgrupo</b>; selecionar a <b>provisória</b> vinculada e aguardar a carga dos dados dela (origem, destino, garantia).</li><li><b>N4 — Preenchimento:</b> complementos de origem e destino, <b>Data de Saída</b>, garantia, <b>Mercadoria</b> (código), <b>Embalagem</b>, veículo de transporte de chegada, <b>FOB</b> e frete; Data do Movimento como a tela propuser.</li><li><b>N5 — Gravar:</b> rolar até o botão <b>Gravar</b>, registrar a posição de rolagem e capturar o formulário preenchido; clicar em Gravar; se aparecer aviso de confirmação (faturamento do mês, garantia diferente da provisória, excedente), registrar o texto exato e responder como o CT mandar.</li><li><b>N6 — Registro:</b> data/hora, versão exibida na tela, texto exato de cada mensagem, valor do campo Protocolo, valores dos campos depois do clique, posição de rolagem e as linhas do console, no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário da QA (AXA, CITNET):</b> Perfil interno com acesso à Averbação Internacional; dados no guia privado.</li><li><b>Apólice de Importação:</b> Com saldo e vigência cobrindo a Data do Movimento; limite (importância segurada) conferido no CITWEB (CT-IMP-010).</li><li><b>Provisória vinculada, garantia marítima:</b> Reproduz o cenário do card (Marítimo Ampla A, moeda dólar, origem China × destino Minas Gerais); a QA registra o número da provisória no resultado.</li><li><b>Provisória vinculada, garantia aérea ou terrestre:</b> Para o CT-IMP-003 e o aviso de «garantia diferente da provisória» (CT-IMP-004).</li><li><b>Mercadoria, embalagem e valores:</b> Mercadoria e embalagem válidas do cadastro; FOB, frete, despesas, lucros e impostos sintéticos; observação curta sem dado de cliente.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente, login e leitura do console; registrar versão e Saldo FOB inicial da apólice.</li><li>Grupo A (CT-IMP-001 a 004) → Grupo B (005 a 009) → Grupo C (010 a 012) → Grupo D (013 e 014).</li><li>Cada CT usa sessão e formulário novos; averbação criada por um CT só é excluída pela QA se for dela (massa própria), e o CT-IMP-011 mede o saldo antes e depois; nenhum CT depende do resultado de outro.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — A gravação conclui e gera o Protocolo (CA1)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-001</span><span class="ct-title">Reprodução do card: definitiva vinculada à provisória, garantia marítima e Data de Chegada vazia → Gravar → Protocolo gerado e exibido</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (reprodução do relato; oráculo: campo Protocolo e mensagem na tela)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Usuário da QA; apólice de Importação com saldo; provisória vinculada com garantia marítima (massa no guia privado); mercadoria e embalagem válidas.</li></ul>
+      <h4>Passos</h4><ol><li>Navegar por clique até a Averbação de Importação Definitiva (N1 e N2) e escolher Filial, Apólice, Subgrupo e a provisória (N3).</li><li>Preencher o formulário completo e válido (garantia marítima da provisória, mercadoria, embalagem, veículo de transporte, FOB e frete), deixando a <b>Data de Chegada em branco</b> (N4); rolar até Gravar e capturar o formulário e a posição de rolagem (N5).</li><li>Clicar em Gravar, responder aos avisos de confirmação, se houver, e registrar a tela, a posição de rolagem e o campo Protocolo (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação <b>conclui</b>: o campo <b>Protocolo</b> aparece preenchido (número gerado) e a tela mostra a confirmação de gravação; a averbação passa a existir na consulta. Se o sistema não concluir, vale o critério CA2 (CT-IMP-004 a 007): mensagem com motivo e campo, nunca o retorno silencioso do relato. Página de volta ao topo, sem mensagem e com Protocolo em branco = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-002</span><span class="ct-title">Mesma averbação do CT-IMP-001 com a Data de Chegada preenchida → Protocolo gerado (controle da hipótese da data)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (contraprova positiva: separa «Data de Chegada» de qualquer outra causa)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-IMP-001 (provisória marítima disponível; se a do CT-IMP-001 foi consumida, usar outra provisória equivalente).</li></ul>
+      <h4>Passos</h4><ol><li>Repetir os passos N1 a N4 do CT-IMP-001 e preencher a <b>Data de Chegada</b> com data igual ou posterior à Data de Saída.</li><li>Clicar em Gravar e registrar a tela, o Protocolo e as mensagens.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação conclui com <b>Protocolo preenchido</b>. Se o CT-IMP-001 não gravou e este grava, o achado fica registrado como «Data de Chegada vazia impede gravar sem avisar» e o CT-IMP-001 é REPROVADO. Se nenhum gravar, ambos são REPROVADOS pelo critério CA1.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-003</span><span class="ct-title">Garantia não marítima (aérea ou terrestre) vinculada à provisória → Gravar → Protocolo gerado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA1 (outro tipo de garantia: o relato é de marítima; precisa-se saber se o defeito é da garantia)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Provisória vinculada com garantia aérea ou terrestre (massa); demais dados válidos.</li></ul>
+      <h4>Passos</h4><ol><li>Navegar até a Definitiva, escolher Filial, Apólice, Subgrupo e a provisória aérea ou terrestre (N1 a N3).</li><li>Preencher o formulário com a garantia da provisória, Data de Chegada em branco (N4), e clicar em Gravar (N5).</li><li>Registrar a tela, o Protocolo e as mensagens (N6).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação conclui com <b>Protocolo preenchido</b> e confirmação visível. Resultado diferente de «Protocolo ou mensagem com motivo» = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-004</span><span class="ct-title">Garantia escolhida diferente da garantia da provisória: o aviso aparece e cada resposta (Não / Sim) tem o efeito esperado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1, CA2 e CA3 (aviso já existente de «garantia diferente da provisória»; comportamento com mensagem)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Provisória vinculada com garantia A; formulário válido.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher o formulário trocando a garantia para uma diferente da carregada da provisória (N4) e clicar em Gravar.</li><li>Registrar o texto exato do aviso; responder <b>Não</b> e capturar a tela e os campos; clicar em Gravar de novo e responder <b>Sim</b>, registrando o Protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema mostra o aviso de garantia diferente da provisória; com <b>Não</b> nada é gravado, o Protocolo fica em branco e <b>todos os campos permanecem como estavam</b>; com <b>Sim</b> a gravação conclui com Protocolo. Aviso ausente com retorno silencioso = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Quando a gravação não conclui: mensagem com motivo e campo, dados preservados e tela no ponto da pendência (CA2, CA3 e CA4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-005</span><span class="ct-title">Mercadoria não informada → Gravar → mensagem identifica o motivo e o campo; sem retorno silencioso</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (falha provocada: campo obrigatório ausente)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Formulário válido como no CT-IMP-001, depois de apagar a Mercadoria.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher o formulário completo (N4) e esvaziar a <b>Mercadoria</b>; rolar até Gravar e registrar a posição de rolagem (N5).</li><li>Clicar em Gravar e registrar a tela, o texto exato da mensagem e o campo Protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação não conclui e a tela mostra <b>mensagem que informa o motivo e nomeia o campo Mercadoria</b>; o Protocolo fica em branco. Se o sistema gravar mesmo assim (campo opcional), o resultado é Protocolo preenchido e a averbação é excluída pela QA (massa própria). Resultado reprovado: página volta sem mensagem e sem Protocolo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-006</span><span class="ct-title">FOB zerado ou em branco → Gravar → mensagem identifica o motivo e o campo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (falha provocada: valor da mercadoria)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Formulário válido como no CT-IMP-001, depois de zerar ou esvaziar o FOB.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher o formulário completo e deixar o <b>FOB</b> zerado (ou em branco) (N4); rolar até Gravar (N5).</li><li>Clicar em Gravar e registrar a tela, o texto exato da mensagem e o campo Protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação não conclui e a tela mostra <b>mensagem com o motivo e o campo FOB</b>; Protocolo em branco. Se a regra do sistema aceitar FOB zero, vale Protocolo preenchido e exclusão pela QA. Retorno silencioso = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-007</span><span class="ct-title">Data de Saída em branco → Gravar → mensagem identifica o motivo e o campo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA2 (falha provocada: data obrigatória; a hipótese do card trata de campos de data)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Formulário válido como no CT-IMP-001, depois de esvaziar a Data de Saída.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher o formulário completo e deixar a <b>Data de Saída</b> em branco (N4); rolar até Gravar (N5).</li><li>Clicar em Gravar e registrar a tela, o texto exato da mensagem e o campo Protocolo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação não conclui e a tela mostra <b>mensagem com o motivo e o campo Data de Saída</b>; Protocolo em branco. Retorno silencioso (página ao topo, sem mensagem e sem Protocolo) = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-008</span><span class="ct-title">Depois de uma gravação recusada, todos os dados preenchidos continuam na tela (nenhum campo limpo)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA3 (comparação campo a campo antes e depois do clique em Gravar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Formulário completo; uma das falhas provocadas dos CT-IMP-005 a 007 (a do CT-IMP-007, Data de Saída em branco).</li></ul>
+      <h4>Passos</h4><ol><li>Antes de clicar em Gravar, registrar o valor de cada campo (filial, apólice, subgrupo, provisória, origem, destino, garantia, mercadoria, peso, embalagem, marcas, moeda, FOB, câmbio, frete, despesas, lucros, impostos, observações).</li><li>Clicar em Gravar com o campo faltando e registrar de novo o valor de cada campo; comparar os dois registros.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os dois registros são <b>idênticos</b> (exceto o campo que o sistema deliberadamente recalcula e informa na mensagem): nenhum campo preenchido é limpo, trocado ou recalculado sem aviso. Campo perdido = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-009</span><span class="ct-title">Depois de uma gravação recusada, a mensagem e o campo da pendência ficam visíveis na janela, sem o usuário precisar rolar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA4 (posição da tela; o relato mostra a tela no topo, longe do botão Gravar)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Formulário completo; janela do navegador de tamanho comum (laptop); falha provocada como no CT-IMP-007; a tela rolada até o botão Gravar antes do clique.</li></ul>
+      <h4>Passos</h4><ol><li>Rolar a tela até o botão Gravar, registrar a posição de rolagem e clicar em Gravar com a Data de Saída em branco.</li><li>Registrar a posição de rolagem depois do clique e uma captura da janela inteira (sem rolar).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A mensagem de pendência e o campo envolvido estão <b>dentro da janela visível</b> depois do clique (a tela é posicionada no ponto da pendência ou a mensagem aparece onde o usuário está). Tela no topo do formulário com a mensagem fora da janela, ou sem mensagem = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-009"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Saldo FOB e registros de depuração no console (CA5 e CA6)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-010</span><span class="ct-title">Saldo FOB mostrado na tela é igual ao saldo da apólice conferido no cadastro</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA5 (oráculo: limite da apólice no CITWEB menos o já averbado; DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice de Importação da massa; acesso de leitura ao cadastro da apólice no CITWEB (limite e moeda) e à consulta de averbações dela.</li></ul>
+      <h4>Passos</h4><ol><li>Na Definitiva, escolher Filial, Apólice e Subgrupo e registrar o <b>Saldo FOB</b> exibido (valor e moeda).</li><li>No CITWEB, ler o limite (importância segurada) da apólice e somar o já averbado; calcular o saldo esperado e comparar com o valor da tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O Saldo FOB exibido na tela <b>é igual ao saldo esperado</b> (limite da apólice menos o já averbado, na moeda da apólice), com o cálculo registrado no resultado. Saldo diferente do saldo da apólice = REPROVADO. O número do card só reprova se não bater com o cadastro da apólice usada.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-011</span><span class="ct-title">Depois de uma gravação concluída, o Saldo FOB diminui pelo valor averbado e continua coerente com a apólice</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA5 (antes × depois; discriminador: valor de FOB conhecido)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice do CT-IMP-010 com o saldo anotado; formulário do CT-IMP-001 com FOB conhecido.</li></ul>
+      <h4>Passos</h4><ol><li>Anotar o Saldo FOB da apólice, gravar a averbação do CT-IMP-001 e guardar o Protocolo.</li><li>Voltar à tela (por clique), escolher a mesma apólice e comparar o novo Saldo FOB com o anterior menos o valor averbado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O saldo novo é igual ao saldo anterior <b>menos o valor averbado</b> (na moeda da apólice, com a conversão que o sistema aplica registrada); o valor continua igual ao cálculo do CITWEB. Saldo que não muda, que sobe ou que diverge do cálculo = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-012</span><span class="ct-title">Console do navegador sem registro de depuração da aplicação ao abrir a tela, escolher filial e apólice e gravar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA6 (oráculo: linhas do console capturadas pelo script; DC4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Script com captura do console desde o carregamento; formulário do CT-IMP-001.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a Definitiva por clique, capturando todas as linhas do console, escolher Filial e Apólice e clicar em Gravar.</li><li>Classificar cada linha do console: da extensão do navegador, do ícone do site ou da própria aplicação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Nenhuma linha de depuração da aplicação</b> (texto de log solto, como a palavra «existe» emitida pela tela de filial) no console; linhas de extensão do navegador e do ícone do site não reprovam. Registro de depuração da aplicação = REPROVADO.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-012"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo D — Regressão da tela irmã e exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-013</span><span class="ct-title">Regressão: Importação Provisória grava e gera o Protocolo, e o Saldo e as mensagens continuam coerentes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (tela irmã da mesma família de averbação internacional)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice de Importação da massa; dados de uma provisória válida (mercadoria, embalagem, FOB, moeda); a provisória criada serve de massa para o CT-IMP-002 se faltar.</li></ul>
+      <h4>Passos</h4><ol><li>Navegar por clique até Averbações › Internacional › Importação › Provisória, escolher Filial e Apólice e preencher uma provisória válida.</li><li>Clicar em Gravar e registrar a tela, o Protocolo e as mensagens.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A provisória grava com <b>Protocolo preenchido</b> e confirmação; a correção da Definitiva não quebra a tela irmã. Retorno silencioso = REPROVADO (e seria um defeito mais amplo do que o do card).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-IMP-014</span><span class="ct-title">Exploratório (NOR_QA_002 seção 11): 15 a 30 min guiados por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Massa dos CTs anteriores.</li></ul>
+      <h4>Passos</h4><ol><li>Gravar com o botão clicado duas vezes seguidas e conferir se gera um ou dois Protocolos.</li><li>Valores extremos (FOB muito alto, peso zero, câmbio zerado), campo de observação longo e navegação de volta pelo navegador depois do Gravar.</li><li>Exportação internacional: gravar e conferir se mostra Protocolo ou mensagem (mesma família de telas); outras provisórias e garantias.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma gravação termina em silêncio (sempre Protocolo ou mensagem com motivo); um clique duplo não gera Protocolo duplicado. O que divergir é registrado como observado. Sem ocorrências: comentar no card «Exploratório executado [data HML]. Sem ocorrências.»</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-IMP-014"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — A gravação da averbação definitiva conclui e o Protocolo é gerado e apresentado</td><td>CT-IMP-001 · CT-IMP-002 · CT-IMP-003 · CT-IMP-004</td><td>Pendente</td></tr><tr><td>CA2 — Quando a gravação não conclui, mensagem com o motivo e o campo envolvido</td><td>CT-IMP-004 · CT-IMP-005 · CT-IMP-006 · CT-IMP-007</td><td>Pendente</td></tr><tr><td>CA3 — Dados preenchidos preservados quando a gravação não conclui</td><td>CT-IMP-004 · CT-IMP-008</td><td>Pendente</td></tr><tr><td>CA4 — Tela posicionada no ponto da pendência</td><td>CT-IMP-009</td><td>Pendente</td></tr><tr><td>CA5 — Saldo FOB corresponde ao saldo da apólice</td><td>CT-IMP-010 · CT-IMP-011</td><td>Pendente</td></tr><tr><td>CA6 — Sem registros de depuração no console</td><td>CT-IMP-012</td><td>Pendente</td></tr><tr><td>Regressão da tela irmã e exploratório (NOR_QA_002 seção 11)</td><td>CT-IMP-013 · CT-IMP-014</td><td>Pendente</td></tr><tr><td>Critérios técnicos do card (testes unitários, Sonar, 2 aprovadores no PR, evidência de HML do dev, homologação em RELEASE)</td><td>— não geram CT: DoD de engenharia, sem oráculo no produto; garantidos por branch policy e pelo dev</td><td>N/A</td></tr><tr><td>Causa raiz no servidor (hipóteses do card, log da janela de 28/10/2026)</td><td>— não gera CT: o plano julga o comportamento na tela, não o código</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 6 critérios funcionais do card mapeados a CTs (100%), com oráculo na <b>tela</b> (Protocolo, mensagem com motivo e campo, campos preservados, posição da tela, Saldo FOB conferido no cadastro) e no <b>console</b>, contraprova positiva (data preenchida, garantia não marítima) e regressão da tela irmã. Os 5 critérios técnicos (DoD) e a causa raiz no servidor ficam fora por decisão do plano (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>A falha do relato é intermitente ou depende da massa (garantia marítima, provisória específica) e uma rodada sem sintoma dá falsa aprovação</td><td>Média</td><td>Alta</td><td>CT-IMP-001 reproduz o cenário exato do card (marítima, Data de Chegada vazia) e CT-IMP-002 e 003 variam a data e a garantia; a falha provocada dos CT-IMP-005 a 009 garante o oráculo mesmo sem reprodução do relato.</td></tr><tr><td>Correção que «resolve» mostrando mensagem genérica sem motivo nem campo</td><td>Média</td><td>Média</td><td>CT-IMP-005 a 007 exigem o motivo e o campo nomeados e CT-IMP-009 a mensagem visível na janela (DC2).</td></tr><tr><td>Provisória vinculada com garantia marítima inexistente ou já consumida no HML do AXA</td><td>Média</td><td>Média</td><td>A QA cria provisória pela tela de Importação Provisória (CT-IMP-013) e registra o número usado; não se pergunta ao dev (DC5).</td></tr><tr><td>Sessão do CITNET degrada depois de cerca de 1 hora e o combo de Apólice só carrega no clique da Filial</td><td>Média</td><td>Baixa</td><td>Relogar por CT; clicar na Filial antes de escolher a Apólice; registrar a ocorrência.</td></tr><tr><td>Averbações de teste ficam gravadas no HML e mexem no Saldo FOB dos CTs seguintes</td><td>Média</td><td>Baixa</td><td>Cada CT anota o saldo antes e depois; só se exclui averbação própria da QA (massa própria).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
