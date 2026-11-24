@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-7636 · [ CITNET - Starr ] Importação Provisória: campo Valor Orig. FOB nunca habilita (impasse "Informe o Valor FOB")</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-7636 · Sprint 20 Sustentação</span>
+    <h1>[ CITNET - Starr ] Importação Provisória: campo Valor Orig. FOB nunca habilita (impasse "Informe o Valor FOB")</h1>
+    <div class="sub">CITNET · STARR · Board Sustentação · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (4×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No STARR, na tela de Importação Provisória, depois de escolher filial, apólice e subgrupo e clicar em Novo, o campo Valor Orig. FOB fica cinza, travado em 0,00. Ao gravar, o sistema pede para informar o Valor FOB, mas não deixa digitar. Resultado: ninguém consegue criar uma Importação Provisória no STARR. O card pede que o campo libere para digitar e que a Provisória seja gravada.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 8 situações no ambiente de homologação do STARR: ver se o campo libera para digitar (e continua liberado ao escolher a moeda), se o saldo acompanha o valor, gravar uma Provisória de teste e conferir que ela fica salva (e apagar em seguida); conferir que o sistema ainda recusa gravar sem o valor; repetir em outra apólice do card e em um cliente que já funcionava; e uma exploração livre, incluindo se a Importação Definitiva enxerga a Provisória.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste do plano. O dev corrigiu e testou na máquina dele; o QA anterior aprovou 3 situações em 02/10/2026, e a QA refaz tudo no ambiente do card sem aproveitar esses resultados antes de conferir. Na sondagem prévia (sem gravar nada), a base padrão do STARR já mostrou o campo liberado; o ambiente do card ainda será aberto na execução e é ele que decide.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem lança Importação Provisória no STARR volta a conseguir informar o Valor FOB e gravar, e a Importação Definitiva, que depende da Provisória, deixa de ficar travada.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Por ser Bug, o plano não precisa de aprovação de Produtos. As mensagens e o cálculo do saldo seguem o que a própria tela mostra e o que os outros clientes já fazem (a tela é a referência); qualquer diferença vira defeito para o dev.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET</b>, tenant <b>STARR</b> — menu <b>Averbações › Importação-Provisória</b> (Averbação de Importação Provisória). O defeito: depois de escolher filial, apólice e subgrupo e clicar em <b>Novo</b>, o campo <b>Valor Orig. FOB</b> fica cinza, preso em 0,00, mesmo escolhendo a moeda estrangeira; ao <b>Gravar</b>, a tela exige o valor («Informe o Valor FOB») sem deixar digitá-lo.</td></tr><tr><th>Card</th><td>BUG-7636 — «[ CITNET - Starr ] Importação Provisória: campo Valor Orig. FOB nunca habilita (impasse «Informe o Valor FOB»)» · board Sustentação (CITWEB\Sustentacao CITWEB), fluxo kanban · tipo <b>Bug</b> (origem: relato do Voidr, coletado em 29/06/2026) · estado <b>Aguardando PR HML</b> · 2 tarefas filhas lidas (correção do dev — Done; teste do QA anterior — Done) e 4 comentários lidos por inteiro.</td></tr><tr><th>Tasks de QA</th><td>#9973 [QA] Plano de teste — BUG #7636 (este plano; fecha na entrega). <b>Bug: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em homologação.</td></tr><tr><th>Ramo / produto</th><td>Importação (ramo 25, pela própria tela Importação-Provisória) · filial e apólice «ÚNICA» do ambiente do card (apólices 333 e 7777) · subgrupo 1.</td></tr><tr><th>Ambiente</th><td>HML do CITNET, tenant STARR, na variante do ambiente em que o card reproduz (endereço no arquivo de ambiente do time). Staging e produção não entram: N/A para a QA. A versão exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na tela de Averbação de Importação Provisória do STARR, o QA do Voidr escolheu filial, apólice e subgrupo e clicou em <b>Novo</b>: a maior parte do formulário habilitou (o bloqueio total do card anterior, #7546, parecia resolvido), mas o campo <b>Valor Orig. FOB</b> ficou desabilitado em «0,00», inclusive depois de escolher a moeda estrangeira. Ao <b>Gravar</b>, o sistema abriu o aviso <b>«ATENÇÃO! Informe o Valor FOB»</b>, sem que houvesse campo editável para informar o valor. Resultado: impossível criar a Importação Provisória pela tela no STARR (apólices «ÚNICA»), o que também trava a Importação Definitiva, que consome uma Provisória. O defeito é sempre reproduzível, e outros tenants (CORE, Zurich, Kovr) operam normalmente.</p><p><b>Esperado pelo card:</b> o campo Valor Orig. FOB habilita para o usuário informar o valor e a Importação Provisória é gravada, como nos tenants que operam normalmente. <b>Correção do dev</b> (tarefa de análise e desenvolvimento, 30/09–01/10/2026): o STARR passa a receber o mesmo tratamento já dado a outras seguradoras no card #7614 (Kovr); o dev validou em máquina local (antes: campo travado e aviso; depois: valor digitado, Saldo FOB recalculado e gravação concluída, com exclusão pela tela). O oráculo deste plano é a <b>tela</b> do ambiente do card.</p><table><tr><th>Origem do critério</th><th>CTs</th></tr><tr><td><b>Card</b> — Esperado: o campo Valor Orig. FOB habilita e aceita o valor, mesmo após escolher a moeda estrangeira</td><td>CT-FOB-001 · CT-FOB-002</td></tr><tr><td><b>Card</b> — Esperado: a Importação Provisória é gravada (e o que foi gravado persiste)</td><td>CT-FOB-003 · CT-FOB-004</td></tr><tr><td><b>Card</b> — a validação de Gravar exige o valor FOB (continua valendo, agora com campo editável)</td><td>CT-FOB-005</td></tr><tr><td><b>Card</b> — apólices «ÚNICA» 333 e 7777 do ambiente do card; equiparar aos tenants que operam normalmente</td><td>CT-FOB-006 · CT-FOB-007</td></tr><tr><td><b>Card</b> — impacto em cascata na Importação Definitiva; exploratório (NOR_QA_002 seção 11)</td><td>CT-FOB-008</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Card lido por inteiro: descrição de Bug (campo de reprodução) com resumo, ambiente, usuário (perfil interno), passos numerados, observado × esperado, impacto e evidências; 3 anexos (formulário com o campo cinza, o mesmo com a moeda escolhida e o aviso «Informe o Valor FOB») conferidos; 2 tarefas filhas e 4 comentários lidos (inclusive o do dev com as evidências locais, o do QA anterior e o automático de triagem). <b>Tags:</b> Citnet (sistema), tenant STARR (seguradora) e ambiente HML; <b>ramo</b> Importação, pela tela. O card não traz critério de aceite formal, mas o <b>esperado é observável na tela</b> (campo habilita, valor aceito, Provisória gravada) e a causa está isolada no relato: o oráculo é a tela, sem lacuna de regra de negócio. A triagem automática de 30/06 apontou «usuário/perfil e ambiente não informados»; o corpo do card já traz os dois (usuário interno; STARR HML). <b>Não é débito técnico:</b> há comportamento que o usuário vê. <b>Bug sem a tag DEFEITO:</b> segue o fluxo de Bug, com plano e sem aprovação de Produtos. <b>Resultados anteriores:</b> o QA anterior da Sustentação aprovou 3 cenários em 02/10/2026 e o dev anexou evidências de máquina local; a QA <b>não herda</b> nenhum desses resultados: refaz cada cenário no ambiente do card e julga o oráculo.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação:</b> O card está em <b>Aguardando PR HML</b>: a execução só começa quando ele estiver em <b>Pronto para homologação</b> ou <b>Em homologação</b>. Estando, executa-se na hora, depois da pré-verificação do ambiente. Estado de desenvolvimento = espera legítima, não erro; a QA não muda o estado do card. <b>Bug: sem aprovação de Produtos</b> — nada a aguardar além disso.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Em que estado o card pode ser executado e o que conta como falha</b></td><td>O card está em <b>Aguardando PR HML</b> (a correção ainda não está confirmada no HML). Pelo fluxo da QA, a execução começa em <b>Pronto para homologação</b> ou <b>Em homologação</b>; a QA <b>não muda o estado do card</b>. Quando começar, a QA testa o que estiver no HML: campo habilitou e gravou = aprovado; campo continua travado = <b>REPROVADO + defeito</b> para o dev (em homologação não existe «bloqueado»). A QA não pergunta versão nem branch ao dev.</td></tr><tr><td><b>DC2</b></td><td><b>Qual ambiente decide o veredito</b></td><td>O card reproduz na variante «alfa» do STARR (filial e apólices próprias, 333 e 7777, apólice «ÚNICA»). <b>Posição do QA:</b> o veredito dos CTs 001 a 004 vem do ambiente do card; a base padrão do STARR (filial 1, apólice de importação) entra como apoio nos CTs 006 e 008. Faltou usuário ou senha no ambiente do card? A QA cria ou edita o usuário pela tela e segue (massa, nunca pergunta ao dev).</td></tr><tr><td><b>DC3</b></td><td><b>O que é «habilitado» e qual o saldo esperado</b></td><td><b>Habilitado</b> = campo editável: aceita digitação e mostra o valor digitado, antes e depois de escolher a moeda (o atributo de desabilitado lido por script é apoio, nunca o único oráculo). <b>Saldo FOB:</b> numa Provisória nova, o Saldo FOB acompanha o valor digitado (observado na sondagem de planejamento e na evidência do dev: digitar 1.500.000,00 mostra Saldo 1.500.000,00); divergência é registrada com os números.</td></tr><tr><td><b>DC4</b></td><td><b>Massa e limpeza</b></td><td>A QA grava Provisórias de teste com número de documento próprio (prefixo da QA + data/hora) e <b>exclui pela tela só as que ela criou</b> (a tela tem o botão Excluir; o dev também limpou assim). Não escreve em banco de negócio. Provisória que sobrar fica anotada no resultado do CT.</td></tr><tr><td><b>DC5</b></td><td><b>Resultado do QA anterior e evidência do dev</b></td><td>Não substituem a execução. Servem de referência do que a tela deve mostrar (campo editável, Saldo FOB igual ao valor, «Gravação efetuada com sucesso!»); a QA reexecuta tudo, com evidência própria por CT e o texto exato lido na tela.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Tela <b>Averbações › Importação-Provisória</b> no STARR: escolher filial, apólice e subgrupo, <b>Novo</b>, o campo <b>Valor Orig. FOB</b> (habilitado, editável, com a moeda escolhida) e o <b>Saldo FOB</b>.</li><li><b>Gravar</b> a Importação Provisória com FOB preenchido, conferir a confirmação, <b>consultar</b> o que foi gravado e <b>excluir</b> pela tela a Provisória de teste.</li><li>A validação de Gravar sem o valor FOB (aviso «Informe o Valor FOB»).</li><li>Regressão: a segunda apólice «ÚNICA» do card, a base padrão do STARR e um tenant que já operava normalmente.</li><li>Exploratório de 15–30 minutos guiado por risco, incluindo a visibilidade da Provisória na Importação Definitiva.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — N/A para a QA (a verificação em staging é de Produtos e do dev).</li><li><b>Código e causa raiz</b> — o plano julga o comportamento na tela; a lista de seguradoras do dev e o teste automatizado dele não geram CT.</li><li><b>Importação Definitiva completa</b> — o card cita o impacto em cascata, mas a tela de Definitiva tem card próprio; aqui só se confere se ela enxerga a Provisória gravada (exploratório).</li><li><b>AXA e AIG</b> — têm tratamento próprio da tela (FOB amarrado à apólice, formulário desabilitado); o dev os cobre por teste automatizado. A QA registra o que vir se tiver acesso, sem veredito do card.</li><li>O bloqueio total do formulário do card anterior (#7546) — já tratado no card dele; aqui só se confirma que o restante do formulário habilita (CT-FOB-001).</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano. <b>Sondagem de planejamento</b> (sem gravar nada, não é execução de CT nem veredito): na base padrão do STARR (filial 1, apólice de importação 20, subgrupo 1), após <b>Novo</b> e a moeda DÓLAR NORTE-AMERICANO, o campo Valor Orig. FOB apareceu habilitado; digitar 1500000,00 deixou o Saldo FOB em 1.500.000,00; clicar em <b>Gravar</b> sem o valor mostrou o aviso <b>«ATENÇÃO! Informe o Valor FOB»</b> mais <b>«Selecione a Garantia»</b> (e, com o formulário vazio, também «Informe o Documento Provisório», «Informe a Data de Recebimento» e «Informe a Data de Validade»). O ambiente do card (variante «alfa», apólices 333 e 7777) <b>não</b> foi aberto na sondagem: é ele que decide o veredito (DC2). Rótulos e mensagens são do que a tela mostrou; o que mais aparecer é registrado na execução como observado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET, tenant STARR, nas duas variantes (a do card e a padrão). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário de teste</b> — Usuário interno da QA do STARR com acesso à tela Importação-Provisória (o card usou perfil interno). Usuário e senha ficam só no arquivo de ambiente do time; faltando acesso, a QA cria ou edita o usuário pela tela e segue.</li><li><b>Filial, apólice e subgrupo</b> — Ambiente do card: a filial «FILIAL VOIDR», apólices «ÚNICA» 333 e 7777, subgrupo 1. Base padrão (apoio): filial 1, apólice de importação 20, subgrupo 1. Confirmar na tela, antes do 1º CT, que filial, apólice e subgrupo existem.</li><li><b>Massa da QA</b> — Provisórias de teste com documento próprio (prefixo da QA + data/hora), recebimento de hoje, validade de hoje + 60 dias, moeda DÓLAR NORTE-AMERICANO, FOB 1.500.000,00, garantia da lista e mercadoria escolhida pela lupa, origem e destino como a tela pedir. Excluir pela tela só o que o próprio CT criou.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura desde o login, formulário com o campo e o saldo, a mensagem exata e a consulta. Documento de teste e números mascarados quando necessário.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o CITNET do STARR (endereço no arquivo de ambiente do time — único endereço digitado) e entrar com o usuário interno de teste da QA, por clique desde a tela de login; registrar a versão exibida.</li><li><b>N2 — Tela:</b> menu <b>Averbações › Importação-Provisória</b>; escolher filial, apólice (o combo de apólice carrega depois de escolher a filial) e subgrupo.</li><li><b>N3 — Novo:</b> clicar em <b>Novo</b>; ler o estado do campo <b>Valor Orig. FOB</b> (habilitado ou cinza), escolher a <b>Moeda</b> e ler de novo; digitar o valor e ler o <b>Saldo FOB</b>.</li><li><b>N4 — Gravar:</b> preencher Doc. Provisório, Recebimento, Validade, Garantia e Mercadoria, clicar em <b>Gravar</b> e registrar a mensagem exata do aviso ou da confirmação e o número da Provisória gerado.</li><li><b>N5 — Consulta e exclusão:</b> abrir a lupa de <b>Provisória</b> na própria tela, localizar o documento de teste, conferir FOB e saldo; <b>Excluir</b> só o que o CT criou e confirmar que a consulta deixa de listar.</li><li><b>N6 — Registro:</b> data/hora, versão, texto exato das mensagens, estado do campo FOB e valor do Saldo FOB em cada passo, no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário interno STARR (QA):</b> Perfil interno com acesso à tela; criado ou editado pela tela se faltar; dados só no arquivo de ambiente.</li><li><b>Apólices do ambiente do card:</b> «ÚNICA» 333 e 7777, filial «FILIAL VOIDR», subgrupo 1 — confirmadas na tela antes do 1º CT.</li><li><b>Provisória de teste:</b> Documento próprio (prefixo da QA + data/hora) com FOB 1.500.000,00, moeda DÓLAR NORTE-AMERICANO; registrar o número gerado (ano/sequência) e a exclusão.</li><li><b>Tenant de controle:</b> Um tenant de HML que já operava normalmente (CORE, Zurich ou Kovr, conforme o card) com usuário de teste da QA; o primeiro com acesso no arquivo de ambiente.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; registrar a versão exibida e a existência de filial, apólice e subgrupo.</li><li>Grupo A (CT-FOB-001 a 004, nesta ordem: o 003 grava, o 004 consulta e exclui a mesma Provisória) → Grupo B (005 a 007) → Grupo C (008).</li><li>Cada CT começa por login novo e pela tela limpa; as Provisórias de teste são excluídas pela tela ao final do CT que as criou.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: o campo Valor Orig. FOB habilita, aceita o valor e a Importação Provisória é gravada e persiste (comportamento esperado do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-001</span><span class="ct-title">Depois de Novo, o campo Valor Orig. FOB está habilitado e continua habilitado ao escolher a moeda estrangeira (reprodução do card)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — comportamento esperado do card (reprodução do passo a passo original, apólice «ÚNICA» 333)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário interno do STARR (DC2), login por clique. Apólice 333, filial e subgrupo 1 do ambiente do card. Card em homologação (DC1).</li></ul>
+      <h4>Passos</h4><ol><li>Entrar no CITNET do STARR pelo login e registrar a versão exibida (N1).</li><li>Clicar em Averbações › Importação-Provisória; escolher filial, apólice 333 e subgrupo 1 (N2); capturar a tela.</li><li>Clicar em Novo; capturar o formulário inteiro e ler o estado do campo Valor Orig. FOB (N3); tentar digitar 1500000,00 e ler o que ficou no campo.</li><li>Escolher a moeda DÓLAR NORTE-AMERICANO; capturar de novo e ler o campo outra vez; conferir também que Doc. Provisório, Recebimento, Validade, Garantia e Mercadoria estão habilitados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois de <b>Novo</b> o campo Valor Orig. FOB <b>não</b> fica cinza: está habilitado, aceita a digitação e mostra o valor digitado, antes e depois de escolher a moeda; o restante do formulário também habilita. Campo cinza preso em «0,00» (o defeito do card), mesmo que o resto do formulário habilite = <b>REPROVADO</b>, com a captura e a leitura do estado como prova. Não se aprova por «não deu erro».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-002</span><span class="ct-title">Digitar o valor FOB recalcula o Saldo FOB e o valor se mantém ao trocar a moeda</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — campo habilitado de fato utilizável (DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-001 aprovado no mesmo login; formulário em Novo, apólice 333.</li></ul>
+      <h4>Passos</h4><ol><li>Digitar 1500000,00 no Valor Orig. FOB e sair do campo (Tab); ler o campo e o Saldo FOB (N3); capturar.</li><li>Trocar a moeda para outra estrangeira e voltar para DÓLAR NORTE-AMERICANO; ler o valor e o saldo de novo.</li><li>Apagar o valor e digitar 250000,50; ler o campo e o saldo; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo mostra <b>1.500.000,00</b> (ou o valor digitado formatado) e o <b>Saldo FOB</b> acompanha o valor digitado (1.500.000,00); depois de trocar a moeda o valor continua; com 250000,50 o saldo passa a 250.000,50. Saldo diferente do valor digitado em Provisória nova ou campo que perde o valor = REPROVADO, com os números lidos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-003</span><span class="ct-title">Gravar a Importação Provisória com Valor FOB preenchido conclui com a mensagem de sucesso e gera o número da Provisória</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — gravação ponta a ponta (o impasse do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-002 aprovado. Documento de teste próprio (DC4); recebimento de hoje; validade de hoje + 60 dias; garantia e mercadoria da massa. Anotar a contagem de Provisórias na consulta antes de gravar.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher Doc. Provisório (prefixo da QA + data/hora), Recebimento, Validade, Valor Orig. FOB 1500000,00, Moeda DÓLAR NORTE-AMERICANO, origem e destino, Garantia e Mercadoria (N4); capturar o formulário antes de gravar.</li><li>Clicar em Gravar e capturar a mensagem exata exibida.</li><li>Ler o número da Provisória gerado (ano e sequência) e capturar a tela final.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela confirma a gravação com a mensagem de sucesso (o dev citou «Gravação efetuada com sucesso!»; texto exato registrado) e exibe o número da Provisória gerado; <b>sem</b> o aviso «Informe o Valor FOB» nem mensagem de falha. Aviso de FOB mesmo com valor preenchido, página de erro ou número não gerado = <b>REPROVADO</b>. Evidência: formulário antes, mensagem e número; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-004</span><span class="ct-title">O que foi gravado persiste: a consulta reabre a Provisória com o mesmo FOB e saldo, e a exclusão pela tela remove só a Provisória de teste</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — persistência e limpeza (oráculo na tela de consulta)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-003 aprovado (Provisória de teste gravada, número anotado).</li></ul>
+      <h4>Passos</h4><ol><li>Sair da tela e voltar por Averbações › Importação-Provisória; escolher filial, apólice e subgrupo (N2, N5).</li><li>Abrir a lupa de Provisória, localizar o documento de teste e abrir o registro; capturar e ler Doc. Provisório, datas, moeda, Valor Orig. FOB e Saldo FOB.</li><li>Clicar em Excluir só nesse registro, confirmar o aviso e capturar a mensagem exata; reabrir a lupa e conferir que o documento deixou de constar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta traz o documento de teste com <b>FOB 1.500.000,00 e Saldo FOB 1.500.000,00</b>, moeda e datas iguais aos digitados; a exclusão é confirmada em tela e a lupa não lista mais o documento (as demais Provisórias da apólice ficam intactas). Valor diferente do gravado, registro que não aparece ou exclusão que atinge outro registro = REPROVADO. Evidência: consulta antes e depois; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Regressão: a validação continua, outras apólices do STARR e um tenant que já funcionava seguem iguais</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-005</span><span class="ct-title">Regressão — Gravar sem o Valor FOB continua recusado, agora com o campo editável, e nada é gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — validação de Gravar preservada (a validação do card continua válida)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice 333, formulário em Novo; Doc. Provisório de teste (DC4); sem gravar com sucesso neste CT.</li></ul>
+      <h4>Passos</h4><ol><li>Preencher Doc. Provisório, Recebimento, Validade, Moeda e Garantia, deixando o Valor Orig. FOB em 0,00; clicar em Gravar e capturar o aviso exato.</li><li>Fechar o aviso, digitar o valor 1500000,00 no campo (que deve aceitar) e conferir que o aviso não reaparece antes de gravar (sem gravar).</li><li>Abrir a lupa de Provisória e conferir que não existe registro com o documento deste CT.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com FOB em 0,00 o sistema mostra o aviso «<b>ATENÇÃO! Informe o Valor FOB</b>» (texto exato registrado) e não grava; o campo aceita a digitação logo em seguida; nenhuma Provisória é criada com o documento do CT. Gravar com FOB zerado sem aviso (gravou 0,00) = REPROVADO (validação perdida).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-006</span><span class="ct-title">A segunda apólice «ÚNICA» do card (7777) e a base padrão do STARR também mostram o campo habilitado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — outras apólices do mesmo tenant (card cita 333 e 7777)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Login por clique. Apólice 7777 do ambiente do card; apoio: filial 1, apólice de importação 20, subgrupo 1 da base padrão (DC2).</li></ul>
+      <h4>Passos</h4><ol><li>No ambiente do card, escolher filial, apólice 7777 e subgrupo 1; clicar em Novo; ler o campo Valor Orig. FOB e digitar 1500000,00; escolher a moeda e ler o saldo; capturar.</li><li>Trocar para a apólice 333 sem sair da tela e voltar para a 7777: conferir que o campo continua habilitado depois de Novo em cada troca.</li><li>Na base padrão do STARR, repetir com a filial 1, apólice de importação 20 e subgrupo 1; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em todas as apólices e nas duas variantes o campo Valor Orig. FOB fica habilitado depois de Novo, aceita o valor e o Saldo FOB acompanha; trocar de apólice não trava o campo de novo. Qualquer apólice em que o campo fique cinza = REPROVADO, indicando qual.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-007</span><span class="ct-title">Tenant que já operava normalmente (CORE, Zurich ou Kovr) continua com o campo editável e grava como antes</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — a correção do STARR não muda os demais tenants</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário de teste da QA em um tenant de controle (massa; o primeiro com acesso no arquivo de ambiente). Apólice de importação existente, consultada na tela.</li></ul>
+      <h4>Passos</h4><ol><li>Entrar por clique no tenant de controle e abrir Averbações › Importação-Provisória.</li><li>Escolher filial, apólice e subgrupo; clicar em Novo; ler o campo Valor Orig. FOB, digitar o valor e ler o saldo; capturar.</li><li>Gravar uma Provisória de teste com documento próprio e capturar a mensagem; consultar e excluir pela tela só a Provisória criada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo Valor Orig. FOB habilita, aceita o valor e o Saldo FOB acompanha; a gravação conclui com a mensagem de sucesso e a exclusão pela tela funciona — igual ao que o tenant já fazia. Qualquer travamento novo do campo ou da gravação num tenant que já funcionava = REPROVADO (regressão).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-008</span><span class="ct-title">Exploratório (15–30 min): moeda e valores extremos, recarregar a tela e a Provisória gravada na Importação Definitiva</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Mesmo usuário e massa; Provisória de teste própria, excluída ao final.</li></ul>
+      <h4>Passos</h4><ol><li>Testar valores no FOB: zero, valor muito alto, com vírgula e ponto, texto; alternar entre moedas e conferir o saldo e as mensagens.</li><li>Preencher parte do formulário e recarregar a página (F5); conferir o estado do campo FOB e o que sobra preenchido.</li><li>Gravar uma Provisória de teste, abrir Averbações › Importação-Definitiva e conferir se ela enxerga a Provisória gravada; voltar e excluir a Provisória de teste pela tela.</li><li>Se houver acesso, observar o comportamento do campo no tenant AXA e registrar (sem veredito do card).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mensagens de validação claras e sem página de erro; o campo FOB não volta a travar depois de F5 nem de trocar a moeda; a Importação Definitiva enxerga a Provisória gravada (a cascata do card some). Achado com card próprio é classificado como do card ou pré-existente (baseline, A9); sem ocorrências → «Exploratório executado [DD/MM HML]. Sem ocorrências.»</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-008"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Card — Esperado: o campo Valor Orig. FOB habilita e aceita o valor, mesmo após escolher a moeda estrangeira</td><td>CT-FOB-001 · CT-FOB-002</td><td>Pendente</td></tr><tr><td>Card — Esperado: a Importação Provisória é gravada e o gravado persiste</td><td>CT-FOB-003 · CT-FOB-004</td><td>Pendente</td></tr><tr><td>Card — a validação de Gravar exige o valor FOB (continua valendo)</td><td>CT-FOB-005</td><td>Pendente</td></tr><tr><td>Card — apólices «ÚNICA» 333 e 7777; equiparar aos tenants que operam normalmente</td><td>CT-FOB-006 · CT-FOB-007</td><td>Pendente</td></tr><tr><td>Card — impacto em cascata na Importação Definitiva; exploratório (NOR_QA_002 seção 11)</td><td>CT-FOB-008</td><td>Pendente</td></tr><tr><td>Lista de seguradoras do dev, teste automatizado local, AXA/AIG por teste automatizado, bloqueio total do card #7546, staging e produção</td><td>— não geram CT: o plano julga o comportamento na tela no ambiente do card</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: o esperado do card (campo habilita, valor aceito, Provisória gravada) e a validação de Gravar mapeados a CTs (100%), com oráculo na <b>tela</b> (estado e valor do campo, Saldo FOB, mensagem exata, número da Provisória e consulta), mais regressão em outras apólices, em um tenant que já funcionava e exploratório. A implementação do dev, o teste automatizado dele, a Importação Definitiva completa, o staging e a produção ficam fora (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Aprovar só porque o campo aparece habilitado na base padrão, sem provar no ambiente do card e sem gravar</td><td>Média</td><td>Alta</td><td>O veredito dos CTs 001 a 004 vem do ambiente do card (DC2); campo habilitado sem gravação concluída (CT-FOB-003 e 004) não fecha o card.</td></tr><tr><td>Campo habilitar, mas o Saldo FOB ou a gravação divergirem do valor digitado</td><td>Média</td><td>Alta</td><td>CT-FOB-002 e CT-FOB-004 comparam o digitado, o saldo e o que a consulta reabre, com os números lidos.</td></tr><tr><td>Provisória de teste ficar criada na apólice</td><td>Baixa</td><td>Média</td><td>Documento com prefixo da QA, contagem antes e depois, exclusão pela tela só do que o CT criou e conferência na lupa (DC4).</td></tr><tr><td>A correção alterar o comportamento de outros tenants (tratamento compartilhado entre seguradoras)</td><td>Baixa</td><td>Alta</td><td>CT-FOB-007 em tenant que já funcionava; exploratório registra AXA se houver acesso.</td></tr><tr><td>Sem usuário ou senha no ambiente do card, ou sessão degradar durante o plano</td><td>Média</td><td>Baixa</td><td>A QA cria ou edita o usuário pela tela (massa) e usa relogin; nunca pergunta ao dev nem deixa CT pendente por isso.</td></tr><tr><td>Resultado do QA anterior ser herdado sem conferência</td><td>Baixa</td><td>Alta</td><td>Cada CT é reexecutado com evidência própria; resultados anteriores servem só de referência (DC5).</td></tr><tr><td>Card ainda em Aguardando PR HML quando a rotina chegar</td><td>Alta</td><td>Baixa</td><td>Espera legítima (DC1): executa quando o card estiver em homologação; plano já publicado.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
