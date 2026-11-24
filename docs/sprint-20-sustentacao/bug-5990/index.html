@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-5990 · CITNET FAIRFAX: respostas sem informação de versão do servidor</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-5990 · Sprint 20 Sustentação</span>
+    <h1>CITNET (FAIRFAX): as respostas do sistema não podem informar a versão do servidor nem das tecnologias usadas</h1>
+    <div class="sub">CITNET · tenant FAIRFAX (registro: AIG, AXA e TOKIO) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug de segurança: o plano descreve o comportamento esperado; detalhes de exploração ficam no card</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">11</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 11 executados · 11 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>11 CTs</strong> (6×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 11}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Um teste de segurança externo mostrou que, em cada resposta que o CITNET da FAIRFAX envia, o sistema informa de graça qual servidor e qual versão de tecnologia está por trás dele. Isso ajuda quem quer atacar a procurar falhas conhecidas dessa versão. O risco foi classificado como baixo. O card pede que o sistema pare de divulgar essa informação.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos conferir, no ambiente de homologação da FAIRFAX, que as respostas da tela de login, de páginas que não existem, de pastas internas, de erros, de páginas depois do login e de arquivos da tela deixam de trazer essa informação; que isso vale sempre (não só de vez em quando); que o uso normal do sistema continua igual; e que as proteções que já existiam continuam ativas. Olhamos também as outras seguradoras apenas para registro.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos — plano publicado. O card está em «In Planning» (a correção ainda não foi entregue); medimos antes, em homologação, e a informação ainda aparece, como esperado. Os testes começam quando o card chegar em homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem usa o sistema não percebe nenhuma diferença; só deixa de ser exposta a informação técnica sobre o servidor.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li>Nada por enquanto — Bug não passa por aprovação de Produtos. Para registro: o achado original é do ambiente de produção; a QA valida em homologação, que é onde testa.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET — respostas do servidor web (cabeçalhos) · tenant FAIRFAX</td></tr>
+    <tr><th>Card</th><td>BUG-5990 — vulnerabilidade «Excesso de HTTP Headers» (criticidade baixa) apontada em teste de segurança externo · board Sustentação · Tags: Citnet; FAIRFAX; low; vulnerabilidade · estado <b>In Planning</b></td></tr>
+    <tr><th>Tasks filhas</th><td>#9971 [QA] Plano de teste — BUG #5990 (QA)</td></tr>
+    <tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> (board Sustentação): sem aprovação de Produtos sobre o plano. Plano v1.0 publicado em 24/11/2026 → execução em HML assim que o card estiver em homologação → revisão independente → resultado (NOR_QA_002) no card.</td></tr>
+    <tr><th>Ambiente</th><td>HML do CITNET da FAIRFAX (principal) e AIG, AXA e TOKIO (registro), com a correção implantada (a confirmar por comportamento, não por relato do dev). Produção: N/A.</td></tr>
+    <tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O relatório de um teste de segurança externo apontou que o CITNET da FAIRFAX devolve, nas respostas do servidor, cabeçalhos informativos que revelam a versão do servidor web e da tecnologia de execução. A informação, por si só, não permite invadir o sistema, mas ajuda a direcionar ataques a falhas conhecidas dessas versões (criticidade e viabilidade baixas). A recomendação do relatório, registrada no card, é que a aplicação não retorne informações desnecessárias sobre o ambiente. O plano verifica a resposta final recebida pelo cliente, em vários tipos de pedido, e confere que o uso normal e as proteções já existentes continuam. Os valores de execução (caminhos pedidos e lista de cabeçalhos vetados) ficam no guia privado da QA.</p>
+  <div class="info-box"><b>DoR-for-QA:</b> Bug com contexto, evidência do achado e recomendação do relatório (oráculo observável: cabeçalhos da resposta). O card não traz critério de aceite numerado — o oráculo foi inferido da recomendação (DEC-2). Ramo: não se aplica (camada web do sistema, independente de ramo). Seguradora/sistema: tags FAIRFAX e Citnet.</div>
+  <h3>Decisões e inferências do QA</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DEC-1</b></td><td><b>Escopo</b></td><td>O achado e o card tratam o CITNET da FAIRFAX. A QA valida o HML da FAIRFAX (produção é N/A). Os demais tenants entram só como registro (CT-5990-07) e não reprovam o card.</td></tr><tr><td><b>DEC-2</b></td><td><b>Critério de aprovação</b></td><td>O card não traz critério de aceite numerado; o oráculo vem da recomendação do relatório de segurança: «não retornar informações desnecessárias sobre o ambiente, como versões de tecnologias». A QA mede o resultado final recebido pelo cliente (ausência dos cabeçalhos vetados do guia), não o mecanismo usado pelo dev.</td></tr><tr><td><b>DEC-3</b></td><td><b>Camadas intermediárias</b></td><td>Se um cabeçalho vetado for reinserido por camada entre o servidor e o cliente, ele aparecerá na resposta final e o CT reprova — o critério é o que o cliente recebe.</td></tr><tr><td><b>DEC-4</b></td><td><b>Massa e superfície pública</b></td><td>Só pedidos de leitura a tenants de HML; nenhum dado de negócio é criado, alterado ou excluído. Os detalhes que reproduzem a exposição ficam no guia privado.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul>
+    <li>FAIRFAX: respostas sem login (CT-5990-01 a 04), com login e arquivos da tela (05, 06), consistência (10), regressão e proteções existentes (08, 09), exploratório (11).</li>
+    <li>Registro nas demais seguradoras do CITNET (CT-5990-07), sem reprovar o card.</li>
+  </ul>
+  <h3>Out of scope</h3>
+  <ul>
+    <li><b>Produção</b> — N/A (a QA não testa em produção; o achado original é do ambiente de produção).</li>
+    <li><b>Novo teste de segurança externo</b> e <b>itens de DoD de engenharia</b> — processo da equipe de segurança e do dev; não geram CT.</li>
+  </ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box">Navegação por clique a partir do login — nunca por URL direta (exceto o endereço do login). Os CTs sem sessão usam ferramenta de requisições do QA (script) por não terem tela; os CTs com tela (CT-5990-05 e 08) partem do login. Evidência por CT no bloco do CT e anexada ao card (nunca neste documento público).</div>
+  <ul>
+    <li><b>Ambiente:</b> HML do CITNET da FAIRFAX com a correção (conferir antes do CT-5990-01 medindo o comportamento).</li>
+    <li><b>Contas:</b> usuário válido do QA para a FAIRFAX (credencial fora deste documento). Só pedidos de leitura; nenhum dado de negócio é criado, alterado nem excluído.</li>
+    <li><b>Ordem sugerida:</b> CT-5990-01 a 04 e 06 em sequência; CT-5990-10 logo depois; CT-5990-05, 08 e 09 com login novo (sessão degrada após cerca de 1 h); CT-5990-07 e 11 por último.</li>
+  </ul>
+
+<h2>5. Casos de Teste</h2>
+
+  <div class="group-header">A — Respostas sem login (FAIRFAX): nenhuma traz informação de versão do servidor ou da tecnologia</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-01</span><span class="ct-title">Tela de login e página inicial do CITNET da FAIRFAX: a resposta não traz informação de versão do servidor nem da tecnologia</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Pedido de leitura por ferramenta de requisições do QA (script do repositório privado), sem sessão. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Pedir a página inicial do sistema e a tela de login, sem sessão.</li><li>Ler o status e todos os cabeçalhos de cada resposta; varrer os cabeçalhos vetados do guia.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>cabeçalhos da resposta (script): vetados ausentes.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-01"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-02</span><span class="ct-title">Página ou recurso que não existe: a resposta de «não encontrado» não traz informação de versão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Pedir um caminho inexistente na raiz do sistema e um dentro da área do CITNET, sem sessão.</li><li>Ler status e cabeçalhos; varrer os vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Status de «não encontrado» preservado (a página de erro do sistema continua igual). A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>status + cabeçalhos da resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-02"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-03</span><span class="ct-title">Pedido direto a pasta interna do sistema (cenário em que o teste de segurança encontrou o problema): a resposta não traz informação de versão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. As pastas pedidas são as do guia privado (as chamadas de diretório que aparecem no código-fonte da tela de login). Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Pedir cada pasta interna listada no guia, sem sessão.</li><li>Ler status e cabeçalhos de cada resposta; varrer os vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada resposta (acesso negado ou não encontrado, conforme o servidor) mantém o status de antes da correção. A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>status + cabeçalhos de cada resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-03"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-04</span><span class="ct-title">Respostas de erro da aplicação (pedido inválido e método não permitido): não trazem informação de versão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Enviar pedido inválido a uma ação da tela de login e usar um método não permitido em um endereço existente, sem sessão.</li><li>Ler status e cabeçalhos de cada resposta; varrer os vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>status + cabeçalhos da resposta (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-04"></div>
+    </div>
+  </div>
+  <div class="group-header alt">B — Respostas depois do login e arquivos da tela</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-05</span><span class="ct-title">Com sessão: páginas depois do login e chamadas de serviço do sistema não trazem informação de versão</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Usuário válido do QA (credencial fora deste documento). Login pela tela; os pedidos de leitura seguintes por script com o cookie dessa sessão. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Login pela tela (Filial, Usuário, Senha, <b>Acessar</b>) e captura do menu principal.</li><li>Abrir, pelo menu, uma tela de Operações e uma de Cadastros (capturas).</li><li>Com o cookie dessa sessão, pedir por script as páginas e uma ação de serviço do guia; ler status e cabeçalhos; varrer os vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. As telas abrem normalmente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>cabeçalhos das respostas (script) + capturas do menu e das telas (desde o login).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-05"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-06</span><span class="ct-title">Arquivos usados pela tela (script, estilo e imagem): a resposta não traz informação de versão</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Pedir um arquivo de script, um de estilo e uma imagem da tela de login, sem sessão.</li><li>Ler status e cabeçalhos; varrer os vetados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os arquivos são entregues normalmente (status de sucesso). A resposta <b>não contém</b> nenhum dos cabeçalhos vetados do guia privado (os que informam versão do servidor, do framework ou da tecnologia de execução) — varredura por script na resposta final recebida pelo cliente. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>status + cabeçalhos (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-06"></div>
+    </div>
+  </div>
+  <div class="group-header">C — Abrangência: outras seguradoras (registro)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-07</span><span class="ct-title">Outras seguradoras do CITNET (AIG, AXA e TOKIO): mesma verificação, registrada para conhecimento</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenants AIG, AXA e TOKIO (HML). Ferramenta de requisições do QA. O card trata a FAIRFAX (DEC-1): este CT é de <b>registro</b> e não reprova o card. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Repetir, em cada tenant, os pedidos dos CT-5990-01 a 03.</li><li>Montar a tabela tenant × pedido × cabeçalhos vetados encontrados.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Resultado registrado por tenant. Se algum outro tenant ainda informar versão, vira observação no resultado e, se for o caso, achado separado (A9) — sem reprovar o card da FAIRFAX. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tabela de cabeçalhos por tenant (script).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-07"></div>
+    </div>
+  </div>
+  <div class="group-header alt">D — Regressão: uso normal e proteções existentes preservados</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-08</span><span class="ct-title">Regressão: login e uso normal do CITNET da FAIRFAX continuam funcionando pela tela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Usuário válido do QA. Navegação só por cliques.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET da FAIRFAX no HML (único endereço digitado) e capturar.</li><li>Entrar (Filial, Usuário, Senha, <b>Acessar</b>) e capturar o menu principal.</li><li>Abrir pelo menu uma tela de Operações e acionar uma consulta; capturar o resultado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Login entra, o menu e a tela de Operações carregam e a consulta responde, sem mensagem de erro. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>tela (menu principal e resultado da consulta), desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-08"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-09</span><span class="ct-title">Proteções que já existiam nas respostas continuam presentes: tipo de conteúdo, transporte seguro e cookie de sessão protegido</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. A lista de cabeçalhos que devem continuar está no guia privado. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Pedir a tela de login e ler os cabeçalhos da resposta.</li><li>Conferir a presença de cada cabeçalho essencial do guia e dos atributos de proteção do cookie de sessão.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os cabeçalhos essenciais do guia continuam presentes (a correção removeu só os que informam versão) e o cookie de sessão mantém os atributos de proteção que já tinha. Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>cabeçalhos da resposta (script) comparados com a lista do guia.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-09"></div>
+    </div>
+  </div>
+  <div class="group-header">E — Consistência ao longo do tempo</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-10</span><span class="ct-title">Consistência: a ausência dos cabeçalhos se repete em pedidos repetidos, em momentos diferentes, e não depende de qual servidor atende</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Ferramenta de requisições do QA. Quantidade e intervalo conforme o guia. Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Repetir o pedido do CT-5990-01 e o do CT-5990-02 na quantidade do guia, em conexões novas, com intervalos entre as rodadas.</li><li>Contar as respostas com algum cabeçalho vetado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Zero respostas com cabeçalho vetado em todas as rodadas. Evidência: tabela de contagem por rodada com horários.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>contagem de respostas com cabeçalho vetado (script) = 0.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-10"></div>
+    </div>
+  </div>
+  <div class="group-header alt">F — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-5990-11</span><span class="ct-title">Exploratório (15–30 min) guiado por risco sobre as respostas do sistema, conforme o roteiro do guia privado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Pré-condições e massa</h4><ul><li>Correção implantada no HML (card em Pronto para homologação / Em homologação). Tenant FAIRFAX (HML). Valores concretos (endereços de homologação, caminhos pedidos e a lista de cabeçalhos vetados) no <b>guia privado de execução</b> (repositório privado da QA; nunca neste documento público).</li></ul>
+      <h4>Passos</h4><ol><li>Executar o roteiro exploratório do guia privado (outros tipos de pedido, caminhos, métodos e telas antigas) e registrar status e varredura de cada tentativa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma variação devolve cabeçalho vetado. Qualquer divergência é achado a classificar (do card × pré-existente, A9) e tratado pelo canal do card — não neste documento. Sem ocorrências → «Exploratório executado. Sem ocorrências.» Evidência no bloco do CT e anexada ao card: tabela gerada por script com cada pedido, status da resposta e a varredura dos cabeçalhos vetados do guia (todos ausentes), horário de cada pedido; capturas de tela quando houver tela.</li></ul>
+      <h4>Oráculo (o que se observa no produto)</h4><ul><li>status e cabeçalhos de cada tentativa (script) + capturas quando houver tela.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — execução não concluída (assim que o card chegar em homologação). Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-5990-11"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA — as respostas do sistema não retornam informações desnecessárias sobre o ambiente (versão do servidor e das tecnologias) — recomendação do relatório de segurança, no card</td><td>CT-5990-01, CT-5990-02, CT-5990-03, CT-5990-04, CT-5990-05, CT-5990-06, CT-5990-10</td><td>Pendente</td></tr><tr><td>Cenário do achado — pedido direto a pasta interna</td><td>CT-5990-03</td><td>Pendente</td></tr><tr><td>Abrangência (registro): demais seguradoras do CITNET</td><td>CT-5990-07</td><td>Pendente</td></tr><tr><td>Regressão — uso normal e proteções existentes preservados</td><td>CT-5990-08, CT-5990-09</td><td>Pendente</td></tr><tr><td>Variações e contorno</td><td>CT-5990-11</td><td>Pendente</td></tr><tr><td>Novo teste de segurança externo e registro da data de correção do achado</td><td>— sem CT: processo da equipe de segurança, feito depois da entrega</td><td>N/A</td></tr><tr><td>DoD de engenharia (testes, Quality Gate, aprovadores no PR)</td><td>— sem CT: enforçado por branch policy e DoD do dev; a evidência em HML é entregue pelas evidências dos CTs</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas ficam no <b>painel do topo</b>. Todos os critérios de produto do card têm CT; processo/DoD não gera CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O build do HML não ter a correção (card ainda em «In Planning»)</td><td>Alta</td><td>Alto</td><td>Medição prévia já feita: a informação ainda aparece. A execução só começa com o card em homologação; não é reprovação enquanto o dev não liberar.</td></tr><tr><td>Correção cobrir só alguns pontos de entrada (login, erro, pasta, arquivo)</td><td>Média</td><td>Médio</td><td>Os CT-5990-01 a 06 cobrem cada tipo de resposta; divergência entre eles reprova o CT correspondente.</td></tr><tr><td>Cabeçalho reinserido por camada intermediária</td><td>Baixa</td><td>Médio</td><td>DEC-3: mede-se a resposta final; reprova se aparecer.</td></tr><tr><td>Remoção de cabeçalho além do necessário (perda de proteção existente)</td><td>Baixa</td><td>Alto</td><td>CT-5990-09 confere os cabeçalhos essenciais e o cookie de sessão.</td></tr><tr><td>Sessão do CITNET degradar depois de ~1 h de uso</td><td>Média</td><td>Baixo</td><td>Novo login antes de cada CT com sessão; registrar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug — sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
