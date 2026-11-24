@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9289 · [Segurança] Interface WI/Siscomex (consulta de protocolos) e Extrair Dados: o servidor deve recusar nome de arquivo fora do esperado</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9289 · Sprint 20 Citweb</span>
+    <h1>[Segurança] Interface WI/Siscomex (consulta de protocolos) e Extrair Dados: o servidor deve recusar nome de arquivo fora do esperado</h1>
+    <div class="sub">CITWEB — Interface WI/Siscomex e Importar/Exportar (segurança) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">15</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">15</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">10/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 15 executados · 15 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>15 CTs</strong> (10×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 15, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 15}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> O card pede que algumas telas do sistema — a consulta de protocolos da Carga e do Processamento (Interface WI/Siscomex) e o Extrair Dados (Importar/Exportar) — confiram o nome de arquivo recebido do navegador e recusem nome fora do esperado, sem mudar o uso normal das telas.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos conferir duas coisas. (1) O uso normal continua igual: abrir um protocolo da Carga e ver o conteúdo, abrir um arquivo de declarações desprezadas no Processamento e usar o Extrair Dados com os arquivos que a tela aceita. (2) Quando o pedido enviado pelo navegador é alterado para apontar para um arquivo fora do esperado, o sistema recusa e nada é lido. Os valores e as variações usados nesse teste ficam num guia privado, anexado ao card.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em desenvolvimento («In Progress») e o desenvolvimento informou no card que a correção foi enviada ao ambiente de testes, mas o card ainda não foi liberado para homologação. Os testes começam assim que o card estiver em homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Para quem usa as telas normalmente nada muda (as telas são as mesmas). Quem tentar apontar para um arquivo fora do esperado passa a receber uma recusa.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: a variante «Ops» do Extrair Dados só será testada se algum ambiente de testes a oferecer no menu; senão, fica fora do escopo, com a medição registrada.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB</b> — módulo «Interface WI / Siscomex» (Declarações Adições › Carga e Processamento) e módulo «Importar/Exportar» (Extrair Dados e Extrair Dados Ops).</td></tr><tr><th>Card</th><td>BUG-9289 — «[Segurança] … leitura de arquivo …» (achado ADO-9284) · board CITWEB Team · Sprint 20 · estado <b>In Progress</b> · aberto pela equipe de desenvolvimento · sem tarefas filhas · relacionado: #9284 (mesmo padrão no Conversor) e #8515.</td></tr><tr><th>Tasks</th><td>#10002 [QA] Plano de teste — BUG #9289 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB, tenant AXA (único com os dois módulos e massa de protocolos medidos em 24/11/2026; o tenant e a versão do rodapé ficam registrados em cada CT). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na análise de segurança do Conversor (#9284) foi apontado o mesmo padrão em outros módulos: o nome de arquivo que chega do navegador precisa ser conferido pelo servidor antes do uso. O desenvolvimento informa no card que a correção foi enviada ao ambiente de homologação, com recusa de nome inválido e telas sem mudança visual. O que vale para a QA é o comportamento esperado abaixo; o detalhe de execução fica no guia privado anexado ao card.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — fluxos legítimos continuam funcionando (consulta de protocolos da Carga e do Processamento; extração com os arquivos aceitos)</td><td>CT-LAR-001 · CT-LAR-002 · CT-LAR-003 · CT-LAR-004 · CT-LAR-005</td></tr><tr><td><b>CA2</b> — valor fora do padrão esperado (variações listadas no card) é recusado sem ler nada</td><td>CT-LAR-006 · CT-LAR-007 · CT-LAR-008 · CT-LAR-009 · CT-LAR-010 · CT-LAR-011 · CT-LAR-012 · CT-LAR-013</td></tr><tr><td><b>CA3</b> — teste de regressão automatizado com o valor malicioso (vermelho antes da correção)</td><td>— sem CT: processo/DoD do desenvolvimento (a QA exercita o comportamento nos CTs do CA2 e guarda os scripts no repositório privado de regressão)</td></tr><tr><td><b>CA4</b> — code review e validação em HML antes de produção</td><td>Validação em HML: todos os CTs · code review: sem CT (branch policy)</td></tr><tr><td>Plano de teste do card — legítimo / malicioso / borda</td><td>CT-LAR-001 · CT-LAR-006 · CT-LAR-011 · CT-LAR-012</td></tr><tr><td>Técnico — Extrair Dados só processa arquivos do próprio fluxo</td><td>CT-LAR-003 · CT-LAR-004 · CT-LAR-013</td></tr><tr><td>Exploratório (NOR_QA_002 §11) e mensagem de recusa sem detalhe interno</td><td>CT-LAR-014 · CT-LAR-015</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 24/11/2026:</b> sistema (CITWEB, módulos Interface WI/Siscomex e Importar/Exportar) pelas tags e pelo título ✓ · o card não traz seguradora: o comportamento é do módulo, igual em todos os tenants — a seguradora do teste é inferida (AXA, tenant onde os dois módulos e a massa existem) e fica registrada no resultado ✓ · Bug com contexto, localização, passos para reproduzir, comportamento atual e esperado e plano de teste sugerido (legítimo, malicioso, borda) ✓ · critérios de aceite com oráculo observável: a <b>tela</b> (conteúdo do arquivo que não pode aparecer, mensagem de recusa) e a resposta de recusa capturada pelo script ✓ · descrição, critérios de aceite, vínculos e o comentário do desenvolvimento lidos (o card não tem tarefas filhas; o outro comentário é uma nota automática sem informação de negócio). <b>Não é débito técnico:</b> o comportamento (aceitar o uso normal e recusar o indevido) é observável e validável na tela.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>In Progress</b>: o desenvolvimento informa a correção no ambiente de testes, mas o card ainda não foi liberado. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (uso normal aceito; indevido recusado). Testes unitários, code review e branch policy não viram CT.</td></tr><tr><td><b>DI2</b></td><td><b>Seguradora/tenant</b></td><td>O card não tem tag de seguradora: a correção é do módulo e vale para todos os tenants. A QA usa o tenant AXA (único com os dois módulos e a massa medidos em 24/11/2026) e registra o tenant e a versão em cada CT; não é decisão de Produtos.</td></tr><tr><td><b>DI3</b></td><td><b>Extrair Dados Ops</b></td><td>A tela não aparece no menu do tenant AXA. A QA mede os demais tenants na execução: acessível por clique → testa (CT-LAR-005 e 010); inacessível → N/A com a medição e prova estrutural por comparação de código, declarada como tal. Nunca por endereço digitado (regra de navegação por clique).</td></tr><tr><td><b>DI4</b></td><td><b>Oráculo da recusa</b></td><td>«Não deu erro» não aprova: o veredito vem da resposta de recusa capturada, da mensagem exibida e da ausência de conteúdo do arquivo-alvo; antes de cada recusa há o controle positivo da técnica (pedido sem alteração funcionando).</td></tr><tr><td><b>DI5</b></td><td><b>Documento público</b></td><td>Card de segurança: o plano descreve só o comportamento esperado; valores, variações, arquivos de teste, o alvo da leitura e os parâmetros do controle ficam no guia privado anexado ao card.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os critérios de aceite têm oráculo observável; massa, usuário e tenant são trabalho da QA. A ressalva do card sobre pontos não vulneráveis é só ciência.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Uso normal: consulta de protocolo da Carga (lista de protocolos e de arquivos de conteúdo), arquivos de declarações desprezadas do Processamento, e Extrair Dados com os arquivos aceitos pela tela (extração mdb e txt; criação e incremento de base com conteúdo inócuo).</li><li>Recusa, sem leitura, de nome de arquivo fora do esperado nos pontos de Carga, Processamento, Extrair Dados e Extrair Dados Ops (onde o menu existir).</li><li>Variações de nome previstas no card (guia privado) e arquivo existente na pasta mas que não faz parte do fluxo do Extrair Dados.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Efetuar carga e processar declarações</b> — a QA só consulta; nada é gravado nesses módulos.</li><li><b>Testes unitários, revisão de código e branch policy</b> — processo/DoD do desenvolvimento, sem CT.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Card de segurança em repositório público:</b> este plano descreve só o <b>comportamento esperado</b>. Os valores concretos, as variações, os arquivos de teste, o alvo da leitura e os parâmetros do controle ficam num guia de execução privado anexado ao card e nos scripts do repositório privado — nunca aqui. Os menus, as telas e as listas de arquivos do uso normal foram conferidos em tela em 24/11/2026 (somente leitura); as mensagens de recusa deste card serão lidas e registradas na execução. Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, tenant AXA (endereço e usuário de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Usuário</b> — Usuário de QA com acesso aos módulos Interface WI/Siscomex e Importar/Exportar. Falta de usuário ou senha é massa: a QA cria ou ajusta pela tela de Segurança e segue.</li><li><b>Massa — protocolos</b> — Os arquivos de protocolo de Carga e de declarações desprezadas já existem no tenant (centenas, medidos em tela em 24/11/2026). A QA só <b>consulta</b>: nenhuma carga nem processamento é efetuado.</li><li><b>Massa — Extrair Dados</b> — Arquivos sintéticos criados pela QA com os nomes que a tela aceita; conteúdo <b>somente de consulta e sem efeito sobre dados</b> (nenhum comando que grave, crie ou altere), definido e validado no guia privado <b>antes</b> do 1º CT que os usa (CT-LAR-003, 004, 009, 013). A QA nunca grava dado de negócio no ambiente.</li><li><b>Como o pedido é alterado</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>; nos CTs dos Grupos B, C e D o botão é clicado normalmente e o pedido gerado pelo clique é alterado pelo navegador do próprio script antes de sair, mantendo a sessão real do usuário. Valores e variações: guia privado. Antes de cada recusa a QA repete o pedido <b>sem alteração</b> (controle positivo da técnica): ela tem de funcionar, para que a recusa seja atribuída à validação e não à interceptação.</li><li><b>Arquivo-alvo</b> — Arquivo existente no servidor, fora da pasta esperada, de conteúdo <b>não sensível</b> (nunca arquivo de configuração ou de credencial), escolhido e conferido pela QA; nome só no guia privado e na evidência do card.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado/mensagem), a resposta capturada e a versão do rodapé em cada execução. Documentos que aparecerem no conteúdo de protocolo são mascarados antes de anexar.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML, tenant AXA), entrar com o usuário de QA e registrar a versão do rodapé.</li><li><b>NB — Carga:</b> tile <b>Interface WI / Siscomex</b> (abre em nova aba) › menu <b>Declarações Adições</b> › <b>Carga</b> › aba <b>Resultado das Cargas</b> (lista de protocolos; ao escolher um, o conteúdo aparece e uma segunda lista oferece os arquivos de conteúdo).</li><li><b>NC — Desprezadas:</b> mesma nova aba › menu <b>Declarações Adições</b> › <b>Processamento</b> › botão <b>Ver Declarações Desprezadas</b> (lista de arquivos de declarações desprezadas; ao escolher um, o conteúdo aparece).</li><li><b>ND — Extrair Dados:</b> tile <b>Importar/Exportar</b> (nova aba) › <b>Extrair Dados</b>: campo «Arquivo:» + <b>Importar</b> › escolher a extração em <b>mdb</b> ou <b>txt</b> › botão de processar. A variante «Extrair Dados Ops» só é testada no tenant em que o menu a oferecer.</li><li><b>O1 — Oráculo de recusa:</b> a <b>resposta de recusa</b> capturada pelo script (oráculo principal) e a mensagem exata exibida na tela (registrada na execução); <b>nenhuma linha do arquivo-alvo pode aparecer</b> e nada pode ser processado a partir dele.</li><li><b>O2 — Oráculo do uso normal:</b> conteúdo do arquivo exibido, ou resultado do processamento, sem mensagem de recusa nem de erro de nome de arquivo.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Protocolo de Carga:</b> Um protocolo existente da lista «Resultado das Cargas» (o mais recente que tenha arquivo de conteúdo); documentos que aparecerem no conteúdo são mascarados na evidência.</li><li><b>Arquivo de desprezadas:</b> Um arquivo existente da lista de declarações desprezadas.</li><li><b>Arquivos de Extrair Dados:</b> Os nomes aceitos pela tela, com conteúdo inócuo (guia privado); o mesmo conteúdo para as extrações mdb e txt.</li><li><b>Arquivo-alvo da leitura:</b> Arquivo existente no servidor, fora da pasta esperada, de conteúdo <b>não sensível</b>, escolhido e conferido pela QA (nome só no guia privado e na evidência do card).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card em homologação).</li><li>Grupo A (uso normal) → B (consulta de protocolos) → C (Extrair Dados) → D (bordas, mensagem e exploratório por último, 15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início. O controle positivo de cada técnica vem antes da recusa, no mesmo CT.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Uso normal das telas continua funcionando (regressão)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-001</span><span class="ct-title">Carga: escolher um protocolo da lista e ver o conteúdo; escolher um arquivo de conteúdo e ver o conteúdo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — uso normal, caso legítimo do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Usuário de QA com acesso à Interface WI/Siscomex. Protocolo existente com arquivo de conteúdo (massa).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Interface WI / Siscomex» › «Declarações Adições» › «Carga» › aba «Resultado das Cargas» (NB).</li><li>Escolher um protocolo na lista e acionar a consulta; ler o conteúdo do protocolo (O2).</li><li>Na segunda lista, escolher um arquivo de conteúdo e acionar a consulta; ler o conteúdo exibido (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nas duas consultas o conteúdo é exibido, sem mensagem de recusa nem de erro de nome de arquivo (O2). Qualquer recusa ou página de erro no uso normal é REPROVADO. Evidência: capturas desde o login, texto lido da tela (documentos mascarados).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-002</span><span class="ct-title">Processamento: abrir a lista de declarações desprezadas, escolher um arquivo e ver o conteúdo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — uso normal, segundo ponto de leitura do módulo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de declarações desprezadas existente (massa). Nada é processado: só consulta.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Interface WI / Siscomex» › «Declarações Adições» › «Processamento» › «Ver Declarações Desprezadas» (NC).</li><li>Escolher um arquivo da lista e acionar a consulta; ler o conteúdo exibido (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O conteúdo do arquivo é exibido sem mensagem de recusa nem de erro (O2). Recusa ou página de erro no uso normal é REPROVADO. Evidência: capturas desde o login e texto lido.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-003</span><span class="ct-title">Extrair Dados: enviar o arquivo de consulta com o nome aceito e processar nas duas extrações (txt e mdb)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — extração com o arquivo de consulta, caso legítimo do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de consulta sintético com o nome que a tela aceita e conteúdo inócuo (guia privado). A extração mdb depende de componente do servidor: a txt é a prova principal.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Importar/Exportar» › «Extrair Dados» (ND).</li><li>Escolher o arquivo em «Arquivo:» e clicar em <b>Importar</b>; escolher a extração em <b>txt</b> e processar; ler o resultado (arquivo para download ou mensagem) (O2).</li><li>Repetir com a extração em <b>mdb</b>; se a tela avisar que o componente do servidor não está disponível, registrar o texto exato e tratar como achado de ambiente, sem reprovar por isso.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo é aceito e o processamento lê o conteúdo e segue o fluxo de antes (resultado entregue, sem mensagem de recusa de nome) (O2). Recusa de nome legítimo é REPROVADO. Evidência: capturas desde o login, mensagens e resultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-004</span><span class="ct-title">Extrair Dados: enviar os arquivos de criação e de incremento de base (conteúdo inócuo) e processar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — os outros dois nomes aceitos pela tela</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Dois arquivos sintéticos com os nomes que a tela aceita para criação e incremento de base, de conteúdo inócuo: só consulta, sem criar, gravar nem alterar nada (guia privado). O CT só roda depois de o conteúdo estar validado no guia; nenhum dado de negócio é alterado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Importar/Exportar» › «Extrair Dados» (ND).</li><li>Enviar o arquivo de criação de base com <b>Importar</b> e processar; ler a mensagem exibida (O2).</li><li>Voltar à tela, enviar o arquivo de incremento de base e processar; ler a mensagem (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada arquivo é aceito e processado, com a mensagem de sucesso do fluxo (texto exato lido na execução), sem recusa de nome (O2). Recusa de nome legítimo é REPROVADO. Evidência: capturas desde o login e mensagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-005</span><span class="ct-title">Extrair Dados Ops: o mesmo uso normal na variante «Ops», onde o menu a oferecer</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA1) — quarto ponto do card (variante Ops)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Tela «Extrair Dados Ops» no menu de algum tenant de HML (não aparece no tenant AXA; medir os demais tenants na execução). Opção «Gravar em HML» sempre em «Não». Se nenhuma estiver acessível por clique, o CT fica N/A com a medição registrada e a QA confere por comparação de código que a variante Ops recebeu a mesma correção (prova estrutural, declarada como tal — não é teste ao vivo).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Abrir «Extrair Dados Ops» pelo menu do módulo Importar/Exportar do tenant escolhido (ND); registrar o tenant.</li><li>Enviar o arquivo de consulta com o nome aceito (conteúdo inócuo), escolher txt, <b>Gravar em HML = Não</b> e processar; ler o resultado (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O uso normal da variante Ops segue o fluxo de antes, sem recusa de nome (O2). Evidência: capturas desde o login (com o tenant) e resultado; ou a medição que justifica o N/A.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Interface WI/Siscomex: consulta de protocolos recusa nomes que apontam para fora da pasta esperada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-006</span><span class="ct-title">Carga: a escolha do protocolo alterada para apontar para um arquivo fora do esperado é recusada e nada é lido</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — caso malicioso do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Protocolo existente (massa); arquivo-alvo não sensível fora da pasta esperada (guia privado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Interface WI / Siscomex» › «Declarações Adições» › «Carga» › aba «Resultado das Cargas» (NB).</li><li>Escolher um protocolo da lista e acionar a consulta; Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.</li><li>Repetir a consulta alterando, no pedido enviado, o valor do protocolo para apontar ao arquivo-alvo (valores no guia privado).</li><li>Registrar a mensagem exata e a resposta (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta é <b>recusada</b> (resposta de recusa e mensagem na tela) e nenhuma linha do arquivo-alvo aparece (O1). Qualquer leitura do arquivo-alvo, ou erro sem recusa explícita, é REPROVADO. Evidência: capturas desde o login, resposta e textos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-007</span><span class="ct-title">Carga: o nome do arquivo de conteúdo alterado, nas duas consultas que o recebem, é recusado e nada é lido</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — segundo valor do formulário da Carga</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Protocolo com arquivo de conteúdo (massa); arquivo-alvo do CT-LAR-006.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Interface WI / Siscomex» › «Declarações Adições» › «Carga» › aba «Resultado das Cargas» (NB).</li><li>Escolher um protocolo, acionar a consulta, escolher um arquivo de conteúdo e acionar a consulta do conteúdo; Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.</li><li>Repetir cada uma das duas consultas que recebem o nome do arquivo de conteúdo, alterando, no pedido enviado, esse nome para apontar ao arquivo-alvo (valores no guia privado); registrar mensagem e resposta de cada uma (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas consultas <b>recusam</b> o nome fora do esperado; nenhuma linha do arquivo-alvo aparece (O1). A falha em uma consulta reprova só ela, com a evidência dela. Evidência por consulta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-008</span><span class="ct-title">Processamento (declarações desprezadas): a escolha do arquivo alterada para apontar para fora da pasta esperada é recusada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — ponto de leitura do Processamento</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de declarações desprezadas existente (massa); arquivo-alvo do CT-LAR-006.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Interface WI / Siscomex» › «Declarações Adições» › «Processamento» › «Ver Declarações Desprezadas» (NC).</li><li>Escolher um arquivo da lista e acionar a consulta; Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.</li><li>Repetir a consulta alterando, no pedido enviado, o valor do arquivo para apontar ao arquivo-alvo (valores no guia privado); registrar mensagem e resposta (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta é <b>recusada</b> e nenhuma linha do arquivo-alvo aparece (O1). Leitura do arquivo-alvo é REPROVADO. Evidência: capturas, resposta e textos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-008"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Extrair Dados e Extrair Dados Ops: recusa de nome fora do conjunto aceito</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-009</span><span class="ct-title">Extrair Dados: o nome do arquivo alterado depois do envio é recusado em cada ação de processar</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — pontos do Extrair Dados</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo de consulta sintético (como no CT-LAR-003) enviado na tela; arquivo-alvo não sensível do CT-LAR-006. A recusa tem de ser <b>distinta</b> do aviso «arquivo não localizado» e de qualquer erro de processamento.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Importar/Exportar» › «Extrair Dados» (ND).</li><li>Enviar o arquivo de consulta com <b>Importar</b>; Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.</li><li>Para cada ação de processar da tela (extração txt, extração mdb e incremento de base), repetir o clique alterando, no pedido enviado, o nome do arquivo para apontar ao arquivo-alvo (valores no guia privado) e registrar resposta e mensagem (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada ação <b>recusa</b> o nome (resposta de recusa, distinta de «não localizado» e de erro de processamento); o arquivo-alvo não é lido nem processado (O1). A falha em uma ação reprova só ela. Evidência por ação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-010</span><span class="ct-title">Extrair Dados Ops: o nome do arquivo alterado depois do envio é recusado em cada ação de processar</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — ponto da variante Ops</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma pré-condição do CT-LAR-005 (menu Ops acessível; «Gravar em HML» = Não). Sem a tela acessível por clique, o CT fica N/A com a medição e a prova estrutural por comparação de código declarada como tal (não é teste ao vivo).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Abrir «Extrair Dados Ops» pelo menu (ND) e enviar o arquivo de consulta; Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.</li><li>Para cada ação de processar, repetir o clique alterando, no pedido enviado, o nome do arquivo para apontar ao arquivo-alvo (valores no guia privado); registrar resposta e mensagem (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada ação <b>recusa</b> o nome; nada é lido nem processado (O1). Aceite é REPROVADO. Evidência por ação, ou a medição que justifica o N/A.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-013</span><span class="ct-title">Extrair Dados: arquivo existente na pasta mas que não faz parte do fluxo é recusado; variações de caixa de letras do nome aceito seguem o guia privado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (técnico) — só arquivos do fluxo são processados</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Um arquivo gerado pelo próprio fluxo da tela, existente na pasta (guia privado); arquivo de consulta sintético enviado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Tile «Importar/Exportar» › «Extrair Dados» (ND).</li><li>Enviar o arquivo de consulta; controle positivo; repetir alterando, no pedido enviado, o nome para o do arquivo gerado pelo fluxo; registrar resposta e mensagem (O1).</li><li>Repetir com as variações de caixa de letras do nome aceito indicadas no guia privado; ler o resultado (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo que não faz parte do fluxo é <b>recusado</b> (nada é lido nem processado); as variações do guia privado têm o resultado nele definido (O1/O2). Aceite do primeiro é REPROVADO. Evidência por verificação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-013"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Bordas, mensagem de recusa e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-011</span><span class="ct-title">Variações de caminho previstas no card (grupo 1, guia privado) são recusadas em todos os pontos</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — borda do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa dos CTs anteriores; variações do grupo 1 e arquivo-alvo não sensível no guia privado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Em cada ponto (consulta do protocolo, consulta do arquivo de conteúdo, desprezadas e processar do Extrair Dados), fazer o controle positivo (Controle positivo da técnica: repetir o pedido <b>sem alteração</b> e confirmar que ele funciona (O2) — só então alterar.) e repetir alterando o valor conforme cada variação do grupo 1 (guia privado); registrar resposta e mensagem (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os pontos <b>recusam</b> cada variação, sem ler o arquivo (O1). A falha em um ponto reprova só ele, com a evidência dele. Evidência por ponto.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-012</span><span class="ct-title">Variações de nome previstas no card (grupo 2, guia privado) têm o comportamento esperado em todos os pontos</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança (CA2) — borda do plano sugerido no card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Massa dos CTs anteriores; lista de variações no guia privado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Para <b>cada variação</b>, nos pontos de Carga, Processamento e Extrair Dados, repetir o pedido com o valor alterado (controle positivo antes, como no CT-LAR-011) e registrar resposta e mensagem (O1); reabrir a tela entre variações.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada variação é <b>recusada</b> (ou, onde o guia privado definir outro resultado esperado por ponto, tem esse resultado), sem exibir conteúdo, sem processar nada e sem erro de servidor. Falha em uma variação reprova o CT, com a variação registrada <b>só na evidência privada do card</b>.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-014</span><span class="ct-title">A mensagem de recusa não expõe detalhe interno do servidor (caminho físico, detalhe técnico)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança — vazamento de informação na recusa</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Textos e respostas capturados nos CT-LAR-006 a 013.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Reler a mensagem exibida e o corpo da resposta de cada recusa dos CTs de recusa (O1) procurando caminho físico do servidor ou detalhe técnico.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A recusa mostra só uma mensagem de nome inválido (ou página de erro genérica), sem caminho físico, pasta interna nem detalhe técnico. Vazamento é REPROVADO, com o texto exato registrado <b>só no anexo privado do card</b>. Evidência: trechos lidos (documentos e caminhos mascarados).</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-014"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAR-015</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, tenant AXA) — único endereço digitado —, entrar com o usuário de QA e registrar a versão do rodapé.</li><li>Explorar: nomes longos e com caracteres especiais no uso normal do Extrair Dados; trocar de protocolo várias vezes seguidas; segunda aba na mesma sessão; arquivos de protocolo grandes; voltar com o botão do navegador depois de uma recusa (hipóteses no guia privado).</li><li>Conferir se alguma tela fica quebrada depois de uma recusa e se o uso normal volta a funcionar na mesma sessão.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem comportamento inesperado: depois de qualquer recusa, as telas continuam utilizáveis e o uso normal funciona na mesma sessão. Achado novo gera defeito (ou Bug pré-existente, com prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAR-015"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — fluxos legítimos continuam funcionando (consulta de protocolos da Carga e do Processamento; extração com os arquivos aceitos)</td><td>CT-LAR-001 · CT-LAR-002 · CT-LAR-003 · CT-LAR-004 · CT-LAR-005</td><td>Pendente</td></tr><tr><td>CA2 — valor fora do padrão esperado (variações listadas no card) é recusado sem ler nada</td><td>CT-LAR-006 · CT-LAR-007 · CT-LAR-008 · CT-LAR-009 · CT-LAR-010 · CT-LAR-011 · CT-LAR-012</td><td>Pendente</td></tr><tr><td>Plano do card — legítimo / malicioso / borda</td><td>CT-LAR-001 · CT-LAR-006 · CT-LAR-011 · CT-LAR-012</td><td>Pendente</td></tr><tr><td>Técnico — Extrair Dados só processa arquivos do próprio fluxo</td><td>CT-LAR-003 · CT-LAR-004 · CT-LAR-013</td><td>Pendente</td></tr><tr><td>Mensagem de recusa sem detalhe interno (boa prática de segurança)</td><td>CT-LAR-014</td><td>Pendente</td></tr><tr><td>CA3 — teste de regressão automatizado (vermelho antes da correção) · testes do dev · code review</td><td>— sem CT: processo/DoD de engenharia, garantido por branch policy e revisão (a QA exercita o comportamento nos CT-LAR-006 a 013)</td><td>N/A</td></tr><tr><td>CA4 — validação em HML antes de produção</td><td>CT-LAR-001 a CT-LAR-014 (evidência de QA em HML)</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-LAR-015</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1 é coberto por CTs de uso normal em cada ponto do card (Carga, Processamento, Extrair Dados e a variante Ops); o CA2 pelos CTs de recusa em cada ponto e pelas variações previstas no card e pelo arquivo que não faz parte do fluxo, todos com controle positivo da técnica. Os itens de processo do DoD (teste automatizado do dev, code review) ficam na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não liberada no ambiente quando a execução começar (card em In Progress)</td><td>Média</td><td>Médio — os CTs dos Grupos B, C e D reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>A técnica de alterar o pedido enviado falhar por motivo do script e parecer uma recusa do sistema</td><td>Média</td><td>Alto — falso aprovado</td><td>Controle positivo em todo CT de recusa: o pedido sem alteração tem de funcionar antes do alterado; a recusa é atribuída à validação só com esse controle.</td></tr><tr><td>Recusa confundida com «arquivo não localizado» ou com erro de processamento no Extrair Dados</td><td>Média</td><td>Alto — falso aprovado</td><td>O oráculo exige a resposta de recusa, distinta das outras; o arquivo-alvo existe de verdade (conferido pela QA) para que «não localizado» não possa ser a causa.</td></tr><tr><td>Componente da extração mdb ausente no servidor de HML</td><td>Média</td><td>Baixo</td><td>A extração txt é a prova principal; a mdb registra o texto do aviso como achado de ambiente.</td></tr><tr><td>Tela Extrair Dados Ops não acessível por clique em nenhum tenant de HML</td><td>Média</td><td>Baixo</td><td>Medir os tenants e registrar; CT-LAR-005 e CT-LAR-010 ficam N/A com a medição, sem reprovar o card.</td></tr><tr><td>Arquivo de teste do Extrair Dados ter efeito sobre dados do ambiente</td><td>Baixa</td><td>Alto</td><td>A QA usa só conteúdo inócuo (somente consulta); nunca conteúdo que grave dado de negócio. Validado no guia privado antes do 1º CT que o usa.</td></tr><tr><td>Conteúdo de protocolo trazer documento de cliente na evidência</td><td>Média</td><td>Médio</td><td>Mascarar documentos antes de anexar ao card; nada do conteúdo vai ao repositório público.</td></tr><tr><td>Validação estrita demais quebrar o uso legítimo (nomes de protocolo e arquivos aceitos)</td><td>Média</td><td>Alto</td><td>Grupo A cobre o uso normal de cada ponto; recusa de nome legítimo é REPROVADO.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Citweb · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
