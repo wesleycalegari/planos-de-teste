@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9845 · AXA — Faturamento automático sem prêmio mínimo (RCV)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9845 · Sprint 20 Sustentação</span>
+    <h1>AXA — Faturamento automático sem prêmio mínimo: apólice RCV com PMM e sem embarques sai com fatura zerada</h1>
+    <div class="sub">CITWEB Nacional — Fechamento Mensal · RCV (59) · AXA · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — card da Sustentação: sem aprovação de Produtos; plano liberado e nenhum CT executado (a execução começa com o card em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">13</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">13</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/5/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 13 executados · 13 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>13 CTs</strong> (7×P1 · 5×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 13, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 13}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> O faturamento automático do mês deveria cobrar o Prêmio Mínimo Mensal das apólices de RC-V que têm esse mínimo cadastrado e não tiveram nenhum embarque no mês. Para uma apólice da AXA isso aconteceu certo em agosto e setembro, mas em outubro a fatura saiu zerada. O card pede que o faturamento automático volte a cobrar o mínimo (R$ 350,00, que vira R$ 375,83 com o imposto), sem quebrar os outros casos, e que se trate a fatura de outubro e se liste outras apólices que podem ter saído zeradas.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 13 situações: apólice sem embarques (a fatura sai com o mínimo, na tela e no relatório impresso, também com várias apólices de uma vez); com embarques abaixo do mínimo (cobra o mínimo) e acima do mínimo (cobra o valor dos embarques); sem mínimo cadastrado; apólice que começou no meio do mês; emissão manual igual à automática; uma única fatura por apólice e mês; os outros tipos de seguro (transporte rodoviário, aéreo, aquaviário e ferroviário); e o estado final da fatura zerada de outubro.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está em «Pronto para desenvolvimento» e a execução começa quando for liberado para homologação. Por ser da Sustentação, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem usa o faturamento automático deixa de receber fatura zerada para apólice com mínimo cadastrado, e o mínimo contratado volta a ser cobrado todo mês, sem perda de receita.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Onde o card não diz o resultado exato, a QA adotou como regra: a fatura zerada de outubro é tratada como já foi no caso do card (cancelar a zerada e emitir a correta, não fatura complementar); apólice sem mínimo continua sem cobrança, igual ao que o sistema já fazia; os demais tipos de seguro devem ficar iguais ao que eram antes. Produtos pode pedir outro tratamento ao ler o plano (por exemplo, fatura complementar).</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b>, tenant <b>AXA</b> — <b>Fechamento Mensal</b> (emissão automática feita pelo job de faturamento automático e emissão manual), ramo <b>RCV (59)</b>. O defeito: apólice com <b>Prêmio Mínimo Mensal (PMM)</b> cadastrado e vigente, sem nenhum embarque averbado no mês, recebe do job uma fatura <b>zerada</b> (Qt. Avb. 0000, prêmio líquido 0,00 e total 0,00) em vez do PMM. Nos dois meses anteriores a mesma apólice saiu certa (R$ 350,00 de líquido e R$ 375,83 de total) — o card descreve regressão de um defeito que já tinha sido corrigido.</td></tr><tr><th>Card</th><td>BUG-9845 — «TECSD-49348 - Faturamento automático sem premio minimo» · board SUSTENTAÇÃO (CITWEB Sustentação) · estado <b>Pronto para desenvolvimento</b> · tags AXA e faturamento · sem tarefas filhas · sem comentários · 9 critérios de aceite (CA01 a CA09) · versão informada no card: V 1.0.261008.1411 (produção AXA).</td></tr><tr><th>Escopo de ramos</th><td>RCV (59) como foco; CA07 exige regressão dos ramos <b>54 / 55</b> (RCTR-C / RC-DC, sincronizados), <b>56</b> (RCA-C) e <b>58</b> (RCTA-C) com PMM.</td></tr><tr><th>Tipo de fluxo</th><td><b>Bug da Sustentação — sem aprovação de Produtos</b>: plano publicado e liberado para execução; a execução começa quando o card estiver em Pronto para homologação / Em homologação.</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O faturamento automático (job de fechamento, em nome do usuário do sistema do job) fecha o mês anterior para as apólices habilitadas. Para uma apólice RCV com PMM e <b>sem embarques</b> no mês, o esperado é emitir a fatura com o PMM (prêmio líquido = PMM; prêmio total = líquido + IOF). Na referência 10/2026 o job emitiu a fatura <b>zerada</b>, ignorando o PMM; nas referências 08 e 09/2026 a mesma apólice saiu com o PMM correto.</p><p>O plano julga o <b>resultado na tela</b> (Nacional › Fechamento Mensal › Impressão, a grade e o relatório) e o <b>comportamento nas demais combinações</b> (com embarques abaixo e acima do PMM, sem PMM, outros ramos, emissão manual, duplicidade), para que a correção do caso do card não quebre o que já funciona.</p>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Descrição (campo de reprodução do Bug), 9 critérios de aceite e a tabela de evidências do card lidos por inteiro; card sem tarefas filhas e sem comentários. <b>Tags:</b> AXA e faturamento (seguradora e módulo identificados; o board é o da Sustentação do CITWEB). Bug com contexto, cenário atual × esperado, impacto, passos para reproduzir, ambiente, versão e frequência (intermitente, com recorrência). <b>Ramo declarado:</b> RCV (59), com regressão em 54, 55, 56 e 58. Os critérios têm oráculo observável na tela (grade da Impressão do Fechamento Mensal e relatório impresso). <b>Não é débito técnico:</b> há comportamento observável pelo usuário (fatura com valor errado). <b>Bug sem a tag DEFEITO:</b> segue o fluxo de Bug, com plano e sem aprovação de Produtos. Dois itens do card ainda a anexar (log do job e print do cadastro do PMM) não impedem o plano: o oráculo é a tela.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em Pronto para homologação:</b> O card está em <b>Pronto para desenvolvimento</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug da Sustentação: sem aprovação de Produtos</b> — nada mais a aguardar além do estado do card e da pré-verificação do ambiente.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>O que é «cobrar o PMM» na fatura</b></td><td>O card diz que o prêmio líquido deve ser igual ao PMM e o total deve incluir o IOF (exemplo R$ 350,00 → R$ 375,83). <b>Posição do QA:</b> esperado = prêmio líquido igual ao PMM vigente na referência (proporcional quando a regra de vigência/suspensão manda), prêmio total = líquido + IOF vigente (+ juros e custo, se houver), <b>Qt. Avb. 0000</b> e fatura <b>não zerada</b>. O IOF e os demais componentes são lidos na tela no dia da execução e registrados no CT; a conta é conferida pela soma exibida.</td></tr><tr><td><b>DC2</b></td><td><b>CA04 — «mesmo comportamento de antes da correção»</b></td><td>O card não descreve esse comportamento. <b>Posição do QA (regra padrão, enquanto Produtos não disser outra):</b> apólice RCV <b>sem PMM</b> (ou com PMM zero) e sem embarques <b>não é cobrada</b> — nenhum valor indevido na fatura; o resultado deve ser igual ao que o sistema já fazia para esse tipo de apólice (baseline medido pela QA no HML com uma apólice nessa condição antes de rodar a correção, quando possível, ou o histórico do job para essa apólice). Divergência do baseline = REPROVADO.</td></tr><tr><td><b>DC3</b></td><td><b>CA06 — «uma fatura por apólice e referência»</b></td><td>O job roda por temporizador e pode passar mais de uma vez pela mesma apólice. <b>Posição do QA:</b> o esperado é <b>uma única fatura ativa</b> por apólice, subgrupo e referência; fatura cancelada não conta como duplicidade. O oráculo é a listagem de faturas da apólice no Fechamento Mensal depois de pelo menos dois ciclos do job. Duas faturas ativas para a mesma referência = REPROVADO (volta da duplicidade corrigida no ADO-8391).</td></tr><tr><td><b>DC4</b></td><td><b>CA07 — ramos 54, 55, 56 e 58 «como antes»</b></td><td>O card pede que o PMM continue sendo aplicado nesses ramos com e sem embarques, sem descrever o valor. <b>Posição do QA:</b> comparar com o <b>baseline do próprio ramo</b> (mesma apólice/mesma referência, resultado anterior do job ou emissão manual equivalente): o PMM entra pelo mesmo valor de antes. 54 e 55 são sincronizados (regra do sistema) e são testados juntos. A regra de PMM do cadastro é do RCV (PBI-6399), mas o card manda proteger os demais ramos — o plano cumpre o card.</td></tr><tr><td><b>DC5</b></td><td><b>CA09 — tratamento da fatura de 10/2026 e lista de outras apólices</b></td><td>O card pede «tratamento definido com o negócio» para a fatura zerada (cancelar e reemitir, ou complementar) e uma lista das outras apólices RCV com PMM faturadas zeradas na mesma execução. <b>Posição do QA:</b> o caminho já aplicado no caso do card — <b>cancelar a fatura zerada (com motivo) e emitir a fatura correta pela tela de emissão de prêmio mínimo sem averbação</b> — é o tratamento adotado; o plano verifica na tela que esse estado final existe e que o fluxo funciona na massa de teste. A lista de outras apólices é <b>entrega do dev no card</b> (item de processo, sem CT); a QA confere por amostra no HML. Na medição de 24/11/2026 no HML havia uma única apólice RCV nessa condição na referência 10/2026. Se Produtos preferir fatura complementar, o CT-PMM-013 muda de esperado e o plano é republicado.</td></tr><tr><td><b>DC6</b></td><td><b>Como o job é exercitado no HML</b></td><td>O job de faturamento automático fecha o <b>mês anterior</b> das apólices com o fechamento automático habilitado, no dia de fechamento configurado, por temporizador. <b>Posição do QA:</b> a massa é montada pela tela — apólice RCV com PMM, fechamento automático habilitado e dia de fechamento igual ao dia da execução — e a QA aguarda o ciclo do job. Se o job não rodar no HML (indisponibilidade medida: data da última emissão do job no ambiente registrada), o CT de emissão automática fica <b>interrompido sem veredito</b> e retoma quando o job voltar; isso não é reprovação nem aprovação, e a QA não depende de informação de versão ou de deploy do dev. A emissão manual (CT-PMM-009) nunca substitui o CT automático.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Faturamento automático (job de fechamento) de apólice RCV com PMM e <b>sem embarques</b> no mês: prêmio líquido = PMM, total com IOF, fatura não zerada (CA01) e o que a tela de consulta e o relatório impresso mostram (CA08).</li><li>RCV com embarques: abaixo do PMM cobra o PMM (CA02); acima do PMM cobra o calculado, sem aplicar o PMM (CA03).</li><li>Apólice RCV sem PMM / PMM zero (CA04), PMM proporcional por início de vigência no mês e apólice com o indicador de «prêmio mínimo somente com averbações».</li><li>Emissão manual (Emissão de prêmio mínimo sem averbação) com o mesmo valor da automática (CA05); uma fatura por apólice e referência (CA06); regressão dos ramos 54, 55, 56 e 58 com e sem embarques (CA07); estado final da fatura de 10/2026 (CA09).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li>Produção AXA: nenhum CT é executado em produção (N/A); a evidência do card vem de lá, mas a validação é no HML.</li><li>Causa raiz no código do job e a lista de outras apólices zeradas em produção: entregas do dev (processo, sem CT) — a QA julga só o comportamento e confere a entrega por amostra.</li><li>Outras seguradoras e o CITNET: fora do card. Prévia e Liberação de prévia: fora (o card trata de emissão).</li><li>Escrever dado de negócio direto no banco do HML: a QA não escreve; a massa é pela tela.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano e o card está em <b>Pronto para desenvolvimento</b>. Os passos seguem os fluxos já mapeados em tela no projeto (Nacional › Fechamento Mensal › Impressão; Emissão de prêmio mínimo sem averbação; Cancelamento; cadastro da apólice RCV e do PMM). Rótulos, ordem de campos e mensagens exatas são registrados na execução como observados no tenant AXA. Medido em 24/11/2026 no HML da AXA: há apólices RCV vigentes com PMM em número suficiente para a massa, e o histórico do job mostra emissões nos meses anteriores no próprio HML. Números concretos de apólice vão para o guia privado.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB Nacional, tenant AXA (endereços no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário</b> — Usuário de QA com perfil de gestor no tenant AXA (Cadastros e Fechamento Mensal). Falta de usuário ou senha é massa: a QA cria ou ajusta pelo próprio sistema (credencial nunca em documento).</li><li><b>Massa de apólices RCV</b> — Apólices RCV vigentes com PMM cadastrado no subgrupo, sem embarques no mês de referência (para o CA01), com embarques abaixo e acima do PMM (CA02/CA03), sem PMM (CA04) e com início de vigência no meio do mês (proporcional). Pela tela, a QA habilita o fechamento automático da apólice de teste e programa o dia de fechamento para o dia da execução; embarques de teste entram pela averbação pela tela (massa própria da QA).</li><li><b>Massa dos demais ramos</b> — Apólices 54 / 55, 56 e 58 vigentes com PMM, uma delas sem embarques e outra com embarques abaixo do PMM no mês de referência (CA07).</li><li><b>Referência de IOF e juros</b> — Antes de cada conta, ler em Tabelas › Parâmetros › Custo / IOF o IOF vigente no dia e registrar; o total esperado é líquido + IOF (+ juros e custo, se houver).</li><li><b>Baseline (antes da correção)</b> — Sempre que possível, registrar na tela o resultado do job <b>antes</b> do deploy da correção para o mesmo tipo de apólice (CA04 e CA07) — é o baseline do «como antes». Sem baseline anterior, usar o histórico de faturas da própria apólice.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li>Login do HML da AXA (única URL digitada) → menu <b>Nacional</b> → <b>Fechamento Mensal</b> → <b>Impressão</b>: critério <b>Apólice</b>, ramo, número da apólice, mês e ano da referência, <b>Selecionar</b>; a grade mostra Qt. Avb., Prêmio Líquido e Prêmio Total da fatura (oráculo principal).</li><li>Relatório impresso: na mesma tela, abrir/exportar o relatório da fatura selecionada (arquivo baixado) e conferir os mesmos valores da grade.</li><li>Emissão manual: <b>Fechamento Mensal</b> → <b>Emissão de prêmio mínimo sem averbação</b> → critério Apólice, filial, ramo, apólice, referência → Selecionar → marcar a linha → conferir valores do modal → emitir.</li><li>Cancelamento de fatura: <b>Fechamento Mensal</b> → <b>Cancelamento</b> (informar apólice e referência, motivo) — usado só em massa própria da QA, nunca em fatura de terceiros.</li><li>Cadastro da apólice RCV: <b>Cadastros</b> → <b>Apólice</b> (RCV) → dados da apólice, subgrupo com PMM e configuração de prévia/fechamento automático (rótulos exatos registrados na execução).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólice A (RCV, PMM, sem embarques):</b> apólice de teste da QA, PMM de valor redondo (ex.: R$ 350,00), vigente, fechamento automático habilitado, mês de referência sem nenhuma averbação; valor do PMM e IOF lidos e registrados no CT.</li><li><b>Apólice B (RCV, embarques abaixo do PMM):</b> mesma configuração da A, com averbações de teste cujo prêmio somado fica abaixo do PMM no mês de referência.</li><li><b>Apólice C (RCV, embarques acima do PMM):</b> mesma configuração, com averbações cujo prêmio somado supera o PMM.</li><li><b>Apólice D (RCV sem PMM):</b> PMM não cadastrado (ou zero), sem embarques.</li><li><b>Apólice E (RCV, vigência iniciada no meio do mês):</b> início de vigência no mês de referência; conta pela regra proporcional (exclui o dia de início; na AXA, início no dia 1 = PMM integral).</li><li><b>Apólice F (RCV, PMM somente com averbações):</b> indicador de prêmio mínimo somente com averbações ativo; sem embarques.</li><li><b>Apólices 54/55, 56 e 58:</b> uma de cada, com PMM e (a) sem embarques, (b) com embarques abaixo do PMM.</li><li><b>Fatura do card (referência 10/2026):</b> consulta apenas (leitura): estado da fatura zerada e da fatura que a substituiu; nada é emitido, cancelado ou alterado nela.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente e baseline: medir a data da última emissão do job no HML, ler IOF e PMM, registrar o resultado anterior dos ramos 54/55, 56 e 58 e da apólice sem PMM (baseline).</li><li>Grupo A (CT-PMM-001 a 003) → Grupo B (004 e 005) → Grupo C (006 a 008) → Grupo D (009 a 013).</li><li>Cada CT usa a sua própria apólice de teste e referência; nenhum CT depende do resultado de outro; o job é aguardado uma vez por lote de apólices (todas programadas para o mesmo dia).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Faturamento automático sem embarques: a fatura sai pelo PMM (CA01, CA08)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-001</span><span class="ct-title">Job automático: apólice RCV com PMM vigente e sem embarques no mês emite a fatura com o PMM (líquido = PMM, total com IOF), não zerada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 (reprodução do cenário do card, depois da correção)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Apólice A da massa (RCV, PMM de R$ 350,00 ou valor redondo equivalente, vigente, fechamento automático habilitado, dia de fechamento = dia da execução, referência = mês anterior sem averbações). IOF vigente lido e registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Cadastro: abrir a apólice A, confirmar na tela o PMM vigente no subgrupo, o fechamento automático habilitado e o dia de fechamento; capturar.</li><li>Confirmar na tela que a referência não tem nenhum embarque averbado (Qt. Avb. 0000 no movimento do mês).</li><li>Aguardar o ciclo do job (DC6) e, depois da execução, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice A e a referência.</li><li>Ler na grade: Qt. Avb., Prêmio Líquido e Prêmio Total; conferir a soma líquido + IOF (+ juros e custo, se houver) e capturar a tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Existe <b>uma fatura</b> da referência com <b>Qt. Avb. 0000</b>, <b>Prêmio Líquido igual ao PMM</b> da apólice (R$ 350,00 no exemplo do card) e <b>Prêmio Total = líquido + IOF</b> (R$ 375,83 com o IOF do exemplo; conferir com o IOF lido). Fatura com Prêmio Líquido 0,00 e Prêmio Total 0,00 = <b>REPROVADO</b> (é exatamente o defeito do card). Evidência: capturas do cadastro (PMM e fechamento automático) e da grade; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-002</span><span class="ct-title">Consulta em tela e relatório impresso da fatura do CT-PMM-001 mostram os mesmos valores (Qt. Avb. 0000, líquido = PMM, total com IOF)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA08 (oráculo de tela e de relatório)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Fatura emitida pelo job no CT-PMM-001 (apólice A, referência do CT).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) e selecionar a fatura da apólice A; capturar a grade.</li><li>Gerar/exportar o relatório impresso da fatura e abrir o arquivo baixado (confirmar tamanho e que abre).</li><li>Comparar no relatório: Qt. Avb., Prêmio Líquido e Prêmio Total com os da grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade mostra <b>Qt. Avb. 0000</b>, <b>Prêmio Líquido = PMM</b> e <b>Prêmio Total com IOF</b>; o relatório impresso traz <b>os mesmos três valores</b>. Qualquer divergência entre tela e relatório, ou valores zerados em qualquer um dos dois = REPROVADO. Evidência: captura da grade e do relatório aberto, ambos no mesmo CT.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-003</span><span class="ct-title">Várias apólices RCV com PMM e sem embarques na mesma execução do job (inclusive uma com dois subgrupos): nenhuma sai zerada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA01 em lote (o card diz «intermitente» e prevê outras apólices afetadas na mesma execução)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Pelo menos 3 apólices RCV de teste com PMM, sem embarques, todas programadas para o mesmo dia de fechamento; uma delas com 2 subgrupos, cada um com seu PMM (massa pela tela). Mesma execução do job do CT-PMM-001.</li></ul>
+      <h4>Passos</h4><ol><li>Programar as apólices (inclusive a de dois subgrupos) para o dia da execução e registrar o PMM de cada subgrupo.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para cada apólice e subgrupo.</li><li>Registrar, por apólice e subgrupo, Qt. Avb., Prêmio Líquido e Prêmio Total, e capturar cada grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Todas</b> as apólices e subgrupos saem com <b>Qt. Avb. 0000</b> e <b>Prêmio Líquido igual ao PMM do respectivo subgrupo</b>, com IOF no total; <b>nenhuma</b> fatura zerada. Uma única zerada, ou um subgrupo sem fatura, = REPROVADO. Evidência: uma captura por apólice/subgrupo e a tabela dos valores lidos no resultado do CT.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Faturamento automático com embarques: abaixo do PMM cobra o PMM; acima do PMM não regride (CA02, CA03)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-004</span><span class="ct-title">Job automático: RCV com embarques cujo prêmio somado fica abaixo do PMM emite a fatura pelo valor do PMM</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA02</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice B da massa (RCV, PMM cadastrado, fechamento automático habilitado) com averbações de teste na referência cujo prêmio somado é menor que o PMM (soma conferida na tela antes do job).</li></ul>
+      <h4>Passos</h4><ol><li>Averbar pela tela os embarques de teste na referência e conferir a soma do prêmio no movimento do mês (menor que o PMM).</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice B.</li><li>Ler Qt. Avb., Prêmio Líquido e Prêmio Total; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A fatura sai com a <b>quantidade de averbações do mês</b> e <b>Prêmio Líquido igual ao PMM</b> (não à soma dos embarques); total = líquido + IOF. Líquido igual à soma abaixo do PMM, ou zerado = REPROVADO. Evidência: captura do movimento (soma) e da grade.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-005</span><span class="ct-title">Job automático: RCV com embarques cujo prêmio somado supera o PMM emite a fatura pelo valor calculado, sem aplicar o PMM (não regressão)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA03</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice C da massa (RCV, PMM cadastrado) com averbações de teste na referência cujo prêmio somado é maior que o PMM.</li></ul>
+      <h4>Passos</h4><ol><li>Averbar pela tela os embarques de teste e conferir que a soma do prêmio é maior que o PMM.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice C.</li><li>Ler Qt. Avb., Prêmio Líquido e Prêmio Total e comparar o líquido com a soma dos embarques; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A fatura sai com <b>Prêmio Líquido igual ao prêmio calculado dos embarques</b> (maior que o PMM), <b>sem</b> trocar pelo PMM e sem acrescentá-lo; Qt. Avb. igual ao número de averbações do mês. Valor igual ao PMM, ou zerado = REPROVADO. Evidência: captura do movimento e da grade.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-005"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Apólice sem PMM, PMM proporcional e PMM só com averbação (CA04 e bordas)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-006</span><span class="ct-title">Apólice RCV sem PMM (ou PMM zero) e sem embarques: sem cobrança indevida, comportamento igual ao baseline</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA04 (DC2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice D da massa (RCV sem PMM cadastrado ou PMM zero, sem embarques, fechamento automático habilitado). Baseline registrado antes da correção, quando existir; senão histórico do job para uma apólice RCV nessa condição.</li></ul>
+      <h4>Passos</h4><ol><li>Confirmar na tela do cadastro que a apólice D não tem PMM (ou tem zero) e que a referência não tem embarques.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice D.</li><li>Registrar se há fatura e seus valores; comparar com o baseline (mesmo tipo de apólice, antes da correção).</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Nenhum valor é cobrado</b> (Prêmio Líquido e Total em 0,00 ou nenhuma fatura de valor), <b>igual ao baseline</b> registrado; nenhum PMM «emprestado» de outra apólice. Qualquer cobrança nessa apólice = REPROVADO. Evidência: captura do cadastro, da grade e do baseline.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-007</span><span class="ct-title">Apólice RCV com início de vigência no meio do mês de referência e sem embarques: PMM proporcional (exclui o dia de início); no dia 1º, PMM integral</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional de borda — cálculo do PMM proporcional (regra AXA)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice E da massa (RCV, PMM cadastrado, início de vigência no meio do mês de referência, p. ex. dia 10); uma segunda com início no dia 1º. Cálculo esperado registrado antes: PMM ÷ dias do mês × (dias do mês − dia do início).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o PMM, os dias do mês e a data de início de cada apólice e calcular o valor esperado.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para cada uma.</li><li>Comparar o Prêmio Líquido da grade com o calculado (arredondamento em 2 casas); capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Apólice iniciada no meio do mês: líquido = <b>PMM proporcional</b> (início no dia 10 de um mês de 30 dias → 20 dias → 2/3 do PMM). Apólice iniciada no dia 1º: <b>PMM integral</b>. Valor diferente do calculado, ou zerado = REPROVADO. Evidência: cálculo e captura da grade por apólice.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-008</span><span class="ct-title">Apólice RCV com o indicador «prêmio mínimo somente com averbações» ativo e sem embarques: o job não fatura (comportamento atual preservado)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — comportamento por indicador da apólice</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice F da massa (RCV, PMM cadastrado, indicador de prêmio mínimo somente com averbações ativo, sem embarques). Baseline do comportamento anterior registrado, se existir.</li></ul>
+      <h4>Passos</h4><ol><li>Confirmar no cadastro da apólice F o indicador ativo e o PMM.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice F.</li><li>Registrar se existe fatura da referência; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Nenhuma fatura</b> é emitida para a referência (o PMM só é cobrado quando há averbações) — igual ao comportamento anterior; o ajuste do card não pode passar a emitir fatura de PMM para esta apólice nem zerá-la. Fatura emitida = REPROVADO (regressão). Evidência: captura do indicador e da consulta sem fatura.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-008"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Emissão manual, fatura única, outros ramos e correção da fatura já emitida (CA05, CA06, CA07, CA09)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-009</span><span class="ct-title">Emissão manual (Emissão de prêmio mínimo sem averbação) para o cenário do CT-PMM-001 mostra os mesmos valores da emissão automática</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA05</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCV de teste própria da QA, com PMM e sem embarques, <b>sem</b> fatura emitida na referência (diferente da apólice A, para não duplicar fatura); mesmo valor de PMM do CT-PMM-001. Resultado automático do CT-PMM-001 registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir Nacional › Fechamento Mensal › Emissão de prêmio mínimo sem averbação; critério Apólice, filial, ramo RC-V, apólice, referência; Selecionar.</li><li>Marcar a linha do grid, aguardar o fim do overlay e o preenchimento do prêmio total; ler Prêmio Líquido, IOF e Prêmio Total do modal e capturar.</li><li>Emitir a fatura e abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para conferir os mesmos valores na grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Prêmio Líquido = <b>PMM</b>, IOF e Prêmio Total <b>idênticos aos da emissão automática</b> do CT-PMM-001 (mesmo PMM, mesmo IOF, mesma regra). Divergência de valor entre manual e automático = REPROVADO. Evidência: capturas do modal e da grade; comparação com o CT-PMM-001 no resultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-010</span><span class="ct-title">Duas passagens do job pela mesma apólice e referência: continua só uma fatura ativa (sem a duplicidade do ADO-8391)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA06 (DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice A do CT-PMM-001 (fatura já emitida pelo job) e um segundo ciclo do job no mesmo dia (temporizador do job) ou novo ciclo no dia seguinte, ainda na mesma referência.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar a fatura existente (número, valores) da apólice A na referência.</li><li>Aguardar pelo menos mais um ciclo do job sobre a mesma apólice e referência.</li><li>Abrir a listagem de faturas da apólice no Fechamento Mensal e contar as faturas ativas da referência; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Continua <b>uma única fatura ativa</b> para a apólice, subgrupo e referência, com os mesmos valores do CT-PMM-001; nenhuma segunda fatura ativa. Duas faturas ativas = REPROVADO. Evidência: capturas antes e depois do segundo ciclo com a contagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-011</span><span class="ct-title">Ramos 54, 55, 56 e 58 com PMM e sem embarques: o PMM continua sendo aplicado como no baseline</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA07 (DC4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma apólice de cada ramo (54 com o 55 sincronizado, 56 e 58), com PMM e sem embarques na referência, fechamento automático habilitado; baseline anterior registrado (resultado antes da correção) ou histórico do job do mesmo ramo.</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o PMM de cada apólice e o baseline do ramo.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para cada apólice (ramos 54, 55, 56 e 58).</li><li>Registrar Qt. Avb., Prêmio Líquido e Prêmio Total de cada uma e comparar com o baseline; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada ramo o PMM é aplicado <b>pelo mesmo valor do baseline</b> (líquido = PMM; 54 e 55 em conjunto); nenhum ramo passa a sair zerado nem com valor diferente do baseline. Divergência em qualquer ramo = REPROVADO (regressão). Evidência: uma captura por ramo e o baseline.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-012</span><span class="ct-title">Ramos 54, 55, 56 e 58 com embarques abaixo do PMM: a fatura sai pelo PMM como no baseline</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA07 (DC4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma apólice de cada ramo (54/55, 56 e 58) com PMM e averbações de teste cujo prêmio somado fica abaixo do PMM na referência; baseline anterior registrado.</li></ul>
+      <h4>Passos</h4><ol><li>Averbar pela tela os embarques de teste e conferir a soma abaixo do PMM em cada apólice.</li><li>Depois do ciclo do job, abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para cada apólice.</li><li>Registrar Qt. Avb., Prêmio Líquido e Prêmio Total e comparar com o baseline; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada ramo o líquido é o <b>PMM</b> (não a soma dos embarques) e a quantidade de averbações é a do mês, <b>igual ao baseline</b>. Qualquer valor diferente do baseline = REPROVADO. Evidência: uma captura por ramo e o baseline.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-012"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PMM-013</span><span class="ct-title">Estado final do caso do card: fatura zerada de 10/2026 cancelada com motivo e substituída pela fatura com o PMM; fluxo de correção repetido na massa de teste</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA09 (DC5; leitura do caso do card e execução do mesmo caminho em massa própria)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Leitura: a apólice e a referência do card (nada é alterado nela). Escrita: uma apólice de teste da QA com fatura zerada propositalmente emitida pelo caminho «sem PMM» (ou fatura de teste própria), para repetir cancelamento e reemissão.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir (Nacional › Fechamento Mensal › Impressão: critério Apólice, ramo, número da apólice, mês e ano da referência, Selecionar) para a apólice do card e a referência 10/2026; registrar quantas faturas aparecem, quais estão canceladas (com o motivo) e os valores da fatura ativa; capturar.</li><li>Na massa própria da QA: cancelar a fatura zerada (Fechamento Mensal › Cancelamento, com motivo) e emitir a fatura correta por Emissão de prêmio mínimo sem averbação.</li><li>Conferir na Impressão que existe uma única fatura ativa, com Qt. Avb. 0000 e o PMM; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Para o caso do card: a fatura zerada aparece <b>cancelada com motivo</b> e existe <b>uma fatura ativa com o PMM</b> (R$ 350,00 de líquido e R$ 375,83 de total no exemplo). Na massa própria: o mesmo caminho termina com <b>uma fatura ativa</b> com o PMM e a anterior cancelada. Fatura zerada ainda ativa, duas ativas ou o fluxo falhando = REPROVADO. Evidência: capturas do caso do card (leitura) e da massa própria nos dois passos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Em homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PMM-013"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA01 — Fatura sem embarques cobra o PMM (líquido = PMM, total com IOF, não zerada)</td><td>CT-PMM-001 · CT-PMM-003</td><td>Pendente</td></tr><tr><td>CA02 — Embarques abaixo do PMM: fatura pelo PMM</td><td>CT-PMM-004</td><td>Pendente</td></tr><tr><td>CA03 — Embarques acima do PMM: fatura pelo calculado (não regressão)</td><td>CT-PMM-005</td><td>Pendente</td></tr><tr><td>CA04 — Apólice sem PMM: comportamento de antes (sem cobrança indevida)</td><td>CT-PMM-006</td><td>Pendente</td></tr><tr><td>CA05 — Emissão manual igual à automática</td><td>CT-PMM-009</td><td>Pendente</td></tr><tr><td>CA06 — Sem fatura duplicada (ADO-8391)</td><td>CT-PMM-010</td><td>Pendente</td></tr><tr><td>CA07 — Ramos 054, 055, 056 e 058 sem regressão, com e sem embarques</td><td>CT-PMM-011 · CT-PMM-012</td><td>Pendente</td></tr><tr><td>CA08 — Consulta da fatura em tela e relatório impresso com os mesmos valores</td><td>CT-PMM-002</td><td>Pendente</td></tr><tr><td>CA09 — Tratamento da fatura de 10/2026 (estado final e fluxo de correção)</td><td>CT-PMM-013</td><td>Pendente</td></tr><tr><td>CA09 (parte) — Lista de outras apólices RCV faturadas zeradas: entrega do dev no card (processo, sem CT; QA confere por amostra)</td><td>—</td><td>N/A</td></tr><tr><td>Bordas do PMM: proporcional por início de vigência e indicador «somente com averbações»</td><td>CT-PMM-007 · CT-PMM-008</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 9 critérios de aceite do card mapeados a CTs (8 a CTs de produto; a lista de apólices do CA09 é entrega do dev, sem CT), com oráculo na <b>grade de Impressão do Fechamento Mensal e no relatório impresso</b>, contraprova positiva (embarques acima do PMM cobram o calculado), baseline para regressão (sem PMM e outros ramos), repetição do job para duplicidade e bordas do PMM proporcional. Causa raiz do job e a lista de outras apólices em produção ficam fora, por decisão do plano (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>O defeito é intermitente: uma execução correta do job não prova a correção</td><td>Alta</td><td>Alta</td><td>CT-PMM-003 (vários subgrupos e apólices na mesma execução) e CT-PMM-010 (segunda passagem do job); registrar a data de cada ciclo e comparar com o baseline.</td></tr><tr><td>Job do HML parado ou fora do dia de fechamento programado</td><td>Média</td><td>Média</td><td>Pré-verificação mede a última emissão do job no HML; massa programada para o dia da execução; indisponibilidade medida = interrompe sem veredito e retoma (DC6).</td></tr><tr><td>Correção que cobra o PMM e quebra os casos com embarques ou sem PMM</td><td>Média</td><td>Alta</td><td>CT-PMM-004 a 006 e CT-PMM-011/012 comparam com o baseline e exigem o valor exato esperado.</td></tr><tr><td>Volta da duplicidade de faturas (ADO-8391) ao reprocessar</td><td>Média</td><td>Alta</td><td>CT-PMM-010 conta as faturas ativas depois de dois ciclos do job.</td></tr><tr><td>Emissão manual e automática divergirem no valor</td><td>Baixa</td><td>Alta</td><td>CT-PMM-009 compara o modal da emissão manual com a fatura automática do CT-PMM-001.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · card da Sustentação · sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
