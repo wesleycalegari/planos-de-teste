@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-8819 · [ CITNET - AXA ] Importação Provisória — FOB zerado na recarga bloqueia edição e apresenta saldo negativo</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-8819 · Sprint 20 Sustentação</span>
+    <h1>[ CITNET - AXA ] Importação Provisória — FOB zerado na recarga bloqueia edição e apresenta saldo negativo</h1>
+    <div class="sub">CITNET · AXA · Board Sustentação · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa na hora)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (4×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na AXA, na tela de Importação Provisória, depois de gravar uma Provisória e abri-la de novo para editar, o campo Valor Orig. FOB aparece zerado e travado. Ao tentar salvar até uma simples mudança nas Observações, o sistema pede para informar o Valor FOB e não deixa. Depois de ligar uma Importação Definitiva, o saldo da Provisória também aparece negativo. O card pede que o valor seja mantido ao reabrir, que dê para salvar mudando só as Observações e que o saldo seja calculado certo.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 8 situações no ambiente de homologação da AXA: criar uma Provisória de teste e anotar o valor mostrado; reabri-la e conferir que o valor, a moeda e o saldo são os mesmos; mudar só as Observações e salvar; ligar uma Importação Definitiva dentro do saldo e conferir que o saldo fica correto (e não negativo); conferir que o sistema ainda recusa valor acima do saldo e Provisória com valor realmente zerado; repetir em outra apólice e outra moeda; e uma exploração livre, incluindo impressão e limpeza dos testes.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste do plano. O dev já enviou a correção para a homologação, mas o card ainda não está pronto para testar. Numa olhada prévia (sem gravar nada), a tela da AXA já preenche e trava o valor FOB ao clicar em Novo; por isso vamos comparar o valor mostrado ao criar com o mostrado ao reabrir.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem lança Importação Provisória na AXA volta a conseguir editar uma Provisória já gravada, e o saldo disponível para as Importações Definitivas deixa de aparecer negativo por engano.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto.</b> Por ser Bug, o plano não precisa de aprovação de Produtos. A regra é a que o card escreveu (valor preservado e saldo igual ao FOB menos os consumos); qualquer diferença que a tela mostrar vira defeito para o dev.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET</b> (versão legada), tenant <b>AXA</b> — menu <b>Averbações › Importação-Provisória</b> (Averbação de Importação Provisória) e, para o saldo, <b>Importação-Definitiva</b>. O defeito: ao carregar para edição uma Provisória já gravada, o <b>Valor Orig. FOB</b> aparece zerado (0,00) em campo que não aceita digitação; ao <b>Gravar</b>, a tela exige o valor («Informe o Valor FOB») e a edição fica bloqueada; depois de vincular uma Importação Definitiva o <b>Saldo FOB</b> aparece negativo (−10.000,00 na evidência do card).</td></tr><tr><th>Card</th><td>BUG-8819 — «[ CITNET - AXA ] Importação Provisória — FOB zerado na recarga bloqueia edição e apresenta saldo negativo» · board Sustentação (CITWEB\Sustentacao CITWEB), fluxo kanban · tipo <b>Bug</b> (origem: ciclo do Voidr de 17/09/2026) · estado <b>In Planning</b> · sem tarefas filhas; 2 comentários lidos por inteiro (triagem automática e abertura do PR da correção) e a evidência anexada conferida.</td></tr><tr><th>Tasks de QA</th><td>#9977 [QA] Plano de teste — BUG #8819 (este plano; fecha na entrega). <b>Bug: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em homologação.</td></tr><tr><th>Ramo / produto</th><td>Importação (ramo 25, pela própria tela Importação-Provisória) · filial 1, apólices 333 e 444 do ambiente, subgrupo 1.</td></tr><tr><th>Ambiente</th><td>HML do CITNET legado, tenant AXA, variante padrão (endereço no arquivo de ambiente do time). Staging e produção não entram: N/A para a QA. A versão exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET da AXA, o QA do Voidr criou uma Importação Provisória e, ao carregá-la de novo para editar, viu o <b>Valor Orig. FOB zerado (0,00)</b> num campo que não aceita digitação. Ao alterar só as Observações e clicar em <b>Gravar</b>, o sistema respondeu «<b>Informe o Valor FOB</b>» e a edição ficou travada. A evidência também mostra o <b>Saldo FOB negativo (−10.000,00 em USD)</b> depois do fluxo de vínculo de uma Importação Definitiva. A causa é uma hipótese ainda não comprovada pelo card: o FOB inicial não estaria sendo gravado e seria tratado como zero no cálculo do saldo. O card #7460 descreve um bloqueio parecido do FOB desabilitado, com mensagem e evidência diferentes.</p><p><b>Esperado pelo card:</b> o valor FOB válido é preservado e restaurado na recarga (mesmo com o campo não editável), alterar só as Observações salva sem pedir o FOB de novo, e o saldo é calculado a partir do FOB correto e dos consumos vinculados. <b>Correção do dev</b> (PR enviado para a HML): a tela passa a restaurar o FOB gravado antes de gravar e o servidor passa a recusar FOB menor ou igual a zero. O oráculo deste plano é a <b>tela</b> do ambiente do card; o que o dev escreveu não é oráculo.</p><table><tr><th>Critério de aceite do card</th><th>CTs</th></tr><tr><td><b>CA1</b> — criar com FOB válido, salvar e recarregar preserva valor e moeda</td><td>CT-FOB-001 · CT-FOB-002 · CT-FOB-007</td></tr><tr><td><b>CA2</b> — a recarga restaura o valor mesmo com o campo não editável</td><td>CT-FOB-002</td></tr><tr><td><b>CA3</b> — alterar só Observações salva e persiste, sem redigitar o FOB</td><td>CT-FOB-003 · CT-FOB-007</td></tr><tr><td><b>CA4</b> — o saldo reflete FOB e consumos; Definitiva dentro do saldo não gera saldo negativo</td><td>CT-FOB-004</td></tr><tr><td><b>CA5</b> — FOB realmente ausente e consumo acima do permitido continuam sujeitos às validações</td><td>CT-FOB-005 · CT-FOB-006</td></tr><tr><td><b>CA6</b> — validar criação, recarga, edição e vínculo da Definitiva, com valores antes/depois e persistência</td><td>CT-FOB-001 a 004 · CT-FOB-008</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (24/11/2026).</b> Card lido por inteiro: descrição de Bug (campo de reprodução) com resumo e ambiente, passos numerados, observado × esperado, impacto, evidência anexada (tela com o aviso, FOB 0,00 e saldo negativo) conferida, causa-hipótese e card relacionado; <b>6 critérios de aceite testáveis</b> no campo próprio; 2 comentários lidos (triagem automática e abertura do PR da correção) e nenhuma tarefa filha. <b>Tags:</b> Citnet (sistema) e tenant AXA, ambiente HML padrão; <b>ramo</b> Importação, pela tela. O oráculo de cada critério é observável na <b>tela</b> (valor do FOB e do saldo na criação e na recarga, mensagem exata, número da Provisória), sem lacuna de regra de negócio. <b>Não é débito técnico:</b> há comportamento que o usuário vê. <b>Bug sem a tag DEFEITO:</b> segue o fluxo de Bug, com plano e sem aprovação de Produtos. <b>Limite do relato:</b> o card diz que o FOB «foi informado na criação», mas na AXA a tela preenche o FOB sozinha e o trava (ver a sondagem em Pré-requisitos); a QA registra o valor exibido na criação como referência e compara com a recarga — é o que o critério CA2 pede.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — card em homologação:</b> O card está em <b>In Planning</b>: a execução só começa quando ele estiver em <b>Pronto para homologação</b> ou <b>Em homologação</b>. Estando, executa-se na hora, depois da pré-verificação do ambiente. Estado de desenvolvimento = espera legítima, não erro; a QA não muda o estado do card. <b>Bug: sem aprovação de Produtos</b> — nada a aguardar além disso.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Em que estado o card pode ser executado e o que conta como falha</b></td><td>O card está em <b>In Planning</b> (a correção está em PR para a HML). Pelo fluxo da QA, a execução começa em <b>Pronto para homologação</b> ou <b>Em homologação</b>; a QA <b>não muda o estado do card</b>. Quando começar, a QA testa o que estiver no HML: FOB restaurado e edição salva = aprovado; FOB zerado na recarga ou edição bloqueada = <b>REPROVADO + defeito</b> para o dev (em homologação não existe «bloqueado»). A QA não pergunta versão nem branch ao dev.</td></tr><tr><td><b>DC2</b></td><td><b>Ambiente, usuário e apólices</b></td><td><b>Posição do QA:</b> variante padrão do HML da AXA, usuário interno da QA no CITNET legado, filial 1, subgrupo 1, apólices 333 (CTs principais) e 444 (CT-FOB-007). Faltou usuário ou senha? A QA cria ou edita o usuário pela tela e segue (massa, nunca pergunta ao dev).</td></tr><tr><td><b>DC3</b></td><td><b>O que é «valor correto» do FOB quando a tela o preenche e o trava</b></td><td>Na AXA, depois de <b>Novo</b> a tela já traz o <b>Valor Orig. FOB</b> e o <b>Saldo FOB</b> preenchidos e travados (sondagem de planejamento). <b>Regra:</b> o valor exibido na criação é a referência; depois de gravar e recarregar, o FOB e a moeda têm de ser <b>iguais</b> aos da criação e o Saldo FOB igual ao FOB menos os consumos de Definitivas vinculadas. FOB 0,00 na recarga, ou saldo diferente dessa conta, = defeito. Quem define a regra é o CA do card; não há pergunta pendente para Produtos.</td></tr><tr><td><b>DC4</b></td><td><b>Massa e limpeza</b></td><td>A QA grava Provisórias de teste com documento próprio (prefixo da QA + data/hora). Ao final, exclui pela tela só as que criou; a que tiver Definitiva vinculada pode não ser excluível — fica anotada no resultado. Não escreve em banco de negócio. Registro antigo com FOB 0,00 (como o do card) é só lido e usado no CT-FOB-006.</td></tr><tr><td><b>DC5</b></td><td><b>O que não se herda</b></td><td>O card #7460, a evidência do card e o teste do dev servem de referência do que a tela deve mostrar; a QA reexecuta tudo no ambiente, com evidência própria por CT e o texto exato lido na tela. Divergência entre o que o card relata e o que a tela mostra é registrada com os números lidos.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Tela <b>Averbações › Importação-Provisória</b> na AXA: filial, apólice e subgrupo, <b>Novo</b>, <b>Valor Orig. FOB</b>, <b>Saldo FOB</b>, moeda, <b>Observações</b>, <b>Gravar</b>, consulta pela lupa de Provisória e <b>Excluir</b>.</li><li><b>Recarga</b> da Provisória gravada (consulta pela lupa) e a edição de campos permitidos, como Observações.</li><li><b>Importação-Definitiva</b> vinculada à Provisória, para conferir o consumo e o Saldo FOB depois do vínculo.</li><li>Regressão: FOB realmente ausente, consumo acima do saldo, outra apólice e outra moeda.</li><li>Exploratório de 15–30 minutos guiado por risco, incluindo a impressão da Provisória.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — N/A para a QA (a verificação em staging é de Produtos e do dev).</li><li><b>Código e causa raiz</b> — o plano julga o comportamento na tela; a hipótese do card e o teste do dev não geram CT.</li><li><b>Outros tenants e o CITNET Novo</b> — o card é da AXA no CITNET legado; o bloqueio do FOB em outro cliente tem card próprio.</li><li><b>Importação Definitiva completa</b> — só o vínculo com a Provisória e o saldo entram; as demais regras da Definitiva têm card próprio.</li><li><b>Banco de dados</b> — a QA não escreve nele; o valor gravado é conferido pela recarga na tela.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 24/11/2026:</b> nenhum CT foi executado por este plano. <b>Sondagem de planejamento</b> (sem gravar nada, não é execução de CT nem veredito): na variante padrão da AXA, filial 1, apólice 333, subgrupo 1, depois de <b>Novo</b> a tela mostrou o <b>Valor Orig. FOB 9.999.999.999,99</b> e o <b>Saldo FOB 9.999.999.999,99</b>, ambos <b>travados</b>, a moeda já escolhida (a lista de moedas continua editável), o botão <b>Gravar</b> habilitado e <b>Imprimir/Excluir</b> desabilitados. A lupa de Provisória abre a janela «Consulta Averbação» (apólice/subgrupo, «Pesquisar por» PROVISÓRIA ou DOCUMENTO e botão Pesquisar). A tela <b>Importação-Definitiva</b> tem a lista «Provisória» e o campo de FOB da Definitiva. A apólice 444 aparece na lupa, mas não foi aberta. As mensagens de gravação e de recusa serão registradas como a tela mostrar na execução.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET legado, tenant AXA, variante padrão. Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar).</li><li><b>Usuário de teste</b> — Usuário interno da QA do CITNET legado da AXA, com acesso a Importação-Provisória e Importação-Definitiva. Usuário e senha ficam só no arquivo de ambiente do time; faltando acesso, a QA cria ou edita o usuário pela tela e segue.</li><li><b>Filial, apólice e subgrupo</b> — Filial 1, subgrupo 1, apólices 333 e 444 (a 333 já confirmada na sondagem). Confirmar na tela, antes do 1º CT, que filial, apólice e subgrupo existem.</li><li><b>Massa da QA</b> — Provisórias de teste com documento próprio (prefixo da QA + data/hora), recebimento de hoje, validade de hoje + 60 dias, garantia da lista, mercadoria escolhida pela lupa, origem e destino como a tela pedir. Excluir pela tela só o que o próprio CT criou.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura desde o login, o formulário com FOB e saldo, a mensagem exata e a consulta. Documento de teste e números mascarados quando necessário.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o CITNET legado da AXA (endereço no arquivo de ambiente do time — único endereço digitado) e entrar com o usuário interno de teste da QA, por clique desde a tela de login; registrar a versão exibida.</li><li><b>N2 — Tela:</b> menu <b>Averbações › Importação-Provisória</b>; escolher a filial, clicar na lista de apólice (ela carrega depois da filial), escolher a apólice e o subgrupo.</li><li><b>N3 — Novo:</b> clicar em <b>Novo</b>; ler o <b>Valor Orig. FOB</b> e o <b>Saldo FOB</b> (valor e se aceitam digitação) e a moeda.</li><li><b>N4 — Gravar:</b> preencher Doc. Provisório, Recebimento, Validade, Garantia, Mercadoria, origem e destino, clicar em <b>Gravar</b> e registrar a mensagem exata e o número (ano/sequência) da Provisória.</li><li><b>N5 — Recarga:</b> clicar na lupa de <b>Provisória</b>, escolher apólice e subgrupo, «Pesquisar por» PROVISÓRIA (ou DOCUMENTO), <b>Pesquisar</b>, abrir o registro e ler FOB, moeda, saldo e Observações.</li><li><b>N6 — Definitiva:</b> menu <b>Averbações › Importação-Definitiva</b>; filial, apólice e subgrupo; escolher a Provisória na lista «Provisória»; informar o FOB da Definitiva e os demais campos obrigatórios; <b>Gravar</b>.</li><li><b>N7 — Registro:</b> data/hora, versão, texto exato das mensagens, FOB, saldo e moeda lidos em cada passo, no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário interno AXA (QA):</b> Perfil interno com acesso às duas telas; criado ou editado pela tela se faltar; dados só no arquivo de ambiente.</li><li><b>Apólices do ambiente:</b> 333 e 444, filial 1, subgrupo 1 — confirmadas na tela antes do 1º CT.</li><li><b>Provisória de teste:</b> Documento próprio (prefixo da QA + data/hora); registrar o FOB e o saldo exibidos na criação, a moeda e o número gerado.</li><li><b>Registro antigo com FOB zerado:</b> Provisória já existente do ambiente que a lupa mostre com FOB 0,00 (como a do card); só lida, nunca criada nem alterada pela QA fora do CT-FOB-006.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; registrar a versão exibida e a existência de filial, apólices e subgrupo.</li><li>Grupo A (CT-FOB-001 a 004, nesta ordem: o 001 grava, o 002 recarrega, o 003 edita Observações e o 004 vincula a Definitiva à mesma Provisória) → Grupo B (005 a 007) → Grupo C (008, que também limpa a massa).</li><li>Cada CT começa por login novo e pela tela limpa; as Provisórias de teste são excluídas pela tela ao final, no CT-FOB-008.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Correção: o FOB gravado é restaurado na recarga, a edição só de Observações salva e o saldo reflete FOB e consumos (esperado do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-001</span><span class="ct-title">Criar a Importação Provisória: depois de Novo a tela traz FOB e saldo, e Gravar conclui com mensagem de sucesso e número gerado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — criação (CA1 e CA6); fixa o valor de referência dos CTs seguintes</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário interno da AXA (DC2), login por clique. Apólice 333, filial 1, subgrupo 1. Card em homologação (DC1). Documento de teste próprio (DC4).</li></ul>
+      <h4>Passos</h4><ol><li>Entrar no CITNET da AXA pelo login e registrar a versão exibida (N1).</li><li>Clicar em Averbações › Importação-Provisória; escolher filial 1, apólice 333 e subgrupo 1 (N2); clicar em Novo; capturar o formulário e anotar o Valor Orig. FOB, o Saldo FOB, a moeda e se os campos aceitam digitação (N3).</li><li>Preencher Doc. Provisório, Recebimento, Validade, Garantia, Mercadoria, origem e destino (N4); capturar o formulário antes de gravar.</li><li>Clicar em Gravar; capturar a mensagem exata e anotar o número da Provisória (ano/sequência).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela confirma a gravação com mensagem de sucesso (texto exato registrado) e exibe o número gerado; <b>sem</b> o aviso «Informe o Valor FOB» nem mensagem de falha. O FOB, o saldo e a moeda anotados antes de gravar são a <b>referência</b> do CT-FOB-002. Aviso de FOB na criação, erro de página ou número não gerado = <b>REPROVADO</b>. Não se aprova por «não deu erro»: a prova é a mensagem e o número.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-002</span><span class="ct-title">Recarga: a Provisória gravada reabre com o mesmo Valor Orig. FOB e moeda, e o saldo igual ao FOB (sem consumos)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — o defeito do card (CA1 e CA2; oráculo na tela)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-001 aprovado (Provisória de teste gravada; FOB, saldo e moeda de referência anotados).</li></ul>
+      <h4>Passos</h4><ol><li>Sair da tela e voltar por Averbações › Importação-Provisória; escolher filial 1, apólice 333 e subgrupo 1 (N2).</li><li>Clicar na lupa de Provisória, escolher apólice e subgrupo, pesquisar a Provisória do CT-FOB-001 (por Provisória ou por Documento) e abrir o registro (N5).</li><li>Capturar o formulário recarregado e anotar Valor Orig. FOB, Saldo FOB, moeda e se os campos aceitam digitação; comparar com a referência do CT-FOB-001.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O <b>Valor Orig. FOB</b> e a <b>moeda</b> são <b>iguais</b> aos da criação e o <b>Saldo FOB</b> é igual ao FOB (nenhuma Definitiva vinculada ainda). O campo pode continuar travado (CA2); o que não pode é mostrar 0,00 ou valor diferente. FOB 0,00, valor diferente ou saldo diferente do FOB = <b>REPROVADO</b> (o defeito do card), com a captura e os números lidos como prova.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-003</span><span class="ct-title">Alterar só as Observações da Provisória recarregada e Gravar salva sem pedir o Valor FOB, e a alteração persiste</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — edição bloqueada no card (CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-002 aprovado; a Provisória de teste está carregada para edição.</li></ul>
+      <h4>Passos</h4><ol><li>Com a Provisória recarregada, alterar somente o campo Observações (texto da QA com data/hora); não mexer em FOB nem em moeda; capturar o formulário.</li><li>Clicar em Gravar; capturar a mensagem exata.</li><li>Sair, recarregar a mesma Provisória pela lupa (N5) e conferir Observações, Valor Orig. FOB, moeda e Saldo FOB; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação conclui com mensagem de sucesso, <b>sem</b> o aviso «Informe o Valor FOB». Ao recarregar, as Observações mostram o texto novo e o <b>FOB, a moeda e o saldo continuam iguais aos da criação</b>. Aviso de FOB, gravação recusada, observação não persistida ou FOB alterado/zerado depois da edição = <b>REPROVADO</b>.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-004</span><span class="ct-title">Vincular uma Importação Definitiva dentro do saldo: o saldo da Provisória passa a FOB menos o consumo, não negativo, e o FOB original continua</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — saldo e consumo (CA4 e CA6; o saldo negativo do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-003 aprovado. Provisória de teste com FOB e saldo de referência anotados. Valor da Definitiva dentro do saldo (10.000,00, na mesma moeda da Provisória).</li></ul>
+      <h4>Passos</h4><ol><li>Clicar em Averbações › Importação-Definitiva; escolher filial 1, apólice 333 e subgrupo 1; escolher a Provisória de teste na lista «Provisória» (N6); capturar.</li><li>Informar o FOB da Definitiva 10.000,00 e os demais campos obrigatórios como a tela pedir; Gravar; capturar a mensagem exata e o número da Definitiva.</li><li>Voltar a Importação-Provisória e recarregar a Provisória de teste (N5); anotar Valor Orig. FOB e Saldo FOB; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A Definitiva é gravada com mensagem de sucesso. Na recarga da Provisória o <b>Valor Orig. FOB continua igual ao da criação</b> e o <b>Saldo FOB = FOB original − 10.000,00</b> (valor positivo; com o FOB da sondagem, 9.999.989.999,99). Saldo negativo, FOB original zerado ou saldo diferente dessa conta = <b>REPROVADO</b> (o defeito do card). Definitiva recusada com valor dentro do saldo = REPROVADO, com a mensagem exata.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Regressão: FOB realmente ausente continua recusado, consumo acima do saldo continua barrado, outra apólice e outra moeda seguem iguais</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-005</span><span class="ct-title">Regressão — consumo acima do saldo disponível continua barrado e não deixa saldo negativo</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — validação de negócio preservada (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-FOB-004 aprovado (Provisória com saldo menor que o FOB original). Valor da Definitiva maior que o saldo, se o campo comportar o valor; senão, registrar o limite do campo.</li></ul>
+      <h4>Passos</h4><ol><li>Em Importação-Definitiva, escolher a Provisória de teste e informar um FOB de Definitiva <b>maior</b> que o saldo atual dela; completar os campos obrigatórios; Gravar; capturar a mensagem exata.</li><li>Recarregar a Provisória (N5) e conferir que FOB e saldo não mudaram; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O sistema recusa a Definitiva com mensagem de saldo/valor (texto exato registrado) e a Provisória continua com o mesmo FOB e o mesmo saldo. Definitiva gravada acima do saldo, ou saldo negativo na Provisória, = <b>REPROVADO</b>; se a tela já aceitava isso antes do card, a QA prova pelo baseline (A9) e abre achado pré-existente. Se o campo de FOB não comporta um valor acima do saldo, o CT fica <b>N/A</b> com o limite do campo como prova.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-006</span><span class="ct-title">Regressão — Provisória antiga com FOB realmente zerado continua recusada com a mensagem, e nada é gravado</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — FOB ausente/inválido sujeito à validação de negócio (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Registro antigo do ambiente que a lupa mostre com Valor Orig. FOB 0,00 (massa da QA, só lida); apólices 333 e 444. A QA não cria FOB zerado (o campo é travado e a QA não escreve em banco).</li></ul>
+      <h4>Passos</h4><ol><li>Na lupa de Provisória (N5), percorrer as Provisórias das apólices 333 e 444 e localizar uma que abra com Valor Orig. FOB 0,00; capturar a lista e o registro.</li><li>Alterar somente as Observações e clicar em Gravar; capturar a mensagem exata.</li><li>Recarregar o registro e conferir que Observações, FOB e saldo não mudaram.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com FOB realmente zerado (nada válido para restaurar) o sistema recusa com a mensagem «<b>Informe o Valor FOB</b>» (texto exato registrado; o dev cita «Informe o Valor FOB original.») e <b>não grava</b>. Gravar com sucesso um registro com FOB 0,00 = <b>REPROVADO</b> (validação perdida). Se nenhuma Provisória do ambiente abrir com FOB 0,00, o CT fica <b>N/A (sem massa exercitável na tela)</b>, com a lista percorrida como prova.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-007</span><span class="ct-title">Outra apólice (444) e outra moeda: criar, recarregar e alterar Observações preserva FOB, saldo e moeda</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — o ciclo completo fora do caso do card (CA1, CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Login por clique; apólice 444, filial 1, subgrupo 1; documento de teste próprio. Moeda diferente da pré-selecionada na tela (a lista de moedas é editável).</li></ul>
+      <h4>Passos</h4><ol><li>Em Importação-Provisória, escolher filial 1, apólice 444 e subgrupo 1; clicar em Novo; anotar FOB, saldo e moeda; escolher outra moeda da lista; preencher os campos obrigatórios; Gravar; capturar a mensagem e o número.</li><li>Recarregar a Provisória pela lupa (N5); anotar FOB, saldo e moeda; comparar com a criação; capturar.</li><li>Alterar só as Observações; Gravar; recarregar e conferir o texto novo e FOB, saldo e moeda inalterados; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Na apólice 444 e com outra moeda, o ciclo criar → recarregar → editar Observações funciona como nos CTs 001 a 003: valor e <b>moeda escolhida</b> preservados, saldo igual ao FOB, edição salva sem o aviso de FOB. FOB zerado, moeda trocada de volta para a padrão ou edição bloqueada = <b>REPROVADO</b>, indicando a apólice.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-007"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-FOB-008</span><span class="ct-title">Exploratório (15–30 min): F5 e mensagens, impressão da Provisória e limpeza da massa pela tela</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Mesmo usuário e massa; Provisórias de teste próprias.</li></ul>
+      <h4>Passos</h4><ol><li>Depois de Novo, recarregar a página (F5) e conferir o estado do FOB e do saldo; trocar moeda e voltar; capturar.</li><li>Carregar uma Provisória gravada e clicar em Imprimir; conferir no documento gerado o FOB e a moeda; capturar.</li><li>Procurar a Provisória pelo Documento (e não pelo número) e conferir que abre com o mesmo FOB.</li><li>Excluir pela tela só as Provisórias criadas pela QA (a que tem Definitiva vinculada pode não ser excluível: registrar a mensagem) e conferir pela lupa que deixaram de constar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem página de erro; FOB e saldo coerentes depois de F5; a impressão mostra o mesmo FOB da tela; a pesquisa por Documento abre o mesmo registro; a exclusão é confirmada em tela e a lupa deixa de listar o que foi excluído. Achado com card próprio é classificado como do card ou pré-existente (baseline, A9); sem ocorrências → «Exploratório executado [DD/MM HML]. Sem ocorrências.»</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, imediata. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-FOB-008"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — criar com FOB válido, salvar e recarregar preserva valor e moeda</td><td>CT-FOB-001 · CT-FOB-002 · CT-FOB-007</td><td>Pendente</td></tr><tr><td>CA2 — a recarga restaura o valor mesmo com o campo não editável</td><td>CT-FOB-002</td><td>Pendente</td></tr><tr><td>CA3 — alterar só Observações salva e persiste, sem redigitar o FOB</td><td>CT-FOB-003 · CT-FOB-007</td><td>Pendente</td></tr><tr><td>CA4 — o saldo reflete FOB e consumos; Definitiva dentro do saldo não gera saldo negativo</td><td>CT-FOB-004</td><td>Pendente</td></tr><tr><td>CA5 — FOB ausente/inválido e consumo acima do permitido continuam sujeitos às validações</td><td>CT-FOB-005 · CT-FOB-006</td><td>Pendente</td></tr><tr><td>CA6 — validar criação, recarga, edição e vínculo da Definitiva, com valores antes/depois e persistência</td><td>CT-FOB-001 · CT-FOB-002 · CT-FOB-003 · CT-FOB-004 · CT-FOB-008</td><td>Pendente</td></tr><tr><td>Hipótese de causa do card, conferência do código, comparação de payload e persistência em banco, staging e produção</td><td>— não geram CT: o plano julga o comportamento na tela no ambiente do card</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 6 critérios de aceite do card mapeados a CTs (100%), com oráculo na <b>tela</b> (FOB, saldo e moeda na criação e na recarga, mensagem exata, número da Provisória, consulta e documento impresso), mais regressão em FOB ausente, consumo acima do saldo, outra apólice e outra moeda, e exploratório. A hipótese de causa, o código do dev e a persistência em banco ficam fora (princípio zero do QA: CT exige oráculo no produto).</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Aprovar porque a criação grava, sem provar a recarga e a edição (o defeito aparece depois de gravar)</td><td>Média</td><td>Alta</td><td>CT-FOB-002 e CT-FOB-003 comparam, na recarga, FOB, moeda e saldo com a referência da criação; criar sem recarregar não fecha o card.</td></tr><tr><td>Saldo negativo só aparecer depois do vínculo da Definitiva</td><td>Média</td><td>Alta</td><td>CT-FOB-004 confere FOB original e saldo = FOB − consumo antes e depois, com os números lidos.</td></tr><tr><td>Provisória de teste ficar criada na apólice, ou não ser excluível por ter Definitiva vinculada</td><td>Média</td><td>Média</td><td>Documento com prefixo da QA, limpeza pela tela no CT-FOB-008 e registro de qualquer exceção; a QA não escreve em banco.</td></tr><tr><td>Não haver Provisória com FOB zerado no ambiente para o CT-FOB-006</td><td>Média</td><td>Média</td><td>CT fica N/A com a lista percorrida como prova; a validação do servidor não é julgada por leitura de código.</td></tr><tr><td>A tela travar o FOB por desenho na AXA e o card relatar «FOB informado na criação»</td><td>Baixa</td><td>Média</td><td>DC3: o valor exibido na criação é a referência; divergência entre o relato e a tela é registrada com os números.</td></tr><tr><td>Sem usuário ou senha no ambiente, ou sessão degradar durante o plano</td><td>Média</td><td>Baixa</td><td>A QA cria ou edita o usuário pela tela (massa) e usa novo login; nunca pergunta ao dev nem deixa CT pendente por isso.</td></tr><tr><td>Card ainda em In Planning quando a rotina chegar</td><td>Alta</td><td>Baixa</td><td>Espera legítima (DC1): executa quando o card estiver em homologação; plano já publicado.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
