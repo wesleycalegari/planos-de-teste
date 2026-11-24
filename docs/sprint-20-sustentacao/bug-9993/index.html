@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9993 · [CITWEB] Fechamento Mensal: a nova prévia não pode somar os embarques do movimento aberto aos de um movimento já fechado/faturado da mesma competência</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9993 · Sprint 20 Sustentação</span>
+    <h1>[CITWEB] Fechamento Mensal: a nova prévia não pode somar os embarques do movimento aberto aos de um movimento já fechado/faturado da mesma competência</h1>
+    <div class="sub">CITWEB Nacional — Fechamento Mensal (Prévia e Emissão), RCTR-C · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (24/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>9 CTs</strong> (4×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Um cliente da Berkley fechou um movimento errado e subiu os embarques de novo pelo conversor. Ao gerar a nova prévia daquele mês, o sistema somou os embarques que ainda estavam abertos com os que já tinham sido fechados, e as faturas saíram com embarques em duplicidade. O card pede que, quando o mês já tem fechamento feito ou fatura emitida, a nova prévia <b>não</b> some os embarques do movimento aberto aos do fechado.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos recriar a situação no ambiente de testes (um mês com fechamento já feito e embarques novos ainda abertos no mesmo mês) e conferir que: (1) a prévia e o resumo de embarques desse mês não mostram a soma dos dois movimentos; (2) a tela de emissão do fechamento também não soma; (3) num mês <b>sem</b> fechamento nem fatura a prévia continua listando os embarques abertos normalmente (nada piorou); (4) um fechamento de um mês não afeta a prévia de outro mês; (5) a mesma regra vale em outros tipos de apólice nacionais.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» e a correção ainda não está no ambiente de testes. Os testes começam assim que o card for liberado para homologação. <b>Já medimos no ambiente de testes:</b> a apólice do chamado existe lá com um mês (10/2026) que tem 1 embarque já fechado e 1 embarque ainda aberto — a mesma situação do cliente, em tamanho pequeno. Essa apólice é só para leitura; a QA monta apólices próprias para os testes que fecham o mês.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem confere a prévia deixa de ver embarques fechados e abertos somados no mesmo mês, e o faturamento deixa de sair com embarques em duplicidade. Mês sem fechamento continua igual.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: o que a prévia deve mostrar depois da correção, num mês já fechado, a QA lê assim — «os embarques abertos não são somados aos fechados» (mostrar só o fechado, ou avisar que o mês já foi fechado, ambos servem; somar, não). Estornar ou corrigir faturas já emitidas, investigar a falha da integração de 22/09 e avisar o cliente são do desenvolvimento/suporte e ficam fora da homologação.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b> — Fechamento Mensal › Prévia (relatórios Relação de Embarques e Resumo de Embarques) e Fechamento Mensal › Emissão; Cadastros › Apólice e Averbação (preparação da massa).</td></tr><tr><th>Card</th><td>BUG-9993 — «[Movidesk #488278] CITWEB soma embarques de movimento fechado/faturado na nova prévia» · board Sustentação · estado <b>Pronto para desenvolvimento</b> · aberto pela coordenação a partir de chamado de cliente (Berkley) · sem tarefas filhas.</td></tr><tr><th>Tasks</th><td>#9997 [QA] Plano de teste — BUG #9993 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> no board da Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB — base da Berkley (a do cliente que relatou). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 24/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Depois de uma falha na integração de embarques (22/09/2026), o cliente fechou o movimento incorreto e subiu todos os embarques de novo pelo conversor. Ao gerar a <b>nova prévia</b> para conferência do corretor, o sistema somou os embarques do movimento <b>fechado</b> com os do movimento <b>aberto</b> da mesma competência, e as faturas rodaram com a duplicidade sem que o cliente tivesse pedido a emissão do movimento errado. O suporte reproduziu em homologação em 09/11/2026 na apólice 547784909 (filial 1, ramo 54, período 10/2026).</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — período com movimento fechado/faturado e outro movimento aberto na mesma competência: a nova prévia não soma os embarques do movimento aberto aos já fechados/faturados</td><td>CT-PRV-001 (Relação de Embarques) · CT-PRV-002 (Resumo de Embarques) · CT-PRV-003 (Emissão) · CT-PRV-004 (massa própria, do zero) · CT-PRV-006 (o movimento aberto não é alterado)</td></tr><tr><td><b>CA2</b> — período sem fechamento nem fatura emitida: a geração da prévia permanece sem regressão</td><td>CT-PRV-005 (contraprova do CT-PRV-004) · CT-PRV-007 (outra competência) · CT-PRV-008 (outros ramos)</td></tr><tr><td>Definition of Done: correção implementada · validado em homologação com o cenário reproduzido</td><td>CT-PRV-001 a CT-PRV-004 (evidência de QA em HML)</td></tr><tr><td>Definition of Done: conferido em produção · cliente avisado · investigar a falha de integração de 22/09 · estornar/corrigir faturas já emitidas (item «a confirmar com o time» do card)</td><td>— sem CT: produção é N/A para a QA; investigação, estorno de faturas e aviso ao cliente são do desenvolvimento/suporte.</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-PRV-009</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 24/11/2026:</b> sistema (CITWEB) pelo título e seguradora Berkley pela tag do card ✓ · Bug com contexto, passos para reproduzir (apólice, filial, ramo, período), comportamento atual e esperado, ambiente e evidências (3 imagens do chamado) ✓ · critérios de aceite com oráculo observável: o arquivo/tela da prévia (quantidade e total de embarques) e o modal da Emissão (<b>tela</b>), conferidos por leitura somente-leitura do estado do movimento (<b>banco</b>) ✓ · ramo 54 (RCTR-C) declarado ✓ · descrição, passos, critérios de aceite, anexos e comentários lidos (o card não tem tarefas filhas; o único comentário é uma nota automática de análise, sem informação de negócio). <b>Não é débito técnico:</b> o comportamento é observável e validável pelo usuário.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>, sem desenvolvedor atribuído: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (prévia, arquivo, modal da Emissão). Investigação da integração, estorno de faturas e aviso ao cliente não viram CT.</td></tr><tr><td><b>DI2</b></td><td><b>Onde o defeito aparece</b></td><td>O card diz «nova prévia» e fala de faturas que rodaram. A QA cobre as três superfícies em que um total de embarques aparece para a competência: Relação de Embarques, Resumo de Embarques (Prévia) e modal da Emissão (CT-PRV-001 a 003); a leitura do estado (fechadas × abertas) no banco é a segunda fonte.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo / «comportamento esperado» da prévia de mês fechado</b></td><td>O CA1 pede que não some; ele não diz se a prévia fica só com o fechado ou avisa que o mês já foi fechado. Posição do QA: <b>os dois servem; somar não</b>. «Salvou/gerou sem erro» não aprova — o veredito vem da quantidade e do total comparados com o estado lido.</td></tr><tr><td><b>DI4</b></td><td><b>Massa</b></td><td>Apólice do suporte só para leitura (sem fechar/emitir); fechamento e emissão feitos pela QA pela tela em apólices próprias (regra de massa de fatura da QA, sem pedir a ninguém).</td></tr><tr><td><b>DI5</b></td><td><b>Ramos</b></td><td>Regra por ramo (regra 9): RCTR-C é o do card; RC-DC, Transporte Nacional e RCTA-C entram no CT-PRV-008, cada um por si. RCV (59) fica de fora: a prévia dele não filtra por mês.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os dois critérios de aceite têm oráculo; o item «corrigir/estornar faturas já emitidas» é do desenvolvimento/suporte e não bloqueia o teste do comportamento.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Prévia do Fechamento Mensal (Relação de Embarques e Resumo de Embarques) em competência que já tem movimento fechado/faturado e outro aberto: não soma.</li><li>Modal da Emissão do Fechamento Mensal na mesma situação (onde o cliente viu as faturas saírem duplicadas): não soma.</li><li>Regressão: competência sem fechamento lista o aberto; fechamento de um mês não afeta outro mês; o movimento aberto não é alterado pela geração da prévia.</li><li>Mesma regra em outros ramos nacionais com filtro de mês (RC-DC, Transporte Nacional e RCTA-C).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A). A conferência em produção e o aviso ao cliente são do desenvolvimento/suporte.</li><li><b>Estorno/correção das faturas já emitidas com duplicidade</b> e <b>investigação da falha da integração de 22/09</b> — decisão e trabalho do desenvolvimento/suporte (o próprio card marca como «a confirmar com o time»).</li><li><b>RCV (59)</b> — a prévia do RCV não tem filtro de mês (lista todos os movimentos abertos da apólice): é outra regra, fora deste card; entra só como observação no exploratório.</li><li><b>Internacional e CITNET</b> — fora do card.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 24/11/2026, antes de publicar (base HML da Berkley, consulta somente leitura; nada gravado):</b> a apólice do card (filial 1, ramo 54) existe e tem, na competência 10/2026, <b>1 averbação em movimento fechado</b> (já com número de fechamento gravado) e <b>1 averbação em movimento aberto</b> — a combinação do relato. É a massa de leitura dos CTs do Grupo A. Nenhuma outra apólice da base tem hoje fechado e aberto na mesma competência (de 09/2026 em diante), então os demais CTs usam apólices próprias criadas pela QA. Pela leitura da tela de Prévia já validada: a prévia lista o movimento <b>aberto</b> da apólice; nos ramos RCTR-C, RCTA-C, RCTF-C, RCA-C e TN existe o filtro de mês/ano, e no RCV (59) não existe (regra por ramo: o RCV fica fora dos CTs de mês). Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, base da Berkley (endereço e usuário interno de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa de leitura (Grupo A)</b> — Apólice do card, filial 1, ramo 54, competência 10/2026 (1 averbação fechada + 1 aberta). <b>Só leitura</b>: exportar prévia e abrir o modal da Emissão <b>sem emitir nada</b>. Reconfirmar a contagem por consulta antes do CT (a massa é do suporte e pode ter mudado).</li><li><b>Massa própria (Grupos B, C e D)</b> — A QA cria pela tela, para cada CT: apólice nova (RCTR-C, ou o ramo do CT), averbações de teste da competência corrente lançadas pela tela, e — no Grupo B — o fechamento do mês pela tela (Fechamento Mensal › Emissão). Número, filial, competência e data de criação registrados no resultado do CT. Clique destrutivo (fechar/emitir/excluir) <b>só</b> nas apólices e averbações criadas pela QA no próprio CT; nunca na apólice do suporte.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, preenche as telas, baixa o arquivo da prévia, lê as linhas e grava em disco capturas e valores lidos; imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Conferência no banco (leitura)</b> — Como segunda fonte do oráculo, a QA lê (somente leitura) a quantidade de averbações abertas e fechadas da apólice/competência do CT antes e depois; a tela/arquivo continua sendo o oráculo principal. A QA não escreve no banco do ambiente para dado de negócio.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado), o arquivo da prévia baixado e as contagens lidas, mais a versão do rodapé em cada execução.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML, base da Berkley), entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li><b>NB — Prévia:</b> tile <b>Nacional</b> (abre em nova aba) › menu <b>Fechamento Mensal</b> › <b>Prévia</b> · escolher a filial <b>antes</b> de digitar a apólice · ramo, número da apólice, subgrupo, mês e ano · marcar o tipo de relatório (Relação de Embarques ou Resumo de Embarques; reconferir as marcações antes de exportar) · <b>Exportar</b> › confirmar a impressão com <b>Sim</b>.</li><li><b>NC — Emissão:</b> Nacional › <b>Fechamento Mensal</b> › <b>Emissão</b> › Seleção por Apólice (filial, ramo, número, mês/ano) › SELECIONAR › marcar a apólice no grid para abrir o modal «Fechamento Mensal» e ler quantidade de embarques e prêmio. <b>Não emitir</b> no Grupo A; no Grupo B o fechamento é feito só na apólice própria.</li><li><b>ND — Massa própria:</b> Cadastros › Apólice (ramo do CT) para criar a apólice; Averbação › Nacional para lançar as averbações de teste; os caminhos e IDs validados estão nas features de cadastro de apólice e averbação nacional.</li><li><b>O1 — Oráculo da prévia:</b> arquivo exportado (linhas de embarque e totais de quantidade/valor do rodapé) lido por script e comparado com a contagem do estado da apólice/competência (fechadas × abertas) lida no banco; mais a captura da tela e o texto exato de qualquer mensagem.</li><li><b>O2 — Oráculo da Emissão:</b> no modal, ler a quantidade de embarques e o prêmio exibidos e comparar com fechadas, abertas e a soma das duas; captura do modal. Nada é emitido nos CTs de leitura.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólice do card (leitura):</b> Filial 1, ramo 54, competência 10/2026: 1 averbação em movimento fechado + 1 em movimento aberto (consulta de 24/11/2026). Só leitura; reconfirmar a contagem antes do CT.</li><li><b>Apólices dos CTs de massa própria:</b> Criadas pela QA pela tela (RCTR-C nos CT-PRV-004 a 007; um de cada outro ramo no CT-PRV-008), com número, filial e data de criação registrados no resultado de cada CT; seguem a feature de cadastro de apólice já validada.</li><li><b>Estado do CT-PRV-004:</b> Apólice própria com 2 averbações da competência corrente → fechamento do mês pela tela (as 2 passam a fechadas) → lançar 1 averbação nova na mesma competência (fica aberta) → gerar a nova prévia. Esperado antes de gerar: 2 fechadas + 1 aberta.</li><li><b>Estado do CT-PRV-005:</b> Apólice própria com 2 averbações abertas na competência corrente, <b>sem</b> fechamento e sem fatura: a prévia tem de listar as 2.</li><li><b>Estado do CT-PRV-007:</b> Apólice própria com fechamento feito na competência anterior e 2 averbações abertas na competência seguinte.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card em homologação). Reconfirmar por leitura o estado da apólice do card.</li><li>Grupo A (só leitura) → B (massa própria) → C → D (exploratório por último, 15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Reprodução do card: mês com fechamento e movimento aberto não soma na prévia (apólice do chamado, só leitura)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-001</span><span class="ct-title">Apólice do card (10/2026, 1 fechada + 1 aberta): a Relação de Embarques da nova prévia não soma o movimento aberto ao fechado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do cenário do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice do card (filial 1, ramo 54) com, na competência 10/2026, 1 averbação fechada e 1 aberta (reconfirmar). Só leitura: exportar sem emitir nem fechar nada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler no banco (somente leitura) a contagem de averbações fechadas e abertas da apólice/competência e anotar: é o estado de partida do CT.</li><li>Nacional › Fechamento Mensal › Prévia (NB): escolher a filial, ramo, número da apólice, mês 10 e ano 2026; marcar <b>Relação de Embarques</b> (reconferir a marcação) e <b>Exportar</b> › Sim.</li><li>Registrar o texto exato de qualquer mensagem da tela; abrir o arquivo baixado (se houver) e contar as linhas de embarque e ler o total do rodapé (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia <b>não soma</b> os dois movimentos: o arquivo/tela não apresenta quantidade nem total iguais à soma de fechadas + abertas (2 embarques). São aceitas as duas formas de a correção se comportar: só os embarques do movimento fechado, ou aviso de que a competência já foi fechada, sem arquivo de soma. Quantidade/total = soma dos dois movimentos (a assinatura do defeito) é REPROVADO. Evidência: capturas desde o login, arquivo baixado e contagem lida.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-002</span><span class="ct-title">Apólice do card (10/2026): o Resumo de Embarques da nova prévia também não soma</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — segundo relatório da prévia</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma apólice e competência do CT-PRV-001 (só leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler no banco (somente leitura) a contagem de averbações fechadas e abertas da apólice/competência e anotar: é o estado de partida do CT.</li><li>Fechamento Mensal › Prévia (NB): mesmos filtros do CT-PRV-001; marcar <b>Resumo de Embarques</b> (reconferir a marcação) e <b>Exportar</b> › Sim.</li><li>Registrar mensagem da tela; abrir o arquivo (se houver) e ler a quantidade e o total de embarques por rota (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesma regra do CT-PRV-001: o resumo não agrega o movimento aberto ao fechado (quantidade e total diferentes da soma dos dois); se a competência estiver fechada, aviso ou só o fechado. Cada relatório vale por si: reprovar em um deles reprova o CT. Evidência: capturas, arquivo e contagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-003</span><span class="ct-title">Apólice do card (10/2026): o modal da Emissão do Fechamento Mensal não soma o movimento aberto ao fechado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — origem das faturas duplicadas do relato</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma apólice e competência do CT-PRV-001. Somente leitura: abrir o modal e <b>não emitir</b>.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler no banco (somente leitura) a contagem de averbações fechadas e abertas da apólice/competência e anotar: é o estado de partida do CT.</li><li>Nacional › Fechamento Mensal › Emissão (NC): Seleção por Apólice com filial, ramo, número e 10/2026; SELECIONAR.</li><li>Marcar a apólice no grid para abrir o modal «Fechamento Mensal» e ler (O2) a quantidade de embarques e o prêmio; capturar; fechar o modal sem confirmar nada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O modal não exibe quantidade/prêmio resultantes da soma do fechado com o aberto da mesma competência; se a competência já tem fechamento/fatura, o sistema não oferece uma emissão complementar que some o aberto (aviso ou só o fechado). A soma dos dois é REPROVADO. Nada é emitido. Evidência: captura do modal desde o login e contagens lidas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-003"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Massa própria: fechar o mês pela tela, lançar embarque novo e gerar a nova prévia</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-004</span><span class="ct-title">Massa própria do zero: fechar o mês pela tela, lançar embarque novo na mesma competência e gerar a nova prévia — não soma</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — cenário controlado com valores conhecidos</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C própria da QA (criada pela tela) com 2 averbações da competência corrente, fechamento da competência feito pela tela e depois 1 averbação nova na mesma competência (aberta). Estado de partida esperado: 2 fechadas + 1 aberta (conferir por leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastros › Apólice › RCTR-C: criar a apólice própria (ND) e registrar número, filial e data; Averbação › Nacional: lançar 2 averbações na competência corrente.</li><li>Fechamento Mensal › Emissão (NC): fechar a competência só desta apólice própria; confirmar por leitura 2 fechadas + 0 abertas.</li><li>Lançar mais 1 averbação na mesma competência (Averbação › Nacional); confirmar por leitura 2 fechadas + 1 aberta.</li><li>Fechamento Mensal › Prévia (NB): gerar a Relação de Embarques e o Resumo de Embarques da competência; abrir os arquivos e ler quantidade e total (O1); abrir também o modal da Emissão (O2).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com 2 fechadas + 1 aberta, a prévia e o modal <b>não</b> trazem o total de 3 embarques (soma dos dois movimentos). Aceito: só os 2 do fechado, ou aviso de competência já fechada. O embarque novo (aberto) não é somado. Quantidade 3 / total da soma é REPROVADO. Evidência: capturas desde o login, arquivos baixados, contagens lidas antes e depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-006</span><span class="ct-title">A geração da prévia não altera o movimento: os embarques abertos continuam abertos e os fechados continuam fechados</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / integridade (CA1)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice própria do CT-PRV-004 depois de gerada a prévia (2 fechadas + 1 aberta).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler por consulta (somente leitura) a contagem de fechadas e abertas da apólice/competência <b>depois</b> da prévia e comparar com a de antes (2 fechadas + 1 aberta).</li><li>Em Fechamento Mensal › Emissão (NC), abrir o modal da apólice e conferir que o embarque aberto continua disponível para o próximo fechamento (sem emitir).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Contagens idênticas às de antes da prévia: 2 fechadas e 1 aberta; o embarque aberto não foi fechado, descartado nem duplicado pela geração da prévia. Qualquer mudança de contagem é REPROVADO. Evidência: contagens lidas antes/depois e captura.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-006"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão: sem fechamento a prévia lista o aberto; outra competência não é afetada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-005</span><span class="ct-title">Contraprova: competência sem fechamento nem fatura — a prévia lista normalmente os embarques abertos</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA2) — contraprova positiva dos CTs do Grupo A e B</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C própria da QA com 2 averbações abertas na competência corrente, <b>sem</b> fechamento e sem fatura (conferir por leitura: 0 fechadas + 2 abertas).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler no banco (somente leitura) a contagem de averbações fechadas e abertas da apólice/competência e anotar: é o estado de partida do CT.</li><li>Fechamento Mensal › Prévia (NB): gerar a Relação de Embarques e o Resumo de Embarques da competência; abrir os arquivos e ler a quantidade e o total (O1).</li><li>Comparar a quantidade e o total do arquivo com a contagem lida no banco (2 abertas).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os 2 embarques abertos aparecem na prévia (quantidade 2; total igual à soma dos 2 embarques) nos dois relatórios — comportamento anterior preservado. A contraprova mostra que os CTs do Grupo A/B passaram porque o sistema deixou de somar na competência já fechada, e não porque a prévia parou de listar embarques. Qualquer redução (prévia vazia ou com menos embarques) é REPROVADO. Evidência: arquivos e contagens.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-007</span><span class="ct-title">Fechamento de uma competência não afeta a prévia de outra: embarques abertos do mês seguinte aparecem</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA2) — o conserto não pode bloquear a prévia de outro mês</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C própria da QA com fechamento feito na competência anterior e 2 averbações abertas na competência seguinte (conferir por leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Ler no banco (somente leitura) a contagem de averbações fechadas e abertas da apólice/competência e anotar: é o estado de partida do CT.</li><li>Fechamento Mensal › Prévia (NB): mês/ano da competência <b>seguinte</b>; gerar a Relação de Embarques; abrir o arquivo e ler quantidade e total (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia da competência seguinte lista os 2 embarques abertos (quantidade 2). O fechamento da competência anterior não tira nem soma nada na prévia desta. Prévia vazia ou aviso de «já fechado» para a competência seguinte é REPROVADO. Evidência: arquivo e contagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-007"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Outros ramos nacionais e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-008</span><span class="ct-title">Outros ramos nacionais (RC-DC, Transporte Nacional e RCTA-C): mês fechado com movimento aberto não soma na prévia</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / regressão por ramo (CA2) — cada ramo é verificado de forma independente</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Para cada ramo: apólice própria da QA no estado do CT-PRV-004 (2 averbações fechadas pelo fechamento do mês + 1 aberta na mesma competência). O RCV (59) está fora (outra regra, sem filtro de mês).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastros › Apólice › RC-DC (a partir do RCTR-C): criar a apólice própria, lançar e fechar 2 averbações, lançar 1 nova; gerar a prévia; repetir com Transporte Nacional e com RCTA-C.</li><li>Em cada ramo: abrir a Relação de Embarques e ler quantidade e total (O1).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em cada ramo: a prévia <b>não soma</b> fechado e aberto (quantidade 3 é REPROVADO). Cada ramo vale por si: a falha em um reprova só o ramo, com a evidência dele. Se algum ramo não permitir montar o estado (ex.: não fecha pela tela), registrar o motivo e marcar só aquele ramo como pendente com a causa. Evidência por ramo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-PRV-009</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Berkley) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Explorar a Prévia e a Emissão: apólice com dois fechamentos na mesma competência; fatura emitida (sem fechamento aberto) e embarque novo depois; subgrupo diferente do principal; prévia do RCV (sem filtro de mês) numa apólice com fechamento anterior — só observar, o RCV está fora da regra do card.</li><li>Conferir se os totais da prévia e do modal da Emissão batem entre si nas situações exploradas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem inconsistência entre prévia, Emissão e estado do movimento. Achado novo gera defeito (ou Bug pré-existente, conforme prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-PRV-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — mês com movimento fechado/faturado + aberto: a nova prévia não soma os embarques do aberto aos do fechado</td><td>CT-PRV-001 · CT-PRV-002 · CT-PRV-003 · CT-PRV-004 · CT-PRV-006</td><td>Pendente</td></tr><tr><td>CA2 — sem fechamento/fatura: geração da prévia sem regressão (e outra competência/outros ramos)</td><td>CT-PRV-005 · CT-PRV-007 · CT-PRV-008</td><td>Pendente</td></tr><tr><td>DoD — validado em HML com o cenário reproduzido (apólice do card)</td><td>CT-PRV-001 · CT-PRV-002 · CT-PRV-003 · CT-PRV-004</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-PRV-009</td><td>Pendente</td></tr><tr><td>DoD: conferido em produção · cliente avisado · investigar a falha de integração · estorno das faturas já emitidas</td><td>— sem CT: produção é N/A para a QA; investigação, estorno e aviso ao cliente são do desenvolvimento/suporte</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O critério CA1 está coberto na apólice do card (Relação, Resumo e Emissão), em massa própria do zero e na integridade do movimento; o CA2 pela contraprova sem fechamento, por outra competência e por outros ramos. O DoD de produção e o aviso ao cliente ficam registrados na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em Pronto para desenvolvimento)</td><td>Alta</td><td>Médio — os CTs dos Grupos A e B reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>A massa do suporte (apólice do card) ser alterada ou fechada por outra pessoa antes do CT</td><td>Média</td><td>Baixo — massa, não impeditivo</td><td>Grupo A só lê e reconfirma a contagem antes; se mudou, o CT-PRV-004 (massa própria, do zero) reproduz o mesmo cenário.</td></tr><tr><td>Fechar o mês pela tela numa apólice própria não ser possível ou não gerar número de fechamento</td><td>Baixa</td><td>Médio</td><td>A QA tenta pela tela (Emissão › fechar só a apólice própria); se persistir, registra o que a tela fez e o motivo; fatura e fechamento são massa da QA (regra 4), não decisão de Produtos.</td></tr><tr><td>O formato do «correto» na prévia de mês fechado não estar escrito (só o fechado, ou aviso)</td><td>Média</td><td>Baixo</td><td>O plano aceita as duas formas e reprova a soma (posição do QA registrada em DI3); texto exato da mensagem registrado no resultado.</td></tr><tr><td>Defeito só reproduzir com o volume do cliente (centenas de milhares de embarques)</td><td>Média</td><td>Médio</td><td>O mecanismo (fechado + aberto na mesma competência) é reproduzido com poucos embarques; o volume do cliente fica fora da homologação (suporte/dev).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (24/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
