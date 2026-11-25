@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-10007 · [CITNET Novo · Allianz] Catálogo de mercadorias vazio bloqueia as averbações e a preparação de outros fluxos</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-10007 · Sprint 20</span>
+    <h1>[CITNET Novo · Allianz] Catálogo de mercadorias vazio bloqueia as averbações e a preparação de outros fluxos</h1>
+    <div class="sub">CITNET Novo · Allianz — seletor de Mercadoria nas averbações e prévia do Conversor · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">14</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">14</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">9/4/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 14 executados · 14 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>14 CTs</strong> (9×P1 · 4×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 14, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 14}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITNET Novo da Allianz, ao lançar uma averbação o campo «Mercadoria» não mostra nenhuma opção: a lista vem vazia e a busca pelo código 933003 diz que não há resultados, mesmo com essa mercadoria cadastrada na Allianz. Com isso o usuário não consegue preencher o formulário nem gravar, nos ramos nacionais e internacionais, e o Conversor também recusa a linha com a mensagem «Mercadoria 933003 não cadastrada». O card pede que o catálogo da Allianz apareça no Novo, que a busca por código funcione, que escolher a mercadoria deixe seguir até a gravação e que mercadorias de outra seguradora <b>não</b> sejam usadas para tapar o problema.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos conferir, nas telas do CITNET Novo da Allianz, que: (1) em cada tipo de averbação (RCTR-C, RCA-C, Transporte Nacional, Importação provisória e definitiva e Exportação) a lista de mercadorias não vem vazia e a busca por 933003 encontra a mercadoria; (2) a busca por outro código e por parte do nome também funciona; (3) escolher a mercadoria preenche o campo e a averbação grava; (4) o Conversor deixa de recusar a linha com 933003; (5) uma mercadoria que só existe em outra seguradora <b>não</b> aparece para a Allianz, e um código que não existe em lugar nenhum continua sem resultado; (6) as outras seguradoras seguem vendo o catálogo delas.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «New» e a correção ainda não está no ambiente de testes. Os testes começam assim que o card for liberado para homologação. <b>Já medimos no ambiente de testes:</b> o cadastro de mercadorias da Allianz <b>não está vazio</b> (16.245 mercadorias, entre elas a 933003 «CITNET BASE MERCADORIA», criada em 24/11/2026); as apólices do chamado existem (filial 7, apólice 333 nos ramos nacionais, 333 e 3333 nos internacionais). Ou seja, o problema está em como o Novo lê esse cadastro, e não na falta dele.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem lança averbação ou usa o Conversor na Allianz volta a conseguir escolher a mercadoria e gravar; outras seguradoras e as demais regras de validação não mudam.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: o card diz que as etapas seguintes (edição, exclusão, reflexo no RC-DC, saldo, conversão completa e conteúdo dos relatórios) não foram alcançadas e que a causa interna não está confirmada; por isso o plano testa a <b>liberação da mercadoria</b> e uma gravação de ponta a ponta, e não essas etapas.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET Novo</b> (HML, seguradora Allianz, perfil interno) — Averbações › RCTR-C, RCA-C, Transporte Nacional, Importação (provisória e definitiva) e Exportação, campo <b>Mercadoria</b> (seletor com busca por código); Conversor › prévia de importação.</td></tr><tr><th>Card</th><td>BUG-10007 — «[ CITNET - Allianz ] Nsseg (CITNET Novo): Catálogo de mercadorias vazio bloqueia averbações e preparação de outros fluxos» · board CITWEB Team · Sprint 20 · tipo <b>Bug</b> (origem: relato do Voidr, ticket DEF-125, observações de 24/11/2026) · estado atual <b>New</b>, sem responsável, sem tarefas filhas; o único comentário é uma nota automática de análise, sem informação de negócio.</td></tr><tr><th>Tasks</th><td>#10014 [QA] Plano de teste — BUG #10007 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Massa do card</th><td>Filial 7 · apólice 333 (subgrupo 1) nos ramos nacionais e na Importação · apólice 3333 na Exportação · mercadoria sintética 933003 (código completo 0000933003, «CITNET BASE MERCADORIA»), existente no cadastro da Allianz.</td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, seguradora Allianz (o cadastro de mercadorias é o mesmo do CITWEB da Allianz). Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo da Allianz, ao abrir <b>Novo protocolo</b> (RCTR-C, RCA-C, Transporte Nacional, Importação provisória/definitiva ou Exportação) e abrir o seletor <b>Mercadoria</b>, a lista inicial vem <b>vazia</b> e a busca pelo código 933003 informa ausência de resultados. Nos casos tracejados do card, a consulta de lista e a consulta por código respondem com sucesso, porém com resultado vazio. No Conversor, a prévia recusou duas linhas com «Mercadoria 933003 não cadastrada» e não gravou nada. O cadastro foi preparado no CITWEB da Allianz, que compartilha a base com o Novo. O bloqueio acontece <b>antes</b> da gravação; o card agrupa 44 cenários bloqueados pelo mesmo sintoma e não afirma defeito nas etapas que não foram alcançadas.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — a mercadoria 933003, cadastrada no CITWEB da Allianz, aparece no Novo nos ramos nacionais e internacionais afetados</td><td>CT-MRC-001 (RCTR-C) · CT-MRC-002 (RCA-C) · CT-MRC-003 (Transporte Nacional) · CT-MRC-004 (Importação provisória) · CT-MRC-005 (Importação definitiva) · CT-MRC-006 (Exportação)</td></tr><tr><td><b>CA2</b> — a consulta por código retorna a opção correspondente; a lista geral deixa de vir inteiramente vazia quando há cadastros</td><td>CT-MRC-001 a CT-MRC-006 (lista e código) · CT-MRC-007 (busca por outro código e por parte do nome)</td></tr><tr><td><b>CA3</b> — selecionar a mercadoria preenche o formulário e permite avançar à gravação, respeitando as demais validações de negócio</td><td>CT-MRC-008 (gravação RCTR-C) · CT-MRC-009 (Conversor) · CT-MRC-010 (as demais validações continuam valendo)</td></tr><tr><td><b>CA4</b> — mercadorias de outro tenant não são expostas como solução para a ausência do catálogo Allianz</td><td>CT-MRC-011 (mercadoria de outra seguradora não aparece) · CT-MRC-012 (código inexistente continua sem resultado)</td></tr><tr><td>Regressão e exploratório (NOR_QA_002 §11)</td><td>CT-MRC-013 · CT-MRC-014</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026:</b> sistema (CITNET Novo) e seguradora (Allianz) pelo título e pelas tags do card ✓ · Bug com contexto, ambiente, passos para reproduzir, resultado esperado e obtido, evidências (3 imagens e 1 arquivo técnico) e verificação de duplicidade ✓ · critérios de aceite com oráculo observável: a lista de opções e o campo preenchido na <b>tela</b>, a mensagem exata da prévia do Conversor e a conferência do cadastro por leitura somente-leitura (<b>banco</b>) ✓ · ramos declarados (RCTR-C 54, RCA-C 56, Transporte Nacional 21, Importação 22/produto 25, Exportação 22/produto 28) ✓ · descrição, passos, critérios de aceite, anexos e comentários lidos (o card não tem tarefas filhas). <b>Não é débito técnico:</b> o comportamento é observável e validável pelo usuário.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>New</b>, sem desenvolvedor atribuído: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (lista de opções, campo preenchido, mensagem da prévia).</td></tr><tr><td><b>DI2</b></td><td><b>Cobertura dos 44 cenários</b></td><td>O card agrupa 44 cenários bloqueados pelo mesmo sintoma. O plano cobre o sintoma em cada um dos seis tipos de averbação e no Conversor (CT-MRC-001 a 009) em vez de repetir 44 casos; as etapas seguintes não foram alcançadas e o card não afirma defeito nelas.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo da lista</b></td><td>O CA2 pede que a lista «deixe de vir inteiramente vazia». A QA exige mais que «não vazia»: toda opção mostrada existe no cadastro da Allianz (O1) e o 933003 aparece com o texto cadastrado. «A tela abriu sem erro» não aprova.</td></tr><tr><td><b>DI4</b></td><td><b>Isolamento (CA4)</b></td><td>A QA lê «não expostas como solução» como: nenhuma mercadoria de outra seguradora aparece para a Allianz. É verificado com códigos que existem em outra seguradora e não na Allianz, junto com a lista da Allianz funcionando (CT-MRC-001), para não aprovar uma lista vazia.</td></tr><tr><td><b>DI5</b></td><td><b>Gravação com efeito</b></td><td>O CA3 pede «permite avançar à gravação»: o plano grava <b>um</b> protocolo RCTR-C com série própria da QA (massa da QA; o protocolo fica no ambiente) e valida no banco o código gravado; os demais tipos validam a lista e o campo.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os quatro critérios de aceite têm oráculo; a referência de comportamento é o seletor das outras seguradoras no Novo e o cadastro da própria Allianz.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Seletor <b>Mercadoria</b> do CITNET Novo da Allianz nos tipos de averbação do card: lista sem filtro, busca por código e por parte do nome.</li><li>Selecionar a mercadoria 933003, preencher o formulário e gravar uma averbação (RCTR-C), com as demais validações de negócio continuando a valer.</li><li>Prévia do Conversor com a mercadoria 933003: a linha deixa de ser recusada por «Mercadoria 933003 não cadastrada».</li><li>Isolamento entre seguradoras (mercadoria de outra seguradora não aparece) e código inexistente sem resultado.</li><li>Regressão: o catálogo de outra seguradora no Novo segue funcionando.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Etapas que o card diz não terem sido alcançadas:</b> edição e exclusão de averbação, reflexo no RC-DC, saldo, conversão completa do lote e conteúdo dos relatórios e do Prêmio mínimo — dependiam da mercadoria; só entram aqui se aparecerem como falha no exploratório. Os 44 cenários originais do card não são reexecutados um a um; os seis tipos de averbação e o Conversor representam o sintoma.</li><li><b>Causa interna e correção</b> — o card não confirma a causa; a investigação é do desenvolvimento.</li><li>Cadastro ou manutenção de mercadorias pelo CITWEB (a massa já existe) e demais campos do formulário além do que o CT precisa para gravar.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 25/11/2026, antes de publicar (base HML da Allianz, consulta somente leitura; nada gravado):</b> o cadastro de mercadorias da Allianz tem <b>16.245 itens</b>, incluindo <b>0000933003 «CITNET BASE MERCADORIA»</b> (criada em 24/11/2026), <b>0000000632 «ACUCAR»</b> e 7 mercadorias cujo nome começa com «CAFE» (ex.: 0000000133). A apólice 333 existe, com vigência 01/09/2026 a 01/09/2027, na filial 7 nos ramos 21, 38, 54, 56 e 59; na Importação (ramo 22, produto 25) e na Exportação (ramo 22, produto 28, apólice 3333) a vigência é a mesma. O catálogo de outra seguradora tem códigos que a Allianz <b>não</b> tem (ex.: 0000960840 «LAPIS E LAPISEIRAS» e 0000960810 «ARTIGOS PARA ESCRITÓRIO - CANETAS» não existem na Allianz) e o código 0000999990 não existe em nenhuma das duas. A tentativa de reproduzir a tela hoje pela QA foi barrada pela proteção do login do ambiente («Muitas tentativas»): a reprodução na tela fica para a execução; as linhas de partida acima vêm do banco, e o comportamento atual da tela é o descrito no card. Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo, seleção da seguradora Allianz no combo «Ambiente» e perfil interno de QA (endereço e usuário no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado. Se o login recusar por excesso de tentativas, esperar a liberação e usar <b>um login por perfil por rodada</b>; credencial vencida ou recusada é massa e a QA resolve.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa de leitura</b> — Mercadoria 0000933003 «CITNET BASE MERCADORIA» e as apólices do card (filial 7; 333 e 3333). Reconfirmar por consulta (somente leitura) que a mercadoria e a apólice continuam no cadastro <b>antes</b> de cada rodada.</li><li><b>Massa própria</b> — A gravação do CT-MRC-008 usa série e documento inéditos da QA (prefixo + data/hora), registrados no resultado; o protocolo gravado fica como massa da QA (no RCTR-C o protocolo gravado não pode ser removido pela tela). O Conversor usa layout e arquivo próprios da QA com nome único. Não tocar em massa de outros testes.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, abre o seletor, digita a busca, lê as opções e grava em disco capturas e valores lidos; imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Conferência no banco (leitura)</b> — Segunda fonte do oráculo: a QA lê (somente leitura) se cada opção mostrada na tela existe no cadastro da Allianz e, na gravação, qual código de mercadoria ficou no protocolo. A tela continua sendo o oráculo principal. A QA não escreve no banco do ambiente para dado de negócio.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (seleção da seguradora, menu, tela, seletor aberto, resultado), mais a versão exibida pelo sistema em cada execução.</li></ul>
+  <h3>Navegação base e oráculos (NA a ND, O1 e O2)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, abrir «Ou entre com usuário e senha», escolher <b>ALLIANZ</b> no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li><b>NB — Averbação:</b> menu <b>Averbações</b> › o tipo do CT (RCTR-C, RCA-C, Transporte Nacional, Importação ou Exportação) › <b>Novo Protocolo</b> › filial <b>7</b> (aguardar o combo carregar) › apólice (campo «Buscar por número ou segurado…»: <b>333</b>; na Exportação <b>3333</b>) › subgrupo 1.</li><li><b>NC — Seletor de mercadoria:</b> abrir o seletor <b>Mercadoria</b> sem filtro (ler quantas opções aparecem), digitar <b>933003</b> (ler a opção) e depois digitar outro código/nome; capturar cada estado.</li><li><b>ND — Conversor:</b> menu do Conversor › importação do tipo do CT-MRC-009 › layout próprio da QA › arquivo de 2 linhas com a mercadoria 933003 e demais campos obrigatórios válidos › <b>prévia</b> (sem confirmar a gravação além do que o CT pede).</li><li><b>O1 — Oráculo da lista:</b> número e texto das opções mostradas na tela (código e descrição) comparados com o cadastro da Allianz lido por consulta somente leitura (toda opção mostrada existe lá; o 933003 aparece com o texto «CITNET BASE MERCADORIA»).</li><li><b>O2 — Oráculo da gravação:</b> mensagem de sucesso com o número do protocolo e, por leitura, o código de mercadoria gravado no protocolo (0000933003).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Mercadoria do card:</b> 0000933003 — «CITNET BASE MERCADORIA» (cadastro da Allianz, medida em 25/11/2026).</li><li><b>Mercadorias de contraprova positiva:</b> 0000000632 «ACUCAR»; mercadorias com nome iniciado por «CAFE» (7; ex.: 0000000133 «CAFE SOLUVEL, LATAS OU GARRAFAS PQS ATE 250 GRAMAS»).</li><li><b>Mercadorias de outra seguradora (ausentes na Allianz):</b> 0000960840 «LAPIS E LAPISEIRAS»; 0000960810 «ARTIGOS PARA ESCRITÓRIO - CANETAS» (existem no catálogo de outra seguradora e não existem na Allianz — reconfirmar antes do CT-MRC-011).</li><li><b>Código inexistente:</b> 0000999990 (não existe em nenhum cadastro medido; reconfirmar antes do CT-MRC-012).</li><li><b>Apólices:</b> Filial 7 · 333 (subgrupo 1) nos ramos nacionais e na Importação · 3333 na Exportação (vigência 01/09/2026 a 01/09/2027; reconfirmar).</li><li><b>Regressão em outra seguradora:</b> Seguradora com catálogo já validado no Novo (KEV, filial 1, apólice 333, RCTR-C): mercadoria 0000000639 «CAFE EM GRAOS» (medida em 25/11/2026).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; confirmar o DoD (card em homologação) e reconfirmar por leitura a mercadoria 933003 e as apólices.</li><li>Grupo A → B → C → D (exploratório por último, 15 a 30 minutos). O CT-MRC-008 (grava) vem depois dos CTs só de leitura do RCTR-C.</li><li>Cada CT faz login e navega por clique do início; um login por perfil por rodada (proteção de tentativas do login).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — O catálogo da Allianz aparece no Novo em cada tipo de averbação (CA1 e CA2)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-001</span><span class="ct-title">RCTR-C (ramo 54): o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — reprodução do cenário do card, ramo 54</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Perfil interno da Allianz; filial 7, apólice 333, subgrupo 1. Mercadoria 0000933003 no cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › RCTR-C › Novo Protocolo (NB): filial 7, apólice 333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-002</span><span class="ct-title">RCA-C (ramo 56): o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — ramo 56</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Filial 7, apólice 333, subgrupo 1 (RCA-C). Mercadoria 0000933003 no cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › RCA-C › Novo Protocolo (NB): filial 7, apólice 333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-003</span><span class="ct-title">Transporte Nacional (ramo 21): o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — ramo 21</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Filial 7, apólice 333, subgrupo 1 (Transporte Nacional). Mercadoria 0000933003 no cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › Transporte Nacional › Novo Protocolo (NB): filial 7, apólice 333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-004</span><span class="ct-title">Importação provisória: o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — internacional, Importação (ramo 22, produto 25)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Filial 7, apólice 333, subgrupo 1 (Importação). Mercadoria 0000933003 no cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › Importação › Novo Protocolo, opção <b>Provisória</b> (NB): filial 7, apólice 333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-005</span><span class="ct-title">Importação definitiva: o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — internacional, Importação definitiva (casos DEFIN do card)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-MRC-004, na opção definitiva da Importação.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › Importação › Novo Protocolo, opção <b>Definitiva</b> (NB): filial 7, apólice 333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-006</span><span class="ct-title">Exportação: o seletor de mercadoria lista o catálogo da Allianz e a busca por 933003 retorna a opção</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2) — internacional, Exportação (ramo 22, produto 28)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Filial 7, apólice <b>3333</b>, subgrupo 1 (Exportação). Mercadoria 0000933003 no cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › Exportação › Novo Protocolo (NB): filial 7, apólice 3333, subgrupo 1.</li><li>Abrir o seletor <b>Mercadoria</b> sem filtro (NC): ler e capturar a quantidade e o texto das opções; depois digitar <b>933003</b> e capturar o resultado da busca.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista sem filtro <b>não vem vazia</b> (mostra opções do catálogo da Allianz) e a busca por 933003 retorna a opção «0000933003 — CITNET BASE MERCADORIA» (O1). Lista vazia ou «sem resultados» para o 933003 é REPROVADO. Toda opção mostrada existe no cadastro da Allianz. Evidência: capturas desde o login, lista e busca abertas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-007</span><span class="ct-title">A busca encontra outras mercadorias do catálogo (outro código e parte do nome), não só a 933003</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2) — prova que o catálogo geral é lido, não um caso isolado</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>RCTR-C, filial 7, apólice 333, subgrupo 1. Cadastro da Allianz com 0000000632 «ACUCAR» e 7 mercadorias «CAFE…» (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Ler no banco (somente leitura) que a mercadoria 0000933003 e a apólice do CT continuam no cadastro da Allianz: é o estado de partida do CT.</li><li>Averbações › RCTR-C › Novo Protocolo (NB); abrir o seletor Mercadoria.</li><li>Digitar o código <b>632</b> e depois o código completo 0000000632; capturar a opção.</li><li>Limpar e digitar <b>CAFE</b>; contar as opções e conferir (O1) que todas existem no cadastro e que ao menos uma é «CAFE SOLUVEL…» (0000000133).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A busca por código devolve «0000000632 — ACUCAR»; a busca por «CAFE» devolve mercadorias cujo nome começa com CAFE do cadastro da Allianz (até o limite de opções da tela). Nenhuma opção fora do cadastro da Allianz. Lista vazia é REPROVADO. Evidência: capturas das buscas desde o login e a contagem comparada com o cadastro.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-007"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Selecionar a mercadoria preenche o formulário e permite gravar; o Conversor deixa de recusar (CA3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-008</span><span class="ct-title">Selecionar 933003 preenche o campo e a averbação do RCTR-C grava (ponta a ponta)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — gravação com a mercadoria do card, série própria da QA</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>RCTR-C, filial 7, apólice 333, subgrupo 1. Série e documento inéditos da QA (prefixo + data/hora), demais obrigatórios válidos (tipo de documento, data de saída, placa, meio de transporte, origem, destino e valor), conforme a feature de Novo Protocolo já validada. O protocolo gravado fica como massa da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Averbações › RCTR-C › Novo Protocolo (NB): preencher filial, apólice e subgrupo.</li><li>No seletor Mercadoria, digitar <b>933003</b> e clicar na opção; capturar o campo preenchido.</li><li>Preencher os demais campos obrigatórios com a massa própria e clicar <b>Gravar</b>; ler a mensagem e o número do protocolo (O2).</li><li>Ler no banco (somente leitura) o código de mercadoria do protocolo gravado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A opção é selecionada, o campo Mercadoria mostra «0000933003 — CITNET BASE MERCADORIA» e o <b>Gravar</b> conclui com a mensagem de sucesso e número de protocolo; o protocolo gravado traz a mercadoria 0000933003 (O2). Qualquer recusa por mercadoria (ex.: «Mercadoria 933003 não cadastrada») é REPROVADO; recusa por <b>outro</b> campo obrigatório mal preenchido pela QA é erro de massa, corrigir e repetir. Evidência: capturas desde o login, protocolo gravado e leitura do código.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-009</span><span class="ct-title">Conversor: a prévia com a mercadoria 933003 deixa de recusar a linha por «Mercadoria 933003 não cadastrada»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — contraprova CONVE-05 do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout e arquivo próprios da QA com nome único: 2 linhas (apólice 333 ou 3333 conforme o tipo, filial 7, mercadoria 933003 e demais campos obrigatórios válidos). Corrigir a entrada antes (o card registra que a fixture anterior foi recusada por campos não suportados).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Menu do Conversor › importação do tipo do card (ND): criar o layout próprio, mapear as colunas e importar o arquivo.</li><li>Gerar a <b>prévia</b> e ler o status de cada linha e a mensagem; capturar a tela de prévia.</li><li>Confirmar que nada além do que o CT pede foi gravado (o CT avalia a prévia).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As 2 linhas passam na validação de mercadoria: <b>nenhuma</b> recebe o erro «Mercadoria 933003 não cadastrada». Se a prévia recusar por <b>outro</b> motivo, ler a mensagem exata: erro de outro campo da fixture é massa da QA; erro de mercadoria é REPROVADO. Evidência: capturas desde o login, status e mensagem de cada linha.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-010</span><span class="ct-title">As demais validações continuam valendo: gravar sem mercadoria é recusado e a mercadoria escolhida não dispensa os outros obrigatórios</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / negativo (CA3, «respeitando as demais validações de negócio»)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>RCTR-C, filial 7, apólice 333, subgrupo 1, série e documento inéditos da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Averbações › RCTR-C › Novo Protocolo (NB): preencher filial, apólice, subgrupo e todos os campos obrigatórios <b>exceto</b> a mercadoria; clicar <b>Gravar</b> e ler a mensagem exata.</li><li>Selecionar a mercadoria 933003, deixar em branco um outro campo obrigatório (por exemplo, a placa) e clicar <b>Gravar</b>; ler a mensagem exata.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem mercadoria: o sistema recusa e mostra a mensagem de campo obrigatório (texto exato registrado). Com mercadoria e outro obrigatório em branco: recusa pelo outro campo. Nenhuma das duas tentativas grava protocolo. Gravar sem mercadoria é REPROVADO. Evidência: capturas das mensagens e confirmação de que nenhum protocolo novo foi gerado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-010"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Isolamento entre seguradoras e contraprova negativa (CA4)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-011</span><span class="ct-title">Mercadoria que só existe em outra seguradora não aparece para a Allianz</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / segurança de dados (CA4) — isolamento entre seguradoras</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>RCTR-C, filial 7, apólice 333. Códigos 0000960840 «LAPIS E LAPISEIRAS» e 0000960810 «ARTIGOS PARA ESCRITÓRIO - CANETAS» existem no catálogo de outra seguradora e não existem na Allianz (reconfirmar por consulta nas duas bases antes).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Averbações › RCTR-C › Novo Protocolo (NB); abrir o seletor Mercadoria.</li><li>Digitar <b>960840</b>, depois <b>960810</b>, depois «LAPIS»; capturar cada resultado.</li><li>Ler a lista sem filtro e conferir (O1) que nenhuma opção está ausente do cadastro da Allianz.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As três buscas retornam <b>sem resultados</b> para a Allianz: nenhuma mercadoria de outra seguradora é oferecida, nem na lista sem filtro. A lista da Allianz vazia <b>não</b> é aceita como cumprimento (ver CT-MRC-001). Qualquer opção que não exista no cadastro da Allianz é REPROVADO. Evidência: capturas das buscas desde o login e a comparação com o cadastro.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-011"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-012</span><span class="ct-title">Código que não existe em nenhum cadastro continua sem resultado (a correção não aceita qualquer código)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional / negativo (CA4) — contraprova negativa</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>RCTR-C, filial 7, apólice 333. Código 0000999990 sem cadastro (reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Averbações › RCTR-C › Novo Protocolo (NB); abrir o seletor Mercadoria.</li><li>Digitar <b>999990</b> e o código completo 0000999990; capturar o resultado e a mensagem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A busca retorna <b>sem resultados</b> e nenhuma opção é montada para o código inexistente. Opção aparecendo é REPROVADO. Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-012"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Regressão em outra seguradora e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-013</span><span class="ct-title">Regressão em outra seguradora: o catálogo do Novo continua funcionando (KEV, RCTR-C)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — a correção para a Allianz não pode quebrar quem já funcionava</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Perfil interno do KEV, filial 1, apólice 333, RCTR-C. Mercadoria 0000000639 «CAFE EM GRAOS» no cadastro (medida em 25/11/2026; reconfirmar).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher KEV SEGUROS S.A. no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Averbações › RCTR-C › Novo Protocolo (NB): filial 1, apólice 333; abrir o seletor Mercadoria.</li><li>Ler a lista sem filtro e digitar <b>639</b>; capturar a opção.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A lista não vem vazia e a busca por 639 retorna «0000000639 — CAFE EM GRAOS». Toda opção existe no cadastro do KEV. Lista vazia ou opção ausente é REPROVADO. Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-013"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-MRC-014</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher ALLIANZ no combo «Ambiente», entrar com o perfil interno de QA e registrar a versão.</li><li>Explorar o seletor: busca com espaços e acentos, minúsculas, código com zeros à esquerda, texto muito longo, colar um código, trocar de filial/apólice com a mercadoria já escolhida, e o comportamento ao limite de opções.</li><li>Nos fluxos que o card diz dependerem da mercadoria (Relatórios e Prêmio mínimo), só observar se a mercadoria 933003 já aparece onde for usada — sem abrir CT novo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem inconsistência no seletor nem nos fluxos observados. Achado novo gera defeito (ou Bug pré-existente, conforme prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-MRC-014"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — a mercadoria 933003 aparece no Novo nos ramos nacionais e internacionais afetados</td><td>CT-MRC-001 · CT-MRC-002 · CT-MRC-003 · CT-MRC-004 · CT-MRC-005 · CT-MRC-006</td><td>Pendente</td></tr><tr><td>CA2 — a consulta por código retorna a opção; a lista deixa de vir vazia</td><td>CT-MRC-001 · CT-MRC-002 · CT-MRC-003 · CT-MRC-004 · CT-MRC-005 · CT-MRC-006 · CT-MRC-007</td><td>Pendente</td></tr><tr><td>CA3 — selecionar a mercadoria preenche o formulário e permite gravar, respeitando as demais validações</td><td>CT-MRC-008 · CT-MRC-009 · CT-MRC-010</td><td>Pendente</td></tr><tr><td>CA4 — mercadorias de outro tenant não são expostas como solução</td><td>CT-MRC-011 · CT-MRC-012</td><td>Pendente</td></tr><tr><td>Regressão (outra seguradora) e exploratório (NOR_QA_002 §11)</td><td>CT-MRC-013 · CT-MRC-014</td><td>Pendente</td></tr><tr><td>44 cenários bloqueados do card (edição, exclusão, RC-DC, saldo, conversão completa, relatórios, Prêmio mínimo)</td><td>— sem CT próprio: dependiam da mercadoria; os seis tipos de averbação e o Conversor representam o sintoma; qualquer falha nessas etapas, depois da liberação, vira defeito próprio</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os critérios CA1 e CA2 estão cobertos nos seis tipos de averbação e na busca por outro código/nome; o CA3 pela gravação ponta a ponta, pela prévia do Conversor e pelas validações que continuam valendo; o CA4 pelo isolamento (mercadoria de outra seguradora e código inexistente). A regressão em outra seguradora e o exploratório fecham o plano. Os 44 cenários originais ficam representados, sem CT próprio, conforme a decisão DI2.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em New)</td><td>Alta</td><td>Médio — os CTs dos Grupos A, B e C reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>Lista vazia ser «cumprimento» do isolamento (CT-MRC-011 passar só porque a lista vem vazia)</td><td>Média</td><td>Alto — falso aprovado</td><td>O CT-MRC-011 só vale junto com o CT-MRC-001: a Allianz tem de mostrar os próprios itens <b>e</b> não mostrar os de outra seguradora; lista vazia reprova pelo CT-MRC-001.</td></tr><tr><td>Proteção de tentativas do login barrar a rodada («Muitas tentativas»)</td><td>Alta</td><td>Baixo — espera, não defeito</td><td>Um login por perfil por rodada; esperar a liberação e retomar; indisponibilidade só vale medida (data/hora registradas), nunca como veredito.</td></tr><tr><td>O gravar do CT-MRC-008 falhar por outro campo obrigatório mal preenchido</td><td>Média</td><td>Baixo — massa da QA</td><td>Ler a mensagem exata: erro de outro campo é massa e a QA corrige; só erro de mercadoria reprova. Série/documento inéditos por rodada.</td></tr><tr><td>A mercadoria sintética 933003 ou as apólices serem alteradas no cadastro antes do CT</td><td>Baixa</td><td>Baixo</td><td>Reconfirmar por consulta de leitura no início de cada rodada; se faltar, recriar pelo CITWEB da Allianz (massa da QA).</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
