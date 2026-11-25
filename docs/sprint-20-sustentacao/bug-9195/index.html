@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9195 · [CITWEB] Apólice RCTR-C cadastrada como «sem movimento» nos relatórios Análise de Produção e SLA — status e exclusão da relação</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9195 · Sprint 20 Sustentação</span>
+    <h1>[CITWEB] Apólice RCTR-C cadastrada como «sem movimento» nos relatórios Análise de Produção e SLA — status e exclusão da relação</h1>
+    <div class="sub">CITWEB Nacional — apólice RCTR-C «sem movimento» × Análise de Produção e SLA (seguradora Zurich) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">11</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">11</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">7/2/2</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 11 executados · 11 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>11 CTs</strong> (7×P1 · 2×P2 · 2×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 11, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 11}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Uma seguradora reclamou que, quando cadastra uma apólice de RCTR-C (transporte rodoviário de carga) como «sem movimento» no mês, essa apólice continua aparecendo nos relatórios Análise de Produção e SLA com o status de pendente, e não some da lista quando a opção correspondente é desmarcada na hora de extrair o relatório. O card diz que os outros ramos já se comportam do jeito esperado.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos refazer o caso no ambiente de testes com uma apólice de RCTR-C e a apólice de RC-DC ligada a ela, e comparar com apólices de controle de Transporte Nacional e de Importação: (1) o cadastro do período sem movimento é gravado e reaparece ao reabrir; (2) com a opção marcada na extração, a apólice sai com o status de «sem movimento» nos dois relatórios (Análise de Produção e SLA); (3) com a opção desmarcada, o RCTR-C se comporta igual aos outros ramos; (4) apólice sem cadastro de «sem movimento» não muda de status.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste. <b>Já conferimos</b> no ambiente de testes que o cadastro do RCTR-C e da RC-DC ligada a ele está gravado normalmente, e a análise do desenvolvimento no card diz que o relatório mostra «sem movimento» quando a opção está marcada. O desenvolvimento afirma que, com a opção desmarcada, a apólice não some em <b>nenhum</b> ramo — ela só segue para o status seguinte (Pendente / Movimento não recepcionado). Se isso se confirmar, o pedido de «fazer a apólice sumir» não é um erro do RCTR-C: é uma regra nova para todos os ramos e todas as seguradoras.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem extrai os relatórios hoje precisa manter a opção marcada para ver as apólices «sem movimento» identificadas. Se Produtos escolher mudar a regra, a lista dos relatórios passa a omitir essas apólices em todas as seguradoras.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Uma decisão de Produtos (pergunta enviada junto com este plano):</b> com a opção desmarcada, a apólice «sem movimento» deve <b>sumir</b> do relatório (A) ou <b>continuar aparecendo</b> com o status seguinte, como hoje (B)? Recomendação da QA: B (manter), porque o card parte da ideia de que os outros ramos já fazem a apólice sumir, e isso não se confirma; mudar vira melhoria nova com efeito em todas as seguradoras. Enquanto não houver resposta, os testes usam a regra padrão: o RCTR-C deve se comportar igual aos outros ramos.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional</b> — Fechamento Mensal › Períodos sem movimento de embarques; Nacional › Relatórios › Análise de Produção; Gestão › Relatórios › SLA.</td></tr><tr><th>Card</th><td>BUG-9195 — «Erro no relatório de análise de produção» (chamado de seguradora, Bug impactando) · board Sustentação · estado na publicação do plano: <i>Blocked</i> (veio de «Em homologação Produto»); o desenvolvimento registrou no card que não há defeito no RCTR-C e que o pedido de exclusão com a opção desmarcada é melhoria.</td></tr><tr><th>Tasks</th><td>#10015 [QA] Plano de teste — BUG #9195 (este plano; fecha na entrega). Tarefa de análise do desenvolvimento: sem comentários próprios.</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> no board da Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado e liberado para execução (EXEC-PRONTO). A única decisão de Produtos é a regra de negócio da seção «Decisões» (DI1); ela não trava a execução.</td></tr><tr><th>Ambiente</th><td>HML do CITWEB — base da Zurich. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Apólices de RCTR-C cadastradas em «Períodos sem movimento de embarques» continuam aparecendo no Relatório Análise de Produção e no Relatório SLA, com o status «PENDENTE» (Análise de Produção) e «MOVIMENTO NÃO RECEPCIONADO» (SLA), quando o esperado, segundo o card, é o status «SEM MOV CADASTRADO» e a exclusão da relação ao desmarcar a opção correspondente na extração. O card afirma que Importação e Transporte Nacional funcionam. O desenvolvimento respondeu no card que (i) o cadastro está gravado e é reconhecido pelos dois relatórios; (ii) com a opção marcada o status de «sem movimento» aparece nos dois relatórios para o RCTR-C e para a RC-DC pareada; (iii) com a opção desmarcada a apólice <b>não é excluída em nenhum ramo</b>, só segue para o status seguinte; (iv) as apólices de comparação do teste do suporte sumiram por outros motivos (nome de segurado com «TESTE»; Importação sai no relatório Internacional).</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — apólice RCTR-C cadastrada «sem movimento» com status «SEM MOV CADASTRADO» na Análise de Produção</td><td>CT-SMC-001 · CT-SMC-003</td></tr><tr><td><b>CA2</b> — status equivalente no SLA</td><td>CT-SMC-005</td></tr><tr><td><b>CA3</b> — Análise de Produção: ao retirar «Sem Mov Cadastrado», a apólice é excluída da relação</td><td>CT-SMC-004 · CT-SMC-007 (depende da decisão DI1)</td></tr><tr><td><b>CA4</b> — SLA: ao retirar «Sem Emissão de Fatura no Mês», a apólice é excluída da relação</td><td>CT-SMC-006 · CT-SMC-007 (depende da decisão DI1)</td></tr><tr><td><b>CA5</b> — apólice RC pareada com o mesmo tratamento de status e exclusão</td><td>CT-SMC-001 · CT-SMC-003 · CT-SMC-005</td></tr><tr><td><b>CA6</b> — comportamento do RCTR-C idêntico ao de Importação e Transporte Nacional</td><td>CT-SMC-007 · CT-SMC-008 · CT-SMC-009</td></tr><tr><td><b>CA7</b> — apólices sem cadastro mantêm os status atuais (sem regressão)</td><td>CT-SMC-010</td></tr><tr><td><b>CA8</b> — «Aplicar para todos Subgrupos» produz o efeito em todos os subgrupos</td><td>CT-SMC-002</td></tr><tr><td>Definition of Done técnico (testes unitários, Sonar nível A, PR com 2 aprovadores, evidência de QA em HML)</td><td>— sem CT: garantido por política de PR e DoD do desenvolvimento, fora da homologação. A evidência de QA em HML é a deste plano.</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-SMC-011</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026:</b> sistema (CITWEB) e seguradora (Zurich) pelo card, pelas tags e pelo título ✓ · Bug com contexto, passos para reproduzir, comportamento atual e esperado, ambiente e evidências (relatórios e capturas do chamado e da análise do desenvolvimento, anexados) ✓ · critérios de aceite com oráculo observável: o status de cada apólice em cada relatório extraído (<b>arquivo gerado</b>), a presença/ausência da apólice na relação (<b>arquivo gerado</b>) e o cadastro ao reabrir a tela (<b>tela</b>) ✓ · ramos declarados: RCTR-C (54) e RC-DC (55) pareada, com Transporte Nacional (21) e Importação (22) como controle ✓ · descrição, critérios, anexos e os 3 comentários lidos (um do robô de análise, dois do desenvolvimento). <b>Não é débito técnico:</b> o comportamento é observável no relatório.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Blocked</b> (veio de «Em homologação Produto»); o desenvolvimento declarou que não há código a corrigir. A execução acontece com o card liberado para a QA (Pronto para homologação ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento. Como o relato do desenvolvimento é insumo e não veredito, cada afirmação dele é re-medida pelos CTs.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Opção desmarcada: a apólice «sem movimento» deve sumir do relatório? (única decisão de Produtos)</b></td><td>O card (CA3/CA4) pede que ela suma; o código e a medição do desenvolvimento mostram que, com a opção desmarcada, a apólice segue para o status seguinte em <b>todos</b> os ramos. Isso é regra de relatório compartilhada por todas as seguradoras. <b>Pergunta enviada a Produtos, coordenação e desenvolvimento.</b> Regra padrão enquanto não houver resposta: o RCTR-C se comporta como Transporte Nacional e Importação. Recomendação da QA: manter (B) e tratar a exclusão como melhoria nova.</td></tr><tr><td><b>DI2</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável no relatório extraído. O DoD técnico (unitários, Sonar, PR) não vira CT.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O <b>arquivo .xlsx baixado</b> (status e presença da apólice) e o cadastro ao reabrir (tela), com leitura no banco como segunda fonte. «Gerou o relatório sem erro» não aprova. O relato do desenvolvimento é insumo, não veredito: cada afirmação dele é re-medida.</td></tr><tr><td><b>DI4</b></td><td><b>Mês e massa</b></td><td>10/2026 em apólices próprias (SLA exige mês anterior ao corrente; 09/2026 tem cadastros do suporte). Apólices com «TESTE» no nome do segurado não servem como massa de comparação.</td></tr><tr><td><b>DI5</b></td><td><b>Ramos</b></td><td>Regra por ramo (regra 9): RCTR-C (54) e RC-DC (55) são o alvo; Transporte Nacional (21) e Importação (22) são controle de paridade, cada um por si.</td></tr><tr><td><b>DI6</b></td><td><b>Fluxo</b></td><td>Bug no board da Sustentação: sem Gate 2; a pergunta de DI1 não trava a execução. Estado atual do card (Blocked) é decisão da coordenação; a QA não move o card.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Cadastro de «Períodos sem movimento de embarques» para RCTR-C (com RC pareada e «todos os subgrupos»), gravado e consultável.</li><li>Relatório Análise de Produção e Relatório SLA: status e presença da apólice RCTR-C e da RC-DC pareada, com a opção de extração marcada e desmarcada.</li><li>Paridade com Transporte Nacional e Importação; apólice sem cadastro sem regressão.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A). A conferência dos dados do cliente em produção é do desenvolvimento/suporte.</li><li><b>Mudança de regra «desmarcar a opção exclui a apólice»</b> para todos os ramos e seguradoras — só entra no teste se Produtos decidir (DI1); a QA não implementa nem aprova regra nova sozinha.</li><li><b>Outras seguradoras</b> — o card é da Zurich; a regra de relatório é compartilhada, mas a QA mede só a base Zurich.</li><li>Internacional e CITNET fora o controle de Importação — fora do card.</li><li>Código, revisão de código, Sonar e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Medido em 25/11/2026, antes de publicar (base HML da Zurich, consulta somente leitura; nada gravado):</b> o ambiente está no ar (versão do rodapé V 1.0.261124.1654). O cadastro de períodos sem movimento do suporte existe para a apólice RCTR-C nº 626 e para a RC-DC pareada nº 251194 (filial 1, 09/2026), e para uma de Transporte Nacional e uma de Importação (filial 100, 09/2026) — o suporte usou o <b>mês 09/2026</b>; este plano usa o <b>mês 10/2026</b> em apólices próprias para não misturar com esse cadastro. As apólices de filial 100, número 1, nos ramos 21, 22, 54 e 55 estão vigentes, o segurado delas não tem «TESTE» no nome (o relatório descarta nomes com «TESTE»), e <b>não têm</b> cadastro em 10/2026. No menu Nacional › Fechamento Mensal existe o item «Períodos sem movimento de embarques» (o card chama a tela de «Cadastro de Períodos sem Movimento de Embarques»). Nenhum CT foi executado por este plano.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITWEB, base da Zurich (endereço e usuário interno de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card liberado para a QA</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — cadastro</b> — A QA <b>cadastra pela tela</b> o período sem movimento de 10/2026 para a apólice RCTR-C filial 100 nº 1, subgrupo 1, com RC pareada nº 1, e para os controles de Transporte Nacional (filial 100, nº 1) e de Importação (filial 100, nº 1). Para o CT de «todos os subgrupos» a QA cria um segundo subgrupo na apólice RCTR-C pela tela (Cadastros › Subgrupo). Valores de data, hora e nº de cada cadastro ficam no resultado de cada CT.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, preenche as telas, baixa os relatórios (.xlsx) para o disco, lê as linhas das apólices-alvo e imprime só veredito e caminho. O Playwright MCP só para explorar. Extrações podem levar de segundos a vários minutos.</li><li><b>Conferência no banco (leitura)</b> — Como segunda fonte, a QA lê (somente leitura) o cadastro gravado para cada apólice do CT; a tela e o arquivo gerado seguem como oráculo principal. A QA não escreve no banco do ambiente.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado), o <b>arquivo .xlsx baixado</b> (nome, tamanho, nº de linhas e as linhas das apólices-alvo) e a versão do rodapé.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML, base da Zurich), entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li><b>NB — Cadastro:</b> tile <b>Nacional</b> (abre em nova aba) › menu <b>Fechamento Mensal</b> › <b>Períodos sem movimento de embarques</b>. Na tela do RCTR-C aparecem, além de filial, ramo, apólice, subgrupo e mês de referência, o campo «Apólice RC» e as opções «Aplicar Pendência Pagto» e «Aplicar para todos Subgrupos» (descritos no card; o mapeamento fino dos campos é feito na execução e registrado em features).</li><li><b>NC — Análise de Produção:</b> tile <b>Nacional</b> › <b>Relatórios</b> › <b>Análise de Produção</b> › referência mês/ano de 10/2026, formato Excel, critério «Tudo», conferindo a opção de status «Sem Mov Cadastrado» marcada ou desmarcada conforme o CT › gerar e confirmar (o «Sim» é o botão da confirmação) · para controle de Importação, o mesmo no módulo Internacional.</li><li><b>ND — SLA:</b> tile <b>Gestão</b> › <b>Relatórios</b> › <b>SLA</b> › tipo Básico, ramo Nacional (ou Internacional para o controle), referência 10/2026 (mês anterior ao corrente, exigência do relatório), opção «Sem Emissão de Fatura no Mês» marcada ou desmarcada conforme o CT › gerar e confirmar.</li><li><b>O1 — Oráculo do cadastro:</b> reabrir a tela do cadastro, consultar o mês/apólice e ler o registro gravado (e a leitura no banco como segunda fonte).</li><li><b>O2 — Oráculo dos relatórios:</b> no arquivo .xlsx baixado, localizar as linhas das apólices-alvo (filial, ramo, apólice, subgrupo, mês) e ler a coluna de status; registrar nome do arquivo, tamanho, nº de linhas e se a apólice <b>consta</b> ou <b>não consta</b>.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólices-alvo (RCTR-C):</b> Filial 100, ramo 54, nº 1, subgrupo 1, vigente de 31/05/2026 a 31/05/2027; RC pareada: ramo 55, nº 1, mesma filial (consulta de 25/11/2026). Segurado sem «TESTE» no nome.</li><li><b>Controles:</b> Transporte Nacional: filial 100, ramo 21, nº 1. Importação: filial 100, ramo 22, nº 1 (sai no relatório Internacional). Ambos vigentes e sem «TESTE» no nome do segurado; sem cadastro em 10/2026.</li><li><b>Apólice com «TESTE» no nome do segurado:</b> Filial 100, ramo 21, nº 123 (segurado de teste interno): usada só no CT-SMC-009 para provar que o relatório a descarta com ou sem cadastro.</li><li><b>Mês de referência:</b> 10/2026 em todos os CTs (SLA exige referência anterior ao mês corrente; 09/2026 já tem cadastros do suporte). Registrar a competência e a hora da extração.</li><li><b>Cadastros do suporte:</b> Registros de 09/2026 do suporte (ramo 54 nº 626 e RC 251194, filial 1; ramo 21 e 22, filial 100) são <b>só leitura</b>: não alterar nem excluir.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card liberado). Registrar o estado inicial (leitura: nenhum cadastro em 10/2026 para as apólices-alvo).</li><li>CT-SMC-010 primeiro (baseline sem cadastro, marcada e desmarcada); depois Grupo A (cadastros) → B → C → D; exploratório por último (15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início. Extrações de uma mesma apólice com a opção marcada e desmarcada na mesma sessão, uma de cada vez (o export falha com 2 sessões abertas no mesmo usuário).</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Cadastro do período sem movimento (RCTR-C, RC-DC pareada e todos os subgrupos)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-001</span><span class="ct-title">Cadastrar período sem movimento 10/2026 para a apólice RCTR-C (subgrupo 1) com a RC pareada: o registro é gravado e reaparece ao reabrir a tela</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1, CA5) — o cadastro é a premissa de todos os relatórios</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C filial 100 nº 1 e RC pareada nº 1 vigentes; sem cadastro em 10/2026 (CT-SMC-010 executado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Nacional › Fechamento Mensal › Períodos sem movimento de embarques (NB).</li><li>Informar filial 100, ramo RCTR-C, apólice 1, subgrupo 1, mês de referência 10/2026 e a «Apólice RC» 1; gravar e registrar a mensagem exibida.</li><li>Sair da tela, voltar pelo menu, consultar o mês 10/2026 e ler (O1) o registro: filial, ramo, apólice, subgrupo, mês e se a RC consta. Ler também o gravado no banco (leitura).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação conclui com mensagem de sucesso; ao reabrir, o registro da apólice RCTR-C nº 1, subgrupo 1, 10/2026 consta com a RC pareada vinculada, e a leitura no banco mostra o cadastro para os dois ramos (54 e 55) ou o vínculo equivalente, conforme a tela gravar. Se não gravar, ou reabrir sem o registro, é REPROVADO. Evidência: capturas desde o login, mensagem exata e leituras.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-002</span><span class="ct-title">«Aplicar para todos Subgrupos»: o cadastro alcança todos os subgrupos da apólice RCTR-C</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA8)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C filial 100 nº 1 com pelo menos 2 subgrupos (a QA cria o 2º pela tela em Cadastros › Subgrupo, registrando o número); sem cadastro em 10/2026 para o subgrupo 2.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Nacional › Fechamento Mensal › Períodos sem movimento de embarques (NB).</li><li>Cadastrar 10/2026 com a opção «Aplicar para todos Subgrupos» marcada, sem escolher subgrupo específico; registrar a mensagem.</li><li>Consultar o mês 10/2026 e ler (O1) quais subgrupos constam; ler no banco o cadastro de cada subgrupo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os subgrupos da apólice (1 e o criado pela QA) têm o registro de «sem movimento» de 10/2026. Se algum subgrupo ficar sem registro, é REPROVADO. Evidência: capturas e leitura por subgrupo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-002"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Relatório Análise de Produção: opção «Sem Mov Cadastrado» marcada e desmarcada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-003</span><span class="ct-title">Análise de Produção com «Sem Mov Cadastrado» MARCADA: RCTR-C e RC-DC pareada saem com o status «SEM MOV CADASTRADO»</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1, CA5) — reprodução do cenário do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Cadastro do CT-SMC-001 gravado. Baseline do CT-SMC-010 (status antes do cadastro).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Nacional › Relatórios › Análise de Produção (NC): referência 10/2026, formato Excel, critério «Tudo», opção «Sem Mov Cadastrado» <b>marcada</b>. Gerar o relatório (NC), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As linhas da apólice RCTR-C nº 1 (subgrupo 1) e da RC-DC nº 1 constam com o status <b>«SEM MOV CADASTRADO»</b> (mudaram em relação ao baseline). Se constarem como «PENDENTE», ou se só uma das duas mudar, é REPROVADO. O dev disse que funciona — aqui medimos de novo. Evidência: o .xlsx baixado, nome/tamanho/linhas e as linhas lidas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-004</span><span class="ct-title">Análise de Produção com «Sem Mov Cadastrado» DESMARCADA: o RCTR-C se comporta igual ao controle de Transporte Nacional (e, se Produtos decidir, a apólice sai da relação)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3, CA6) — depende da decisão DI1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Cadastro do CT-SMC-001 gravado (e o do controle de Transporte Nacional, CT-SMC-007). Regra padrão até a resposta de Produtos: igual ao controle.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Nacional › Relatórios › Análise de Produção (NC): mesma referência, opção «Sem Mov Cadastrado» <b>desmarcada</b>. Gerar o relatório (NC), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li><li>Comparar a linha do RCTR-C e da RC com a do controle de Transporte Nacional (CT-SMC-007) na mesma extração.</li></ol>
+      <h4>Resultado esperado</h4><ul><li><b>Regra padrão (vale até a resposta de Produtos):</b> RCTR-C, RC e o controle de Transporte Nacional se comportam <b>da mesma forma</b> (se um segue como «PENDENTE», todos seguem; se um sai da relação, todos saem). Se Produtos responder A (apólice deve sumir), o esperado passa a ser: nenhuma delas consta; hoje o desenvolvimento afirma que constam como «PENDENTE» em todos os ramos — nesse caso o CT reprova até a entrega. Se responder B, a regra padrão vale. Divergência RCTR-C × controle reprova em qualquer das respostas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-004"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Relatório SLA: opção «Sem Emissão de Fatura no Mês» marcada e desmarcada</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-005</span><span class="ct-title">SLA com «Sem Emissão de Fatura no Mês» MARCADA: RCTR-C e RC-DC pareada saem com o status de sem movimento</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2, CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Cadastro do CT-SMC-001 gravado. Referência 10/2026 (mês anterior ao corrente). Baseline do CT-SMC-010.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Gestão › Relatórios › SLA (ND): tipo Básico, ramo Nacional, referência 10/2026, «Sem Emissão de Fatura no Mês» <b>marcada</b>. Gerar o SLA (ND), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As linhas da apólice RCTR-C nº 1 e da RC-DC nº 1 constam com o status de sem movimento do SLA (rótulo informado pelo desenvolvimento: <b>«SEM EMISSAO FATURA MÊS»</b>, que o card chama de «status equivalente»). Se constarem como «MOVIMENTO NÃO RECEPCIONADO» (mesmo do baseline), é REPROVADO. Registrar o rótulo exato lido no arquivo. Evidência: .xlsx baixado e linhas lidas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-006</span><span class="ct-title">SLA com «Sem Emissão de Fatura no Mês» DESMARCADA: o RCTR-C se comporta igual ao controle de Transporte Nacional (e, se Produtos decidir, a apólice sai da relação)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA4, CA6) — depende da decisão DI1</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Cadastros dos CT-SMC-001 e CT-SMC-007 gravados. Regra padrão até a resposta de Produtos: igual ao controle.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Gestão › Relatórios › SLA (ND): mesma referência, opção «Sem Emissão de Fatura no Mês» <b>desmarcada</b>. Gerar o SLA (ND), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li><li>Comparar a linha do RCTR-C e da RC com a do controle de Transporte Nacional na mesma extração.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Mesma regra do CT-SMC-004: <b>padrão = RCTR-C, RC e controle se comportam da mesma forma</b> (hoje, segundo o desenvolvimento, todos constam como «MOVIMENTO NÃO RECEPCIONADO»). Resposta A de Produtos: nenhuma consta — reprova até a entrega. Resposta B: padrão vale. Divergência RCTR-C × controle reprova em qualquer das respostas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Paridade com outros ramos (controles) e regressão sem cadastro</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-010</span><span class="ct-title">Baseline: apólice RCTR-C e RC pareada SEM cadastro mantêm o status atual nos dois relatórios, com a opção marcada e desmarcada (sem regressão)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA7) — controle negativo do cadastro</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Nenhum cadastro de 10/2026 para as apólices-alvo (confirmado por leitura antes do CT). Executar ANTES dos CTs do Grupo A.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Análise de Produção (NC), referência 10/2026, opção «Sem Mov Cadastrado» <b>marcada</b>. Gerar o relatório (NC), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li><li>Repetir com a opção <b>desmarcada</b> (mesma referência). Gerar o relatório (NC), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li><li>SLA (ND), referência 10/2026, «Sem Emissão de Fatura no Mês» marcada e depois desmarcada. Gerar o SLA (ND), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem cadastro, a apólice RCTR-C nº 1 e a RC nº 1 (filial 100) constam nos dois relatórios com o <b>mesmo status nas duas condições</b> da opção, e esse status <b>não é</b> «SEM MOV CADASTRADO» (nem o equivalente do SLA). Esse baseline é a referência dos CTs seguintes: qualquer mudança de status depois do cadastro é efeito do cadastro. Evidência: arquivos baixados e linhas lidas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-010"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-007</span><span class="ct-title">Controle de Transporte Nacional (ramo 21, filial 100, nº 1): cadastro + Análise de Produção e SLA nas duas condições da opção — mesmo comportamento do RCTR-C</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Paridade (CA6) — o cenário que o card diz que «funciona»</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice de Transporte Nacional filial 100 nº 1, segurado sem «TESTE» no nome; sem cadastro em 10/2026.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastrar 10/2026 para a apólice de Transporte Nacional (NB), reabrir e ler (O1). Gerar a Análise de Produção (NC) com «Sem Mov Cadastrado» marcada e depois desmarcada; gerar o SLA (ND) com «Sem Emissão de Fatura no Mês» marcada e depois desmarcada. Ler (O2) a linha da apólice em cada um dos 4 arquivos.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Marcada: status de «sem movimento» nos dois relatórios (igual ao RCTR-C). Desmarcada: a apólice se comporta como o RCTR-C no mesmo relatório. O quadro comparativo RCTR-C × Transporte Nacional (4 extrações) é anexado ao resultado. Se o controle sair da relação com a opção desmarcada e o RCTR-C não, o RCTR-C está defeituoso (REPROVADO no card); se nenhum sair, a premissa do card («os outros ramos já excluem») não se confirma.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-008</span><span class="ct-title">Controle de Importação (ramo 22, filial 100, nº 1): cadastro + Análise de Produção Internacional e SLA Internacional — mesmo comportamento</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Paridade (CA6)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice de Importação filial 100 nº 1, segurado sem «TESTE» no nome; sem cadastro em 10/2026. A Importação sai no relatório Internacional, não no Nacional.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastrar 10/2026 para a apólice de Importação (NB, ramo Importação), reabrir e ler (O1). Gerar a Análise de Produção do módulo Internacional (NC) e o SLA tipo Internacional (ND), com a opção marcada e desmarcada. Ler (O2) a linha da apólice em cada arquivo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Marcada: status de «sem movimento». Desmarcada: a apólice se comporta como o RCTR-C e o Transporte Nacional (mesma regra padrão do CT-SMC-004). Quadro comparativo anexado. Se a tela de cadastro da Importação não permitir cadastrar, registrar o texto exato e reprovar apenas se o CA exigir; senão N/A com justificativa.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-009</span><span class="ct-title">Apólice com «TESTE» no nome do segurado é descartada pelos relatórios, com ou sem cadastro (explica o teste do suporte)</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Verificação da explicação do desenvolvimento (CA6)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice de Transporte Nacional filial 100 nº 123, segurado de teste interno com «TESTE» no nome (já cadastrada pelo suporte em 09/2026; só leitura).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Gerar a Análise de Produção (referência 09/2026) com a opção marcada e desmarcada e procurar a apólice nº 123. Gerar o relatório (NC), baixar o .xlsx, salvar em disco e ler (O2) as linhas das apólices-alvo: filial, ramo, apólice, subgrupo, mês e <b>status</b>; registrar nome, tamanho, nº de linhas e se cada apólice consta.</li><li>Gerar também para 10/2026 (sem cadastro) e procurar a mesma apólice.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A apólice nº 123 <b>não consta</b> em nenhum dos arquivos (com cadastro em 09/2026 e sem cadastro em 10/2026, com a opção marcada ou desmarcada). Isso confirma que a ausência das apólices de comparação do suporte vinha do nome, não do ramo. Se a apólice constar, a explicação do desenvolvimento é falsa e o CT-SMC-007 passa a ser a comparação válida.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-009"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo E — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-SMC-011</span><span class="ct-title">Exploratório: «Aplicar Pendência Pagto», combinações com mais de uma opção de status marcada, mês sem cadastro e cadastro duplicado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Todos os CTs formais executados. Sessão de 15 a 30 minutos guiada por risco.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML, base da Zurich) — único endereço digitado —, entrar com o usuário interno de QA e registrar a versão do rodapé.</li><li>Cadastrar com «Aplicar Pendência Pagto»; gerar a Análise de Produção com «Sem Mov Cadastrado» e «Pendente» marcados juntos; tentar cadastrar o mesmo mês duas vezes; consultar um mês sem cadastro.</li><li>Registrar mensagens exatas e o status lido em cada arquivo.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma inconsistência de status ou de cadastro entre RCTR-C, RC e controles. Achado novo gera defeito (ou Bug pré-existente, conforme prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-SMC-011"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — status «SEM MOV CADASTRADO» na Análise de Produção</td><td>CT-SMC-001 · CT-SMC-003</td><td>Pendente</td></tr><tr><td>CA2 — status equivalente no SLA</td><td>CT-SMC-005</td><td>Pendente</td></tr><tr><td>CA3 — Análise de Produção: opção desmarcada exclui a apólice (DI1)</td><td>CT-SMC-004 · CT-SMC-007</td><td>Pendente</td></tr><tr><td>CA4 — SLA: opção desmarcada exclui a apólice (DI1)</td><td>CT-SMC-006 · CT-SMC-007</td><td>Pendente</td></tr><tr><td>CA5 — RC pareada com o mesmo tratamento</td><td>CT-SMC-001 · CT-SMC-003 · CT-SMC-005</td><td>Pendente</td></tr><tr><td>CA6 — RCTR-C idêntico a Importação e Transporte Nacional</td><td>CT-SMC-007 · CT-SMC-008 · CT-SMC-009</td><td>Pendente</td></tr><tr><td>CA7 — apólice sem cadastro mantém os status atuais</td><td>CT-SMC-010</td><td>Pendente</td></tr><tr><td>CA8 — «Aplicar para todos Subgrupos» alcança todos</td><td>CT-SMC-002</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-SMC-011</td><td>Pendente</td></tr><tr><td>DoD técnico: testes unitários, Sonar nível A, PR com 2 aprovadores</td><td>— sem CT: processo de engenharia, enforçado por política de PR e DoD do desenvolvimento, fora da homologação</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1/CA2/CA5 estão cobertos pelo cadastro, pela Análise de Produção e pelo SLA com a opção marcada (RCTR-C e RC pareada); o CA3/CA4 pelos mesmos relatórios com a opção desmarcada, comparados com os controles; o CA6 pelos controles de Transporte Nacional e Importação e pela prova do nome «TESTE»; o CA7 pelo baseline sem cadastro; o CA8 pelo cadastro em todos os subgrupos. O DoD técnico fica registrado na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Premissa do card (outros ramos excluem a apólice) não se confirmar</td><td>Alta</td><td>Alto — o CA3/CA4 viram mudança de regra, não correção</td><td>CT-SMC-007/008 medem o comportamento dos controles; a decisão de Produtos (DI1) define o esperado; até lá vale a regra padrão (paridade entre ramos).</td></tr><tr><td>Extração dos relatórios demorar ou falhar (lenta na base inteira)</td><td>Média</td><td>Baixo</td><td>Critério por filial quando permitido; timeout longo; nada de sessões simultâneas no mesmo usuário; falha de ambiente = interromper sem veredito.</td></tr><tr><td>Segurado com «TESTE» no nome esconder a apólice do relatório</td><td>Média</td><td>Médio — falso defeito</td><td>Massa com segurado sem «TESTE» (confirmado em 25/11) e CT-SMC-009 que prova a regra do nome.</td></tr><tr><td>Cadastro de 09/2026 do suporte misturar com a rodada da QA</td><td>Baixa</td><td>Baixo</td><td>A QA usa 10/2026 em apólices próprias; os cadastros do suporte ficam só para leitura.</td></tr><tr><td>Card em Blocked sem correção a entregar</td><td>Média</td><td>Médio</td><td>A execução re-mede o relato do desenvolvimento; resultado reproduzível e anexado; a decisão do estado do card é de Produtos/coordenação.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
