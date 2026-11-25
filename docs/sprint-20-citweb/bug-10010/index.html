@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-10010 · [CITNET - Allianz] CITNET Novo: a regra de autorização recusa a gravação de averbação RCV para o subgrupo selecionado</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-10010 · Sprint 20 CITWEB</span>
+    <h1>[CITNET - Allianz] CITNET Novo: a regra de autorização recusa a gravação de averbação RCV para o subgrupo selecionado</h1>
+    <div class="sub">CITNET Novo (Allianz) — Averbação RCV, Conversor RCV e Relatório RCV · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">8</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">8</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 8 executados · 8 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>8 CTs</strong> (5×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 8, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 8}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITNET Novo da Allianz, ao gravar uma averbação de RCV (filial 7, apólice 333, subgrupo 1) o sistema calcula o prêmio normalmente, mas na hora de gravar mostra «Usuário sem permissão para este subgrupo» e não grava. A mesma conta consegue gravar uma averbação de RCTR-VI na mesma filial, apólice e subgrupo. O Conversor RCV e o preparo do relatório RCV ficam travados pelo mesmo motivo. O card pede que a gravação RCV volte a funcionar para quem tem acesso a esse subgrupo.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos (1) gravar uma averbação RCV completa nessa apólice e subgrupo e conferir a mensagem de sucesso e o número do protocolo; (2) consultar o protocolo gravado e conferir que os dados e os valores ficaram salvos; (3) subir um arquivo no Conversor RCV com linhas válidas e conferir que elas são gravadas; (4) preparar o relatório RCV, que precisa gravar uma averbação própria antes; (5) conferir que o RCTR-VI continua gravando; (6) conferir que quem <b>não</b> tem acesso ao subgrupo continua recebendo a recusa.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «New» e a correção não foi entregue. Os testes começam quando o card for liberado para homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem averba RCV no CITNET Novo da Allianz volta a conseguir gravar; o Conversor e o relatório RCV deixam de ficar parados. A recusa continua valendo para quem de fato não tem permissão no subgrupo.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). O comportamento esperado vem do próprio card: com acesso ao subgrupo que a tela oferece, a gravação RCV funciona; sem acesso, a recusa permanece.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET Novo</b> (tenant Allianz) — Averbações › Nacional › RCV (Novo Protocolo, Gravar, Consultar Protocolo); Conversor RCV; Relatórios (preparo do relatório RCV).</td></tr><tr><th>Card</th><td>BUG-10010 — «[CITNET - Allianz] CITNET Novo: Regra de autorização recusa a gravação RCV para o subgrupo selecionado» · estado <b>New</b> · sem responsável · origem: achado da execução automatizada de 24/11/2026 (15 cenários bloqueados).</td></tr><tr><th>Tasks</th><td>#10011 [QA] Plano de teste — BUG #10010 (este plano; fecha na entrega).</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, tenant Allianz. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo da Allianz (HML), a conta interna de QA consegue abrir uma nova averbação RCV na filial 7, apólice 333, subgrupo 1 (o seletor oferece esse subgrupo) e o cálculo do prêmio responde normalmente, mas o <b>Gravar</b> é recusado com o código SUBGRUPO_NAO_AUTORIZADO e a mensagem «Usuário sem permissão para este subgrupo». A recusa foi reproduzida sem paralelismo. O Conversor RCV recusa as duas linhas RCV pela mesma regra, com zero gravações, e o preparo do relatório RCV não consegue criar a averbação própria. A mesma conta grava RCTR-VI na filial 7, apólice 333, subgrupo 1. A causa interna ainda não foi localizada (o card não prova que a configuração de permissão seja compartilhada entre ramos).</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — a conta interna grava RCV na filial 7, apólice 333, subgrupo 1 quando os demais dados são válidos</td><td>CT-RCV-001 · CT-RCV-006</td></tr><tr><td><b>CA2</b> — a averbação gravada pode ser reconsultada pelo protocolo, com dados e valores persistidos</td><td>CT-RCV-002</td></tr><tr><td><b>CA3</b> — o Conversor RCV aceita as linhas válidas desse contexto, sem SUBGRUPO_NAO_AUTORIZADO, e confirma as gravações efetivas</td><td>CT-RCV-003</td></tr><tr><td><b>CA4</b> — o preparo do relatório RCV cria sua averbação própria antes de gerar e validar o relatório</td><td>CT-RCV-004</td></tr><tr><td><b>CA5</b> — as gravações RCTR-VI que já funcionam continuam funcionando</td><td>CT-RCV-005</td></tr><tr><td>Segurança do conserto (o «resultado esperado» do card fala em «permissões corretas do ramo»): quem não tem acesso ao subgrupo continua recusado</td><td>CT-RCV-007</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-RCV-008</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026:</b> sistema (CITNET Novo) e seguradora (Allianz) pelas tags do card ✓ · Bug com contexto, passos para reproduzir, comportamento atual e esperado, ambiente, perfil e evidências (3 imagens e 1 arquivo técnico anexados) ✓ · critérios de aceite com oráculo observável: a mensagem da tela e o número do protocolo no Gravar, a consulta do protocolo (dados e valores), o resultado do Conversor (linhas gravadas) e a geração do relatório (<b>tela</b>), com a leitura do banco em somente leitura como segunda fonte ✓ · ramo RCV (59) declarado; RCTR-VI (32) como regressão ✓ · descrição, passos, critérios de aceite, anexos e comentários lidos (o card não tem tarefas filhas; o único comentário é uma nota automática de análise, sem informação de negócio). <b>Não é débito técnico:</b> o comportamento é observável pelo usuário.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>New</b>, sem desenvolvedor atribuído: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável pelo usuário (mensagem de recusa, gravação, Conversor, relatório).</td></tr><tr><td><b>DI2</b></td><td><b>Oráculo</b></td><td>Referência = legado CitNet e o CA do card: com acesso ao subgrupo oferecido, grava com protocolo e reconsulta; sem acesso, recusa. «Sem erro» sem protocolo não aprova.</td></tr><tr><td><b>DI3</b></td><td><b>Massa</b></td><td>Apólice do card reconfirmada por leitura; usuário sem permissão (CT-RCV-007) e arquivo do Conversor são massa da QA, sem pedir a ninguém.</td></tr><tr><td><b>DI4</b></td><td><b>Ramos</b></td><td>Regra por ramo (regra 9): RCV (59) é o do card; RCTR-VI (32) entra só como regressão no CT-RCV-005.</td></tr><tr><td><b>DI5</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os cinco critérios de aceite têm oráculo observável; a causa interna é do desenvolvimento.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Gravar averbação RCV na filial 7, apólice 333, subgrupo 1 e reconsultar pelo protocolo.</li><li>Conversor RCV e preparo do relatório RCV no mesmo contexto.</li><li>Regressão da gravação RCTR-VI e da recusa a quem não tem permissão no subgrupo.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Causa interna e implementação da regra de autorização</b> — trabalho do desenvolvimento.</li><li><b>Outros tenants e outras seguradoras</b> — fora do card (regra de um ramo/tenant não vale para os outros).</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Nenhum CT foi executado por este plano.</b> Os valores do cenário (filial 7, apólice 333, subgrupo 1, ramos 59 e 32) vêm do card; antes de cada CT a QA reconfirma por leitura (tela e consulta somente leitura) que a apólice existe, está vigente e que o subgrupo 1 é oferecido. A referência do CITNET Novo é o comportamento do legado: onde o legado grava a averbação RCV nesse contexto, o Novo também deve gravar.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo, tenant Allianz, perfil interno de QA (endereço e credenciais no arquivo de ambiente do time; fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — apólice</b> — Filial 7, ramo 59 (RCV), apólice 333, subgrupo 1 (do card), com condição comercial vigente para a data da viagem. A QA confirma por leitura antes do CT; se faltar, monta pela tela (massa é da QA).</li><li><b>Massa — dados da viagem</b> — Dados sintéticos de HML: tipo de documento, UF/município de origem e destino (códigos internos), placa, data de saída entre hoje e hoje + 365 dias, valores dentro dos limites da apólice. Fixtures definidas no script do repo privado.</li><li><b>Massa — usuário sem permissão (CT-RCV-007)</b> — Conta de QA sem acesso ao subgrupo escolhido. Falta de usuário/permissão é massa: a QA cria ou edita um usuário do tenant (pela tela de Segurança › Usuário; senha só no arquivo de ambiente) e registra o que alterou.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, grava capturas e valores lidos em disco e imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, formulário preenchido, resultado), texto exato das mensagens e número do protocolo.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITNET Novo (HML), escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li><b>NB — Averbação RCV:</b> menu <b>Averbações</b> › <b>Nacional</b> › <b>RCV</b> › <b>Novo Protocolo</b> · Identificação (filial 7, apólice 333, subgrupo 1) · Documento · Viagem (UF e município de origem e destino) · Veículo (placa) · conferir o <b>Resultado do Cálculo</b> · <b>Gravar</b>.</li><li><b>NC — Reconsulta:</b> <b>Consultar Protocolo</b> com o número gerado no Gravar; ler os dados e os valores exibidos.</li><li><b>ND — Conversor:</b> menu <b>Conversor</b> › RCV › selecionar o arquivo com linhas válidas do contexto (filial 7, apólice 333, subgrupo 1) › importar › converter › processar; ler o resultado de cada linha.</li><li><b>NE — Relatório RCV:</b> menu <b>Relatórios</b> › relatório RCV: o preparo grava uma averbação própria antes de gerar; gerar e validar o relatório.</li><li><b>NF — RCTR-VI:</b> menu <b>Averbações</b> › <b>Nacional</b> › RCTR-VI › Novo Protocolo na filial 7, apólice 333, subgrupo 1 (regressão).</li><li><b>O1 — Oráculo da gravação:</b> mensagem de sucesso com número de protocolo (texto exato registrado), seguida de consulta do protocolo com os mesmos dados e valores; a recusa «Usuário sem permissão para este subgrupo» é a assinatura do defeito. Segunda fonte: consulta somente leitura da averbação gravada.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Contexto do card:</b> Filial 7 · ramo 59 (RCV) · apólice 333 · subgrupo 1. Mesmo número de filial/apólice/subgrupo existe no ramo 32 (RCTR-VI): são apólices de ramos diferentes.</li><li><b>CT-RCV-001/002:</b> Averbação RCV com dados válidos e valores conhecidos; protocolo anotado para a reconsulta.</li><li><b>CT-RCV-003:</b> Arquivo do Conversor RCV com linhas válidas do mesmo contexto (mais de 1 linha); resultado esperado: todas gravadas, com protocolo por linha.</li><li><b>CT-RCV-007:</b> Conta de QA sem permissão no subgrupo escolhido (criada/editada pela QA).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler a versão e confirmar o DoD (card em homologação).</li><li>Grupo A → B → C → D (exploratório por último, 15 a 30 minutos).</li><li>Cada CT faz login e navega por clique do início.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Averbação RCV: gravar e reconsultar (filial 7, apólice 333, subgrupo 1)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-001</span><span class="ct-title">Gravar averbação RCV na filial 7, apólice 333, subgrupo 1 com dados válidos: a gravação é aceita</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do cenário do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCV 333 vigente com condição comercial cobrindo a data de saída; subgrupo 1 oferecido pelo seletor; conta interna de QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Averbações › Nacional › RCV › Novo Protocolo (NB): selecionar filial 7, apólice 333, subgrupo 1; preencher documento, viagem, placa e data de saída válidos.</li><li>Conferir que o Resultado do Cálculo foi preenchido e clicar em <b>Gravar</b>.</li><li>Registrar o texto exato da mensagem e o número do protocolo (O1); capturar a tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação é aceita: mensagem de sucesso com número de protocolo. Aparecer «Usuário sem permissão para este subgrupo» (SUBGRUPO_NAO_AUTORIZADO) é REPROVADO. «Sem erro» sem protocolo não aprova. Evidência: capturas desde o login, mensagem exata e protocolo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-002</span><span class="ct-title">Reconsultar pelo protocolo a averbação gravada: dados e valores persistidos</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Protocolo gerado no CT-RCV-001 (anotar os dados e valores digitados e o prêmio calculado).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Averbações › Nacional › RCV › Consultar Protocolo (NC): informar o número do protocolo e abrir.</li><li>Comparar filial, apólice, subgrupo, documento, viagem, placa, data e valores com os digitados/calculados no CT-RCV-001; capturar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A consulta abre a averbação com todos os dados e valores iguais aos gravados. Dado diferente, ausente ou protocolo não encontrado é REPROVADO. Segunda fonte: consulta somente leitura da averbação. Evidência: captura da consulta e comparação campo a campo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-006</span><span class="ct-title">Averbação RCV com outros tipos de documento e trechos no mesmo contexto: a gravação é aceita em todos</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — variações de documento e viagem</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesmo contexto do CT-RCV-001; um conjunto de dados sintéticos por variação (tipos de documento CTE, NFe, MDF-e e Outros que a apólice permitir; ao menos dois trechos diferentes).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Novo Protocolo RCV (NB): para cada variação, preencher e <b>Gravar</b>; registrar mensagem e protocolo.</li><li>Consultar 1 protocolo de cada tipo de documento (NC).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada variação é gravada com protocolo e confere na consulta; nenhuma recusa por permissão de subgrupo. Regra de validação própria de um tipo de documento (campo obrigatório, tipo não habilitado na apólice) é comportamento normal: registrar a mensagem e não reprovar por ela. Evidência por variação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-006"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Conversor RCV e preparo do Relatório RCV (mesma recusa, mesmo contexto)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-003</span><span class="ct-title">Conversor RCV: linhas válidas do mesmo contexto são gravadas, sem SUBGRUPO_NAO_AUTORIZADO</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Arquivo do Conversor RCV com linhas válidas (filial 7, apólice 333, subgrupo 1), mais de uma linha.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Menu Conversor (ND) › RCV: selecionar o arquivo, importar, converter e processar.</li><li>Ler o resultado de cada linha (mensagem exata) e a contagem de gravações; capturar; consultar 1 protocolo gerado (NC) para confirmar a gravação efetiva.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as linhas válidas são aceitas e gravadas, cada uma com protocolo, sem SUBGRUPO_NAO_AUTORIZADO; a contagem de gravações é igual à de linhas válidas. «Zero gravações» ou recusa por permissão é REPROVADO. Evidência: capturas desde o login, resultado por linha e protocolo consultado.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-004</span><span class="ct-title">Relatório RCV: o preparo cria a averbação própria e o relatório é gerado e validado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA4)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Conta interna de QA com acesso ao relatório RCV; mesmo contexto do card.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Relatórios › relatório RCV (NE): executar o preparo, que grava uma averbação própria antes de gerar.</li><li>Gerar o relatório e conferir que a averbação preparada aparece com os dados e valores corretos; capturar o relatório e o texto de qualquer mensagem.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O preparo grava a averbação própria (protocolo gerado) sem recusa de permissão, e o relatório é gerado e confere com a averbação. Bloqueio na gravação da averbação própria é REPROVADO. Evidência: captura do preparo, do relatório e do protocolo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-004"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão RCTR-VI e permissão negativa</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-005</span><span class="ct-title">Regressão: gravar RCTR-VI na filial 7, apólice 333, subgrupo 1 continua funcionando</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-VI (ramo 32) filial 7, apólice 333, subgrupo 1 vigente; mesma conta interna de QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Averbações › Nacional › RCTR-VI › Novo Protocolo (NF): preencher com dados válidos e clicar em <b>Gravar</b>.</li><li>Registrar a mensagem exata e o protocolo; consultar o protocolo (NC).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação RCTR-VI é aceita com protocolo e a consulta confere. Qualquer recusa nova de permissão no RCTR-VI é REPROVADO (a correção do RCV não pode afetar outro ramo). Evidência: capturas, mensagem e protocolo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-007</span><span class="ct-title">Permissão negativa: conta sem acesso ao subgrupo continua recusada ao gravar RCV</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Segurança funcional — o conserto não pode abrir a permissão para todos</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Conta de QA sem permissão no subgrupo escolhido (criada/editada pela QA); o subgrupo continua cadastrado na apólice.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com a conta sem permissão no subgrupo e registrar a versão exibida.</li><li>Novo Protocolo RCV (NB): selecionar o subgrupo sem permissão e preencher dados válidos.</li><li>Clicar em <b>Gravar</b>; registrar a mensagem exata e confirmar por consulta somente leitura que nada foi gravado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A gravação é recusada com a mensagem «Usuário sem permissão para este subgrupo» e nada é gravado. Gravar com sucesso numa conta sem acesso é REPROVADO (permissão aberta demais). Evidência: capturas, mensagem e consulta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-007"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo D — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-RCV-008</span><span class="ct-title">Exploratório (15 a 30 minutos) guiado por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório (NOR_QA_002 §11)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente Allianz, entrar com o usuário interno de QA e registrar a versão exibida.</li><li>Explorar a gravação RCV: outros subgrupos da apólice e outras filiais; reabrir e editar a averbação gravada; Conversor com linhas misturadas (válidas e de subgrupo não autorizado); relatório RCV repetido.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem inconsistência entre a gravação, a consulta, o Conversor e o relatório. Achado novo gera defeito (ou Bug pré-existente, conforme prova); sem ocorrências, registrar «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-RCV-008"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — a conta interna grava RCV na filial 7, apólice 333, subgrupo 1</td><td>CT-RCV-001 · CT-RCV-006</td><td>Pendente</td></tr><tr><td>CA2 — averbação gravada reconsultável pelo protocolo, com dados e valores persistidos</td><td>CT-RCV-002</td><td>Pendente</td></tr><tr><td>CA3 — Conversor RCV aceita as linhas válidas e confirma as gravações</td><td>CT-RCV-003</td><td>Pendente</td></tr><tr><td>CA4 — preparo do relatório RCV cria a averbação própria</td><td>CT-RCV-004</td><td>Pendente</td></tr><tr><td>CA5 — RCTR-VI continua gravando</td><td>CT-RCV-005</td><td>Pendente</td></tr><tr><td>Permissões corretas do ramo (resultado esperado do card): sem acesso continua recusado</td><td>CT-RCV-007</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-RCV-008</td><td>Pendente</td></tr><tr><td>Causa interna da regra de autorização · produção</td><td>— sem CT: investigação é do desenvolvimento; produção é N/A para a QA</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os cinco critérios de aceite estão cobertos (gravação, reconsulta, Conversor, relatório e regressão RCTR-VI), mais a permissão negativa e o exploratório. A causa interna e a produção ficam registradas na matriz, sem CT.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em New)</td><td>Alta</td><td>Médio — Grupos A e B reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado é REPROVADO com a evidência. A QA não condiciona o teste à versão.</td></tr><tr><td>Conta interna sem a permissão correta por falta de configuração do ambiente, não por defeito de código</td><td>Média</td><td>Médio</td><td>Falta de permissão é massa: a QA ajusta/cria o usuário (regra 13), repete o CT e registra o que alterou; sem isso o CT não vira pendente.</td></tr><tr><td>O conserto abrir a permissão para qualquer usuário</td><td>Média</td><td>Alto</td><td>CT-RCV-007 confere que a conta sem acesso continua recusada.</td></tr><tr><td>O conserto afetar RCTR-VI ou outros ramos</td><td>Baixa</td><td>Alto</td><td>CT-RCV-005 regressão do RCTR-VI na mesma filial/apólice/subgrupo.</td></tr><tr><td>Fixtures do Conversor insuficientes para provar gravação efetiva</td><td>Baixa</td><td>Baixo</td><td>A QA monta o arquivo do contexto e confirma 1 protocolo por consulta.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 CITWEB · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
