@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-10030 · Preenchimento CNPJ Alfanumérico</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-10030 · Sustentação · Sprint 20</span>
+    <h1>Preenchimento CNPJ Alfanumérico</h1>
+    <div class="sub">CITWEB Nacional (AXA) · Cadastros › Apólice › RCTR-C › PI / DDR · botão Editar · Board Sustentação · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">5/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>9 CTs</strong> (5×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Na tela de cadastro da apólice, aba «PI / DDR» (lista de CNPJs DDR Embarcador / Estipulação), o botão «Editar» dá erro quando a linha tem CNPJ alfanumérico (letras e números). O campo não é preenchido para edição e a linha some da lista. O card pede que «Editar» preencha o campo no formato certo (14 posições para CNPJ Total, 8 para Raiz), que os CNPJs só com números continuem funcionando como hoje e que nenhuma linha saia da lista sem a pessoa concluir a edição.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos, no ambiente de testes da AXA, cadastrar CNPJs alfanuméricos (Total e Raiz) e CNPJs numéricos na lista de uma apólice, clicar em «Editar» em cada tipo, conferir o que aparece no campo (CNPJ, tipo, operação e vigência), concluir a edição, salvar e abrir a lista de novo para ver se tudo ficou gravado. Também vamos conferir que nenhuma linha some da lista (inclusive quando a edição é abandonada) e que incluir CNPJ alfanumérico e a checagem de duplicidade seguem funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» e a correção ainda não está no ambiente de testes. Os testes começam quando o card for liberado para homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem mantém a lista de CNPJs DDR de uma apólice passa a poder corrigir ou alterar um CNPJ alfanumérico pelo botão «Editar», sem erro e sem perder a linha.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: ao clicar «Editar» num CNPJ <i>numérico</i> a QA vai registrar primeiro o comportamento de hoje (a linha fica na grade ou sai até a pessoa concluir); o CNPJ alfanumérico deve se comportar <b>igual ao numérico</b> — essa é a regra adotada neste plano.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional (AXA)</b> — Cadastros › Apólice › RCTR-C › aba <b>PI / DDR</b> (lista «CNPJs DDR Embarcador / Estipulação»), botão <b>Editar</b> da grade.</td></tr><tr><th>Card</th><td>BUG-10030 — «Preenchimento CNPJ Alfanumérico» · board Sustentação (kanban, sem sprint) · estado <b>Pronto para desenvolvimento</b> · tags AXA, CITWEB CORE, CNPJ Alfanumérico · relacionado ao #7197 (inclusão de CNPJ alfanumérico nesta tela).</td></tr><tr><th>Tasks</th><td>#10033 [QA] Plano de teste — BUG #10030 (este plano; fecha na entrega). O card não tem outras tarefas filhas.</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> do board Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML da AXA (CITWEB Nacional, perfil de gestor). Produção e staging: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Na lista de CNPJs DDR Embarcador / Estipulação de uma apólice, o botão <b>Editar</b> falha numa linha de CNPJ alfanumérico: aparece erro de aplicação, a linha some da grade e o campo CNPJ não é carregado. A inclusão, a exibição na grade e a checagem de duplicidade de CNPJ alfanumérico já funcionam (cards #7197, #7212 e #7213); a edição ficou de fora. Além do erro, a linha é retirada da lista guardada em memória <b>antes</b> do carregamento e não volta se a pessoa salvar em seguida.</p><p>Fluxo percorrido na tela (mapeado e validado em tela no ambiente de testes da AXA, ver DoR): Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa › aba <b>PI / DDR</b> (título «LISTA DE CNPJs DDR EMBARCADOR - RCTR-C»; campos Vigência De/Até, Tipo de Operação — DDR Parcial, DDR Estipulação, Sub Contratação —, Tipo de CNPJ Raiz/Total e CNPJ; grade Operação · CNPJ · Tipo CNPJ · Início/Fim Vigência · Usuário Inclusão · Data Inclusão; botões Adicionar, Editar, Excluir, Salvar e Fechar).</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — «Editar» em CNPJ alfanumérico <b>Total</b>: campo preenchido como <b>AA.AAA.AAA/AAAA-AA</b>, sem erro</td><td>CT-DDR-001 · CT-DDR-003 · CT-DDR-007</td></tr><tr><td><b>CA2</b> — «Editar» em CNPJ alfanumérico <b>Raiz</b>: campo preenchido como <b>AA.AAA.AAA</b>, sem erro</td><td>CT-DDR-002 · CT-DDR-003</td></tr><tr><td><b>CA3</b> — Edição de CNPJs <b>numéricos</b> continua funcionando como hoje</td><td>CT-DDR-005 · CT-DDR-006</td></tr><tr><td><b>CA4</b> — Um CNPJ nunca sai da lista sem a edição ser concluída</td><td>CT-DDR-004 · CT-DDR-003</td></tr><tr><td>Regressão da inclusão e da duplicidade (#7197/#7212/#7213) e exploratório (NOR_QA_002 §11)</td><td>CT-DDR-008 · CT-DDR-009</td></tr><tr><td>Critérios «técnicos» (testes unitários, Quality Gate do Sonar, PR com 2 aprovadores, homologação em RELEASE)</td><td>sem CT: são processo/DoD de engenharia, garantidos fora da homologação da QA</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026 por interpretação documentada:</b> seguradora e sistema pelas tags (AXA; CITWEB) ✓ · Bug com contexto, cenário atual, cenário desejado, usuário afetado, ambiente e causa ✓ · critérios de aceite funcionais com oráculo observável na <b>tela</b> (valor do campo, grade, ausência de erro) ✓ · ramo: a tela PI / DDR é do ramo RCTR-C (54), declarado no título do modal; o card cita o módulo de apólice sem restringir ramo — a QA cobre o RCTR-C e registra o título do modal ✓ · descrição, critérios, comentários (um comentário automático de ferramenta, sem informação de negócio) e relação com o #7197 lidos; o card não tem tarefas filhas. <b>Não é débito técnico:</b> o comportamento é observável e validável pelo usuário. O card informa que não há evidência de reprodução anexada (campo «Reprodução na tela: nenhuma»): a QA reproduz o defeito na execução como linha de base. <b>Tela PI / DDR mapeada em tela</b> no ambiente de testes da AXA (exploração do #9498): caminho por clique, campos, opções de operação e botão «Editar» confirmados.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (campo e grade da lista PI / DDR). Os critérios técnicos (unitários, Sonar, PR, RELEASE) são do desenvolvimento e de Produtos e não viram CT.</td></tr><tr><td><b>DI2</b></td><td><b>Reprodução não anexada no card</b></td><td>O defeito veio de análise de código. A QA reproduz o erro na execução como linha de base (texto exato) — se a correção já estiver no ar, o CT passa e a execução registra o resultado.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O que a tela mostra: campo CNPJ com o valor formatado (AA.AAA.AAA/AAAA-AA ou AA.AAA.AAA), tipo, operação e vigência preenchidos, grade e persistência ao reabrir. A referência de comportamento é o CNPJ numérico (legado).</td></tr><tr><td><b>DI4</b></td><td><b>Linha na grade durante a edição</b></td><td>O card pede que o CNPJ nunca saia da lista sem a edição ser concluída; o comportamento do numérico (a linha sai da grade durante o «Editar» ou não) será medido no CT-DDR-005 e o alfanumérico deve ser igual. Em qualquer caso, a linha salva não pode ser perdida ao reabrir.</td></tr><tr><td><b>DI5</b></td><td><b>Massa e acesso</b></td><td>Apólice, CNPJs de teste (alfanuméricos válidos e numéricos) e usuário são massa da QA, criados pela tela; nada vai a Produtos.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os critérios têm oráculo na tela e o legado (numérico) decide o resto.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Botão «Editar» da lista PI / DDR (CNPJs DDR Embarcador / Estipulação) do RCTR-C na AXA: campo CNPJ preenchido no formato certo para alfanumérico Total e Raiz (CA1 e CA2), tipo, operação e vigência preenchidos.</li><li>Edição concluída (Adicionar + Salvar) e persistida com o CNPJ alfanumérico íntegro; nenhuma linha perdida, nem quando a edição é abandonada (CA4).</li><li>Regressão: «Editar» em CNPJ numérico Total e Raiz (CA3), nos três tipos de operação; inclusão de CNPJ alfanumérico e checagem de duplicidade (#7197/#7212/#7213).</li><li>Exploratório: duas edições seguidas, editar e excluir, letras minúsculas (NOR_QA_002 §11).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Critérios «técnicos» do card</b> (testes unitários e de integração, Quality Gate do Sonar, PR com 2 aprovadores, homologação em RELEASE por Produtos): processo/DoD de engenharia, fora do plano de QA.</li><li><b>Demais telas com CNPJ alfanumérico</b> (averbação, relatórios, cadastro de segurado etc.) — cobertas pelos cards próprios; aqui só a lista PI / DDR.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Lido do card em 25/11/2026 (nenhum CT executado por este plano):</b> o defeito foi achado por análise de código, sem reprodução em tela. A mensagem exata do erro de «Editar» só é conhecida na execução: cada CT registra o texto exato exibido (se houver) e conclui pelo que a <b>tela</b> mostra (campo preenchido, linha na grade, ausência de erro).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da AXA (CITWEB Nacional), perfil de gestor (endereço e usuário de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (execução interrompida, sem veredito, retomada quando voltar).</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — apólice e CNPJs</b> — Apólice RCTR-C (ramo 54) da AXA, filial 0001, já usada nos testes da lista PI / DDR (apólice 5032026). A QA inclui <b>pela tela</b> (botão Adicionar + Salvar) CNPJs de massa própria: alfanuméricos <b>válidos</b> (dígitos verificadores calculados pela QA) Total e Raiz, e numéricos Total e Raiz, com prefixo próprio «QA10030», vigência e tipo de operação conforme cada CT. Nada é escrito no banco; a massa é toda criada pela tela.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, executa a sequência de cada CT, lê o valor dos campos e das linhas da grade, e grava capturas em disco; imprime só veredito e caminho. O Playwright de exploração só entra se um seletor quebrar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, apólice carregada, lista PI / DDR antes de «Editar», campos depois de «Editar», grade depois de concluir), e o texto exato de qualquer erro.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML AXA), preencher o usuário de gestor da QA, entrar e registrar a tela de módulos.</li><li><b>NB — Apólice:</b> clicar em <b>Nacional</b> (abre em nova aba) › menu <b>Cadastros</b> › <b>Apólice</b> › <b>RCTR-C</b> › selecionar a filial 0001 › informar o número da apólice › clicar na lupa; registrar a apólice carregada.</li><li><b>NC — Lista:</b> clicar na aba <b>PI / DDR</b>; registrar o título «LISTA DE CNPJs DDR EMBARCADOR - RCTR-C» e as linhas da grade (Operação, CNPJ, Tipo CNPJ, Início/Fim Vigência).</li><li><b>ND — Editar:</b> na linha desejada clicar em <b>Editar</b>; registrar (a) o valor do campo CNPJ, (b) o Tipo de CNPJ marcado (Raiz/Total), (c) o Tipo de Operação e a Vigência De/Até, (d) qualquer erro (texto exato) e (e) as linhas da grade logo depois do clique.</li><li><b>NE — Concluir:</b> alterar um dado permitido (por exemplo, a vigência final) › <b>Adicionar</b> › <b>Salvar</b> › <b>Fechar</b>; reabrir a aba PI / DDR e registrar a grade.</li><li><b>O1 — Oráculo:</b> a <b>tela</b>. CNPJ alfanumérico Total = 14 posições no formato AA.AAA.AAA/AAAA-AA; Raiz = 8 posições no formato AA.AAA.AAA; sem erro de aplicação; tipo, operação e vigência preenchidos com os da linha; nenhuma linha some sem a edição ser concluída; o comportamento do alfanumérico é igual ao do numérico (regra padrão: legado).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Alfanumérico Total (CT-DDR-001):</b> Um CNPJ alfanumérico válido Total, prefixo QA10030, operação DDR Parcial, vigência de 01/01/2026 a 31/12/2026 (valor lido na execução).</li><li><b>Alfanumérico Raiz (CT-DDR-002):</b> Um CNPJ alfanumérico Raiz (8 posições), prefixo QA10030, operação DDR Estipulação, mesma vigência.</li><li><b>Numéricos (CT-DDR-005 e 006):</b> Um CNPJ numérico Total e um Raiz já existentes na lista da apólice de massa (ou incluídos pela QA, números sintéticos de HML).</li><li><b>Lista mista (CT-DDR-004):</b> Na mesma apólice, ao mesmo tempo: 1 alfanumérico Total, 1 alfanumérico Raiz e 1 numérico; contagem de linhas registrada antes e depois de cada passo.</li><li><b>Operações (CT-DDR-007):</b> Um CNPJ alfanumérico para cada operação: DDR Parcial, DDR Estipulação e Sub Contratação.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; confirmar o DoD (card em homologação).</li><li>Montar a massa (CNPJs pela tela) e registrar a lista antes de qualquer «Editar». Grupo A (001 → 002 → 004 → 003: a edição gravada por último) → Grupo B (005 a 008) → exploratório (009) por último, 15 a 30 minutos.</li><li>Cada CT faz login e navega por clique do início; a lista é registrada antes e depois de cada clique em «Editar».</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Editar CNPJ alfanumérico (Total e Raiz): campo preenchido, edição concluída e gravada, nenhuma linha perdida</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-001</span><span class="ct-title">«Editar» em CNPJ alfanumérico Total: o campo CNPJ é preenchido como AA.AAA.AAA/AAAA-AA, sem erro e com tipo, operação e vigência carregados</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do defeito e correção</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C com 1 CNPJ alfanumérico Total na lista (incluído pela QA, operação DDR Parcial, vigência 2026).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar a contagem de linhas e o CNPJ da linha alfanumérica Total.</li><li>Clicar em «Editar» nessa linha (ND) e registrar o valor do campo CNPJ, o Tipo de CNPJ, o Tipo de Operação, a Vigência De/Até e qualquer erro (texto exato).</li><li>Registrar as linhas da grade logo depois do clique.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo CNPJ mostra os 14 caracteres alfanuméricos no formato <b>AA.AAA.AAA/AAAA-AA</b> (letras e números preservados, iguais aos da linha), o Tipo de CNPJ fica em <b>Total</b>, a operação e a vigência são os da linha, e <b>nenhum erro de aplicação</b> aparece. Qualquer erro de formato, campo vazio ou CNPJ trocado é REPROVADO. Evidência: capturas desde o login, grade antes e campos depois do clique.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-002</span><span class="ct-title">«Editar» em CNPJ alfanumérico Raiz: o campo CNPJ é preenchido como AA.AAA.AAA, sem erro e com tipo, operação e vigência carregados</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2) — reprodução do defeito e correção</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C com 1 CNPJ alfanumérico Raiz na lista (incluído pela QA, operação DDR Estipulação, vigência 2026).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar a contagem de linhas e o CNPJ da linha alfanumérica Raiz.</li><li>Clicar em «Editar» nessa linha (ND) e registrar o valor do campo CNPJ, o Tipo de CNPJ, o Tipo de Operação, a Vigência De/Até e qualquer erro (texto exato).</li><li>Registrar as linhas da grade logo depois do clique.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo CNPJ mostra os 8 caracteres alfanuméricos no formato <b>AA.AAA.AAA</b> (letras e números preservados), o Tipo de CNPJ fica em <b>Raiz</b>, a operação e a vigência são os da linha, e <b>nenhum erro de aplicação</b> aparece. Qualquer erro, campo vazio ou valor alterado é REPROVADO. Evidência: capturas desde o login, grade antes e campos depois do clique.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-003</span><span class="ct-title">Editar CNPJ alfanumérico (Total e Raiz), alterar a vigência final, Adicionar e Salvar: a linha volta à lista com o CNPJ íntegro e persiste ao reabrir</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1, CA2 e CA4) — edição concluída e gravada</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma massa do CT-DDR-004 (alfanumérico Total e Raiz, vigência 2026). Este CT grava; executar depois dos CTs 001, 002 e 004.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar a grade e o CNPJ da linha alfanumérica Total.</li><li>Clicar em «Editar» na linha, alterar a Vigência Até (por exemplo, para 31/10/2026), clicar em «Adicionar» (NE) e registrar a grade; clicar em «Salvar» e registrar o aviso exibido (texto exato).</li><li>Clicar em «Fechar», reabrir a aba PI / DDR e registrar a linha (CNPJ, Tipo CNPJ, vigência).</li><li>Repetir os passos 3 e 4 na linha alfanumérica Raiz.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Depois de «Adicionar», a linha aparece na grade com o <b>mesmo CNPJ alfanumérico</b>, o mesmo tipo e a <b>vigência nova</b>, sem duplicar; o «Salvar» conclui com a mensagem de sucesso da tela; ao reabrir a lista, a linha segue com o CNPJ íntegro (letras e números) e a vigência nova. CNPJ convertido, truncado, duplicado ou linha ausente é REPROVADO (o estado mudou como o método manda: a edição foi gravada). Evidência: grade antes, depois de Adicionar, depois de Salvar e depois de reabrir.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-004</span><span class="ct-title">Nenhum CNPJ some da lista: «Editar» e abandonar a edição (Fechar sem salvar) mantém as linhas alfanuméricas ao reabrir a lista</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA4) — integridade da lista</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Lista mista na apólice: 1 alfanumérico Total + 1 alfanumérico Raiz + 1 numérico, todos salvos. Contagem registrada.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar as 3 linhas e a contagem.</li><li>Clicar em «Editar» na linha alfanumérica Total e registrar a grade; clicar em «Editar» na alfanumérica Raiz e registrar a grade (sem Adicionar).</li><li>Clicar em «Fechar» <b>sem Salvar</b>; reabrir a aba PI / DDR (NC) e registrar a grade.</li><li>Repetir o «Editar» na linha numérica, fechar sem salvar, reabrir e registrar a grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Ao reabrir, a lista tem <b>as mesmas 3 linhas</b> (CNPJs idênticos aos de antes): a edição abandonada não remove nada do que está salvo, para alfanumérico e numérico. Se o «Editar» do alfanumérico retirar a linha da grade, o comportamento deve ser <b>igual ao do numérico</b> (regra padrão do legado) e a linha volta ao reabrir. Linha perdida ao reabrir, ou erro, é REPROVADO. Evidência: grade antes, depois de cada «Editar» e depois de reabrir.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Regressão: CNPJ numérico, tipos de operação, inclusão/duplicidade do alfanumérico (e exploratório, NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-005</span><span class="ct-title">«Editar» em CNPJ numérico Total continua funcionando como hoje: campo preenchido como NN.NNN.NNN/NNNN-NN e edição concluída</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA3) — comportamento de referência (numérico)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C com 1 CNPJ numérico Total na lista (massa sintética de HML).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar a linha numérica Total e a contagem de linhas.</li><li>Clicar em «Editar» (ND) e registrar o valor do campo CNPJ, o Tipo de CNPJ, a operação, a vigência e as linhas da grade (a QA registra aqui se a linha permanece ou sai da grade — referência do legado).</li><li>Alterar a Vigência Até, «Adicionar» e «Salvar»; reabrir e registrar a linha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo mostra o CNPJ no formato <b>NN.NNN.NNN/NNNN-NN</b> com o tipo <b>Total</b>, a operação e a vigência da linha, sem erro; a edição conclui e a linha persiste com a vigência nova. Este é o <b>comportamento de referência</b> para o alfanumérico (CT-DDR-001 a 004). Erro ou perda da linha é REPROVADO (regressão). Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-006</span><span class="ct-title">«Editar» em CNPJ numérico Raiz continua funcionando como hoje: campo preenchido como NN.NNN.NNN e edição concluída</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C com 1 CNPJ numérico Raiz na lista.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Registrar a linha numérica Raiz.</li><li>Clicar em «Editar» e registrar o campo CNPJ, o Tipo de CNPJ, a operação e a vigência.</li><li>Alterar a Vigência Até, «Adicionar» e «Salvar»; reabrir e registrar a linha.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O campo mostra o CNPJ no formato <b>NN.NNN.NNN</b> com o tipo <b>Raiz</b>, sem erro; a edição conclui e persiste. Erro, formato diferente do de hoje ou linha perdida é REPROVADO. Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-007</span><span class="ct-title">«Editar» em CNPJ alfanumérico nas três operações (DDR Parcial, DDR Estipulação e Sub Contratação): a operação é carregada igual à da linha</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional/regressão (CA1) — combinação com cada operação</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Três linhas alfanuméricas Total na apólice, uma por operação (massa da QA).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Para cada uma das três linhas: clicar em «Editar» (ND) e registrar o CNPJ, o Tipo de CNPJ, o Tipo de Operação e a vigência carregados; clicar em «Fechar» sem salvar e reabrir a aba PI / DDR antes da linha seguinte.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Para cada linha, o campo CNPJ mostra AA.AAA.AAA/AAAA-AA e o Tipo de Operação carregado é o da linha (DDR Parcial, DDR Estipulação ou Sub Contratação), sem erro. Operação trocada, campo vazio ou erro é REPROVADO. Evidência: uma captura por operação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-008</span><span class="ct-title">Regressão: incluir CNPJ alfanumérico (Total e Raiz) segue funcionando e a checagem de duplicidade recusa o mesmo CNPJ</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — #7197, #7212 e #7213</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C; um CNPJ alfanumérico válido ainda não existente na lista.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Escolher Tipo de CNPJ «Total», operação e vigência, digitar o CNPJ alfanumérico e clicar em «Adicionar»; registrar a grade.</li><li>Repetir o mesmo CNPJ e tipo: clicar em «Adicionar» e registrar a mensagem exata e a grade.</li><li>Repetir a inclusão com Tipo de CNPJ «Raiz» (8 posições) e registrar a grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A inclusão aparece na grade com o CNPJ alfanumérico íntegro (Total e Raiz); a segunda inclusão do mesmo CNPJ é <b>recusada</b> com mensagem da tela e a grade não ganha linha repetida. O comportamento atual (já aprovado nos cards anteriores) é a referência; regressão é REPROVADO. Evidência: capturas e texto exato da mensagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DDR-009</span><span class="ct-title">Exploratório (NOR_QA_002 §11): duas edições seguidas, editar e excluir, e CNPJ alfanumérico com letras minúsculas</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — 15 a 30 minutos, guiado por risco</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Concluídos os CTs formais. Acesso de gestor.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial 0001 › número da apólice › lupa › aba «PI / DDR» e registrar a grade (NB e NC).</li><li>Clicar em «Editar» numa linha alfanumérica, «Adicionar» e logo em seguida «Editar» de novo na mesma linha: registrar o campo e a grade.</li><li>Clicar em «Editar» e depois em «Excluir» numa linha alfanumérica: registrar a grade e o aviso.</li><li>Incluir um CNPJ alfanumérico digitado em minúsculas, «Adicionar» e «Editar»: registrar o campo (maiúsculas/minúsculas) e a grade.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhum dos caminhos gera erro de aplicação nem perde linha sem a ação da pessoa; o CNPJ alfanumérico é preservado de forma consistente. Achado novo fora do escopo do card é registrado à parte (com prova de pré-existência se for o caso); sem ocorrências: comentário «Exploratório executado [data] HML. Sem ocorrências.» Evidência: capturas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DDR-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — «Editar» em CNPJ alfanumérico Total: AA.AAA.AAA/AAAA-AA, sem erro</td><td>CT-DDR-001 · CT-DDR-003 · CT-DDR-007</td><td>Pendente</td></tr><tr><td>CA2 — «Editar» em CNPJ alfanumérico Raiz: AA.AAA.AAA, sem erro</td><td>CT-DDR-002 · CT-DDR-003</td><td>Pendente</td></tr><tr><td>CA3 — edição de CNPJs numéricos continua como hoje</td><td>CT-DDR-005 · CT-DDR-006</td><td>Pendente</td></tr><tr><td>CA4 — um CNPJ nunca sai da lista sem a edição ser concluída</td><td>CT-DDR-003 · CT-DDR-004</td><td>Pendente</td></tr><tr><td>Regressão da inclusão e da duplicidade de CNPJ alfanumérico (#7197/#7212/#7213)</td><td>CT-DDR-008</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-DDR-009</td><td>Pendente</td></tr><tr><td>Critérios técnicos do card (unitários, Sonar, PR com 2 aprovadores, homologação em RELEASE)</td><td>— sem CT: processo/DoD de engenharia, fora do plano da QA</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1 e o CA2 estão cobertos pelo «Editar» em alfanumérico Total e Raiz e pela edição concluída e gravada; o CA3 pela edição de numéricos Total e Raiz (referência); o CA4 pela lista mista, pelo abandono da edição e pela persistência ao reabrir; a inclusão e a duplicidade dos cards anteriores entram como regressão e o exploratório fecha com edições repetidas, exclusão e minúsculas.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em Pronto para desenvolvimento)</td><td>Alta</td><td>Médio — os CTs do Grupo A reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar não há veredito.</td></tr><tr><td>Comportamento de referência do «Editar» numérico (linha sai ou fica na grade) não estar documentado</td><td>Média</td><td>Médio — oráculo do CA4</td><td>O CT-DDR-005 registra o comportamento do numérico; o alfanumérico deve ser igual (regra padrão: legado). Linha nunca é perdida ao reabrir a lista.</td></tr><tr><td>Massa alfanumérica inválida (dígitos verificadores) ser recusada na inclusão</td><td>Baixa</td><td>Baixo — é massa, não impeditivo</td><td>A QA gera CNPJs alfanuméricos com dígitos verificadores corretos e confere a inclusão antes dos CTs de edição.</td></tr><tr><td>Outros ramos com a mesma tela terem o defeito e não serem cobertos</td><td>Média</td><td>Baixo — cobertura</td><td>O plano cobre o RCTR-C; a QA registra o título do modal; outro ramo com a mesma tela, se existir, vira achado no exploratório.</td></tr><tr><td>Lista da apólice de massa ser alterada por outro teste ao mesmo tempo</td><td>Baixa</td><td>Baixo</td><td>A QA registra a lista antes de cada CT e usa CNPJs com prefixo próprio.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
