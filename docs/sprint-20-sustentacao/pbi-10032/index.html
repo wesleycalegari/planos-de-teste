@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-10032 · CNPJ Raiz — preenchimento (zero à esquerda)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-10032 · Sustentação · Sprint 20</span>
+    <h1>CNPJ Raiz — preenchimento (zero à esquerda)</h1>
+    <div class="sub">CITWEB Nacional (AXA) · Cadastros › Apólice › RCTR-C e RCF › Condições Comerciais (Taxa Embarcador · CNPJ Raiz) · Board Sustentação · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">10</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">10</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/3/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 10 executados · 10 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>10 CTs</strong> (6×P1 · 3×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 10, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 10}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> Nas Condições Comerciais com «Taxa Embarcador» (taxa negociada para um embarcador), quando a pessoa escolhe «CNPJ Raiz = SIM» e digita uma Raiz alfanumérica (letras e números) com 7 caracteres, o sistema grava os 7 caracteres como foram digitados, sem o zero à esquerda. Na hora de calcular o prêmio da averbação, o sistema procura a Raiz com 8 caracteres, não encontra a condição e cobra a taxa geral da apólice, sem nenhum aviso. O card pede que a Raiz seja completada com zeros à esquerda até 8 caracteres ao salvar (como já é feito no CNPJ Total e na tela DDR), que a Raiz que já tem 8 caracteres não mude, que a averbação do embarcador passe a receber a taxa dele e que isso valha igual nas telas do RCTR-C e do RCF.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos, no ambiente de testes da AXA, cadastrar condições com Raiz de 7 e de 8 caracteres, conferir o que fica gravado na lista de condições, fazer averbações de um embarcador com e sem condição cadastrada e conferir se o prêmio sai com a taxa do embarcador (e a observação «CNPJ TX EMBARCADOR») ou com a taxa geral. Repetimos no RCF, conferimos que o CNPJ Total e a Raiz só com números continuam como hoje e testamos casos de borda (Raiz mais curta, condição já gravada antes da correção, mesma Raiz digitada duas vezes).</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» e a correção ainda não está no ambiente de testes. Os testes começam quando o card for liberado para homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem cadastra a taxa de um embarcador por CNPJ Raiz passa a ter a condição reconhecida na averbação, e o segurado paga o prêmio negociado em vez da taxa geral.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Só para ciência: a regra adotada neste plano é a do próprio card — Raiz completada com zeros à esquerda até 8 caracteres e, onde o card não detalha (Raiz mais curta que 7, mesma Raiz digitada com 7 e com 8), o comportamento deve ser <b>igual ao do CNPJ Total e da Raiz numérica</b> (referência: o que já funciona hoje).</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITWEB Nacional (AXA)</b> — Cadastros › Apólice › <b>RCTR-C (54)</b> e <b>RCF (55)</b> › <b>Condições Comerciais</b> (Taxa Embarcador = SIM, CNPJ Raiz = SIM) e o cálculo do prêmio na Averbação Nacional.</td></tr><tr><th>Card</th><td>BUG-10032 — «cnpj raiz - preenchimento» · board Sustentação (kanban, sem sprint) · estado <b>Pronto para desenvolvimento</b> · tags AXA, CITWEB CORE, CNPJ Alfanumérico · relacionado ao #7198 (correção do zero à esquerda no CNPJ Total).</td></tr><tr><th>Tasks</th><td>#10034 [QA] Plano de teste — BUG #10032 (este plano; fecha na entrega). O card não tem outras tarefas filhas.</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b> do board Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML da AXA (CITWEB Nacional, perfil de gestor). Produção e staging: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>Em Condições Comerciais do RCTR-C (e do RCF), com <b>Taxa Embarcador = SIM</b> e <b>CNPJ Raiz = SIM</b>, uma Raiz alfanumérica digitada com <b>7 caracteres</b> é gravada com 7, sem o zero à esquerda. O cálculo do prêmio da averbação procura a condição do embarcador pela Raiz de <b>8 caracteres</b>; como a gravada tem 7, a condição nunca é encontrada, o cálculo aplica a <b>taxa geral da apólice</b> e a averbação fica sem a marca de taxa de embarcador e sem a observação «CNPJ TX EMBARCADOR» — tudo sem alerta ao usuário. O card #7198 já corrigiu o CNPJ <b>Total</b> (14 caracteres); a Raiz ficou de fora. Exemplo do card: Raiz <b>7LKS2XR</b> deve ser gravada como <b>07LKS2XR</b>. O card pede ainda a correção, por script de dados, das Raízes já gravadas com menos de 8 caracteres.</p><p>Fluxo percorrido na tela (mapeado em tela em exploração anterior da tela «CONDIÇÕES COMERCIAIS - RCTR-C» — campos Taxa Embarcador SIM/NÃO, CNPJ Raiz SIM/NÃO, CNPJ Embarcador, Tipo de Taxa, Taxa, vigência; grade com as colunas Taxa Embarcador (S/N) e CNPJ Embarcador; botões Salvar, Replicar, Novo, Fechar): Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa › Condições Comerciais. A averbação é feita em Averbação › Nacional › RCTR-C com o campo CNPJ Embarcador preenchido.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — Raiz alfanumérica de <b>7</b> caracteres é gravada com <b>8</b> (zero à esquerda)</td><td>CT-CRZ-001 · CT-CRZ-004 · CT-CRZ-008 · CT-CRZ-009</td></tr><tr><td><b>CA2</b> — Raiz de <b>8</b> caracteres é gravada sem alteração (cadastros que já funcionam não mudam)</td><td>CT-CRZ-002 · CT-CRZ-006 · CT-CRZ-010</td></tr><tr><td><b>CA3</b> — Averbação do embarcador com condição por Raiz recebe a <b>taxa do embarcador</b> (indicador S e observação «CNPJ TX EMBARCADOR»)</td><td>CT-CRZ-003 · CT-CRZ-004 · CT-CRZ-007 (contraprova)</td></tr><tr><td><b>CA4</b> — Mesmo comportamento nas telas RCTR-C (54) e RCF (55)</td><td>CT-CRZ-004</td></tr><tr><td><b>CA5</b> — CNPJ <b>Total</b> continua normalizado e validado como hoje (#7198)</td><td>CT-CRZ-005</td></tr><tr><td>Cenário desejado do card: Raízes já gravadas com menos de 8 caracteres corrigidas por script de dados</td><td>CT-CRZ-009</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-CRZ-010</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026 por interpretação documentada:</b> seguradora e sistema pelas tags (AXA; CITWEB; CNPJ Alfanumérico) ✓ · Bug com contexto, cenário atual, cenário desejado, usuário afetado, ambiente e causa ✓ · critérios de aceite funcionais com oráculo observável na <b>tela</b> (valor gravado na grade de condições, prêmio e observação da averbação) ✓ · ramos declarados: RCTR-C (54) e RCF (55) ✓ · descrição, critérios, comentários (a tabela de 7 cenários da coordenação e um comentário automático de ferramenta, sem informação de negócio) e a relação com o #7198 lidos; o card não tem tarefas filhas ✓. <b>Não é débito técnico:</b> o comportamento é observável e validável pelo usuário (valor gravado e prêmio da averbação). O card informa que não há evidência de reprodução anexada: a QA reproduz o defeito na execução como linha de base. Telas de Condições Comerciais do RCTR-C e de averbação mapeadas em tela em exploração anterior; a execução reconfere cada campo antes de usar.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável e validável pelo usuário (Raiz gravada na grade e prêmio da averbação).</td></tr><tr><td><b>DI2</b></td><td><b>Reprodução não anexada no card</b></td><td>O defeito veio de análise de código. A QA reproduz na execução como linha de base: se a correção já estiver no ar, os CTs passam e o resultado é registrado.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O que a tela mostra: Raiz na grade e ao reabrir a condição (8 caracteres), prêmio, taxa e observação da averbação. O indicador S/N é conferido por leitura de apoio no banco se a tela não o mostrar. A referência para o que o card não detalha é o CNPJ Total e a Raiz numérica (legado).</td></tr><tr><td><b>DI4</b></td><td><b>Contraprova antes da correção medida</b></td><td>O CT-CRZ-007 (averbação sem condição) roda primeiro para mostrar o que é «taxa geral / indicador N» e dar sentido ao CT-CRZ-003.</td></tr><tr><td><b>DI5</b></td><td><b>Massa e acesso</b></td><td>Apólice, condições, taxas, embarcadores, CNPJs válidos e usuário são massa da QA, criados pela tela; nada vai a Produtos.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os critérios do card têm oráculo na tela e o legado decide as bordas (Raiz curta, Raiz digitada com 7 e com 8).</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Condições Comerciais do RCTR-C (54) e do RCF (55) com Taxa Embarcador = SIM e CNPJ Raiz = SIM: Raiz alfanumérica de 7 caracteres gravada com 8 (CA1), de 8 mantida (CA2), nos dois ramos (CA4).</li><li>Averbação Nacional de embarcador com condição por Raiz: taxa do embarcador aplicada, indicador S e observação «CNPJ TX EMBARCADOR» (CA3), e a contraprova sem condição (taxa geral, indicador N).</li><li>Regressão: CNPJ Total normalizado como no #7198 (CA5) e Raiz numérica de 8 dígitos como hoje.</li><li>Bordas e exploratório: Raiz mais curta que 7, condição gravada antes da correção (script de dados), mesma Raiz digitada com 7 e com 8, edição e réplica da condição, letras minúsculas (NOR_QA_002 §11).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Execução do script de dados em produção</b> e qualquer escrita direta no banco: trabalho de engenharia; a QA só confere o resultado em HML, quando houver massa antiga.</li><li><b>Demais telas com CNPJ alfanumérico</b> (DDR Embarcador, Caixa Postal, cadastro de segurado, relatórios) — cobertas pelos cards próprios (#7196, #7197, #7213 e outros).</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Lido do card em 25/11/2026 (nenhum CT executado por este plano):</b> o defeito foi achado por análise de código, sem reprodução em tela; a validação do #7198 cobriu só o CNPJ Total. Até a execução, «a Raiz de 7 caracteres é gravada sem zero» e «a averbação cai na taxa geral» são hipóteses do card: cada CT registra o que a <b>tela</b> mostra (grade de condições, prêmio, observação da averbação) e conclui por isso. O recurso «Taxa Embarcador» é ligado por tenant: a QA confere no início se a tela do AXA oferece o campo; se não oferecer, usa o tenant de HML onde o recurso está ligado e registra qual — ausência do campo em tenant sem o recurso não é defeito.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da AXA (CITWEB Nacional), perfil de gestor (endereço e usuário de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (execução interrompida, sem veredito, retomada quando voltar).</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — apólice, condições e embarcador</b> — Apólice RCTR-C (54) da AXA com RCF (55) vinculado, com condição comercial geral (taxa conhecida) e <b>sem</b> condição de embarcador para a Raiz de teste. A QA cria <b>pela tela</b> as condições de embarcador e escolhe uma taxa do embarcador <b>diferente</b> da taxa geral (as duas registradas), para o prêmio distinguir os dois casos. Raiz de teste alfanumérica de 7 caracteres (ex.: <b>7LKS2XR</b>, a do card) e embarcador de 14 caracteres cuja Raiz é essa mesma Raiz com zero à esquerda (ex.: <b>07LKS2XR000170</b>, com dígitos verificadores calculados pela QA; se o dígito do exemplo do card não fechar, a QA usa a Raiz com um embarcador válido e registra a troca). Nada é escrito no banco; a massa é toda criada pela tela.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, executa a sequência de cada CT, lê os campos, a grade e o resultado da averbação, e grava capturas em disco; imprime só veredito e caminho. O Playwright de exploração só entra se um seletor quebrar. Leitura de apoio no banco de HML (somente leitura) apenas para conferir o indicador de taxa de embarcador da averbação quando a tela não o mostrar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, apólice carregada, condição antes de salvar, grade depois de salvar, averbação e resultado), e o texto exato de qualquer mensagem.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITWEB (HML AXA), preencher o usuário de gestor da QA, entrar e registrar a tela de módulos.</li><li><b>NB — Apólice:</b> clicar em <b>Nacional</b> (abre em nova aba) › menu <b>Cadastros</b> › <b>Apólice</b> › <b>RCTR-C</b> › selecionar a filial › informar o número da apólice › clicar na lupa; registrar a apólice carregada.</li><li><b>NC — Condições Comerciais (54):</b> na apólice carregada, abrir <b>Condições Comerciais</b>; registrar o título «CONDIÇÕES COMERCIAIS - RCTR-C» e a grade (colunas Taxa Embarcador S/N e CNPJ Embarcador). Para cadastrar: <b>Taxa Embarcador = SIM</b> › <b>CNPJ Raiz = SIM</b> › digitar a Raiz no campo CNPJ Embarcador › Tipo de Taxa e Taxa › vigência › <b>Salvar</b>; registrar a mensagem e a grade.</li><li><b>ND — Condições Comerciais (55):</b> a partir da apólice RCTR-C carregada, abrir a edição da apólice de RC-DC (RCF) e as Condições Comerciais dela; mesma sequência do NC.</li><li><b>NE — Averbação:</b> menu <b>Averbação</b> › <b>Nacional</b> › <b>RCTR-C</b> (ou RCF, conforme o CT) › apólice › preencher o CNPJ Embarcador de 14 caracteres e os demais campos obrigatórios (valor de teste redondo, registrado) › gravar/calcular; abrir a averbação na consulta e registrar o <b>prêmio</b>, a <b>taxa aplicada</b> e a <b>observação</b>.</li><li><b>O1 — Oráculo:</b> a <b>tela</b>. Raiz alfanumérica gravada com <b>8</b> caracteres na grade (7LKS2XR → 07LKS2XR; 07LKS2XR → 07LKS2XR); averbação do embarcador com prêmio = valor × <b>taxa do embarcador</b> e observação «CNPJ TX EMBARCADOR»; averbação sem condição = prêmio pela taxa geral e sem a observação. O indicador S/N da averbação é lido na consulta e, se a tela não o mostrar, por leitura de apoio no banco. Onde o card não detalha, o comportamento deve ser igual ao do CNPJ Total e da Raiz numérica (referência: legado).</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Raiz de 7 caracteres (CT-CRZ-001, 003, 004):</b> Raiz alfanumérica de teste com 7 caracteres (ex.: 7LKS2XR), tipo de taxa e <b>taxa do embarcador</b> distinta da taxa geral da apólice, vigência dentro da vigência da apólice.</li><li><b>Raiz de 8 caracteres (CT-CRZ-002):</b> A mesma Raiz já com zero à esquerda (07LKS2XR), outra vigência/condição do mesmo embarcador ou segundo embarcador, para não colidir com o CT-CRZ-001.</li><li><b>Embarcador da averbação (CT-CRZ-003, 004, 007):</b> CNPJ alfanumérico válido de 14 caracteres cuja Raiz é a de teste (ex.: 07LKS2XR000170); valor de averbação redondo; os mesmos dados nos CTs 007 e 003 para comparar prêmio e observação.</li><li><b>CNPJ Total (CT-CRZ-005):</b> Condição com CNPJ Total alfanumérico de 13 caracteres digitado sem o zero (ex.: 7LKS2XR000170), embarcador distinto dos demais CTs.</li><li><b>Raiz numérica (CT-CRZ-006):</b> Raiz só com números de 8 dígitos (massa sintética de HML), sem condição prévia no período.</li><li><b>Dado antigo (CT-CRZ-009):</b> Condição de Raiz com menos de 8 caracteres já existente no HML, localizada por leitura no banco antes da execução (a QA não grava valor errado no banco para criar massa).</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; confirmar o DoD (card em homologação); conferir que a tela do tenant oferece Taxa Embarcador.</li><li>Contraprova primeiro: CT-CRZ-007 (averbação do embarcador <b>sem</b> condição: taxa geral). Depois Grupo A (001 → 002 → 003 → 004) → Grupo B (005, 006, 008, 009) → exploratório (010) por último, 15 a 30 minutos.</li><li>Cada CT faz login e navega por clique do início; a grade de condições é registrada antes e depois de cada «Salvar».</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — CNPJ Raiz alfanumérico no RCTR-C e no RCF: gravado com 8 caracteres e taxa do embarcador aplicada na averbação</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-001</span><span class="ct-title">RCTR-C, Raiz = SIM, Raiz alfanumérica de 7 caracteres: é gravada com 8 caracteres (zero à esquerda) — 7LKS2XR → 07LKS2XR</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do defeito e correção</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C com condição geral e sem condição de embarcador para a Raiz de teste (massa da QA).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Marcar <b>Taxa Embarcador = SIM</b> e <b>CNPJ Raiz = SIM</b>; digitar no campo CNPJ Embarcador a Raiz de 7 caracteres (7LKS2XR); preencher Tipo de Taxa, a taxa do embarcador (diferente da geral) e a vigência; registrar a tela preenchida.</li><li>Clicar em «Salvar» e registrar a mensagem exata da tela.</li><li>Registrar a linha nova da grade (coluna CNPJ Embarcador e Taxa Embarcador S/N); clicar em «Fechar», reabrir as Condições Comerciais e abrir a linha para edição, registrando o valor do campo CNPJ Embarcador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade e a edição da condição mostram a Raiz com <b>8 caracteres, 07LKS2XR</b> (zero à esquerda), Taxa Embarcador = S, e o «Salvar» conclui com a mensagem de sucesso da tela. Raiz mostrada com 7 caracteres (7LKS2XR), Raiz alterada ou erro é REPROVADO (o estado mudou como o método manda: a Raiz foi normalizada na gravação). Evidência: capturas desde o login, tela preenchida antes de salvar, grade depois de salvar e depois de reabrir.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-002</span><span class="ct-title">RCTR-C, Raiz = SIM, Raiz alfanumérica de 8 caracteres (07LKS2XR): é gravada sem alteração</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2) — cadastro que já funciona não muda</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Apólice RCTR-C; embarcador/Raiz distinto do CT-CRZ-001 (ou outra vigência do mesmo período, sem sobreposição).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Taxa Embarcador = SIM, CNPJ Raiz = SIM; digitar a Raiz de 8 caracteres (ex.: 07LKS2XR, ou outra Raiz alfanumérica de 8 caracteres da massa), tipo de taxa, taxa do embarcador e vigência; registrar a tela preenchida.</li><li>Clicar em «Salvar» e registrar a mensagem exata.</li><li>Registrar a linha da grade, reabrir a condição para edição e registrar o campo CNPJ Embarcador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A grade e a edição mostram a Raiz <b>exatamente como digitada (8 caracteres)</b>, sem zero a mais, sem corte e sem troca de caracteres; o «Salvar» conclui com sucesso. Raiz com 9 caracteres, truncada ou alterada é REPROVADO. Evidência: capturas desde o login e grade depois de salvar e depois de reabrir.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-003</span><span class="ct-title">Averbação RCTR-C do embarcador (07LKS2XR000170) depois do CT-CRZ-001: o cálculo encontra a condição e aplica a taxa do embarcador (indicador S e observação «CNPJ TX EMBARCADOR»)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — efeito no cálculo do prêmio</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Condição do CT-CRZ-001 salva (Raiz 07LKS2XR, taxa do embarcador distinta da geral) e o resultado do CT-CRZ-007 (mesma averbação sem condição) registrado antes.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Menu Averbação › Nacional › RCTR-C, preencher o embarcador de 14 caracteres, o valor de teste e os campos obrigatórios, gravar/calcular, abrir a averbação na consulta e registrar o prêmio, a taxa aplicada, a observação e o indicador de taxa de embarcador (NE).</li><li>Comparar, na consulta, o prêmio com o valor de teste × <b>taxa do embarcador</b> e com o valor de teste × taxa geral (as duas calculadas e registradas); registrar também a observação completa.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A averbação sai com o prêmio calculado pela <b>taxa do embarcador</b> (não pela geral), a observação traz <b>«CNPJ TX EMBARCADOR(...)»</b> e o indicador de taxa de embarcador é <b>S</b>. Prêmio pela taxa geral, observação ausente ou indicador N é REPROVADO (a condição não foi encontrada: o defeito do card). Comparar com o CT-CRZ-007 prova que a mudança veio da condição. Evidência: capturas desde o login, a averbação e o prêmio/observação na consulta, e a leitura do indicador.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-004</span><span class="ct-title">RCF (55): repetir o cadastro com Raiz de 7 caracteres e a averbação do embarcador — mesmo resultado do RCTR-C (Raiz gravada com 8 e taxa do embarcador aplicada)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA4 e CA1/CA3) — paridade entre ramos</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C com RCF (55) vinculado, condição geral no RCF e sem condição de embarcador para outra Raiz de teste de 7 caracteres (massa da QA).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir a edição da apólice de RC-DC (RCF) e as Condições Comerciais dela (ND); registrar o título da tela e a grade.</li><li>Cadastrar Taxa Embarcador = SIM, CNPJ Raiz = SIM, Raiz de 7 caracteres, taxa do embarcador distinta da geral e vigência; «Salvar»; registrar a mensagem, a grade e o valor do campo ao reabrir.</li><li>Averbar com o embarcador de 14 caracteres desta Raiz pelo caminho de averbação do RCF (Averbação › Nacional › RCF); se a tela de averbação do RCF não existir neste tenant, averbar pelo RCTR-C e abrir o espelho do RCF na consulta; registrar prêmio, taxa, observação e indicador.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>No RCF a Raiz fica gravada com <b>8 caracteres</b> e a averbação do embarcador sai com a <b>taxa do embarcador</b>, a observação «CNPJ TX EMBARCADOR(...)» e o indicador S — igual ao RCTR-C. Qualquer diferença entre os ramos (Raiz com 7 caracteres, taxa geral aplicada) é REPROVADO. Evidência: capturas desde o login do cadastro no RCF e da averbação com prêmio e observação.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Contraprova e regressão: averbação sem condição, CNPJ Total, Raiz numérica, bordas, dado antigo e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-005</span><span class="ct-title">CNPJ Total alfanumérico (7LKS2XR000170) continua gravado com 14 caracteres (07LKS2XR000170) — regressão do #7198</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C; embarcador distinto dos demais CTs; Taxa Embarcador = SIM e <b>CNPJ Raiz = NÃO</b> (CNPJ Total).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Taxa Embarcador = SIM, CNPJ Raiz = NÃO; digitar o CNPJ Total de 13 caracteres sem o zero (7LKS2XR000170), taxa e vigência; «Salvar» e registrar a mensagem.</li><li>Registrar a grade e o campo ao reabrir a condição.</li><li>Repetir com um CNPJ Total inválido (dígito verificador errado) e registrar a mensagem exata.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O CNPJ Total fica gravado com <b>14 caracteres, 07LKS2XR000170</b>, como no #7198; o CNPJ Total inválido é recusado com a mensagem de validação da tela (como hoje). Regressão (13 caracteres gravados, validação perdida) é REPROVADO. Evidência: capturas desde o login e grade.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-006</span><span class="ct-title">Raiz numérica de 8 dígitos continua gravada sem alteração e a averbação do embarcador recebe a taxa dele</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (CA2) — Raiz só com números</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C; Raiz numérica de 8 dígitos (massa sintética), embarcador de 14 dígitos com essa Raiz.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Taxa Embarcador = SIM, CNPJ Raiz = SIM, Raiz numérica de 8 dígitos, taxa do embarcador distinta da geral e vigência; «Salvar»; registrar a grade e o campo ao reabrir.</li><li>Averbar com um embarcador cuja Raiz é essa e registrar prêmio, observação e indicador (NE).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A Raiz numérica fica gravada <b>sem alteração</b> (8 dígitos), a averbação sai com a taxa do embarcador, a observação «CNPJ TX EMBARCADOR(...)» e o indicador S, como hoje. Raiz alterada ou taxa geral aplicada é REPROVADO (regressão). Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-007</span><span class="ct-title">Contraprova: averbação do embarcador sem condição cadastrada recebe a taxa geral da apólice (indicador N, sem a observação)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — controle do oráculo; executar antes do CT-CRZ-001</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C com condição geral e <b>sem</b> condição de embarcador para a Raiz 07LKS2XR (verificar na grade antes).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Registrar a grade (sem condição para a Raiz de teste).</li><li>Menu Averbação › Nacional › RCTR-C, preencher o embarcador de 14 caracteres, o valor de teste e os campos obrigatórios, gravar/calcular, abrir a averbação na consulta e registrar o prêmio, a taxa aplicada, a observação e o indicador de taxa de embarcador (NE).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A averbação sai com o prêmio pela <b>taxa geral</b>, <b>sem</b> a observação «CNPJ TX EMBARCADOR» e com o indicador <b>N</b>. Este é o comportamento de referência: prova que o CT-CRZ-003 (taxa do embarcador, indicador S) só passa quando a condição é encontrada. Taxa do embarcador aplicada sem condição cadastrada é REPROVADO (massa suja). Evidência: capturas desde o login, a grade e a averbação na consulta.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-008</span><span class="ct-title">Raiz mais curta que 7 caracteres e edição da condição: a Raiz é completada até 8 caracteres e o valor já com zero não ganha zero a mais ao salvar de novo</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional/borda (CA1 e CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Apólice RCTR-C; duas Raízes alfanuméricas de teste: uma de 6 caracteres e a Raiz de 8 com zero (07LKS2XR) do CT-CRZ-001.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Cadastrar condição de Raiz = SIM com a Raiz de 6 caracteres, «Salvar» e registrar a mensagem e o valor da grade.</li><li>Abrir para edição a condição do CT-CRZ-001 (Raiz 07LKS2XR), alterar só a taxa ou a vigência, «Salvar» e registrar o valor do campo antes e depois.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A Raiz de 6 caracteres fica completada com zeros à esquerda até <b>8 caracteres</b> (regra do card: «até 8»); a Raiz 07LKS2XR permanece <b>07LKS2XR</b> depois de editar e salvar de novo, sem virar «007LKS2XR» nem perder caracteres. Se o sistema recusar a Raiz curta com mensagem da tela, a mensagem exata é registrada e o comportamento deve ser igual ao do CNPJ Total (legado). Zero a mais, Raiz truncada ou erro é REPROVADO. Evidência: capturas desde o login e campo antes/depois.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-009</span><span class="ct-title">Condição de Raiz gravada antes da correção com menos de 8 caracteres é corrigida pelo script de dados e passa a ser encontrada na averbação</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (cenário desejado do card) — dado antigo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Condição de Raiz com menos de 8 caracteres já existente no HML (localizada por leitura no banco antes da execução). Se não houver nenhuma, o CT fica N/A com a consulta registrada; a QA não grava valor errado no banco para criar massa.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Localizar a condição antiga na grade e registrar o valor da coluna CNPJ Embarcador e a vigência.</li><li>Se a Raiz já aparece com 8 caracteres (script de dados executado): averbar com o embarcador dessa Raiz (NE) e registrar prêmio, observação e indicador. Se ainda aparece com menos de 8: registrar o valor e averbar do mesmo modo, registrando a taxa aplicada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A Raiz antiga aparece com <b>8 caracteres</b> na grade e a averbação do embarcador recebe a <b>taxa do embarcador</b> (indicador S). Raiz antiga ainda com menos de 8 caracteres e taxa geral aplicada é REPROVADO (a correção dos dados não chegou ao HML). Sem massa antiga no HML: N/A com a consulta registrada. Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-009"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-CRZ-010</span><span class="ct-title">Exploratório (NOR_QA_002 §11): mesma Raiz digitada com 7 e com 8 caracteres, letras minúsculas, caractere inválido e «Replicar» a condição</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — 15 a 30 minutos, guiado por risco</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Concluídos os CTs formais. Acesso de gestor.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITWEB (HML AXA) — único endereço digitado —, entrar com o usuário de gestor da QA e registrar a tela de módulos (NA).</li><li>Clicar em «Nacional» › Cadastros › Apólice › RCTR-C › filial › número da apólice › lupa e registrar a apólice carregada (NB).</li><li>Abrir «Condições Comerciais» e registrar a grade antes de cadastrar (NC).</li><li>Cadastrar a Raiz de 7 caracteres e, no mesmo período, a mesma Raiz com 8 caracteres; registrar a mensagem (duplicidade ou aceite) e a grade.</li><li>Digitar a Raiz em minúsculas (7lks2xr), «Salvar» e registrar o valor gravado (maiúsculas ou minúsculas).</li><li>Digitar uma Raiz com caractere inválido (por exemplo, símbolo) e registrar a mensagem; usar «Replicar» numa condição de Raiz e registrar a Raiz nos subgrupos de destino.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>As duas formas da mesma Raiz são tratadas como <b>a mesma condição</b> (igual ao comportamento atual para Raízes iguais), sem criar duas linhas para o mesmo embarcador; as letras ficam gravadas de forma consistente; caractere inválido é recusado com mensagem da tela; o «Replicar» mantém a Raiz com 8 caracteres. Nenhum caminho gera erro de aplicação. Achado novo fora do escopo do card é registrado à parte (com prova de pré-existência se for o caso); sem ocorrências: comentário «Exploratório executado [data] HML. Sem ocorrências.» Evidência: capturas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-CRZ-010"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — Raiz alfanumérica de 7 caracteres gravada com 8 (zero à esquerda)</td><td>CT-CRZ-001 · CT-CRZ-004 · CT-CRZ-008 · CT-CRZ-009</td><td>Pendente</td></tr><tr><td>CA2 — Raiz de 8 caracteres gravada sem alteração</td><td>CT-CRZ-002 · CT-CRZ-006 · CT-CRZ-008</td><td>Pendente</td></tr><tr><td>CA3 — averbação do embarcador recebe a taxa do embarcador (S + observação), com a contraprova sem condição</td><td>CT-CRZ-003 · CT-CRZ-004 · CT-CRZ-006 · CT-CRZ-007</td><td>Pendente</td></tr><tr><td>CA4 — mesmo comportamento no RCTR-C (54) e no RCF (55)</td><td>CT-CRZ-004</td><td>Pendente</td></tr><tr><td>CA5 — CNPJ Total normalizado e validado como no #7198</td><td>CT-CRZ-005</td><td>Pendente</td></tr><tr><td>Cenário desejado — Raízes já gravadas com menos de 8 caracteres corrigidas por script de dados</td><td>CT-CRZ-009</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-CRZ-010</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1 e o CA2 estão cobertos pelas Raízes de 7 e de 8 caracteres, pela borda de 6 caracteres e pelo dado antigo; o CA3 pela averbação com a taxa do embarcador e pela contraprova sem condição; o CA4 pelo repeat no RCF; o CA5 pela regressão do CNPJ Total; a Raiz numérica, a mesma Raiz com 7 e 8 caracteres, minúsculas e «Replicar» fecham no exploratório.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em Pronto para desenvolvimento)</td><td>Alta</td><td>Médio — os CTs 001, 003 e 004 reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar não há veredito.</td></tr><tr><td>Recurso «Taxa Embarcador» desligado no tenant AXA de HML</td><td>Média</td><td>Médio — não há onde cadastrar</td><td>Pré-verificação do campo na tela; se ausente, a QA usa o tenant de HML onde o recurso está ligado e registra qual (campo ausente em tenant sem o recurso não é defeito).</td></tr><tr><td>Embarcador alfanumérico de 14 caracteres recusado na averbação por dígito verificador inválido</td><td>Média</td><td>Baixo — é massa, não impeditivo</td><td>A QA calcula os dígitos verificadores e confere a averbação antes de usar o CNPJ nos CTs; se o do card não fechar, usa outro com a mesma Raiz.</td></tr><tr><td>Indicador de taxa de embarcador não aparecer na tela de consulta da averbação</td><td>Média</td><td>Médio — oráculo parcial</td><td>O prêmio calculado e a observação «CNPJ TX EMBARCADOR» são oráculos de tela; o indicador S/N é conferido por leitura de apoio no banco quando a tela não o mostrar.</td></tr><tr><td>Sem condição antiga (Raiz com menos de 8 caracteres) no HML para o CT-CRZ-009</td><td>Média</td><td>Baixo — cobertura</td><td>A QA procura a massa por leitura antes; se não houver, registra N/A com a consulta; não grava valor errado no banco.</td></tr><tr><td>Taxa geral e taxa do embarcador próximas, escondendo a diferença no prêmio</td><td>Baixa</td><td>Médio — falso aprovado</td><td>A QA escolhe taxas bem distintas e registra as duas e o prêmio esperado de cada uma antes de averbar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
