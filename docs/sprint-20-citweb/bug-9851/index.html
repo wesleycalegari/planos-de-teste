@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9851 · [CITNET Novo - HDI/Yelum] Conversor Inteligente: salvar o layout do mapeamento (RCV, data em Dia/Mês/Ano) não pode falhar com erro 500 antes da conversão</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9851 · Sprint 20 Citweb</span>
+    <h1>[CITNET Novo - HDI/Yelum] Conversor Inteligente: salvar o layout do mapeamento (RCV, data em Dia/Mês/Ano) não pode falhar com erro 500 antes da conversão</h1>
+    <div class="sub">CITNET Novo (Nsseg) — HDI/Yelum · Conversor Inteligente · RCV (ramo 59) · salvar layout · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">6</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">6</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 6 executados · 6 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>6 CTs</strong> (3×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 6, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 6}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITNET Novo, ao importar a planilha da HDI/Yelum (ramo RCV) no Conversor Inteligente e clicar em «Salvar layout», o sistema mostra «Request failed with status code 500» e o layout não é gravado. Sem o layout salvo, não dá para reabri-lo, editá-lo, excluí-lo nem seguir com a conversão. O card pede que o layout seja salvo e reaberto sem erro, com a data continuando mapeada em três colunas (dia, mês e ano).</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos repetir o caminho do problema no ambiente de testes com uma planilha igual à do card: (1) salvar o layout; (2) reabrir o layout salvo e conferir que todas as colunas, inclusive dia, mês e ano, continuam como foram mapeadas; (3) usar esse layout para validar e converter a planilha até o resultado; (4) editar o layout; (5) excluir o layout; (6) conferir que salvar layout em outro ramo do mesmo ambiente continua funcionando.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em desenvolvimento e a correção ainda não está liberada para teste. Os testes começam assim que o card for para homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem converte planilhas da HDI/Yelum passa a conseguir guardar o mapeamento uma vez e reutilizá-lo nas próximas planilhas, sem refazer a configuração a cada envio.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Bug: sem aprovação de Produtos). Como o CITNET Novo segue o conversor legado, a QA usa o legado como referência do que o layout salvo deve conter.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET Novo (Nsseg)</b> — Conversor › Conversor Inteligente; tenant HDI/Yelum; ramo RCV (59).</td></tr><tr><th>Card</th><td>BUG-9851 — «[ CITNET-Novo - HDI/Yelum ] Nsseg: salvar layout do Conversor retorna HTTP 500 antes da conversão» · Sprint 20 Citweb · estado na publicação do plano: <i>In Progress</i>; na execução: <b>Em homologação</b> · bug importado de execução automatizada (casos CONVE-02, 03, 04, 06, 07, 08, 13 e 14) com planilha de exemplo anexa.</td></tr><tr><th>Tasks</th><td>#10024 [QA] Plano de teste — BUG #9851 (este plano; fecha na entrega) · #10019 QA e testes HML (execução) · #10016, #10017 e #10018 do desenvolvimento.</td></tr><tr><th>Fluxo</th><td>Card do tipo <b>Bug</b>: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, ambiente HDI/Yelum. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No Conversor Inteligente do CITNET Novo, depois de importar a planilha da HDI/Yelum (ramo RCV, filial 1, apólice 333, subgrupo 1) e mapear as colunas — inclusive a data separada em <b>Dia</b>, <b>Mês</b> e <b>Ano</b> — a ação <b>Salvar layout</b> falha: a tela mostra «Request failed with status code 500» e nada é gravado. Por isso oito casos automatizados (criação, edição, exclusão e conversões que dependem de um layout salvo) param nessa etapa. O card registra que um defeito parecido (erro 400 por data incompleta em outro ambiente) é outro sintoma e deve ficar separado deste.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — salvar e reabrir o layout do arquivo anexo sem erro 500</td><td>CT-LAY-001 (salvar) · CT-LAY-002 (reabrir)</td></tr><tr><td><b>CA2</b> — preservar o mapeamento de Dia/Mês/Ano e dos demais campos do ramo</td><td>CT-LAY-002 (campo a campo) · CT-LAY-003 (a conversão usa o mapeamento)</td></tr><tr><td><b>CA3</b> — refazer criação, edição, exclusão e conversões dependentes sem pular o salvamento</td><td>CT-LAY-003 (conversão) · CT-LAY-004 (edição) · CT-LAY-005 (exclusão)</td></tr><tr><td>Regressão (QA)</td><td>CT-LAY-006</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 25/11/2026:</b> sistema (CITNET Novo) e tenant (HDI/Yelum) pelas tags e pelo título ✓ · Bug com contexto, passos para reproduzir, resultado esperado e obtido, ambiente e evidências (captura da falha, planilha de exemplo e respostas do teste) ✓ · critérios de aceite com oráculo observável: a mensagem da tela ao salvar, o layout listado e reaberto com o mesmo mapeamento (<b>tela</b>), e a conversão concluída (<b>tela</b>) ✓ · ramo RCV (59) declarado ✓ · descrição, passos, critérios, anexos, as 4 tarefas filhas e comentários lidos. <b>Não é débito técnico:</b> a falha é visível e validável pelo usuário.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>In Progress</b> (correção em desenvolvimento) — a correção ainda não foi entregue ao ambiente de testes. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é visível e validável pelo usuário (mensagem na tela, layout listado e reaberto, conversão concluída).</td></tr><tr><td><b>DI2</b></td><td><b>Bug do Voidr com a tag DEFEITO ganha plano enxuto</b></td><td>Regra de 25/11/2026: bug importado do Voidr não tem plano de origem; plano com 6 CTs (o cenário do card, os vizinhos — reabrir, converter, editar, excluir — e uma regressão), sem Gate 2.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O que a tela mostra ao salvar (sem erro 500, layout no combo) e ao reabrir (cada campo na mesma coluna). «Salvou sem erro» sozinho não aprova o reabrir. No CITNET Novo a referência de conteúdo do layout é o conversor legado.</td></tr><tr><td><b>DI4</b></td><td><b>Outro sintoma (400 por data incompleta) fora do escopo</b></td><td>O próprio Bug pede que o erro 400 de outro ambiente fique em card separado. Se aparecer no HDI/Yelum durante a conversão, o texto exato é registrado e tratado como achado.</td></tr><tr><td><b>DI5</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: critérios têm oráculo de tela e massa/ambiente são resolvidos pela QA.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Salvar layout do Conversor Inteligente no ramo RCV com data em Dia, Mês e Ano (o cenário do card).</li><li>Reabrir o layout salvo e conferir o mapeamento campo a campo.</li><li>Usar o layout salvo para validar e converter a planilha (as conversões dependentes citadas no card).</li><li>Editar e excluir layout; regressão de salvar layout em outro ramo do mesmo ambiente.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Outro sintoma de data incompleta (erro 400 em outro ambiente)</b> — card separado, citado no Bug; fora deste.</li><li><b>Causa técnica do erro 500</b>, código e revisão de código — do desenvolvimento; a QA valida o comportamento na tela.</li><li><b>Outros tenants e o conversor legado</b> — o legado só serve de referência de conteúdo do layout; não é testado aqui.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Nenhum CT foi executado por este plano.</b> A falha foi registrada pelo teste automatizado de 19/11/2026 e consta nas evidências do card (captura da tela com a mensagem de erro e planilha usada). A QA reconfirma, antes de cada CT, a apólice, o subgrupo e a vigência pela tela do ambiente; planilha própria, com documentos novos a cada execução.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo, ambiente HDI/Yelum (endereço e usuário interno de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Planilha</b> — A QA monta uma planilha própria com a mesma estrutura da planilha do card (15 colunas: filial, ramo, apólice, subgrupo, tipo e número do documento, UF e município de origem e destino, dia, mês e ano de saída, placa e observação) e duas linhas; documentos novos a cada execução e data dentro da vigência da apólice.</li><li><b>Nome do layout</b> — Nome único da QA por execução (prefixo «QA-9851-» + sufixo aleatório) — nunca reutilizar nem alterar layout de outro usuário.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, envia o arquivo, mapeia, salva e lê a tela; grava capturas e valores lidos em disco e imprime só veredito e caminho. O Playwright MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (login preenchido, menu, tela, resultado) e a mensagem exata exibida.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do CITNET Novo (HML), escolher o ambiente <b>HDI/Yelum</b>, entrar com o usuário interno de QA (opção «Ou entre com usuário e senha») e registrar a tela inicial.</li><li><b>NB — Assistente:</b> menu <b>Conversor</b> › <b>Conversor Inteligente</b> › enviar a planilha › escolher <b>Filial</b> (1) e <b>Ramo</b> (RCV) › etapa de Mapeamento: combo de layout («Novo layout»), campo de nome, botões <b>Salvar layout</b> e <b>Mapear automaticamente</b> e a tabela campo do layout × coluna da planilha.</li><li><b>NC — Layout salvo:</b> em novo envio da mesma planilha, escolher o layout salvo no combo e ler a coluna escolhida de cada campo (inclusive Dia, Mês e Ano de saída).</li><li><b>ND — Conversão:</b> <b>Validar linhas (prévia)</b> › Prévia › confirmar/processar › Resultado; depois, Conversor › histórico («Minhas conversões»).</li><li><b>O1 — Oráculo do salvar:</b> a tela deve confirmar a gravação (sem a mensagem «Request failed with status code 500») e o layout deve passar a existir no combo; texto exato da mensagem registrado.</li><li><b>O2 — Oráculo do reabrir:</b> para cada um dos 15 campos, a coluna escolhida ao reabrir é igual à coluna salva; Dia, Mês e Ano continuam em três colunas separadas. Referência de conteúdo: o layout equivalente do conversor legado (CITNET), conforme a regra do CITNET Novo.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Apólice do card:</b> Filial 1, apólice 333, subgrupo 1, ramo RCV (59), HDI/Yelum — reconfirmar existência e vigência pela tela antes do CT.</li><li><b>Planilha base (CT-LAY-001 a 005):</b> Duas linhas completas e coerentes: tipo de documento C, documentos novos, UF origem e destino SP, municípios do exemplo do card, data (dia, mês, ano) dentro da vigência, placa e observação própria da QA.</li><li><b>Layout dos CTs:</b> Um layout novo por CT que precisa dele (CT-LAY-001 grava o layout dos CT-LAY-002 a 005; o CT-LAY-004 edita esse layout; o CT-LAY-005 exclui o layout do CT-LAY-004 ou um dedicado). Nomes e momento de criação registrados no resultado.</li><li><b>Conversão (CT-LAY-003):</b> Duas linhas gravadas pela conversão são massa própria da QA, com observação identificável; se a tela permitir excluí-las, a exclusão é só dessas linhas.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; ler o rodapé e confirmar o DoD (card em homologação).</li><li>Grupo A → B → C, nesta ordem: o layout salvo no CT-LAY-001 alimenta os demais.</li><li>Cada CT faz login e navega por clique do início.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Salvar o layout (o defeito do card)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-001</span><span class="ct-title">Salvar o layout RCV com data em Dia/Mês/Ano: a gravação conclui sem erro 500</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — reprodução do cenário do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Planilha base da QA (duas linhas) e apólice 333, subgrupo 1, ramo RCV, Filial 1, reconfirmadas pela tela.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Menu Conversor › Conversor Inteligente: enviar a planilha base, escolher Filial 1 e Ramo RCV e avançar até a etapa de Mapeamento.</li><li>Mapear as 15 colunas como no card: filial, ramo, apólice, subgrupo, tipo de documento, documento, UF origem, UF destino, município origem, município destino, <b>dia, mês e ano de saída em três colunas separadas</b>, placa e observação (pode usar «Mapear automaticamente» e conferir/ajustar cada linha).</li><li>Informar um nome único para o layout («QA-9851-» + sufixo) e clicar em <b>Salvar layout</b>, <b>antes</b> de validar ou converter; registrar o texto exato exibido (sucesso ou erro).</li><li>Conferir no combo de layout que o layout novo passou a existir.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela <b>confirma a gravação</b> e <b>não exibe</b> «Request failed with status code 500»; o layout aparece no combo com o nome informado. Qualquer erro 500, ou layout que não aparece no combo, é REPROVADO. Evidência: capturas desde o login, do mapeamento completo e do resultado do salvar.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-001"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Reabrir o layout e prosseguir com a conversão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-002</span><span class="ct-title">Reabrir o layout salvo: os 15 campos voltam exatamente como foram mapeados, com Dia/Mês/Ano em três colunas</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1 e CA2)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout do CT-LAY-001 salvo. Planilha base da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Menu Conversor › Conversor Inteligente: enviar a mesma planilha base, escolher Filial 1 e Ramo RCV e avançar até o Mapeamento.</li><li>No combo de layout, escolher o layout salvo no CT-LAY-001.</li><li>Ler, campo a campo (15 linhas), a coluna escolhida e comparar com o mapeamento do CT-LAY-001; ler em especial Dia de Saída, Mês de Saída e Ano de Saída.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todos os 15 campos mostram a <b>mesma coluna</b> escolhida no salvar; Dia, Mês e Ano continuam <b>em três colunas distintas</b>; o nome do layout e o ramo são os salvos. Qualquer campo diferente, vazio ou data reduzida a uma só coluna é REPROVADO. Evidência: captura do mapeamento reaberto e a lista dos valores lidos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-003</span><span class="ct-title">Com o layout salvo, validar e converter a planilha até o resultado (conversões dependentes do card)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — fluxo completo após o salvar</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout do CT-LAY-001 salvo e reaberto no CT-LAY-002. Documentos da planilha ainda não usados em outra conversão.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Conversor › Conversor Inteligente: enviar a planilha base, Filial 1 e Ramo RCV; escolher o layout salvo.</li><li>Clicar em <b>Validar linhas (prévia)</b> e registrar a Prévia (linhas e críticas, com o texto exato de cada crítica).</li><li>Confirmar/processar a conversão e registrar o Resultado (linhas gravadas e protocolo).</li><li>Abrir Conversor › histórico e localizar a conversão feita.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A prévia lista as <b>2 linhas</b> da planilha com os dados que foram mapeados (data composta por dia, mês e ano) e sem crítica que seja efeito do mapeamento; a conversão termina com as 2 linhas gravadas e um protocolo, e a conversão aparece no histórico. Se alguma crítica aparecer, vale o texto exato dela contra o dado da planilha: crítica por erro de dado da massa é ajuste da massa; crítica que contradiz um dado correto é REPROVADO. Evidência: capturas da Prévia, do Resultado e do histórico.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-003"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Editar, excluir e regressão</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-004</span><span class="ct-title">Editar o layout salvo (trocar o mapeamento de um campo e sobrescrever): a alteração persiste</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — edição</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout do CT-LAY-001. Planilha base da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Conversor › Conversor Inteligente: enviar a planilha base, Filial 1 e Ramo RCV; escolher o layout salvo.</li><li>Trocar a coluna de um campo não obrigatório (por exemplo Observação para outra coluna) e salvar o layout com o mesmo nome (sobrescrever); registrar o texto exato exibido.</li><li>Reenviar a planilha, escolher o layout de novo e ler a coluna do campo alterado e dos demais.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O salvar sobrescrevendo termina <b>sem erro 500</b> e com confirmação; ao reabrir, o campo alterado mostra a <b>nova coluna</b> e os demais 14 campos continuam como estavam (inclusive Dia, Mês e Ano). Evidência: capturas antes e depois e valores lidos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-005</span><span class="ct-title">Excluir o layout: ele deixa de existir no combo e não volta ao reabrir o assistente</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — exclusão</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Layout da QA do CT-LAY-004 (ou um layout dedicado criado só para este CT). Nunca excluir layout que não seja da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Conversor › Conversor Inteligente: enviar a planilha base, Filial 1 e Ramo RCV; escolher o layout da QA.</li><li>Usar a ação de excluir layout e confirmar; registrar o texto exato exibido.</li><li>Sair do assistente, entrar de novo no Conversor Inteligente, enviar a planilha e abrir o combo de layout.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A exclusão conclui <b>sem erro</b> e com confirmação; o layout excluído <b>não aparece</b> no combo depois de reabrir o assistente, e os demais layouts continuam listados. Evidência: capturas do combo antes e depois e da mensagem.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-LAY-006</span><span class="ct-title">Regressão: salvar layout de outro ramo nacional disponível no mesmo ambiente continua funcionando</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — mesma ação de salvar em outro ramo (cada ramo vale por si)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Outro ramo nacional disponível no combo do ambiente (por exemplo RCTR-C) e planilha própria da QA com a estrutura exigida por esse ramo.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do CITNET Novo (HML) — único endereço digitado —, escolher o ambiente HDI/Yelum, entrar com o usuário interno de QA e registrar a tela inicial.</li><li>Conversor › Conversor Inteligente: enviar a planilha do outro ramo, escolher o ramo no combo e avançar até o Mapeamento.</li><li>Mapear as colunas (Mapear automaticamente e conferir), informar nome único da QA e clicar em Salvar layout; registrar a mensagem.</li><li>Reenviar a planilha, escolher o layout salvo e ler o mapeamento.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O layout é salvo <b>sem erro</b> e reaberto com o mesmo mapeamento no outro ramo — a correção do RCV não pode ter regredido o salvar nos demais. Se o ramo não estiver disponível no ambiente, o CT fica N/A com o motivo; se falhar, é REPROVADO com a evidência do ramo. Evidência: capturas desde o login.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-LAY-006"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — salvar e reabrir o layout do arquivo anexo sem erro 500</td><td>CT-LAY-001 · CT-LAY-002</td><td>Pendente</td></tr><tr><td>CA2 — preservar o mapeamento de Dia/Mês/Ano e dos demais campos do ramo</td><td>CT-LAY-002 · CT-LAY-003</td><td>Pendente</td></tr><tr><td>CA3 — reexecutar criação, edição, exclusão e conversões dependentes sem pular o salvamento</td><td>CT-LAY-003 · CT-LAY-004 · CT-LAY-005</td><td>Pendente</td></tr><tr><td>Regressão (QA) — salvar layout em outro ramo</td><td>CT-LAY-006</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. O CA1 está coberto por salvar e reabrir; o CA2 pela leitura campo a campo do layout reaberto e pela conversão que o utiliza; o CA3 por conversão, edição e exclusão; a regressão cobre o salvar em outro ramo. Os 8 casos automatizados citados no card são reexecutados pelos CT-LAY-001 a 005.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em In Progress)</td><td>Alta</td><td>Médio — os CTs do Grupo A reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar o resultado fica fora do ciclo.</td></tr><tr><td>Planilha da QA gerar críticas por dado da massa (documento repetido, data fora da vigência)</td><td>Média</td><td>Baixo — massa, não impeditivo</td><td>A QA gera documentos novos e confere a vigência pela tela; a crítica é lida pelo texto exato e separada do defeito.</td></tr><tr><td>Sessão do CITNET Novo degradar depois de cerca de 1 hora</td><td>Média</td><td>Baixo</td><td>Cada CT faz login novo; relogin resolve.</td></tr><tr><td>Outro ramo (CT-LAY-006) indisponível para o perfil de QA neste ambiente</td><td>Baixa</td><td>Baixo</td><td>O CT fica N/A com o motivo registrado.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 Citweb · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
