@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9853 · HDI/Yelum — CITNET Novo, RCTR-VI: Excluir oferecido mas não suportado (HTTP 501)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9853 · Sprint 20</span>
+    <h1>HDI/Yelum — CITNET Novo, Averbações RCTR-VI: a tela oferece Excluir, mas a exclusão retorna «não suportada» (HTTP 501)</h1>
+    <div class="sub">CITNET Novo — Averbações RCTR-VI · HDI/Yelum · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (25/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (a execução começa com o card em Pronto para homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">6</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">6</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">3/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 6 executados · 6 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>6 CTs</strong> (3×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 6, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 6}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> No CITNET Novo da HDI/Yelum, ao abrir uma averbação de RCTR-VI (transporte internacional), a tela mostra o botão «Excluir». Mas, ao confirmar, o sistema responde que essa exclusão «ainda não é suportada». O card pede que a exclusão funcione ou, enquanto não funcionar, que o sistema avise isso de forma clara antes e nunca diga que deu certo quando não deu.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> 6 situações: o caminho do card (criar uma averbação de teste, abrir, excluir e confirmar), a conferência de que a lista e o banco mostram o mesmo que a tela disse, a ausência de «sucesso» falso, as duas modalidades do RCTR-VI, outro ramo para garantir que nada piorou e uma exploração livre.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste do plano. Pelo relato do card (execução de 19/11/2026), hoje o botão aparece e a exclusão não é feita.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Hoje o usuário interno da HDI tenta excluir uma averbação do RCTR-VI e não consegue; depois da correção ele deve conseguir excluir ou ser avisado de que não é possível, sem mensagens falsas de sucesso.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada por enquanto</b> — por ser Bug, o plano não precisa de aprovação de Produtos. Regra adotada pela QA: ou a exclusão funciona, ou o sistema avisa com clareza antes de oferecer; ambas as saídas são aceitas.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td>CITNET Novo — menu <b>Averbações</b> → <b>RCTR-VI</b> (ramo 32, internacional) · tenant HDI/Yelum · perfil interno · ação <b>Excluir</b> do protocolo aberto pelo número.</td></tr><tr><th>Card</th><td>BUG-9853 — «[ CITNET-Novo - HDI/Yelum ] Nsseg: RCTR-VI oferece Excluir, mas a operação HDI retorna não suportada» · board CITWEB Team · Sprint 20 · estado <b>New</b> · tags citnet-novo; nsseg; tenant:hdi; source:voidr-import · Bug aberto a partir de uma execução automatizada de 19/11/2026 (caso relacionado RCTRV-03) · sem tarefas filhas · 1 comentário automático sem conteúdo de QA/Produtos · 2 anexos (tela com o protocolo e o botão Excluir; resposta transcrita) · 3 critérios de aceite.</td></tr><tr><th>Tasks de QA</th><td>#10025 [QA] Plano de teste — BUG #9853 (este plano; fecha na entrega). <b>Card do tipo Bug: Produtos não aprova plano de teste; o plano segue com a marcação de execução pronta e a execução acontece com o card em homologação.</b></td></tr><tr><th>Ambiente</th><td>HML do CITNET Novo, tenant HDI/Yelum (endereço de login no arquivo de ambiente do time). O build a testar é o que estiver publicado na hora da execução, registrado no CT-HDX-001. Produção e staging não entram: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 25/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>No CITNET Novo da HDI/Yelum, em <b>Averbações → RCTR-VI</b>, o usuário interno cria uma averbação na apólice de teste, reabre o protocolo e a tela oferece a ação <b>Excluir</b>. Ao confirmar, o servidor responde <b>HTTP 501</b> informando que a exclusão lógica HDI para usuário interno <b>ainda não é suportada nesta fase</b>. O card classifica como lacuna de implementação declarada pelo servidor (não é instabilidade nem erro de massa) e observa que o texto da resposta cita a modalidade de exportação, o que não prova qual modalidade o caso usou.</p><p><b>Resultado esperado do card (duas saídas aceitas):</b> concluir a exclusão oferecida ao perfil <b>ou</b> apresentar a indisponibilidade de forma coerente <b>antes</b> de oferecer uma operação sem suporte.</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério de aceite do Bug #9853</th><th>CTs</th></tr><tr><td>1. Implementar a exclusão HDI oferecida ao usuário interno e refletir o resultado nas consultas</td><td>CT-HDX-001 (caminho do card) · CT-HDX-002 (consultas refletem a exclusão)</td></tr><tr><td>2. Enquanto sem suporte, tornar a indisponibilidade explícita e coerente na interface</td><td>CT-HDX-001 · CT-HDX-003 (mensagem funcional, nunca erro genérico)</td></tr><tr><td>3. Não confirmar sucesso para operação não concluída</td><td>CT-HDX-002 · CT-HDX-003</td></tr><tr><td>Sem regressão em outro ramo/tenant do CITNET Novo</td><td>CT-HDX-004 · CT-HDX-005</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (25/11/2026).</b> Bug lido por inteiro: ambiente e origem, pré-condições com valores, passos numerados, resultado esperado × obtido, impacto, causa declarada (lacuna de implementação), evidências e 3 critérios de aceite; tarefas filhas: nenhuma; comentários: 1, automático, sem informação nova; anexos: 1 imagem e 1 arquivo de respostas. <b>Tags</b> citnet-novo, nsseg e tenant HDI; ramo <b>RCTR-VI (32)</b> pelo título e pelo passo a passo. Os critérios têm oráculo observável na tela (botão, mensagem exata, lista) e no banco (somente leitura). Não é débito técnico: o comportamento é visível para o usuário. Bug importado do Voidr, sem pai nem plano anterior: plano enxuto pelo fluxo de Bug, sem Gate 2. Oráculo de cada CT fechado no plano: critério do card → regra padrão (DC1); nenhuma pergunta a Produtos é necessária.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev) — conferir o build publicado no HML:</b> O card está em <b>New</b>. A execução começa na hora em que o card estiver em <b>Pronto para homologação</b> ou <b>Em homologação</b>, depois da pré-verificação. O CT-HDX-001 registra o build lido na tela; se a exclusão ainda oferecer o botão e responder «não suportada», é REPROVADO com o build medido — em homologação não existe bloqueado.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA e o que ratificar</th></tr>
+    <tr><td><b>DC1</b></td><td><b>O que é «correto» para o Excluir do RCTR-VI na HDI</b></td><td>O card aceita duas saídas, e o plano aceita as duas: <b>(a)</b> a exclusão conclui e a consulta deixa de mostrar o protocolo como ativo; <b>(b)</b> o Excluir não é oferecido, ou é oferecido com aviso claro <b>antes</b> de confirmar, e nunca finge sucesso. <b>Reprova:</b> botão oferecido + erro genérico/«Falha de comunicação»/HTTP 501 cru na tela; ou mensagem de sucesso com o protocolo ainda ativo. Regra padrão = comportamento do RCTR-VI/Importação e dos demais ramos do CITNET Novo já homologados (excluir conclui ou avisa).</td></tr><tr><td><b>DC2</b></td><td><b>Qual versão está no ar?</b></td><td>A QA testa o que estiver publicado no HML na hora da execução e registra o build. Passou = aprovado; falhou = REPROVADO com o build medido e defeito para o desenvolvimento. A QA não pergunta versão, branch ou deploy ao desenvolvimento.</td></tr><tr><td><b>DC3</b></td><td><b>Modalidade do RCTR-VI (Importação × Exportação)</b></td><td>O card observa que a mensagem do servidor cita «Exportação» sem provar a modalidade do caso. <b>Posição do QA:</b> testar o Excluir em <b>cada modalidade que a tela do RCTR-VI oferecer</b> na apólice de teste (CT-HDX-004) e registrar qual foi usada em cada CT.</td></tr><tr><td><b>DC4</b></td><td><b>Massa</b></td><td>Apólice RCTR-VI 333, subgrupo 1, filial 1 (conforme o card), perfil interno. A QA reconfirma na tela e <b>cria uma averbação própria por rodada</b> (documento único), pela tela, e a exclui no fim. Não altera averbações de outros usuários e não escreve dado de negócio no banco.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li><b>Averbações → RCTR-VI</b> no CITNET Novo da HDI/Yelum, perfil interno: criar averbação própria, reabrir pelo protocolo, <b>Excluir</b>, mensagens, lista e consulta.</li><li>O que a interface <b>oferece</b> × o que a operação <b>faz</b>: botão, aviso, mensagem de sucesso/erro e o estado final do protocolo (tela e leitura no banco).</li><li>Cada modalidade do RCTR-VI que a tela oferecer na apólice de teste.</li><li>Sem regressão: exclusão/cancelamento em outro ramo do CITNET Novo no mesmo tenant.</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Implementação do backend</b> (o fluxo de exclusão lógica da HDI) e a causa técnica — do desenvolvimento.</li><li><b>Outros perfis</b> (segurado, corretor) e <b>outros tenants</b> — o card é do perfil interno na HDI/Yelum.</li><li><b>Outras ações</b> do RCTR-VI (editar, gravar, certificado) além do que o Excluir afeta.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 25/11/2026:</b> nenhum CT foi executado por este plano. A navegação é sempre por clique a partir do login (Averbações → RCTR-VI). A QA <b>não escreve dado de negócio no banco</b>: criação e exclusão são feitas pela tela; a conferência no banco é somente leitura.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET Novo, tenant HDI/Yelum (endereço de login no arquivo de ambiente do time — único endereço digitado). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado.</li><li><b>Usuário (arquivo de ambiente do time; senha fora deste documento)</b> — Usuário de QA interno do CITNET Novo da HDI/Yelum. Se a senha estiver vencida ou recusada, a QA renova pela tela ou cria um usuário próprio; nunca é impeditivo.</li><li><b>Banco HML (somente leitura)</b> — Conferência da situação do protocolo (ativo × excluído) antes e depois do Excluir, por apólice, subgrupo e número do protocolo. O QA nunca escreve dado de negócio no banco.</li><li><b>Ferramentas</b> — Scripts locais do time (Playwright) fazem login, navegação por clique e leitura da tela; screenshot e texto vão para disco. MCP só para explorar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas desde o login até o fim do cenário (formulário com o protocolo, confirmação do Excluir, mensagem exata, lista), o texto lido da tela e o resultado da consulta somente leitura.</li></ul>
+  <h3>Navegação base e oráculos</h3>
+  <ol><li><b>N1 — Login:</b> abrir o endereço de login do CITNET Novo da HDI/Yelum (único digitado) → informar usuário e senha do QA → entrar. Registrar o build lido na tela.</li><li><b>N2 — Criar:</b> menu <b>Averbações</b> → <b>RCTR-VI</b> → apólice 333, subgrupo 1, filial 1 → preencher os campos obrigatórios com valores válidos e <b>documento único</b> → gravar. Anotar o número do protocolo gerado.</li><li><b>N3 — Reabrir:</b> localizar o protocolo pelo número (consulta do próprio RCTR-VI) e abrir o formulário. Registrar se a ação <b>Excluir</b> está disponível.</li><li><b>N4 — Excluir:</b> acionar <b>Excluir</b> e confirmar. Ler por script o texto exato da mensagem e capturar a tela; registrar o retorno da operação (oráculo de rede, só leitura).</li><li><b>N5 — Oráculo de dados:</b> consultar a situação do protocolo no banco (somente leitura) e, na tela, localizar o protocolo de novo pela consulta do RCTR-VI.</li><li><b>N6 — Limpeza:</b> se o protocolo continuar ativo (exclusão indisponível), deixá-lo como está e registrar o número no resultado do CT; nunca excluir por banco.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Averbação de teste:</b> Uma averbação RCTR-VI própria por CT, na apólice 333 / subgrupo 1 / filial 1 (reconfirmar na tela e registrar os valores usados), com documento único por rodada e valores sintéticos.</li><li><b>Modalidades:</b> Se a tela do RCTR-VI oferecer mais de uma modalidade (importação, exportação), uma averbação por modalidade no CT-HDX-004.</li><li><b>Regressão:</b> Uma averbação própria em outro ramo do CITNET Novo da HDI/Yelum (por exemplo, RCTR-C, que cancela, ou o ramo de transporte nacional, que exclui), criada e excluída pela tela no CT-HDX-005.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente.</li><li><b>1 login</b> → Grupo A (CT-HDX-001, 002) → Grupo B (003, 004, 005) → Grupo C (006, por último).</li><li>Os CTs são independentes: a falha de um não bloqueia os outros; cada CT cria a própria averbação.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Caminho do card: Excluir no RCTR-VI da HDI conclui, ou a indisponibilidade é explícita (critérios de aceite 1, 2 e 3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-001</span><span class="ct-title">Caminho do card: averbação RCTR-VI própria na HDI, reabrir pelo protocolo, Excluir e confirmar — conclui ou a indisponibilidade é explícita</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — correção do card (critérios 1 e 2, na tela e na rede)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CITNET Novo da HDI/Yelum no build publicado no momento, perfil interno, apólice RCTR-VI 333 / subgrupo 1 / filial 1 (reconfirmar na tela). Massa: uma averbação própria criada neste CT (documento único).</li></ul>
+      <h4>Passos</h4><ol><li>Login (N1) e registrar o build.</li><li>Criar a averbação própria em Averbações → RCTR-VI e anotar o protocolo (N2).</li><li>Reabrir pelo número do protocolo e registrar se o <b>Excluir</b> está disponível (N3).</li><li>Se disponível, acionar <b>Excluir</b>, confirmar, e ler o texto exato da tela e o retorno da operação (N4); capturar a tela inteira.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Uma de duas saídas, ambas aceitas (DC1): <b>(a)</b> a exclusão <b>conclui</b>: mensagem de sucesso da própria tela, retorno de sucesso da operação e o protocolo deixa de aparecer como ativo; <b>(b)</b> o <b>Excluir não é oferecido</b>, ou é oferecido com aviso claro e funcional <b>antes</b> de confirmar, sem acionar a operação. REPROVADO: botão oferecido e, ao confirmar, a tela mostra erro genérico/«Falha de comunicação»/retorno «não suportada» (HTTP 501) sem aviso prévio. Registrar o build e o texto exato. Evidência: capturas desde o login, formulário com o protocolo, confirmação, mensagem final; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-002</span><span class="ct-title">O resultado aparece nas consultas e o estado do protocolo confere com o que a tela disse (critérios 1 e 3)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — oráculo de dados (mensagem sozinha não aprova)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Logo depois do CT-HDX-001, com o mesmo protocolo. Consulta somente leitura à situação do protocolo, por apólice, subgrupo e número.</li></ul>
+      <h4>Passos</h4><ol><li>Antes do Excluir do CT-HDX-001, registrar a situação do protocolo no banco (esperada: ativo).</li><li>Depois do Excluir (ou do aviso de indisponibilidade), repetir a consulta no banco e comparar com a mensagem da tela.</li><li>Na tela, localizar o protocolo de novo pela consulta do RCTR-VI (N5) e registrar se aparece e com qual situação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Saída (a): situação do protocolo muda para <b>excluído</b> no banco e ele deixa de aparecer como ativo na consulta da tela. Saída (b): situação continua <b>ativa</b> e a tela <b>não</b> disse que excluiu. REPROVADO: mensagem de sucesso com o protocolo ainda ativo, ou protocolo excluído no banco sem a tela avisar. Evidência: resultado da consulta antes/depois, a lista da tela e a mensagem; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-002"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Sem falso sucesso e sem regressão (critério de aceite 3)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-003</span><span class="ct-title">Sem falso sucesso: operação não concluída nunca mostra sucesso, e a mensagem é funcional (não técnica nem genérica)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — critérios 2 e 3 (negativo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Mesma averbação do CT-HDX-001 ou nova, se a anterior foi excluída. Aplica-se quando a operação não conclui (saída (b) ou falha).</li></ul>
+      <h4>Passos</h4><ol><li>Acionar o Excluir (ou o caminho oferecido) e ler o texto exato exibido.</li><li>Conferir que nenhuma mensagem de sucesso aparece e que o protocolo continua ativo na consulta.</li><li>Conferir que o texto diz, em linguagem do usuário, que a exclusão não está disponível para este caso (sem código de erro, sem «Falha de comunicação»).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Com a operação não concluída: <b>nenhum sucesso</b> exibido, protocolo ativo e mensagem funcional e coerente com o que a tela oferece. Se a exclusão conclui no build testado, este CT fica <b>N/A (a exclusão concluiu; sem operação não concluída para avaliar)</b>, com a evidência do CT-HDX-001. Evidência: texto exato lido da tela e captura; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-004</span><span class="ct-title">Mesma conduta em cada modalidade do RCTR-VI que a tela oferecer (importação e exportação)</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — cobertura da modalidade (DC3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma averbação própria por modalidade oferecida pela tela do RCTR-VI na apólice de teste. Se a tela oferecer uma única modalidade, o CT registra qual e fica N/A para a outra.</li></ul>
+      <h4>Passos</h4><ol><li>Para cada modalidade: criar a averbação própria, reabrir pelo protocolo, acionar o Excluir (ou verificar que não é oferecido) e ler a mensagem.</li><li>Registrar por modalidade o resultado e a situação final do protocolo (tela e banco, somente leitura).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Cada modalidade segue uma das saídas aceitas (DC1), sem divergência entre elas: nenhuma modalidade oferece um Excluir que falha. Registrar a modalidade de cada resultado. Evidência: capturas por modalidade e a consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-004"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-005</span><span class="ct-title">Regressão: exclusão ou cancelamento em outro ramo do CITNET Novo da HDI/Yelum continua funcionando</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão (precedente: exclusão e cancelamento dos ramos nacionais no CITNET Novo)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Uma averbação própria em outro ramo do mesmo tenant (massa de regressão), criada neste CT.</li></ul>
+      <h4>Passos</h4><ol><li>Criar a averbação própria no outro ramo, reabrir pelo protocolo e acionar o Excluir (ou o Cancelar, conforme o ramo).</li><li>Ler a mensagem e conferir a situação final do protocolo na consulta (somente leitura).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Exclusão/cancelamento conclui como antes: mensagem de sucesso da tela e protocolo fora da lista de ativos. Qualquer erro novo é REPROVADO (regressão). Evidência: capturas e consulta; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-005"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo C — Exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-HDX-006</span><span class="ct-title">Exploratório (15–30 min): confirmar duas vezes, recarregar a tela depois da falha e reabrir o protocolo</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — NOR_QA_002 seção 11</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Depois dos CTs formais, com uma averbação própria ainda ativa.</li></ul>
+      <h4>Passos</h4><ol><li>Acionar o Excluir duas vezes em sequência e conferir se há duplicidade de mensagem ou de operação.</li><li>Recarregar a página depois de uma falha e reabrir o protocolo: o formulário continua editável e coerente?</li><li>Conferir que a edição e o gravar do protocolo continuam funcionando depois da tentativa de exclusão.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem ocorrências. Qualquer achado vira defeito (do card) ou Bug na Sustentação (se pré-existente e provado), conforme o fluxo; sem achados, registrar no card «Exploratório executado, sem ocorrências».</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa na hora, com o card já em Pronto para homologação. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-HDX-006"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>Critério de aceite 1 — implementar a exclusão HDI oferecida ao usuário interno e refletir o resultado nas consultas</td><td>CT-HDX-001 · CT-HDX-002 · CT-HDX-004</td><td>Pendente</td></tr><tr><td>Critério de aceite 2 — enquanto sem suporte, indisponibilidade explícita e coerente na interface</td><td>CT-HDX-001 · CT-HDX-003 · CT-HDX-004</td><td>Pendente</td></tr><tr><td>Critério de aceite 3 — não confirmar sucesso para operação não concluída</td><td>CT-HDX-002 · CT-HDX-003</td><td>Pendente</td></tr><tr><td>Sem regressão em outro ramo do CITNET Novo no mesmo tenant</td><td>CT-HDX-005</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 seção 11)</td><td>CT-HDX-006</td><td>Pendente</td></tr><tr><td>Implementação do backend, produção e staging</td><td>— fora do escopo (desenvolvimento; produção e staging são N/A para a QA)</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: os 3 critérios de aceite do card mapeados a CTs (100%), com oráculo de tela, de rede e de banco, mais a conduta em cada modalidade, a regressão em outro ramo e o exploratório. A implementação do backend e os ambientes de produção e staging ficam fora.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Build do HML ainda sem a correção (exclusão continua sem suporte)</td><td>Alta</td><td>Alta</td><td>CT-HDX-001 registra o build; botão oferecido + erro = REPROVADO com o build medido (DC2).</td></tr><tr><td>Mensagem de sucesso sem a exclusão gravada (ou o contrário)</td><td>Média</td><td>Alta</td><td>Oráculo de dados (CT-HDX-002, somente leitura): a tela sozinha não aprova.</td></tr><tr><td>Modalidade do caso diferente da citada na mensagem do servidor</td><td>Média</td><td>Média</td><td>Testar cada modalidade oferecida e registrar qual foi usada (DC3, CT-HDX-004).</td></tr><tr><td>Sessão do CITNET Novo degradada ou login recusado (limite de tentativas)</td><td>Baixa</td><td>Baixa</td><td>Novo login pela tela, no máximo 2 tentativas; senha vencida ou recusada é massa (renovar ou criar usuário de QA).</td></tr><tr><td>Ambiente HML fora do ar</td><td>Baixa</td><td>Média</td><td>Pré-verificação antes do 1º CT; servidor fora ≠ CT reprovado; retomar quando voltar.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (25/11/2026) · Sprint 20 · card em Pronto para homologação · Bug sem aprovação de Produtos · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
