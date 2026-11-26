@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — PBI-10038 · Interface de faturamento AIG — ajustes nos campos, seleção de registros e numeração por geração</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">PBI-10038 · Sustentação · Sprint 20</span>
+    <h1>Interface de faturamento AIG — ajustes nos campos, seleção de registros e numeração por geração</h1>
+    <div class="sub">Interface de faturamento AIG · Fatura › Nacional/Internacional › Geração de Interface · Board Sustentação · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (26/11/2026) — Sustentação: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">9</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">9</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">6/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 9 executados · 9 pendentes</strong> — plano publicado, sem Gate 2 (achado em casa / Sustentação); execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>9 CTs</strong> (6×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 9, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 9}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> O arquivo que a tela «Geração de Interface para Emissão de Fatura Mensal» produz para a AIG sai com quatro campos errados (nome do segurado com espaços sobrando, data de chegada que não é o último dia do mês da fatura, numeração de referência fora da sequência e prêmio diferente do que foi faturado) e, hoje, não dá para escolher quais faturas entram no arquivo nem diferenciar um arquivo regerado do anterior. O card pede que os quatro campos saiam corretos, que se possa escolher as faturas que entram no arquivo e que cada nova geração receba uma identificação própria, guardando o histórico. Cerca de 450 faturas estão sendo ajustadas à mão por causa disso.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> Vamos, no ambiente de testes da AIG, gerar o arquivo de faturas fechadas de uma competência e conferir, linha a linha, o nome do segurado, a data de chegada, a numeração de referência e o prêmio contra a fatura na tela; escolher só algumas faturas e conferir que só elas entram; regerar o arquivo e conferir que ele recebe nova identificação e que o anterior continua guardado; e conferir que o transporte internacional e os demais ramos seguem como hoje.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nenhum teste: o card está em «Pronto para desenvolvimento» e a correção ainda não está no ambiente de testes. Os testes começam quando o card for liberado para homologação.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Quem fatura a AIG deixa de corrigir o arquivo à mão: o arquivo sai com os campos certos, só com as faturas escolhidas, e cada geração pode ser identificada e rastreada.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada para decidir agora</b> (Sustentação: sem aprovação de Produtos). Só para ciência: onde o card não detalha, a QA adota o que ele escreve — a numeração de referência segue em sequência contínua (sem repetir e sem pular) a partir de 202610000001, e a data de chegada é sempre o último dia do mês da competência da fatura.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>Interface de faturamento (AIG)</b> — menu Fatura › Nacional (RCV, ramo 59) e Internacional › «Geração de Interface para Emissão de Fatura Mensal»: seleção, geração do arquivo Excel e das tabelas de interface.</td></tr><tr><th>Card</th><td>PBI-10038 — «Ajustes na interface de faturamento CITWEB RCV - AIG» (chamado de cliente) · board Sustentação (kanban, sem sprint) · estado <b>Pronto para desenvolvimento</b> · tags AIG, interface fatura.</td></tr><tr><th>Tasks</th><td>#10040 [QA] Plano de teste — PBI #10038 (este plano; fecha na entrega). O card não tem outras tarefas filhas.</td></tr><tr><th>Fluxo</th><td>Card do board Sustentação: sem Gate 2 — Produtos não aprova o plano. Plano publicado liberado para execução (EXEC-PRONTO); a execução começa quando o card estiver em homologação e a correção estiver no ar.</td></tr><tr><th>Ambiente</th><td>HML da AIG (sistema de Interface de faturamento). Produção e staging: N/A.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 26/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>A coordenação de faturamento da AIG relatou que o arquivo gerado pela interface de faturamento tem campos inconsistentes, obrigando o ajuste manual de cerca de 450 faturas. O card pede: (1) <b>PCY HOLDER</b> sem espaços em branco excedentes após o nome do segurado; (2) <b>ARRIVAL DT</b> sempre no último dia do mês da competência; (3) <b>REF #</b> em sequência contínua iniciando em 202610000001; (4) <b>PREMIUM</b> igual ao prêmio líquido efetivamente faturado; (5) geração com <b>seleção</b> dos registros que compõem o arquivo (como já existe no CIT); (6) <b>nova numeração/identificação</b> a cada regeração, preservando o histórico; e a verificação de que o problema afeta ou não outros clientes e ramos.</p><p>Fluxo na tela (tela existente «Geração de Interface para Emissão de Fatura Mensal»): filtros Referência (mês/ano), Filial e Usuário, opção «Somente Excel», botão «Selecionar» que lista as faturas (grade com Filial, Ramo, Apólice, Sub, Segurado / Pagador, I.S. Total, Prêmio Total, Custo, Juros, IOF, Prêmio Líquido, Usuário e Mensagens e uma caixa de seleção por linha, mais «marcar todas»), botão «Processar» (confirmação «Confirma geração do excel e das tabelas de interface para emissão de fatura mensal ?») e «Novo».</p><p><b>Critérios de aceite do card e como o plano os cobre:</b></p><table><tr><th>Critério</th><th>CTs</th></tr><tr><td><b>CA1</b> — PCY HOLDER sem espaços excedentes após o nome</td><td>CT-AIG-001 · CT-AIG-009</td></tr><tr><td><b>CA2</b> — ARRIVAL DT = último dia do mês da competência</td><td>CT-AIG-002</td></tr><tr><td><b>CA3</b> — REF # em sequência contínua a partir de 202610000001</td><td>CT-AIG-003 · CT-AIG-006</td></tr><tr><td><b>CA4</b> — PREMIUM = prêmio líquido efetivamente faturado</td><td>CT-AIG-004</td></tr><tr><td><b>CA5</b> — seleção dos registros que compõem o arquivo</td><td>CT-AIG-005 · CT-AIG-008</td></tr><tr><td><b>CA6</b> — regeração com nova identificação, preservando o histórico</td><td>CT-AIG-006</td></tr><tr><td>Item de investigação — outros ramos/clientes afetados</td><td>CT-AIG-007</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-AIG-009</td></tr></table>
+  <div class="warn-box"><b>DoR (NOR_QA_002 6.5) — atendido em 26/11/2026 por interpretação documentada:</b> seguradora e sistema pelas tags (AIG; interface fatura) ✓ · PBI no formato Como/Quero/Para com contexto, escopo e fora de escopo ✓ · seis critérios de aceite em Dado/Quando/Então, cada um com oráculo observável no <b>arquivo gerado</b> e na <b>tela</b> (campo do arquivo × fatura na grade) ✓ · ramo declarado: RCV (59), Nacional ✓ · descrição, critérios e comentários (um comentário automático de ferramenta e a indicação do repositório, sem informação de negócio) lidos; o card não tem tarefas filhas ✓. <b>Não é débito técnico:</b> o comportamento é observável (conteúdo do arquivo e tela de seleção). O card pede confirmar a regra de numeração do REF #: adotada a escrita no próprio critério (sequência contínua, sem repetir nem pular, iniciando em 202610000001); sem decisão de produto pendente. O card não traz arquivo de exemplo: a QA obtém a linha de base gerando o arquivo na execução.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b>: a correção ainda não foi entregue. A execução começa quando o card estiver em <b>Pronto para homologação</b> (ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DI1</b></td><td><b>Card não é débito técnico</b></td><td>O comportamento é observável: conteúdo do arquivo e tela de seleção.</td></tr><tr><td><b>DI2</b></td><td><b>Regra do REF #</b></td><td>Adotada a do critério: sequência contínua, sem repetir nem pular, iniciando em 202610000001. Se já houve gerações, a sequência continua do último valor usado; a QA registra o último antes de gerar.</td></tr><tr><td><b>DI3</b></td><td><b>Oráculo</b></td><td>O arquivo gerado lido linha a linha contra a grade (segurado, competência, prêmio líquido). Onde o card não detalha, vale o que o critério escreve; o Internacional e os demais campos são a referência de «como é hoje».</td></tr><tr><td><b>DI4</b></td><td><b>Linha de base</b></td><td>Sem arquivo de exemplo no card, a QA gera o arquivo na execução e registra os valores; se a correção já estiver no ar, os CTs passam e o resultado é registrado.</td></tr><tr><td><b>DI5</b></td><td><b>Massa e acesso</b></td><td>Faturas, competências, segurados e usuário são massa da QA, criados/localizados pela tela; nada vai a Produtos.</td></tr><tr><td><b>DI6</b></td><td><b>Sem escalação</b></td><td>Não há decisão de produto pendente: os critérios do card têm oráculo no arquivo e na tela.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Arquivo de interface do RCV (Nacional) da AIG: PCY HOLDER, ARRIVAL DT, REF # e PREMIUM (CA1 a CA4).</li><li>Seleção das faturas que compõem o arquivo (CA5) e nova identificação a cada regeração, com histórico preservado (CA6).</li><li>Regressão: demais campos do arquivo, transporte internacional e outros ramos/clientes que usam a mesma geração (item de investigação do card).</li><li>Bordas e exploratório: nenhuma selecionada, todas, regerar duas vezes seguidas, segurado de nome longo (NOR_QA_002 §11).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Ajuste manual das cerca de 450 faturas já impactadas</b> — tratativa operacional, fora do escopo do card.</li><li><b>Outras interfaces</b> além da geração do RCV mencionada, salvo o que a investigação do card confirmar.</li><li>Código, revisão de código e documentação técnica do desenvolvimento.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Lido do card em 26/11/2026 (nenhum CT executado por este plano):</b> os quatro campos incorretos são relato do cliente, sem arquivo de exemplo anexado. Até a execução, cada defeito descrito é hipótese do card: cada CT registra o que o <b>arquivo gerado</b> e a <b>tela</b> mostram e conclui por isso. O arquivo é conferido linha a linha contra a fatura exibida na grade (segurado, competência, prêmio líquido).</div>
+  <ul><li><b>Ambiente e acesso</b> — HML da AIG (sistema de Interface de faturamento), perfil com acesso à geração de interface (endereço e usuário de QA no arquivo de ambiente do time; credenciais fora deste documento). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar ≠ CT reprovado (execução interrompida, sem veredito).</li><li><b>⛔ DoD do dev — card em homologação e correção no ar</b> — Ver o aviso de pré-condição acima: sem o card em Pronto para homologação/Em homologação a execução fica fora do ciclo (sem veredito).</li><li><b>Massa — faturas fechadas</b> — Competência com várias faturas fechadas do RCV (Nacional), incluindo segurado de nome curto e de nome longo, e ao menos duas competências de tamanho de mês diferente (mês de 30 dias e mês de 31 dias ou fevereiro). Se a massa não existir, a QA fecha as faturas <b>pela tela</b> (fechamento e emissão) em apólices de teste. Nada é escrito no banco.</li><li><b>Ferramentas</b> — Script local (Playwright instalado na máquina) loga e navega <b>por clique</b>, executa a sequência de cada CT, lê a grade, baixa o arquivo gerado e o lê (campos por linha), gravando tudo em disco; imprime só veredito e caminho. Leitura de apoio no banco de HML (somente leitura) apenas para conferir o histórico de gerações quando a tela não o mostrar.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): capturas <b>desde o login</b> (menu, filtros, grade, confirmação, mensagem) e o arquivo gerado (valores lidos por linha, sem dado pessoal na publicação).</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>NA — Acesso:</b> abrir a tela de login do sistema de Interface (HML AIG), entrar com o usuário da QA e registrar a tela inicial.</li><li><b>NB — Tela de geração:</b> menu <b>Fatura</b> › <b>Nacional</b> (RCV) — ou <b>Internacional</b> — › «Geração de Interface para Emissão de Fatura Mensal»; registrar o título e os filtros.</li><li><b>NC — Seleção:</b> preencher <b>Referência</b> (mês/ano), <b>Filial</b> e <b>Usuário</b> › clicar em <b>Selecionar</b>; registrar a grade (segurado, prêmio líquido, caixas de seleção).</li><li><b>ND — Geração:</b> marcar as faturas desejadas (ou a caixa «marcar todas») › <b>Processar</b> › confirmar a pergunta da tela › registrar a mensagem e baixar o arquivo gerado.</li><li><b>O1 — Oráculo:</b> o <b>arquivo gerado</b> lido linha a linha × a fatura na <b>grade</b>: PCY HOLDER sem espaços sobrando; ARRIVAL DT no último dia da competência; REF # em sequência; PREMIUM = Prêmio Líquido da grade; só as faturas marcadas presentes; nova geração com identificação diferente. Onde o card não detalha, vale o que o próprio critério escreve; o transporte internacional e os demais ramos servem de referência de «como é hoje».</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Segurado (CT-AIG-001):</b> Faturas de segurado com nome curto e de segurado com nome longo; conferir o nome na grade e o comprimento/espaços no arquivo.</li><li><b>Competência (CT-AIG-002):</b> Competências de mês de 30 dias, de 31 dias e de fevereiro; fatura de cada uma; registrar a competência e a data de chegada.</li><li><b>Numeração (CT-AIG-003, 006):</b> Geração com 3 ou mais faturas; registrar o último REF # existente antes de gerar para comparar com a sequência esperada.</li><li><b>Prêmio (CT-AIG-004):</b> Fatura fechada com custo, juros e IOF diferentes de zero, para o prêmio líquido se distinguir do prêmio total.</li><li><b>Seleção (CT-AIG-005, 008):</b> Competência com pelo menos 5 faturas pendentes; selecionar 2 de 5, nenhuma e todas.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; confirmar o DoD (card em homologação).</li><li>Primeiro a linha de base: gerar o arquivo de uma competência e registrar os campos (CT-AIG-001 a 004). Depois seleção (005, 008) → regeração (006) → regressão (007) → exploratório (009) por último, 15 a 30 minutos.</li><li>Cada CT faz login e navega por clique do início; a grade é registrada antes e depois de cada «Processar».</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Campos do arquivo de interface: nome do segurado, data de chegada, numeração de referência e prêmio</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-001</span><span class="ct-title">PCY HOLDER: o nome do segurado sai sem espaços em branco excedentes depois do nome (segurado de nome curto e de nome longo)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA1) — campo do arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Competência com faturas fechadas de segurado de nome curto e de nome longo (massa da QA).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Preencher Referência, Filial e Usuário, clicar em «Selecionar» e registrar a grade (NC).</li><li>Registrar, na grade, o nome do segurado das faturas escolhidas.</li><li>Marcar as faturas do CT, clicar em «Processar», confirmar a pergunta da tela, registrar a mensagem e baixar o arquivo gerado (ND).</li><li>Ler o arquivo gerado: para cada linha, o valor de PCY HOLDER; registrar o valor entre delimitadores e o número de espaços no fim.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em todas as linhas o PCY HOLDER é <b>igual ao nome do segurado da grade</b> e <b>não termina em espaço</b> (nenhum espaço depois do último caractere do nome). Qualquer linha com espaço sobrando é REPROVADO. Evidência: capturas desde o login, grade e leitura do arquivo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-002</span><span class="ct-title">ARRIVAL DT: a data de chegada é o último dia do mês da competência (mês de 30 dias, de 31 dias e fevereiro)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA2) — campo do arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Faturas fechadas em competências de 30 dias, de 31 dias e de fevereiro (massa da QA).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Para cada competência: preencher a Referência, «Selecionar», registrar a grade, marcar as faturas e processar (NC e ND); baixar o arquivo.</li><li>Ler ARRIVAL DT de cada linha e compará-la com o último dia da competência (30, 31 ou 28/29).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>ARRIVAL DT é, em todas as linhas, o <b>último dia do mês da competência</b> da fatura (ex.: competência de 30 dias → dia 30; fevereiro → 28 ou 29 conforme o ano). Data de outro dia, do mês seguinte ou diferente por linha da mesma competência é REPROVADO. Evidência: capturas desde o login, competência na grade e leitura do arquivo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-002"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-003</span><span class="ct-title">REF #: a numeração de referência segue sequência contínua (sem repetir e sem pular), iniciando em 202610000001</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA3) — campo do arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Competência com 3 ou mais faturas; registrar antes qual é o último REF # já existente.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Preencher Referência, Filial e Usuário, clicar em «Selecionar» e registrar a grade (NC).</li><li>Marcar as faturas do CT, clicar em «Processar», confirmar a pergunta da tela, registrar a mensagem e baixar o arquivo gerado (ND).</li><li>Ler REF # de cada linha na ordem do arquivo e registrar a sequência; conferir diferença de 1 entre linhas consecutivas e o primeiro valor da sequência.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O primeiro REF # é <b>202610000001</b> quando é a primeira numeração (ou o seguinte ao último já usado, se já houve geração) e as linhas seguintes crescem de <b>1 em 1</b>, sem repetição e sem salto; um valor repetido, fora de ordem ou fora do padrão de 12 dígitos é REPROVADO. Evidência: capturas desde o login e a sequência lida.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-004</span><span class="ct-title">PREMIUM: o prêmio do arquivo é o prêmio líquido efetivamente faturado (fatura fechada)</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA4) — campo do arquivo</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Fatura fechada com custo, juros e IOF diferentes de zero (prêmio líquido distinto do prêmio total).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Preencher Referência, Filial e Usuário, clicar em «Selecionar» e registrar a grade (NC).</li><li>Registrar, na grade, Prêmio Total, Custo, Juros, IOF e Prêmio Líquido da fatura.</li><li>Marcar as faturas do CT, clicar em «Processar», confirmar a pergunta da tela, registrar a mensagem e baixar o arquivo gerado (ND).</li><li>Ler PREMIUM da linha correspondente e comparar com o Prêmio Líquido da grade (e com o Prêmio Total, para provar que não é este).</li></ol>
+      <h4>Resultado esperado</h4><ul><li>PREMIUM é <b>igual ao Prêmio Líquido da fatura fechada</b> (mesmo valor e mesmas casas decimais) e diferente do Prêmio Total quando eles diferem. Valor igual ao total, ao da fatura aberta ou diferente do líquido é REPROVADO. Evidência: capturas desde o login, grade com os valores e leitura do arquivo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-004"></div>
+    </div>
+  </div>
+  <div class="group-header alt">Grupo B — Seleção de registros, regeração com nova identificação, regressão em outros ramos e exploratório (NOR_QA_002 seção 11)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-005</span><span class="ct-title">Seleção: gerar a interface só com as faturas escolhidas (2 de 5) — só elas entram no arquivo</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Competência com pelo menos 5 faturas pendentes de interface.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Preencher Referência, Filial e Usuário, clicar em «Selecionar» e registrar a grade (NC).</li><li>Registrar as 5 faturas da grade; marcar apenas 2 delas e registrar as caixas marcadas.</li><li>Clicar em «Processar», confirmar e baixar o arquivo.</li><li>Contar as linhas do arquivo e comparar apólice/segurado de cada uma com as 2 marcadas; registrar na grade a situação das 3 não marcadas.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O arquivo contém <b>somente as 2 faturas marcadas</b> (nenhuma das outras 3) e as 3 não marcadas continuam pendentes na grade. Fatura não marcada no arquivo, ou marcada ausente, é REPROVADO. Evidência: capturas desde o login, caixas marcadas e conteúdo do arquivo.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-006</span><span class="ct-title">Regeração: o novo arquivo recebe numeração/identificação distinta da anterior e o histórico da geração anterior é preservado</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional (CA6 e CA3)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Uma geração concluída no CT-AIG-005 ou CT-AIG-003 (arquivo e REF # registrados).</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Selecionar as mesmas faturas da geração anterior (se a tela as listar de novo) ou a mesma competência, e processar novamente; baixar o novo arquivo.</li><li>Comparar a identificação do arquivo (nome) e os REF # do novo com os do anterior; abrir ou baixar de novo o arquivo anterior e conferir que continua disponível e inalterado.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O novo arquivo tem <b>identificação diferente</b> do anterior e REF # <b>sem repetir</b> os da geração anterior (continuando a sequência); o arquivo/registro da geração anterior <b>continua disponível e inalterado</b>. Mesma identificação, REF # repetidos ou histórico sobrescrito é REPROVADO. Evidência: capturas desde o login e comparação dos dois arquivos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-007</span><span class="ct-title">Regressão: demais campos do arquivo e transporte internacional continuam como antes; geração do Internacional sem os mesmos defeitos</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — item de investigação do card</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Faturas fechadas do Internacional e do Nacional na mesma referência, quando houver.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Gerar o arquivo do Nacional (RCV) e registrar, além dos quatro campos do card, os demais campos (apólice, segurado, valores, datas de saída e de chegada, moeda, taxa) comparando com a grade.</li><li>Repetir pelo menu Fatura › Internacional e registrar os mesmos campos, PCY HOLDER, ARRIVAL DT, REF # e PREMIUM.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Os demais campos continuam iguais à grade/ao comportamento anterior e o Internacional sai com os quatro campos corretos (ou, se diferirem, a diferença é registrada para decisão — comportamento do Internacional não é alterado pelo card). Campo antes correto que passou a sair errado é REPROVADO. Evidência: capturas desde o login e leitura dos arquivos.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-007"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-008</span><span class="ct-title">Seleção — bordas: nenhuma fatura marcada, todas marcadas (caixa «marcar todas») e uma só</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional/borda (CA5)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Correção no ar. Competência com 3 ou mais faturas.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Preencher Referência, Filial e Usuário, clicar em «Selecionar» e registrar a grade (NC).</li><li>Clicar em «Processar» sem marcar nada e registrar a mensagem exata.</li><li>Marcar a caixa «marcar todas», processar e contar as linhas do arquivo; depois, em nova seleção, marcar uma só e processar.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Sem nenhuma marcada a tela exibe mensagem e <b>não gera arquivo</b> (como hoje); com «marcar todas» o arquivo traz todas as faturas listadas; com uma, traz só ela. Arquivo gerado sem seleção, linha faltando ou sobrando é REPROVADO. Evidência: capturas desde o login e contagem de linhas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-008"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-AIG-009</span><span class="ct-title">Exploratório (NOR_QA_002 §11): segurado com nome muito longo, regerar duas vezes seguidas, mudar filtros depois de selecionar, «Somente Excel» ligado e desligado</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório — 15 a 30 minutos, guiado por risco</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Concluídos os CTs formais. Acesso com o usuário da QA.</li></ul>
+      <h4>Passos</h4><ol><li>Abrir a tela de login do sistema de Interface (HML AIG) — único endereço digitado —, entrar com o usuário da QA e registrar a tela inicial (NA).</li><li>Menu Fatura › Nacional › «Geração de Interface para Emissão de Fatura Mensal» e registrar a tela (NB).</li><li>Gerar com segurado de nome longo (PCY HOLDER sem espaço sobrando e sem corte indevido); regerar duas vezes seguidas e registrar a identificação e os REF #.</li><li>Com «Somente Excel» ligado e desligado, processar e registrar a diferença (arquivo × tabelas de interface); alterar Referência/Filial/Usuário depois de selecionar e registrar o comportamento.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhum caminho gera erro de aplicação; PCY HOLDER do nome longo sem espaço sobrando; regerações seguidas com identificação e REF # distintos. Achado novo fora do escopo do card é registrado à parte (com prova de pré-existência se for o caso); sem ocorrências: comentário «Exploratório executado [data] HML. Sem ocorrências.» Evidência: capturas.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Sustentação: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-AIG-009"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — PCY HOLDER sem espaços excedentes</td><td>CT-AIG-001 · CT-AIG-009</td><td>Pendente</td></tr><tr><td>CA2 — ARRIVAL DT = último dia do mês da competência</td><td>CT-AIG-002</td><td>Pendente</td></tr><tr><td>CA3 — REF # em sequência contínua a partir de 202610000001</td><td>CT-AIG-003 · CT-AIG-006</td><td>Pendente</td></tr><tr><td>CA4 — PREMIUM = prêmio líquido faturado</td><td>CT-AIG-004</td><td>Pendente</td></tr><tr><td>CA5 — seleção dos registros que compõem o arquivo</td><td>CT-AIG-005 · CT-AIG-008</td><td>Pendente</td></tr><tr><td>CA6 — regeração com nova identificação e histórico preservado</td><td>CT-AIG-006</td><td>Pendente</td></tr><tr><td>Investigação — outros ramos/clientes afetados</td><td>CT-AIG-007</td><td>Pendente</td></tr><tr><td>Exploratório (NOR_QA_002 §11)</td><td>CT-AIG-009</td><td>Pendente</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Os CA1 a CA4 estão cobertos pela leitura do arquivo linha a linha (nome curto e longo, competências de 30, 31 dias e fevereiro, sequência, prêmio líquido × total); o CA5 pela seleção parcial, total, nula e unitária; o CA6 pela regeração com comparação dos dois arquivos; a investigação de outros ramos pela regressão do Internacional; o exploratório fecha as bordas.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>Correção ainda não entregue no ambiente quando a execução começar (card em Pronto para desenvolvimento)</td><td>Alta</td><td>Médio — os CTs 001 a 006 reprovariam</td><td>A execução só começa com o card em homologação; sem a correção no ar não há veredito.</td></tr><tr><td>Sem faturas fechadas/pendentes suficientes na competência de teste</td><td>Média</td><td>Baixo — é massa</td><td>A QA fecha e emite as faturas pela tela em apólices de teste; nada é escrito no banco.</td></tr><tr><td>Sequência do REF # já avançada por gerações anteriores no HML</td><td>Média</td><td>Médio — o início 202610000001 pode não ser observável</td><td>Registrar o último REF # antes de gerar; o oráculo é a sequência contínua a partir do último usado e, se for a primeira numeração, o início do card.</td></tr><tr><td>Prêmio líquido e total muito próximos, escondendo a diferença</td><td>Baixa</td><td>Médio — falso aprovado</td><td>Escolher fatura com custo, juros e IOF diferentes de zero e registrar os dois valores.</td></tr><tr><td>Arquivo com dado pessoal de segurado</td><td>Média</td><td>Alto — repositório público</td><td>Evidência só no card; neste plano nada de nomes ou documentos.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (26/11/2026) · Sprint 20 · Sustentação sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
