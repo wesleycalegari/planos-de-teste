@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plano de Teste — BUG-9196 · [EXT] CITNET — múltiplo acesso derrubando a aplicação do ar (TECSD-46956)</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2330; --border:#30363d;
+  --text:#c9d1d9; --text-muted:#8b949e; --accent:#58a6ff;
+  --ok:#3fb950; --erro:#f85149; --bloq:#d29922; --pend:#8b949e;
+  --p1:#d13438; --p2:#ca5010; --p3:#605e5c; --grpB:#2ea043;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,Arial,sans-serif;margin:0;padding:0 0 80px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:24px 20px}
+header{background:linear-gradient(120deg,#161b22,#0d1117);border-bottom:2px solid var(--accent);padding:22px 0}
+h1{font-size:22px;margin:0 0 6px}
+h2{font-size:17px;margin:26px 0 10px;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:5px}
+h3{font-size:14px;margin:14px 0 6px;color:var(--text)}
+.sub{color:var(--text-muted);font-size:13px;margin-top:4px}
+.hidden{display:none}
+.info-box{background:#122132;border:1px solid #1f4b73;border-left:4px solid var(--accent);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.warn-box{background:#2a2410;border:1px solid #6b5312;border-left:4px solid var(--bloq);border-radius:6px;padding:10px 14px;margin:12px 0;font-size:13px}
+.group-header{background:var(--accent);color:#02121f;font-weight:700;padding:8px 14px;border-radius:6px;margin:22px 0 8px}
+.group-header.alt{background:var(--grpB);color:#02160a}
+.ct-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;margin:10px 0;overflow:hidden}
+.ct-head{cursor:pointer;user-select:none;padding:11px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ct-id{font-family:monospace;font-weight:700;color:var(--accent)}
+.ct-title{flex:1;min-width:200px}
+.ct-toggle{transition:transform .2s;font-size:12px;color:var(--text-muted)}
+.ct-block.expanded .ct-toggle{transform:rotate(90deg)}
+.ct-body{display:none;padding:0 14px 14px;border-top:1px solid var(--border)}
+.ct-block.expanded .ct-body{display:block}
+.ct-body h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted)}
+.ct-body ol,.ct-body ul{margin:4px 0;padding-left:22px}
+.ct-body li{margin:3px 0}
+.badge{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.prio.bloqueante{background:var(--p1);color:#fff}
+.prio.importante{background:var(--p2);color:#fff}
+.prio.desejavel{background:var(--p3);color:#fff}
+.badge-pendente{background:var(--surface2);color:var(--pend);border:1px solid var(--border)}
+.badge-ok{background:var(--ok);color:#02160a}
+.badge-erro{background:var(--erro);color:#2a0402}
+.badge-bloqueado{background:var(--bloq);color:#241a02}
+.badge-na{background:var(--surface2);color:var(--pend);border:1px dashed var(--border)}
+.ev-section{margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}
+th,td{border:1px solid var(--border);padding:7px 10px;text-align:left;vertical-align:top}
+th{background:var(--surface2);color:var(--accent)}
+tr:nth-child(even) td{background:var(--surface)}
+code{background:var(--surface2);padding:1px 5px;border-radius:4px;font-size:12px}
+pre{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;overflow-x:auto;white-space:pre-wrap}
+.sig{position:fixed;right:12px;bottom:10px;z-index:90;pointer-events:none;opacity:.92;font:10px monospace;letter-spacing:.08em;padding:4px 11px;border-radius:999px;background:rgba(22,27,34,.85);border:1px solid var(--border);color:var(--text-muted)}
+.pbi-badge{display:inline-block;background:#58a6ff;color:#0a1628;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;letter-spacing:.5px;margin-bottom:10px}
+.dash{display:flex;flex-wrap:wrap;gap:10px;padding:18px 20px 20px;border-bottom:1px solid #30363d;margin:0 auto 6px;max-width:1080px}
+.dash-card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;min-width:104px;text-align:center}
+.dash-card .val{font-size:26px;font-weight:700;line-height:1}
+.dash-card .lbl{font-size:11px;color:#8b949e;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.dash-wide{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 18px;flex:1;min-width:260px}
+.dash-wide .lbl{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.pb-track{height:8px;background:#22262e;border-radius:4px;overflow:hidden}
+.pb-fill{height:100%;background:#8b949e;border-radius:4px;width:0%;transition:width .4s}
+.pb-pct{font-size:12.5px;color:#8b949e;font-weight:600;margin-top:7px;line-height:1.5}
+.pb-pct strong{color:#c9d1d9}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="pbi-badge">BUG-9196 · Sprint 20 Sustentação</span>
+    <h1>[EXT] CITNET — múltiplo acesso derrubando a aplicação do ar (TECSD-46956)</h1>
+    <div class="sub">CITWEB Nacional — apólice RCTR-C «sem movimento» × Análise de Produção e SLA (seguradora Zurich) · Ambiente: HML · Autor QA: Wesley Moreira · versão 1.0 (28/11/2026) — Bug: sem aprovação de Produtos; plano liberado para execução e nenhum CT executado (execução assim que o card estiver em homologação)</div>
+  </div>
+</header>
+
+<div class="dash">
+  <div class="dash-card"><div class="val" id="exec-total" style="color:#58a6ff">7</div><div class="lbl">Total CTs</div></div>
+  <div class="dash-card"><div class="val" id="exec-aprovados" style="color:#3fb950">0</div><div class="lbl">Aprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-reprovados" style="color:#f85149">0</div><div class="lbl">Reprovados</div></div>
+  <div class="dash-card"><div class="val" id="exec-bloqueados" style="color:#d29922">0</div><div class="lbl">Bloqueados</div></div>
+  <div class="dash-card"><div class="val" id="exec-pendentes" style="color:#8b949e">7</div><div class="lbl">Pendentes</div></div>
+  <div class="dash-card"><div class="val" style="color:#c9d1d9;font-size:19px">4/2/1</div><div class="lbl">P1 / P2 / P3</div></div>
+  <div class="dash-wide">
+    <div class="lbl">Progresso da execução</div>
+    <div class="pb-track"><div class="pb-fill" id="pb-fill" style="width:0.0%;background:#8b949e"></div></div>
+    <div class="pb-pct" id="pb-pct"><strong>0 de 7 executados · 7 pendentes</strong> — plano publicado, Bug — sem aprovação de Produtos; execução assim que o card estiver em homologação (nenhum CT executado ainda). Falta testar: <strong>7 CTs</strong> (4×P1 · 2×P2 · 1×P3).</div>
+    <span id="exec-json" style="display:none">EXEC_JSON:{"total": 7, "aprovados": 0, "reprovados": 0, "bloqueados": 0, "pendentes": 7}</span>
+  </div>
+</div>
+<div class="wrap">
+
+  <div class="info-box"><b>📌 Resumo para Produtos</b> <span class="sub">— em linguagem simples; o detalhe técnico está nas seções abaixo</span>
+    <p style="margin:6px 0"><b>O que o card pede:</b> O CITNET sai do ar quando muitas tentativas de acesso (login) chegam em sequência. O chamado suspeita que o arquivo de registro do sistema (log) cresça demais e pede duas coisas: trocar e limpar os arquivos de log automaticamente e gravar menos informação neles.</p>
+    <p style="margin:6px 0"><b>Vamos testar:</b> O que a QA enxerga na tela: com o sistema de testes, simulamos sequências controladas de tentativas de login (em volume crescente, inclusive de várias janelas ao mesmo tempo) e conferimos se a tela de login continua respondendo, se um usuário legítimo consegue entrar e trabalhar durante e depois da sequência, e se a mensagem de erro continua a mesma e sem informação técnica.</p>
+    <p style="margin:6px 0"><b>Resultado:</b> Ainda não executamos nada: o card está «Pronto para desenvolvimento» e o teste começa quando ele for liberado para homologação. Por ser um Bug, o plano não precisa de aprovação de Produtos.</p>
+    <p style="margin:6px 0"><b>O que muda para quem usa:</b> Corretores, assessorias e segurados deixam de ficar sem acesso quando há muitas tentativas de login seguidas.</p>
+    <p style="margin:6px 0"><b>O que precisamos de Produtos:</b> <ul style="margin:4px 0"><li><b>Nada a decidir por enquanto — a QA seguiu a opção A que recomendou ao trio em 24/11 (sem resposta até 28/11):</b> a QA comprova pela tela que o sistema continua disponível sob as sequências de login; a troca e a limpeza automática do log, a redução do conteúdo gravado e o alerta de espaço em disco são configuração de servidor e ficam com o desenvolvimento/infraestrutura, que anexa no card a configuração aplicada (critério de troca, tempo de guarda, alerta). Se Produtos preferir a opção B (definir números e exigir a conferência no servidor), o plano ganha CTs; basta responder no card.</li></ul></p>
+  </div>
+
+  <h2>1. Identificação</h2>
+  <table>
+    <tr><th>Projeto / Módulo</th><td><b>CITNET</b> (corretores, assessorias e segurados), seguradora <b>AXA</b>, tela de login e acesso à aplicação. O chamado relata quedas recorrentes associadas a tentativas de acesso subsequentes e aponta o crescimento do arquivo de log como causa provável (hipótese, não comprovada no card).</td></tr><tr><th>Card</th><td>BUG-9196 — «[EXT]TECSD-46956 | Múltiplo acesso CITNET derrubando a aplicação do ar» · board Sustentação (CITWEB\Sustentacao CITWEB) · estado <b>Pronto para desenvolvimento</b> · tags AXA, Citnet e main · sem tarefas filhas · sem comentários de dev · sem evidências, tenant, ambiente ou versão informados · 7 critérios de aceite funcionais (e 5 técnicos de DoD).</td></tr><tr><th>Tasks de QA</th><td>#10101 [QA] Plano de teste — BUG #9196 (este plano; fecha na entrega). <b>Bug: sem aprovação de Produtos</b> — a execução começa assim que o card estiver em «Pronto para homologação» (ou Em homologação).</td></tr><tr><th>Ambiente</th><td>HML do CITNET da AXA (endereço no arquivo de ambiente do time). Produção e staging não entram: N/A. A versão exibida na tela é registrada no resultado de cada CT.</td></tr><tr><th>Autor / Data</th><td>Wesley Moreira · 28/11/2026 — v1.0</td></tr>
+  </table>
+
+  <h2>2. Descrição</h2>
+  <p>O card descreve uma <b>queda de disponibilidade</b> do CITNET quando chegam tentativas de acesso em sequência e pede que o log tenha rotação, retenção, menos conteúdo e alerta de disco. O que a QA consegue <b>observar no produto</b> é a disponibilidade: a tela de login, o login de um usuário legítimo e a navegação continuam respondendo durante e depois da sequência. O que fica no servidor (arquivo de log trocado e apagado, conteúdo gravado, alerta de espaço) não tem oráculo em tela nem em banco; segue a <b>premissa A</b> (DC1): o desenvolvimento/infraestrutura anexa no card a configuração aplicada e a QA confere a presença do anexo no DoD.</p><table><tr><th>Critério de aceite</th><th>CTs</th></tr><tr><td><b>CA1</b> — a aplicação permanece disponível e estável diante de tentativas de acesso subsequentes</td><td>CT-DSP-001 · CT-DSP-002 · CT-DSP-003 · CT-DSP-004</td></tr><tr><td><b>CA5</b> — a gravação do log não degrada a aplicação sob rajada de requisições</td><td>CT-DSP-002 · CT-DSP-003 (tempo de resposta medido durante a rajada)</td></tr><tr><td><b>CA7</b> — a capacidade de diagnóstico é preservada (na tela: mensagem de erro de login inalterada, sem detalhe técnico exposto)</td><td>CT-DSP-005 · CT-DSP-006</td></tr><tr><td>CA2, CA3, CA4, CA6 — rotação, retenção, redução do conteúdo e alerta de disco</td><td>— não geram CT: configuração de servidor (premissa A, DC1)</td></tr></table>
+  <div class="warn-box"><b>Verificação de DoR (28/11/2026).</b> Descrição, critérios de aceite e campo de informações do sistema lidos por inteiro; card sem tarefas filhas e sem comentários de desenvolvimento; o card não traz reprodução, evidência, tenant, ambiente, versão nem critério numérico de rotação/retenção (campos marcados como pendentes pelo próprio card). <b>Tags:</b> AXA e Citnet (sistema e seguradora identificados). Bug com contexto, cenário atual e desejado, usuário afetado; faltam ambiente e evidências, que a QA resolve por medição própria em HML. <b>Não é débito técnico:</b> há comportamento observável pelo usuário (aplicação indisponível). <b>Bug sem a tag DEFEITO e fora de vulnerabilidade:</b> segue o fluxo de Bug, com plano e sem aprovação de Produtos. A dúvida de escopo foi escalada ao trio em 24/11 e, sem resposta, segue a regra padrão A como premissa deste plano.</div>
+  
+  <div class="warn-box"><b>⛔ Pré-condição de execução (DoD do dev):</b> o card está em <b>Pronto para desenvolvimento</b> (o desenvolvimento ainda não começou). A execução acontece com o card liberado para a QA (Pronto para homologação ou Em homologação). Nesse momento a QA testa o que estiver no ambiente: passou = aprovado; falhou = reprovado com defeito para o desenvolvimento. Relato do desenvolvimento é insumo e não veredito.</div>
+  <h3>Decisões e inferências do QA (cada uma com a posição do QA; nenhuma trava a execução)</h3>
+  <table>
+    <tr><th>#</th><th>Tema</th><th>Posição do QA</th></tr>
+    <tr><td><b>DC1</b></td><td><b>Premissa A (escalada ao trio em 24/11, sem resposta até 28/11)</b></td><td><b>Posição do QA:</b> a QA comprova <b>disponibilidade sob sequência de logins</b> pela tela. Rotação, retenção, redução do conteúdo e alerta de espaço em disco são configuração de servidor sem oráculo em tela ou banco: o desenvolvimento/infraestrutura anexa no card a configuração aplicada (critério de troca, tempo de guarda, alerta) e a QA confere a presença do anexo. Se Produtos escolher a opção B, os números entram no plano e a conferência no servidor vira CT.</td></tr><tr><td><b>DC2</b></td><td><b>Tamanho da rajada (o card não informa volume)</b></td><td><b>Posição do QA:</b> três degraus controlados em HML — 30 tentativas inválidas em cerca de 30 s (CT-DSP-001), 150 em três ondas de 50 com intervalo de 20 s (CT-DSP-002) e 5 janelas simultâneas com 30 tentativas cada (CT-DSP-003). Cada degrau tem critério de parada: se a tela de login deixar de responder por mais de 60 s, o CT é interrompido e o fato registrado como observado. A QA não faz teste de carga além disso.</td></tr><tr><td><b>DC3</b></td><td><b>Usuário das tentativas</b></td><td><b>Posição do QA:</b> as tentativas usam um identificador inexistente criado só para o teste (nunca o usuário real de ninguém) para não bloquear conta; o usuário legítimo do CT-DSP-003 é um usuário próprio da QA. Massa e acesso são da QA, sem pergunta ao dev.</td></tr><tr><td><b>DC4</b></td><td><b>Intermitência e versão em teste</b></td><td>A QA testa o que está na homologação: passou = aprovado; falhou = REPROVADO com defeito. A versão da tela é só registrada. O CT-DSP-001 roda duas rodadas e o CT-DSP-004 confere a recuperação depois de 10 minutos.</td></tr>
+  </table>
+
+  <h2>3. Escopo</h2>
+  <h3>In scope</h3>
+  <ul><li>Tela de login do CITNET da AXA: resposta sob sequências controladas de tentativas inválidas (uma janela e várias janelas ao mesmo tempo).</li><li>Login e navegação de um usuário legítimo durante e depois das sequências; recuperação em até 10 minutos.</li><li>Mensagem de erro de login e ausência de informação técnica na tela.</li><li>Conferência documental no DoD: presença, no card, do anexo com a configuração de log aplicada pelo desenvolvimento/infraestrutura (premissa A).</li></ul>
+  <h3>Out of scope</h3>
+  <ul><li><b>Produção e staging</b> — a QA não testa em produção (N/A).</li><li><b>Arquivo de log, disco, CPU, memória e I/O do servidor</b>, rotação, retenção, redução de conteúdo e alerta de disco — sem oráculo em tela ou banco; ficam com desenvolvimento/infraestrutura (premissa A).</li><li><b>Causa raiz</b> e hipóteses do card (pool de conexões, bloqueio após N tentativas etc.) — o plano julga o comportamento na tela, não a implementação.</li><li>Critérios técnicos de DoD do card (testes unitários, Sonar, aprovadores de PR, homologação em RELEASE): garantidos por política de branch e DoD do dev, fora do plano.</li><li>Teste de carga, estresse ou desempenho além dos três degraus do plano; outras seguradoras.</li></ul>
+
+  <h2>4. Pré-requisitos e massa de dados</h2>
+  <div class="warn-box"><b>Plano de 28/11/2026:</b> nenhum CT foi executado e o card está em «Pronto para desenvolvimento». O card não informa reprodução, volume, tenant nem versão; os degraus de rajada são decisão da QA (DC2). O que a tela mostra de fato (texto da mensagem de erro, tempo de resposta, versão) é registrado na execução como observado. A QA não escreve dado de negócio no banco.</div>
+  <ul><li><b>Ambiente e acesso</b> — HML do CITNET da AXA (endereço no arquivo de ambiente do time). Pré-verificação do ambiente antes do 1º CT; servidor fora do ar antes de iniciar ≠ CT reprovado (interrompe sem veredito e retoma quando voltar). Queda <b>durante</b> a rajada é o objeto do teste e é registrada como observado.</li><li><b>⛔ DoD do dev — card em Pronto para homologação</b> — O card está em <b>Pronto para desenvolvimento</b>. A execução só começa com o card em <b>Pronto para homologação</b> (ou Em homologação); estados de desenvolvimento são espera legítima, sem veredito. <b>Bug: sem aprovação de Produtos.</b></li><li><b>Massa da QA</b> — Um usuário próprio da QA para o login legítimo (criado ou editado pela tela se faltar); um identificador inexistente para as tentativas inválidas (DC3). Valores no guia privado.</li><li><b>Ferramentas</b> — Script local (Playwright) com contextos separados de navegador; sondagem da tela de login a cada 2 s com tempo de resposta e status; captura por CT; imprime só o veredito e o caminho dos arquivos. Credencial nunca é impressa. Sessão do sistema pode degradar após cerca de 1 h e há limite de tentativas de login (429): registrar a ocorrência.</li><li><b>Evidência</b> — Por CT, no bloco do próprio CT e anexada ao card (nunca neste repositório público): captura da tela de login antes, durante e depois; tabela da sondagem (horário, status, tempo); captura do login legítimo e da navegação; mensagem de erro exata.</li></ul>
+  <h3>Navegação base e oráculos (NA, NB e O1)</h3>
+  <ol><li><b>N1 — Tela de login:</b> abrir o CITNET da AXA em HML pelo endereço de login (único acesso direto permitido); registrar versão exibida, captura e tempo de resposta inicial.</li><li><b>N2 — Tentativas inválidas:</b> na própria tela de login, preencher o identificador inexistente e uma senha qualquer e clicar em entrar, repetindo conforme o degrau do CT; registrar o texto exato da mensagem de cada resposta.</li><li><b>N3 — Sondagem:</b> um segundo contexto recarrega a tela de login a cada 2 s durante todo o degrau e até 60 s depois, registrando horário, status e tempo.</li><li><b>N4 — Usuário legítimo:</b> em contexto próprio, entrar com o usuário da QA por clique desde a tela de login, abrir um menu da aplicação (consulta) e sair, conferindo que cada passo responde.</li><li><b>N5 — Registro:</b> data/hora, versão exibida, texto exato das mensagens, tempos medidos e qualquer erro de servidor ou tela fora do ar, no resultado do CT.</li></ol>
+  <h3>Massa e valores de teste (registrar a data e o valor lido no resultado de cada CT)</h3>
+  <ul><li><b>Usuário legítimo da QA (CITNET AXA):</b> Usuário próprio da QA, com acesso a um menu de consulta; dados no guia privado; criado ou editado pela tela se faltar.</li><li><b>Identificador inexistente:</b> Valor sintético que não corresponde a nenhum usuário, usado nas tentativas inválidas para não bloquear conta de ninguém.</li></ul>
+  <h3>Ordem de execução</h3>
+  <ol><li>Pré-verificação do ambiente; registrar versão e tempo de resposta inicial da tela de login.</li><li>Grupo A (CT-DSP-001 e 002) → Grupo B (CT-DSP-003 e 004) → Grupo C (CT-DSP-005 a 007).</li><li>Cada degrau só começa se o anterior terminou com a aplicação respondendo; se a aplicação cair, o CT é interrompido, o fato é registrado e os degraus seguintes só rodam depois da recuperação medida.</li></ol>
+
+  <h2>5. Casos de Teste</h2>
+
+  <div class="group-header">Grupo A — Disponibilidade sob sequências de tentativas de login (CA1 e CA5)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-001</span><span class="ct-title">Rajada de 30 tentativas inválidas em cerca de 30 s: a tela de login continua respondendo durante e depois</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (disponibilidade sob tentativas de acesso subsequentes; duas rodadas)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Card em homologação. Pré-verificação do ambiente OK; identificador inexistente da QA (DC3). Segundo contexto de navegador para a sondagem (N3).</li></ul>
+      <h4>Passos</h4><ol><li>Registrar o estado inicial da tela de login e o tempo de resposta (N1).</li><li>Iniciar a sondagem (N3) e executar 30 tentativas inválidas em sequência em cerca de 30 s (N2); repetir a rodada depois de 2 minutos.</li><li>Até 60 s depois do fim da rodada, continuar a sondagem e capturar a tela de login.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Em <b>todas</b> as sondagens, durante e depois das duas rodadas, a tela de login responde (status de sucesso, página completa) com tempo de resposta sem degradação sustentada (nenhuma resposta acima de 10 s) e a aplicação não fica indisponível; cada tentativa inválida recebe a mesma mensagem de erro de credencial. Qualquer resposta de erro de servidor, tela fora do ar ou sondagem sem resposta = REPROVADO. Evidência: tabela da sondagem e capturas; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-001"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-002</span><span class="ct-title">Rajada de 150 tentativas inválidas em três ondas de 50 (intervalo de 20 s): a aplicação permanece disponível e sem degradação</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA5 (volume maior; tempo de resposta medido durante a rajada)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-DSP-001 concluído com a aplicação respondendo; mesma massa e sondagem.</li></ul>
+      <h4>Passos</h4><ol><li>Iniciar a sondagem (N3).</li><li>Executar três ondas de 50 tentativas inválidas, com 20 s entre as ondas (N2), registrando o texto de cada resposta.</li><li>Manter a sondagem por mais 2 minutos após a última onda e capturar a tela de login.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>A tela de login responde em todas as sondagens durante e depois das três ondas; o tempo de resposta não cresce de forma contínua de onda para onda (sem tendência de degradação) e nenhuma resposta passa de 10 s; nenhuma resposta de erro de servidor. Se a aplicação cair, o CT é REPROVADO com o horário da queda e o degrau em que ocorreu. Evidência: tabela da sondagem por onda e capturas; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-002"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo B — Usuário legítimo durante e depois da sequência (CA1 e CA7)</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-003</span><span class="ct-title">5 janelas simultâneas com 30 tentativas inválidas cada: um usuário legítimo consegue entrar, navegar e sair durante a rajada</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 e CA5 (concorrência; o usuário real não pode ser prejudicado)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-DSP-002 concluído com a aplicação respondendo; usuário legítimo da QA; 5 contextos de navegador para as tentativas e 1 para o usuário legítimo.</li></ul>
+      <h4>Passos</h4><ol><li>Nos 5 contextos, iniciar ao mesmo tempo 30 tentativas inválidas cada (N2), enquanto a sondagem (N3) corre.</li><li>No meio da rajada, em contexto próprio, entrar com o usuário legítimo por clique, abrir um menu de consulta e sair (N4).</li><li>Registrar o tempo de cada passo do usuário legítimo e capturar a tela ao final da rajada.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>O usuário legítimo <b>entra, abre o menu de consulta e sai</b> durante a rajada, cada passo respondendo em até 10 s; a sondagem não registra erro de servidor nem tela fora do ar. Login recusado a usuário válido, passo que não responde ou aplicação indisponível = REPROVADO. Evidência: capturas do usuário legítimo por passo e tabela da sondagem; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-003"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-004</span><span class="ct-title">Recuperação: 10 minutos depois da rajada a aplicação continua disponível e o login legítimo funciona normalmente</span><span class="badge prio bloqueante">P1</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA1 (estabilidade depois da rajada; a queda do chamado é recorrente)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CT-DSP-003 executado; passam 10 minutos sem novas tentativas.</li></ul>
+      <h4>Passos</h4><ol><li>Durante os 10 minutos, manter a sondagem (N3) a cada 2 s.</li><li>Ao fim, entrar com o usuário legítimo, abrir o menu de consulta e sair (N4) e capturar cada tela.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Durante os 10 minutos a tela de login responde em todas as sondagens e, ao fim, o login legítimo e a navegação funcionam como no estado inicial, sem mensagem de erro de servidor. Indisponibilidade em qualquer momento do período = REPROVADO. Evidência: tabela da sondagem e capturas finais; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-004"></div>
+    </div>
+  </div>
+  <div class="group-header">Grupo C — Regressão do login e exploratório</div>
+
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-005</span><span class="ct-title">Regressão: login válido, navegação e saída funcionam e a mensagem de credencial inválida é a mesma antes e depois das rajadas</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Regressão — CA7 (o comportamento visível do login não muda)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Usuário legítimo da QA; registro do texto exato da mensagem de erro no estado inicial (CT-DSP-001).</li></ul>
+      <h4>Passos</h4><ol><li>Entrar com o usuário legítimo, abrir um menu de consulta e sair (N4).</li><li>Tentar entrar com o identificador inexistente e registrar o texto exato da mensagem; comparar com o registrado no início.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Login válido, navegação e saída funcionam; a mensagem para credencial inválida é <b>idêntica</b> à registrada no início (mesmo texto e mesma tela). Mudança de texto ou comportamento do login = REPROVADO (ou, se a mudança for a política nova do card, registrada como observado e comparada com o legado/CA). Evidência: capturas e texto exato; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-005"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-006</span><span class="ct-title">Durante a rajada nenhuma resposta mostra informação técnica (detalhe de erro, caminho, versão de componente) na tela</span><span class="badge prio importante">P2</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Funcional — CA7 (diagnóstico fica no servidor, não na tela do usuário)</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>Respostas registradas nos CT-DSP-001 a 003.</li></ul>
+      <h4>Passos</h4><ol><li>Revisar as capturas e os textos de resposta de todas as tentativas registradas nos CTs anteriores.</li><li>Procurar mensagem de erro técnica, detalhe de exceção, caminho de arquivo ou página de erro padrão do servidor.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Todas as respostas mostram apenas a mensagem de credencial inválida da aplicação; nenhuma exibe detalhe de exceção, caminho, versão de componente ou página de erro padrão do servidor. Qualquer ocorrência = REPROVADO. Evidência: capturas revisadas e a lista conferida; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-006"></div>
+    </div>
+  </div>
+  <div class="ct-block"><div class="ct-head"><span class="ct-id">CT-DSP-007</span><span class="ct-title">Exploratório (NOR_QA_002 seção 11): 15 a 30 min guiados por risco</span><span class="badge prio desejavel">P3</span><span class="badge badge-pendente">PENDENTE</span><span class="ct-toggle">▶</span></div>
+    <div class="ct-body"><h4>Tipo</h4><ul><li>Exploratório</li></ul>
+      <h4>Pré-condições e massa</h4><ul><li>CTs formais executados. Massa dos CTs anteriores.</li></ul>
+      <h4>Passos</h4><ol><li>Rajada com identificador válido porém senha errada de um usuário descartável da QA (conferir se a conta bloqueia e se isso afeta outros usuários).</li><li>Rajada em outra tela pública do CITNET, se houver, e em horários diferentes; sessão legítima já aberta antes da rajada continuando a navegar.</li><li>Fechar e reabrir o navegador durante a rajada e conferir a recuperação.</li></ol>
+      <h4>Resultado esperado</h4><ul><li>Nenhuma das variações derruba ou degrada a aplicação nem afeta a sessão já aberta de outro usuário; o bloqueio de conta, se existir, atinge só o usuário descartável. O que divergir é registrado como observado. Sem ocorrências: comentar no card «Exploratório executado [data HML]. Sem ocorrências.» Evidência: capturas das ocorrências; anexos ao CT no card.</li></ul>
+      <h4>Resultado da execução</h4><ul><li><b>PENDENTE</b> — Bug: sem aprovação de Produtos; a execução começa assim que o card estiver em homologação e a correção estiver no ar. Evidência por CT: anexo do CT no card (nunca neste documento).</li></ul>
+      <div class="ev-section" id="ev-CT-DSP-007"></div>
+    </div>
+  </div>
+
+  <h2>6. Matriz de Rastreabilidade</h2>
+  <table>
+    <tr><th>Critério / origem</th><th>CT(s)</th><th>Resultado</th></tr>
+    <tr><td>CA1 — a aplicação permanece disponível e estável diante de tentativas de acesso subsequentes</td><td>CT-DSP-001 · CT-DSP-002 · CT-DSP-003 · CT-DSP-004</td><td>Pendente</td></tr><tr><td>CA5 — a gravação do log não degrada a aplicação sob rajada de requisições (observável: tempo de resposta e disponibilidade)</td><td>CT-DSP-002 · CT-DSP-003</td><td>Pendente</td></tr><tr><td>CA7 — capacidade de diagnóstico preservada (observável na tela: mensagem de erro inalterada e sem detalhe técnico)</td><td>CT-DSP-005 · CT-DSP-006</td><td>Pendente</td></tr><tr><td>Regressão do login e exploratório (NOR_QA_002 seção 11)</td><td>CT-DSP-005 · CT-DSP-007</td><td>Pendente</td></tr><tr><td>CA2 e CA3 — rotação automática e retenção/remoção dos arquivos de log</td><td>— não geram CT: configuração de servidor sem oráculo em tela/banco; premissa A (DC1): configuração anexada no card pelo dev/infra</td><td>N/A</td></tr><tr><td>CA4 — conteúdo gravado no log reduzido ao necessário</td><td>— não gera CT: conteúdo do log não é observável na tela; premissa A (DC1)</td><td>N/A</td></tr><tr><td>CA6 — alerta antes de o disco atingir o limite</td><td>— não gera CT: monitoramento de infraestrutura; premissa A (DC1)</td><td>N/A</td></tr><tr><td>Critérios técnicos de DoD (testes unitários, Sonar, PR com 2 aprovadores, homologação em RELEASE)</td><td>— não geram CT: garantidos por política de branch e DoD do dev</td><td>N/A</td></tr>
+  </table>
+
+  <p><b>Métricas e cobertura:</b> as métricas (total, P1/P2/P3, executados, aprovados, reprovados, bloqueados, pendentes e o que falta testar) ficam no <b>painel do topo</b>. Cobertura: dos 7 critérios funcionais do card, 3 têm oráculo observável na tela (disponibilidade, tempo de resposta e mensagem sem detalhe técnico) e viram 7 CTs (100% dos observáveis), com contraprova positiva (usuário legítimo entra e navega durante e depois da rajada), regressão do login e exploratório. Rotação, retenção, conteúdo do log e alerta de disco ficam fora por decisão do plano (princípio zero do QA: CT exige oráculo no produto) e seguem a premissa A, com a configuração anexada no card pelo dev/infra.</p>
+
+  <h2>7. Riscos</h2>
+  <table>
+    <tr><th>Risco</th><th>Probabilidade</th><th>Impacto</th><th>Mitigação</th></tr>
+    <tr><td>A rajada derruba o HML compartilhado e atrapalha outras pessoas</td><td>Média</td><td>Alta</td><td>Degraus controlados com critério de parada (DC2); identificador inexistente; sem teste de carga além do plano; queda registrada e execução retomada só depois da recuperação medida.</td></tr><tr><td>Limite de tentativas de login (429) ou bloqueio faz a rajada ser barrada antes de exercitar o problema</td><td>Média</td><td>Média</td><td>Registrar o status e o texto de cada resposta; a barreira de tentativas é comportamento observado, e a disponibilidade da tela continua sendo medida pela sondagem.</td></tr><tr><td>A causa da queda pode ser disco/log, que a QA não enxerga na tela</td><td>Alta</td><td>Média</td><td>Premissa A: configuração anexada no card por dev/infra e conferida no DoD; um HML que não cai sob a rajada não prova a correção em produção, e o resultado registra essa limitação.</td></tr><tr><td>Card sem reprodução, tenant ou versão</td><td>Alta</td><td>Média</td><td>Degraus e massa decididos pela QA (DC2 e DC3); versão exibida registrada em cada CT.</td></tr>
+  </table>
+
+  <p class="sub" style="margin-top:26px">Documento gerado por QA (Wesley Moreira) · versão 1.0 (28/11/2026) · Sprint 20 Sustentação · Bug sem aprovação de Produtos · execução com o card em homologação · evidências de execução: anexo por CT no card (nunca no repositório público).</p>
+</div>
+
+<div class="sig">Wesley Moreira</div>
+
+<script>
+document.querySelectorAll('.ct-head').forEach(h=>{
+  h.addEventListener('click',()=>h.closest('.ct-block').classList.toggle('expanded'));
+});
+</script>
+</body>
+</html>
